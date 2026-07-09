@@ -1,0 +1,6 @@
+{
+  "name": "TOMAT",
+  "description": "Tantangan Otak MATematika - Game RPG Edukasi",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
