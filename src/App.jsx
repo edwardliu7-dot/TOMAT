@@ -132,9 +132,12 @@ export default function App() {
     setHistory(h => [...h.slice(0, -1), 'taskresult'])
   }, [])
 
-  // Navigate function for TaskResultScreen (doesn't go through mode-select)
+  // Navigate function for TaskResultScreen (doesn't go through mode-select).
+  // Resets the stack instead of pushing, since taskresult is a terminal screen —
+  // leaving it stacked underneath would make the back button loop through
+  // stale result/mode-select screens instead of reaching the dashboard.
   const navigateTo = useCallback((route) => {
-    setHistory(h => [...h, route])
+    setHistory(route === 'home' ? ['home'] : ['home', route])
   }, [])
 
   // Render the current screen
