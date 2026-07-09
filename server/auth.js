@@ -4,7 +4,7 @@ import { pool } from './db.js'
 const router = express.Router()
 
 const KELAS_OPTIONS = [
-  'VII Ibnu Batutah', 'VII Al Khawarizmi',
+  'VII Ibnu Batutah',
   'VIII Ibnu Sina', 'IX Al Khawarizmi',
 ]
 

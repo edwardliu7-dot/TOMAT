@@ -3,7 +3,7 @@ import { useAuth } from '../AuthContext'
 import logo from '../assets/logo.png'
 
 const KELAS_OPTIONS = [
-  'VII Ibnu Batutah', 'VII Al Khawarizmi',
+  'VII Ibnu Batutah',
   'VIII Ibnu Sina', 'IX Al Khawarizmi',
 ]
 
