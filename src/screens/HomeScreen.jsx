@@ -17,17 +17,19 @@ const ZONE_DEFS = [
   },
   {
     id: 'grade8', grade: 8, label: 'Kelas 8', title: 'Zona Pejuang Abad Pertengahan', subtitle: 'Kerajaan Api',
-    emoji: '⚔️', missions: 0,
+    emoji: '⚔️', missions: 22,
     bg: 'linear-gradient(135deg, #2d1400, #4a1f00)',
-    accent: '#FDBA74', stats: 'Segera Hadir · Fungsi & Aljabar',
-    hasContent: false,
+    accent: '#FDBA74', stats: '22 Misi · Fungsi & Aljabar',
+    babs: ['BAB I: Bilangan Berpangkat', 'BAB II: Fungsi', 'BAB III: Persamaan Garis Lurus', 'BAB IV: SPLDV'],
+    hasContent: true,
   },
   {
     id: 'grade9', grade: 9, label: 'Kelas 9', title: 'Zona Penjelajah Luar Angkasa', subtitle: 'Antariksa',
-    emoji: '🚀', missions: 0,
+    emoji: '🚀', missions: 14,
     bg: 'linear-gradient(135deg, #0F172A, #1E293B)',
-    accent: '#34D399', stats: 'Segera Hadir · Geometri & Akar',
-    hasContent: false,
+    accent: '#34D399', stats: '14 Misi · Aljabar, Perpangkatan & Geometri',
+    babs: ['BAB I: Operasi Aljabar', 'BAB II: Bilangan Berpangkat', 'BAB III: Kesebangunan', 'BAB IV: Lingkaran'],
+    hasContent: true,
   },
 ]
 
