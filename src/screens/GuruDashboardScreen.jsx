@@ -7,6 +7,7 @@ function kelasToGrade(kelas) {
   return KELAS_PREFIX_TO_GRADE[kelas?.trim().split(' ')[0]] || null
 }
 import { TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
+import ProfileScreen from './ProfileScreen'
 
 async function apiCall(path, options = {}) {
   const res = await fetch(path, {
@@ -299,19 +300,24 @@ function KunciTab({ grades }) {
 export default function GuruDashboardScreen() {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('tugas')
+  const [view, setView] = useState('dashboard')
   const kelasDiampu = user?.kelas || []
   const grades = [...new Set(kelasDiampu.map(kelasToGrade).filter(Boolean))].sort()
+
+  if (view === 'profile') {
+    return <ProfileScreen goBack={() => setView('dashboard')} />
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#0F1115' }}>
       <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-          background: 'linear-gradient(135deg, #6366F1, #A855F7)',
+        <button onClick={() => setView('profile')} title="Profil" style={{
+          width: 44, height: 44, borderRadius: 12, flexShrink: 0, padding: 0, border: 'none', cursor: 'pointer',
+          background: user?.photoUrl ? `url(${user.photoUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #6366F1, #A855F7)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 18, fontWeight: 800, color: '#fff',
-        }}>{user?.name?.[0]?.toUpperCase()}</div>
-        <div style={{ flex: 1 }}>
+        }}>{!user?.photoUrl && user?.name?.[0]?.toUpperCase()}</button>
+        <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setView('profile')}>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{user?.name}</div>
           <div style={{ fontSize: 11, color: '#94A3B8' }}>Guru · {kelasDiampu.join(', ') || 'Belum ada kelas diampu'}</div>
         </div>

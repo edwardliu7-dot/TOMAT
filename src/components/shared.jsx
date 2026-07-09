@@ -15,18 +15,19 @@ export function TopBar({ title, onBack, accentColor = '#67E8F9' }) {
   )
 }
 
-export function PlayerHeader() {
+export function PlayerHeader({ onAvatarClick }) {
   const { player } = usePlayer()
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const expPct = Math.round((player.exp / player.maxExp) * 100)
   return (
     <div style={{ padding: '16px 20px 8px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-        background: 'linear-gradient(135deg, #6366F1, #A855F7)',
+      <button onClick={onAvatarClick} disabled={!onAvatarClick} style={{
+        width: 48, height: 48, borderRadius: 14, flexShrink: 0, padding: 0,
+        cursor: onAvatarClick ? 'pointer' : 'default',
+        background: user?.photoUrl ? `url(${user.photoUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #6366F1, #A855F7)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 20, fontWeight: 800, color: '#fff', border: '2px solid rgba(255,255,255,0.15)',
-      }}>{player.name[0].toUpperCase()}</div>
+      }}>{!user?.photoUrl && player.name[0].toUpperCase()}</button>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>Elite Explorer</div>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#E2E2E6' }}>{player.name}</div>

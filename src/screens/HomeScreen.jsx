@@ -47,7 +47,7 @@ export default function HomeScreen({ navigate }) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0F1115' }}>
-      <PlayerHeader />
+      <PlayerHeader onAvatarClick={() => navigate('profile')} />
 
       {/* Hero Banner */}
       <div style={{

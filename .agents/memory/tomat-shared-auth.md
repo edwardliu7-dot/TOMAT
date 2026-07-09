@@ -18,3 +18,9 @@ user data, and BLP Harian's schema was already fixed and in production use.
   must collect both even though they weren't originally asked for.
 - Session store uses `connect-pg-simple` pointed at the same Neon pool (table `tomat_sessions`)
   so sessions survive restarts; `SESSION_SECRET` is required (no insecure fallback).
+- Since `students`/`gurus` are shared with BLP Harian, any new profile fields (e.g. `photo_url`,
+  `bio` added via idempotent `alter table ... add column if not exists` in `ensureSchema`) become
+  visible to BLP Harian too — keep new columns nullable/optional so they don't break that app.
+- No file storage/multer configured — profile photos are stored as compressed base64 data URLs
+  directly in the `photo_url` text column (client-side canvas resize keeps them under the
+  server's enforced size cap before upload).

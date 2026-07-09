@@ -39,13 +39,19 @@ export function AuthProvider({ children }) {
     return data.user
   }, [])
 
+  const updateProfile = useCallback(async ({ photoUrl, bio }) => {
+    const data = await apiCall('/profile', { method: 'PUT', body: { photoUrl, bio } })
+    setUser(data.user)
+    return data.user
+  }, [])
+
   const logout = useCallback(async () => {
     await apiCall('/logout', { method: 'POST' })
     setUser(null)
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, checking, login, register, logout }}>
+    <AuthContext.Provider value={{ user, checking, login, register, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   )

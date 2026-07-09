@@ -15,8 +15,13 @@ function sanitizeUser(row, role) {
     name: row.name,
     role,
     kelas: role === 'siswa' ? row.kelas : row.kelas_diampu,
+    photoUrl: row.photo_url || null,
+    bio: row.bio || null,
   }
 }
+
+const MAX_PHOTO_BYTES = 800 * 1024 // ~800KB base64 data URL
+const MAX_BIO_LENGTH = 300
 
 // POST /api/auth/login  { role: 'siswa' | 'guru', username, password }
 router.post('/login', async (req, res) => {
@@ -125,6 +130,43 @@ router.get('/me', async (req, res) => {
   } catch (err) {
     console.error('me error', err)
     res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  }
+})
+
+// PUT /api/auth/profile  { photoUrl?, bio? }
+router.put('/profile', async (req, res) => {
+  try {
+    const session = req.session.user
+    if (!session) return res.status(401).json({ error: 'Belum login.' })
+
+    const { photoUrl, bio } = req.body || {}
+
+    if (photoUrl !== undefined && photoUrl !== null) {
+      if (typeof photoUrl !== 'string' || !photoUrl.startsWith('data:image/')) {
+        return res.status(400).json({ error: 'Format foto tidak valid.' })
+      }
+      if (photoUrl.length > MAX_PHOTO_BYTES) {
+        return res.status(400).json({ error: 'Ukuran foto terlalu besar. Gunakan foto yang lebih kecil.' })
+      }
+    }
+    if (bio !== undefined && bio !== null && bio.length > MAX_BIO_LENGTH) {
+      return res.status(400).json({ error: `Bio maksimal ${MAX_BIO_LENGTH} karakter.` })
+    }
+
+    const table = session.role === 'guru' ? 'gurus' : 'students'
+    const { rows } = await pool.query(
+      `update ${table} set
+        photo_url = coalesce($2, photo_url),
+        bio = coalesce($3, bio)
+       where id = $1 returning *`,
+      [session.id, photoUrl === undefined ? null : photoUrl, bio === undefined ? null : bio]
+    )
+    const user = rows[0]
+    if (!user) return res.status(404).json({ error: 'Pengguna tidak ditemukan.' })
+    res.json({ user: sanitizeUser(user, session.role) })
+  } catch (err) {
+    console.error('update profile error', err)
+    res.status(500).json({ error: 'Terjadi kesalahan server saat menyimpan profil.' })
   }
 })
 

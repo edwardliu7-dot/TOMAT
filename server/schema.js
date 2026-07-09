@@ -2,6 +2,12 @@ import { pool } from './db.js'
 
 export async function ensureSchema() {
   await pool.query(`
+    alter table students add column if not exists photo_url text;
+    alter table students add column if not exists bio text;
+    alter table gurus add column if not exists photo_url text;
+    alter table gurus add column if not exists bio text;
+  `)
+  await pool.query(`
     create table if not exists tugas (
       id serial primary key,
       guru_id text not null references gurus(id),

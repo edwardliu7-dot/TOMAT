@@ -16,7 +16,7 @@ if (!process.env.SESSION_SECRET) {
 
 async function createServer() {
   const app = express()
-  app.use(express.json())
+  app.use(express.json({ limit: '2mb' }))
   app.set('trust proxy', 1)
 
   const PgSession = connectPgSimple(session)

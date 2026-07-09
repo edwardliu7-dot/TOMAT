@@ -12,6 +12,7 @@ import Grade9ZoneScreen from './screens/Grade9ZoneScreen'
 import ModeSelectScreen from './screens/ModeSelectScreen'
 import TaskResultScreen from './screens/TaskResultScreen'
 import GradesScreen from './screens/GradesScreen'
+import ProfileScreen from './screens/ProfileScreen'
 import TaskOverlay from './components/TaskOverlay'
 
 // BAB I: Bilangan Bulat
@@ -255,6 +256,10 @@ export default function App() {
 
     if (current === 'grades') {
       return <GradesScreen goBack={goBack} navigate={navigate} />
+    }
+
+    if (current === 'profile') {
+      return <ProfileScreen goBack={goBack} />
     }
 
     if (GAME_ROUTES[current]) {
