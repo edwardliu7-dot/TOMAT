@@ -1,6 +1,7 @@
 import React from 'react'
 import { PlayerHeader } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { useTask } from '../TaskContext'
 
 const zones = [
   {
@@ -28,6 +29,8 @@ const zones = [
 
 export default function HomeScreen({ navigate }) {
   const { player } = usePlayer()
+  const { tasks, grades } = useTask()
+  const pendingTaskCount = tasks.filter(t => t.status === 'active').length
 
   return (
     <div style={{ minHeight: '100vh', background: '#0F1115' }}>
@@ -64,21 +67,52 @@ export default function HomeScreen({ navigate }) {
         </div>
       </div>
 
+      {/* Nilai Saya shortcut */}
+      <div style={{ padding: '16px 16px 0', display: 'flex', gap: 10 }}>
+        <button
+          onClick={() => navigate('grades')}
+          style={{
+            flex: 1, background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+            border: '1px solid rgba(167,139,250,0.3)', borderRadius: 16,
+            padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 12, position: 'relative',
+          }}
+        >
+          <div style={{ fontSize: 24 }}>📊</div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Nilai Akademik Saya</div>
+            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
+              {grades.length > 0 ? `${grades.length} nilai tersimpan` : 'Belum ada nilai'}
+            </div>
+          </div>
+          {pendingTaskCount > 0 && (
+            <div style={{
+              position: 'absolute', top: 10, right: 12,
+              background: '#EF4444', color: '#fff', borderRadius: 20,
+              fontSize: 11, fontWeight: 800, padding: '2px 8px',
+              minWidth: 20, textAlign: 'center',
+            }}>
+              {pendingTaskCount} tugas
+            </div>
+          )}
+        </button>
+      </div>
+
       {/* Zone Cards */}
-      <div style={{ padding: '20px 16px' }}>
+      <div style={{ padding: '16px 16px' }}>
         <div style={{ fontSize: 13, color: '#94A3B8', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14 }}>
           Pilih Zona Petualangan
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {zones.map(z => (
-            <div key={z.id} onClick={() => navigate(z.id)} style={{
+            <div key={z.id} onClick={() => !z.locked && navigate(z.id)} style={{
               background: z.bg, borderRadius: 20, padding: '20px',
-              border: `1px solid ${z.accent}33`, cursor: 'pointer',
+              border: `1px solid ${z.accent}33`, cursor: z.locked ? 'default' : 'pointer',
               transition: 'transform 0.15s, box-shadow 0.15s',
               position: 'relative', overflow: 'hidden',
               opacity: z.locked ? 0.65 : 1,
             }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 30px ${z.accent}22` }}
+              onMouseEnter={e => { if (!z.locked) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 30px ${z.accent}22` } }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
             >
               <div style={{ position: 'absolute', right: -10, top: -10, fontSize: 80, opacity: 0.15 }}>{z.emoji}</div>

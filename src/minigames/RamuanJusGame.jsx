@@ -35,7 +35,7 @@ export default function RamuanJusGame({ goBack }) {
   const submit = () => {
     const correct = sel1 === String(q.a1) && sel2 === String(q.a2)
     setFeedback(correct)
-    if (correct) { addCoins(60); addExp(120) }
+    if (correct) { addCoins(50); addExp(100) }
   }
 
   return (
@@ -98,7 +98,7 @@ export default function RamuanJusGame({ goBack }) {
           <>
             <FeedbackBanner
               message={feedback ? `✅ Jus sempurna! ${q.f1}: ${q.a1}, ${q.f2}: ${q.a2}` : `❌ Rasanya aneh! Benar: ${q.f1} ${q.a1}, ${q.f2} ${q.a2}`}
-              isCorrect={feedback} extras="+60 Koin | +120 EXP"
+              isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
             <Btn onClick={newQ} color="#0e7490">Ramuan Berikutnya ▶</Btn>
           </>
