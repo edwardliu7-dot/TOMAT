@@ -1,6 +1,8 @@
 import React, { useState, useCallback, Component } from 'react'
 import { PlayerProvider } from './PlayerContext'
 import { TaskProvider } from './TaskContext'
+import { useAuth } from './AuthContext'
+import LoginScreen from './screens/LoginScreen'
 import HomeScreen from './screens/HomeScreen'
 import Grade7ZoneScreen from './screens/Grade7ZoneScreen'
 import Grade8ZoneScreen from './screens/Grade8ZoneScreen'
@@ -88,6 +90,7 @@ const GAME_ROUTES = {
 const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen }
 
 export default function App() {
+  const { user, checking } = useAuth()
   const [history, setHistory] = useState(['home'])
   const [pendingGame, setPendingGame] = useState(null) // { key, name, emoji }
   const [lastGrade, setLastGrade] = useState(null)
@@ -166,6 +169,18 @@ export default function App() {
 
     const StaticScreen = STATIC_ROUTES[current] || HomeScreen
     return <StaticScreen navigate={navigate} goBack={goBack} />
+  }
+
+  if (checking) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0F1115', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
+        Memuat…
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <LoginScreen />
   }
 
   return (

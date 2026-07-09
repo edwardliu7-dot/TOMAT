@@ -1,5 +1,6 @@
 import React from 'react'
 import { usePlayer } from '../PlayerContext'
+import { useAuth } from '../AuthContext'
 
 export function TopBar({ title, onBack, accentColor = '#67E8F9' }) {
   return (
@@ -16,6 +17,7 @@ export function TopBar({ title, onBack, accentColor = '#67E8F9' }) {
 
 export function PlayerHeader() {
   const { player } = usePlayer()
+  const { logout } = useAuth()
   const expPct = Math.round((player.exp / player.maxExp) * 100)
   return (
     <div style={{ padding: '16px 20px 8px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
@@ -37,6 +39,10 @@ export function PlayerHeader() {
         <div style={{ fontSize: 20, fontWeight: 800, color: '#EAB308' }}>🪙 {player.coins}</div>
         <div style={{ fontSize: 12, color: '#94A3B8' }}>Lv {player.level}</div>
       </div>
+      <button onClick={logout} title="Keluar" style={{
+        background: 'rgba(255,255,255,0.06)', border: 'none', color: '#94A3B8',
+        width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 14, flexShrink: 0,
+      }}>⏻</button>
     </div>
   )
 }

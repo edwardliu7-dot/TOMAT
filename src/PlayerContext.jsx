@@ -1,15 +1,23 @@
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { useAuth } from './AuthContext'
 
 export const PlayerContext = createContext(null)
 
 export function PlayerProvider({ children }) {
+  const { user } = useAuth()
   const [player, setPlayer] = useState({
-    name: 'SiswaHebat',
+    name: user?.name || 'SiswaHebat',
     coins: 150,
     level: 5,
     exp: 250,
     maxExp: 500,
   })
+
+  useEffect(() => {
+    if (user?.name) {
+      setPlayer(p => ({ ...p, name: user.name }))
+    }
+  }, [user?.name])
 
   const addCoins = useCallback((amount) => {
     setPlayer(p => ({ ...p, coins: p.coins + amount }))

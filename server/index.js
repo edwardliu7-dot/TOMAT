@@ -1,0 +1,60 @@
+import express from 'express'
+import session from 'express-session'
+import connectPgSimple from 'connect-pg-simple'
+import authRouter from './auth.js'
+import { pool } from './db.js'
+
+const isProd = process.env.NODE_ENV === 'production'
+const PORT = process.env.PORT || 5000
+
+if (!process.env.SESSION_SECRET) {
+  throw new Error('SESSION_SECRET environment variable is required.')
+}
+
+async function createServer() {
+  const app = express()
+  app.use(express.json())
+  app.set('trust proxy', 1)
+
+  const PgSession = connectPgSimple(session)
+  app.use(session({
+    store: new PgSession({
+      pool,
+      tableName: 'tomat_sessions',
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isProd,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    },
+  }))
+
+  app.use('/api/auth', authRouter)
+
+  if (!isProd) {
+    const { createServer: createViteServer } = await import('vite')
+    const vite = await createViteServer({
+      server: { middlewareMode: true, host: '0.0.0.0', port: PORT, allowedHosts: true, hmr: { clientPort: 443 } },
+      appType: 'spa',
+    })
+    app.use(vite.middlewares)
+  } else {
+    const path = await import('node:path')
+    const distPath = path.resolve(process.cwd(), 'dist')
+    app.use(express.static(distPath))
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'))
+    })
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`TOMAT server running on port ${PORT}`)
+  })
+}
+
+createServer()
