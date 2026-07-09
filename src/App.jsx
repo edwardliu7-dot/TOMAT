@@ -40,6 +40,36 @@ import NakhodaGame from './minigames/ArsitekGame'
 import RelKeretaGame from './minigames/RelKeretaGame'
 import BrankasSandiGame from './minigames/HologramGame'
 
+// Grade 8: BAB I Pola Bilangan
+import G8TamengGame from './minigames/G8TamengGame'
+import G8BungaGame from './minigames/G8BungaGame'
+import G8JembatanBatuGame from './minigames/G8JembatanBatuGame'
+import G8RamalanGame from './minigames/G8RamalanGame'
+import G8DungeonGame from './minigames/G8DungeonGame'
+
+// Grade 8: BAB II Relasi dan Fungsi
+import G8RadarNagaGame from './minigames/G8RadarNagaGame'
+import G8MakcomblangGame from './minigames/G8MakcomblangGame'
+import G8GerbangSihirGame from './minigames/G8GerbangSihirGame'
+import G8PandaiBesiGame from './minigames/G8PandaiBesiGame'
+import G8MenaraGame from './minigames/G8MenaraGame'
+import G8DansaGame from './minigames/G8DansaGame'
+
+// Grade 8: BAB III Persamaan Garis Lurus
+import G8PetaKerajaanGame from './minigames/G8PetaKerajaanGame'
+import G8BalistaGame from './minigames/G8BalistaGame'
+import G8BukitNagaGame from './minigames/G8BukitNagaGame'
+import G8TembokBentengGame from './minigames/G8TembokBentengGame'
+import G8LogistikGame from './minigames/G8LogistikGame'
+import G8PertahananBerlapisGame from './minigames/G8PertahananBerlapisGame'
+
+// Grade 8: BAB IV Sistem Persamaan Linear Dua Variabel
+import G8TimbanganGame from './minigames/G8TimbanganGame'
+import G8PedagangMisteriusGame from './minigames/G8PedagangMisteriusGame'
+import G8PenyelamatanGame from './minigames/G8PenyelamatanGame'
+import G8TaktikPerangGame from './minigames/G8TaktikPerangGame'
+import G8PasarBarterKsatriaGame from './minigames/G8PasarBarterKsatriaGame'
+
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
@@ -87,6 +117,29 @@ const GAME_ROUTES = {
   nakhoda: { name: 'Nakhoda Kapal Penjelajah', emoji: '⚓', Component: NakhodaGame },
   relkereta: { name: 'Menyusun Rel Kereta Cepat', emoji: '🚄', Component: RelKeretaGame },
   brankas: { name: 'Peretas Brankas Sandi', emoji: '🔐', Component: BrankasSandiGame },
+
+  g8tameng: { name: 'Formasi Pasukan Tameng', emoji: '🛡️', Component: G8TamengGame },
+  g8bunga: { name: 'Teka-teki Hutan Bunga', emoji: '🌸', Component: G8BungaGame },
+  g8jembatanbatu: { name: 'Jembatan Batu Ajaib', emoji: '🌉', Component: G8JembatanBatuGame },
+  g8ramalan: { name: 'Ramalan Penyihir Agung', emoji: '🔮', Component: G8RamalanGame },
+  g8dungeon: { name: 'Sandi Pintu Dungeon', emoji: '🗝️', Component: G8DungeonGame },
+  g8radar: { name: 'Radar Naga Pengintai', emoji: '🐉', Component: G8RadarNagaGame },
+  g8makcomblang: { name: 'Makcomblang Desa', emoji: '💘', Component: G8MakcomblangGame },
+  g8gerbang: { name: 'Gerbang Seleksi Sihir', emoji: '🚪', Component: G8GerbangSihirGame },
+  g8pandaibesi: { name: 'Pabrik Senjata Pandai Besi', emoji: '🔨', Component: G8PandaiBesiGame },
+  g8menara: { name: 'Kombinasi Kunci Menara', emoji: '🗼', Component: G8MenaraGame },
+  g8dansa: { name: 'Pesta Dansa Kerajaan', emoji: '💃', Component: G8DansaGame },
+  g8petakerajaan: { name: 'Ahli Peta Kerajaan', emoji: '🗺️', Component: G8PetaKerajaanGame },
+  g8balista: { name: 'Pemanah Balista', emoji: '🏹', Component: G8BalistaGame },
+  g8bukitnaga: { name: 'Mendaki Bukit Naga', emoji: '🐲', Component: G8BukitNagaGame },
+  g8tembokbenteng: { name: 'Rancangan Tembok Benteng', emoji: '🧱', Component: G8TembokBentengGame },
+  g8logistik: { name: 'Jalur Suplai Logistik', emoji: '🚚', Component: G8LogistikGame },
+  g8pertahananberlapis: { name: 'Sistem Pertahanan Berlapis', emoji: '🛡️', Component: G8PertahananBerlapisGame },
+  g8timbangan: { name: 'Timbangan Emas dan Perak', emoji: '⚖️', Component: G8TimbanganGame },
+  g8pedagangmisterius: { name: 'Pedagang Misterius', emoji: '🧪', Component: G8PedagangMisteriusGame },
+  g8penyelamatan: { name: 'Misi Penyelamatan Ganda', emoji: '🆘', Component: G8PenyelamatanGame },
+  g8taktikperang: { name: 'Ahli Taktik Perang', emoji: '♟️', Component: G8TaktikPerangGame },
+  g8pasarbarter: { name: 'Pasar Barter Ksatria', emoji: '🛒', Component: G8PasarBarterKsatriaGame },
 }
 
 const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen }

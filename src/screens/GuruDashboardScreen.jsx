@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../AuthContext'
-import { GAMES_CATALOG, BAB_LABELS } from '../gamesCatalog'
+import { GAMES_CATALOG, GRADE_BAB_LABELS, getBabsForGrade } from '../gamesCatalog'
+
+const KELAS_PREFIX_TO_GRADE = { VII: 7, VIII: 8, IX: 9 }
+function kelasToGrade(kelas) {
+  return KELAS_PREFIX_TO_GRADE[kelas?.trim().split(' ')[0]] || null
+}
 import { TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 
 async function apiCall(path, options = {}) {
@@ -30,8 +35,19 @@ function TugasTab({ kelasDiampu }) {
   const [tugasList, setTugasList] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ kelas: kelasDiampu[0] || '', gameKey: GAMES_CATALOG[0]?.key || '', type: 'harian', totalQuestions: 5, dueAt: '' })
+  const initialKelas = kelasDiampu[0] || ''
+  const initialGames = GAMES_CATALOG.filter(g => g.grade === kelasToGrade(initialKelas))
+  const [form, setForm] = useState({ kelas: initialKelas, gameKey: initialGames[0]?.key || '', type: 'harian', totalQuestions: 5, dueAt: '' })
   const [submitting, setSubmitting] = useState(false)
+
+  const availableGames = GAMES_CATALOG.filter(g => g.grade === kelasToGrade(form.kelas))
+
+  useEffect(() => {
+    if (!availableGames.some(g => g.key === form.gameKey)) {
+      setForm(f => ({ ...f, gameKey: availableGames[0]?.key || '' }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.kelas])
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -92,7 +108,8 @@ function TugasTab({ kelasDiampu }) {
             {kelasDiampu.map(k => <option key={k} value={k}>{k}</option>)}
           </select>
           <select value={form.gameKey} onChange={e => setForm(f => ({ ...f, gameKey: e.target.value }))} style={inputStyle}>
-            {GAMES_CATALOG.map(g => <option key={g.key} value={g.key}>{g.emoji} {g.name} ({BAB_LABELS[g.bab]})</option>)}
+            {availableGames.length === 0 && <option value="">Tidak ada game untuk kelas ini</option>}
+            {availableGames.map(g => <option key={g.key} value={g.key}>{g.emoji} {g.name} ({GRADE_BAB_LABELS[g.grade]?.[g.bab] || g.bab})</option>)}
           </select>
           <div style={{ display: 'flex', gap: 10 }}>
             <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} style={{ ...inputStyle, flex: 1 }}>
@@ -257,11 +274,11 @@ function KunciTab({ grades }) {
         <div key={grade}>
           <div style={{ fontSize: 13, fontWeight: 800, color: '#A78BFA', marginBottom: 8 }}>Kelas {grade}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {['I', 'II', 'III'].map(bab => {
+            {getBabsForGrade(grade).map(bab => {
               const locked = isLocked(grade, bab)
               return (
                 <Section key={bab} style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{BAB_LABELS[bab]}</div>
+                  <div style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{GRADE_BAB_LABELS[grade]?.[bab] || bab}</div>
                   <button onClick={() => toggle(grade, bab)} style={{
                     background: locked ? 'rgba(239,68,68,0.15)' : 'rgba(52,211,153,0.15)',
                     color: locked ? '#F87171' : '#34D399', border: 'none', borderRadius: 20,
@@ -283,7 +300,7 @@ export default function GuruDashboardScreen() {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('tugas')
   const kelasDiampu = user?.kelas || []
-  const grades = [...new Set(kelasDiampu.map(k => ({ VII: 7, VIII: 8, IX: 9 }[k.trim().split(' ')[0]])).filter(Boolean))].sort()
+  const grades = [...new Set(kelasDiampu.map(kelasToGrade).filter(Boolean))].sort()
 
   return (
     <div style={{ minHeight: '100vh', background: '#0F1115' }}>
