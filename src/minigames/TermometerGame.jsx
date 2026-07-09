@@ -9,11 +9,19 @@ function genQ() {
   const change = rand(2, 12)
   const isRise = Math.random() < 0.5
   const answer = isRise ? start + change : start - change
-  return { start, change, isRise, answer }
+  // Dynamic range: cover both start and answer with ~8°C padding, snapped to nearest 5
+  const lo = Math.min(start, answer)
+  const hi = Math.max(start, answer)
+  const tempMin = Math.floor((lo - 8) / 5) * 5
+  const tempMax = Math.ceil((hi + 8) / 5) * 5
+  return { start, change, isRise, answer, tempMin, tempMax }
 }
 
-const TEMP_MIN = -20, TEMP_MAX = 20
-const MARKS = [-20, -15, -10, -5, 0, 5, 10, 15, 20]
+function genMarks(min, max) {
+  const marks = []
+  for (let t = min; t <= max; t += 5) marks.push(t)
+  return marks
+}
 
 export default function TermometerGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
@@ -28,7 +36,7 @@ export default function TermometerGame({ goBack }) {
     setSelected(prev => {
       const base = prev !== null ? prev : q.start
       const next = base + delta
-      return Math.max(TEMP_MIN, Math.min(TEMP_MAX, next))
+      return Math.max(q.tempMin, Math.min(q.tempMax, next))
     })
   }
 
@@ -40,7 +48,8 @@ export default function TermometerGame({ goBack }) {
   }
 
   const displayTemp = selected !== null ? selected : q.start
-  const fillPct = (t) => ((t - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * 100
+  const marks = genMarks(q.tempMin, q.tempMax)
+  const fillPct = (t) => ((t - q.tempMin) / (q.tempMax - q.tempMin)) * 100
   const studentFill = fillPct(selected !== null ? selected : q.start)
   const startFill = fillPct(q.start)
 
@@ -61,7 +70,7 @@ export default function TermometerGame({ goBack }) {
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, alignItems: 'stretch', marginBottom: 8 }}>
             {/* Scale labels */}
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 32, paddingTop: 4 }}>
-              {[...MARKS].reverse().map(m => (
+              {[...marks].reverse().map(m => (
                 <div key={m} style={{ fontSize: 11, color: m === 0 ? '#67E8F9' : '#94A3B8', fontWeight: m === 0 ? 700 : 400, textAlign: 'right', lineHeight: 1 }}>{m}°</div>
               ))}
             </div>
