@@ -3,6 +3,11 @@ import { pool } from './db.js'
 
 const router = express.Router()
 
+const KELAS_OPTIONS = [
+  'VII Ibnu Batutah', 'VII Al Khawarizmi',
+  'VIII Ibnu Sina', 'IX Al Khawarizmi',
+]
+
 function sanitizeUser(row, role) {
   return {
     id: row.id,
@@ -53,6 +58,20 @@ router.post('/register', async (req, res) => {
     if (role === 'siswa' && !kelas) {
       return res.status(400).json({ error: 'Kelas wajib diisi untuk siswa.' })
     }
+    if (role === 'siswa' && !KELAS_OPTIONS.includes(kelas)) {
+      return res.status(400).json({ error: 'Kelas tidak valid.' })
+    }
+    if (role === 'guru') {
+      const kelasList = Array.isArray(kelas) ? kelas : [kelas].filter(Boolean)
+      const cleaned = [...new Set(kelasList.map(k => typeof k === 'string' ? k.trim() : '').filter(Boolean))]
+      if (cleaned.length === 0) {
+        return res.status(400).json({ error: 'Pilih minimal satu kelas yang diampu.' })
+      }
+      if (cleaned.some(k => !KELAS_OPTIONS.includes(k))) {
+        return res.status(400).json({ error: 'Kelas yang diampu tidak valid.' })
+      }
+      req.body.kelas = cleaned
+    }
     if (role === 'siswa' && !email) {
       return res.status(400).json({ error: 'Email wajib diisi untuk siswa.' })
     }
@@ -69,10 +88,9 @@ router.post('/register', async (req, res) => {
 
     let user
     if (role === 'guru') {
-      const kelasDiampu = Array.isArray(kelas) ? kelas : [kelas].filter(Boolean)
       const { rows } = await pool.query(
         `insert into gurus (id, username, name, password, kelas_diampu, created_at) values ($1,$1,$2,$3,$4, now()) returning *`,
-        [id, name, password, kelasDiampu]
+        [id, name, password, req.body.kelas]
       )
       user = rows[0]
     } else {

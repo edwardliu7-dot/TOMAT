@@ -10,15 +10,28 @@ export default function LoginScreen() {
   const { login, register } = useAuth()
   const [role, setRole] = useState('siswa')
   const [mode, setMode] = useState('masuk') // masuk | daftar
-  const [form, setForm] = useState({ username: '', password: '', name: '', kelas: '', email: '', whatsapp: '' })
+  const [form, setForm] = useState({ username: '', password: '', name: '', kelas: '', kelasDiampu: [], email: '', whatsapp: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const update = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }))
 
+  const toggleKelasDiampu = (k) => {
+    setForm(f => ({
+      ...f,
+      kelasDiampu: f.kelasDiampu.includes(k)
+        ? f.kelasDiampu.filter(x => x !== k)
+        : [...f.kelasDiampu, k],
+    }))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    if (mode === 'daftar' && role === 'guru' && form.kelasDiampu.length === 0) {
+      setError('Pilih minimal satu kelas yang diampu.')
+      return
+    }
     setLoading(true)
     try {
       if (mode === 'masuk') {
@@ -26,7 +39,8 @@ export default function LoginScreen() {
       } else {
         await register({
           role, username: form.username, name: form.name, password: form.password,
-          kelas: form.kelas, email: form.email, whatsapp: form.whatsapp,
+          kelas: role === 'guru' ? form.kelasDiampu : form.kelas,
+          email: form.email, whatsapp: form.whatsapp,
         })
       }
     } catch (err) {
@@ -104,6 +118,35 @@ export default function LoginScreen() {
                   <option value="">Pilih kelas</option>
                   {KELAS_OPTIONS.map(k => <option key={k} value={k}>{k}</option>)}
                 </select>
+              </Field>
+            )}
+
+            {mode === 'daftar' && role === 'guru' && (
+              <Field label="Kelas yang Diampu">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {KELAS_OPTIONS.map(k => {
+                    const checked = form.kelasDiampu.includes(k)
+                    return (
+                      <label key={k} onClick={() => toggleKelasDiampu(k)} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                        background: '#0F1115', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 10, padding: '11px 14px', fontSize: 14, color: '#fff',
+                      }}>
+                        <span style={{
+                          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                          border: checked ? 'none' : '1px solid rgba(255,255,255,0.3)',
+                          background: checked ? '#22C55E' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          {checked && (
+                            <span style={{ color: '#0F1115', fontSize: 11, fontWeight: 900 }}>✓</span>
+                          )}
+                        </span>
+                        {k}
+                      </label>
+                    )
+                  })}
+                </div>
               </Field>
             )}
 
