@@ -2,3 +2,4 @@
 - [TOMAT fraction game data integrity](tomat-fraction-integrity.md) — hardcoded wrong-answer arrays must never include values equivalent to the correct answer (e.g. 2/6 ≡ 1/3); always verify before shipping.
 - [TOMAT shared auth with BLP Harian](tomat-shared-auth.md) — TOMAT logs in against BLP Harian's Neon `gurus`/`students` tables (plaintext passwords, NOT NULL email/whatsapp).
 - [TOMAT guru/siswa role split](tomat-guru-siswa-roles.md) — grade-access hierarchy, tugas/bab-lock scoping rules, server-authoritative nilai scoring.
+- [TOMAT profile photo pipeline](tomat-profile-photo.md) — crop-then-compress-to-1MB flow using react-easy-crop; profile data is shared live with BLP Harian via the same Neon tables, no sync code needed.
