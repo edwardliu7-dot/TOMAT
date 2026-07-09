@@ -2,7 +2,10 @@ import express from 'express'
 import session from 'express-session'
 import connectPgSimple from 'connect-pg-simple'
 import authRouter from './auth.js'
+import guruRouter from './guru.js'
+import siswaRouter from './siswa.js'
 import { pool } from './db.js'
+import { ensureSchema } from './schema.js'
 
 const isProd = process.env.NODE_ENV === 'production'
 const PORT = process.env.PORT || 5000
@@ -34,7 +37,11 @@ async function createServer() {
     },
   }))
 
+  await ensureSchema()
+
   app.use('/api/auth', authRouter)
+  app.use('/api/guru', guruRouter)
+  app.use('/api/siswa', siswaRouter)
 
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite')

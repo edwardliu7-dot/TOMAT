@@ -1,8 +1,10 @@
 import React, { useState, useCallback, Component } from 'react'
 import { PlayerProvider } from './PlayerContext'
 import { TaskProvider } from './TaskContext'
+import { BabLockProvider } from './BabLockContext'
 import { useAuth } from './AuthContext'
 import LoginScreen from './screens/LoginScreen'
+import GuruDashboardScreen from './screens/GuruDashboardScreen'
 import HomeScreen from './screens/HomeScreen'
 import Grade7ZoneScreen from './screens/Grade7ZoneScreen'
 import Grade8ZoneScreen from './screens/Grade8ZoneScreen'
@@ -183,16 +185,28 @@ export default function App() {
     return <LoginScreen />
   }
 
+  if (user.role === 'guru') {
+    return (
+      <div style={{ maxWidth: 640, margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
+        <ErrorBoundary onReset={() => {}}>
+          <GuruDashboardScreen />
+        </ErrorBoundary>
+      </div>
+    )
+  }
+
   return (
     <PlayerProvider>
       <TaskProvider onTaskComplete={handleTaskComplete}>
-        <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
-          <ErrorBoundary key={current} onReset={goBack}>
-            {renderScreen()}
-          </ErrorBoundary>
-          {/* Floating task progress strip — shown during any task session */}
-          <TaskOverlay />
-        </div>
+        <BabLockProvider>
+          <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
+            <ErrorBoundary key={current} onReset={goBack}>
+              {renderScreen()}
+            </ErrorBoundary>
+            {/* Floating task progress strip — shown during any task session */}
+            <TaskOverlay />
+          </div>
+        </BabLockProvider>
       </TaskProvider>
     </PlayerProvider>
   )

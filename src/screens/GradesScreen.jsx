@@ -26,7 +26,7 @@ function GradeCard({ grade }) {
           </span>
         </div>
         <div style={{ fontSize: 11, color: '#6B7280' }}>
-          {grade.correctCount}/{grade.totalQuestions} soal · {dateStr} · {grade.assignedBy}
+          {grade.correctCount}/{grade.totalQuestions} soal · {dateStr}
         </div>
       </div>
       <div style={{ textAlign: 'center', flexShrink: 0 }}>

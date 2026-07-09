@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react'
 import { PlayerContext } from './PlayerContext'
+import { useAuth } from './AuthContext'
 
 const TaskContext = createContext(null)
 
@@ -19,49 +20,46 @@ export const TYPE_ICONS = {
   sumatif: '🏆',
 }
 
-// Mock tasks pre-assigned by the teacher account
-const MOCK_TASKS = [
-  {
-    id: 'task-001',
-    gameKey: 'termometer',
-    gameName: 'Termometer Penyelamat',
-    gameEmoji: '🌡️',
-    totalQuestions: 5,
-    type: 'harian',
-    assignedAt: '2026-07-09',
-    dueAt: '2026-07-10',
-    assignedBy: 'Bu Sari',
-    status: 'active',
-  },
-  {
-    id: 'task-002',
-    gameKey: 'kokipizza',
-    gameName: 'Koki Pemotong Pizza',
-    gameEmoji: '🍕',
-    totalQuestions: 8,
-    type: 'formatif',
-    assignedAt: '2026-07-09',
-    dueAt: '2026-07-12',
-    assignedBy: 'Bu Sari',
-    status: 'active',
-  },
-  {
-    id: 'task-003',
-    gameKey: 'relkereta',
-    gameName: 'Menyusun Rel Kereta Cepat',
-    gameEmoji: '🚄',
-    totalQuestions: 10,
-    type: 'sumatif',
-    assignedAt: '2026-07-08',
-    dueAt: '2026-07-15',
-    assignedBy: 'Bu Sari',
-    status: 'active',
-  },
-]
+async function apiCall(path, options = {}) {
+  const res = await fetch(path, {
+    method: options.method || 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan.')
+  return data
+}
 
-function loadStorage(key, fallback) {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback }
-  catch { return fallback }
+// Map a server tugas row (snake_case) into the shape screens expect (camelCase).
+function mapTugas(row) {
+  return {
+    id: row.id,
+    gameKey: row.game_key,
+    gameName: row.game_name,
+    gameEmoji: row.game_emoji,
+    totalQuestions: row.total_questions,
+    type: row.type,
+    assignedAt: row.assigned_at,
+    dueAt: row.due_at,
+    kelas: row.kelas,
+    status: row.nilai ? 'completed' : row.status,
+  }
+}
+
+function mapNilai(row) {
+  return {
+    id: `nilai-${row.id}`,
+    taskId: row.tugas_id,
+    gameName: row.game_name,
+    gameEmoji: row.game_emoji,
+    type: row.type,
+    correctCount: row.correct_count,
+    totalQuestions: row.total_questions,
+    score: row.score,
+    completedAt: row.completed_at,
+  }
 }
 
 // TaskProvider must be placed INSIDE PlayerProvider so it can read PlayerContext.
@@ -69,9 +67,10 @@ function loadStorage(key, fallback) {
 // this means every game automatically reports correct answers without any game-file changes.
 export function TaskProvider({ children, onTaskComplete }) {
   const playerCtx = useContext(PlayerContext)
+  const { user } = useAuth()
 
-  const [tasks, setTasks] = useState(() => loadStorage('tomat_tasks', MOCK_TASKS))
-  const [grades, setGrades] = useState(() => loadStorage('tomat_grades', []))
+  const [tasks, setTasks] = useState([])
+  const [grades, setGrades] = useState([])
   // activeSession: { taskId, correctAnswers, totalQuestions, task } | null
   const [activeSession, setActiveSession] = useState(null)
 
@@ -81,9 +80,21 @@ export function TaskProvider({ children, onTaskComplete }) {
   const activeSessionRef = useRef(activeSession)
   useEffect(() => { activeSessionRef.current = activeSession }, [activeSession])
 
-  // Persist tasks and grades
-  useEffect(() => { try { localStorage.setItem('tomat_tasks', JSON.stringify(tasks)) } catch {} }, [tasks])
-  useEffect(() => { try { localStorage.setItem('tomat_grades', JSON.stringify(grades)) } catch {} }, [grades])
+  const refresh = useCallback(async () => {
+    if (!user || user.role !== 'siswa') return
+    try {
+      const [{ tugas }, { nilai }] = await Promise.all([
+        apiCall('/api/siswa/tugas'),
+        apiCall('/api/siswa/nilai'),
+      ])
+      setTasks(tugas.map(mapTugas))
+      setGrades(nilai.map(mapNilai))
+    } catch (err) {
+      console.error('Failed to load tasks/grades', err)
+    }
+  }, [user])
+
+  useEffect(() => { refresh() }, [refresh])
 
   const getTaskForGame = useCallback((gameKey) => {
     return tasks.find(t => t.gameKey === gameKey && t.status === 'active') ?? null
@@ -100,7 +111,7 @@ export function TaskProvider({ children, onTaskComplete }) {
   }, [])
 
   // Override addCoins: when a task session is active, track each correct answer (addCoins(50)).
-  // When all questions are answered, save the grade and fire onTaskComplete.
+  // When all questions are answered, submit the grade to the server and fire onTaskComplete.
   const addCoins = useCallback((amount) => {
     playerCtx.addCoins(amount)
     const session = activeSessionRef.current
@@ -108,23 +119,18 @@ export function TaskProvider({ children, onTaskComplete }) {
 
     const newCorrect = session.correctAnswers + 1
     if (newCorrect >= session.totalQuestions) {
-      const gradeRecord = {
-        id: `grade-${Date.now()}`,
-        taskId: session.taskId,
-        gameKey: session.task.gameKey,
-        gameName: session.task.gameName,
-        gameEmoji: session.task.gameEmoji,
-        type: session.task.type,
-        correctCount: newCorrect,
-        totalQuestions: session.totalQuestions,
-        score: Math.round((newCorrect / session.totalQuestions) * 100),
-        completedAt: new Date().toISOString(),
-        assignedBy: session.task.assignedBy,
-      }
-      setTasks(ts => ts.map(t => t.id === session.taskId ? { ...t, status: 'completed' } : t))
-      setGrades(gs => [...gs, gradeRecord])
       setActiveSession(null)
-      onTaskCompleteRef.current?.(gradeRecord)
+      apiCall('/api/siswa/nilai', {
+        method: 'POST',
+        body: { tugasId: session.taskId, correctCount: newCorrect },
+      }).then(({ nilai }) => {
+        const gradeRecord = { ...mapNilai({ ...nilai, game_name: session.task.gameName, game_emoji: session.task.gameEmoji, type: session.task.type }) }
+        setTasks(ts => ts.map(t => t.id === session.taskId ? { ...t, status: 'completed' } : t))
+        setGrades(gs => [...gs, gradeRecord])
+        onTaskCompleteRef.current?.(gradeRecord)
+      }).catch(err => {
+        console.error('Failed to submit grade', err)
+      })
     } else {
       setActiveSession(s => s ? { ...s, correctAnswers: newCorrect } : null)
     }
@@ -144,13 +150,7 @@ export function TaskProvider({ children, onTaskComplete }) {
     getTaskForGame,
     startTaskSession,
     endTaskSession,
-    // Dev helper to reset to initial state
-    resetDemo: () => {
-      setTasks(MOCK_TASKS)
-      setGrades([])
-      setActiveSession(null)
-      try { localStorage.removeItem('tomat_tasks'); localStorage.removeItem('tomat_grades') } catch {}
-    },
+    refresh,
   }
 
   return (

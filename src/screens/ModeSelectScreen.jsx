@@ -75,7 +75,7 @@ function TaskInfo({ task }) {
         </span>
       </div>
       <div style={{ fontSize: 12, color: '#6B7280' }}>
-        Ditugaskan oleh <span style={{ color: '#94A3B8', fontWeight: 700 }}>{task.assignedBy}</span>
+        Ditugaskan untuk kelasmu oleh guru
       </div>
     </div>
   )

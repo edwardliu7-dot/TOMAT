@@ -2,35 +2,45 @@ import React from 'react'
 import { PlayerHeader } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 import { useTask } from '../TaskContext'
+import { useAuth } from '../AuthContext'
+import { getAccessibleGrades } from '../kelasUtils'
 
-const zones = [
+const ZONE_DEFS = [
   {
-    id: 'grade7', label: 'Kelas 7', title: 'Zona Penjelajah Pemula', subtitle: 'Lautan Dalam',
+    id: 'grade7', grade: 7, label: 'Kelas 7', title: 'Zona Penjelajah Pemula', subtitle: 'Lautan Dalam',
     emoji: '🌊', missions: 20,
     bg: 'linear-gradient(135deg, #0A2647, #144272)',
     accent: '#67E8F9', stats: '20 Misi · Bilangan Bulat, Rasional & Rasio',
     babs: ['BAB I: Bilangan Bulat', 'BAB II: Bilangan Rasional', 'BAB III: Rasio'],
+    hasContent: true,
   },
   {
-    id: 'grade8', label: 'Kelas 8', title: 'Zona Pejuang Abad Pertengahan', subtitle: 'Kerajaan Api',
+    id: 'grade8', grade: 8, label: 'Kelas 8', title: 'Zona Pejuang Abad Pertengahan', subtitle: 'Kerajaan Api',
     emoji: '⚔️', missions: 0,
     bg: 'linear-gradient(135deg, #2d1400, #4a1f00)',
     accent: '#FDBA74', stats: 'Segera Hadir · Fungsi & Aljabar',
-    locked: true,
+    hasContent: false,
   },
   {
-    id: 'grade9', label: 'Kelas 9', title: 'Zona Penjelajah Luar Angkasa', subtitle: 'Antariksa',
+    id: 'grade9', grade: 9, label: 'Kelas 9', title: 'Zona Penjelajah Luar Angkasa', subtitle: 'Antariksa',
     emoji: '🚀', missions: 0,
     bg: 'linear-gradient(135deg, #0F172A, #1E293B)',
     accent: '#34D399', stats: 'Segera Hadir · Geometri & Akar',
-    locked: true,
+    hasContent: false,
   },
 ]
 
 export default function HomeScreen({ navigate }) {
   const { player } = usePlayer()
   const { tasks, grades } = useTask()
+  const { user } = useAuth()
+  const accessibleGrades = getAccessibleGrades(user?.kelas)
   const pendingTaskCount = tasks.filter(t => t.status === 'active').length
+
+  const zones = ZONE_DEFS.map(z => {
+    const accessible = accessibleGrades.includes(z.grade)
+    return { ...z, locked: !z.hasContent || !accessible, accessDenied: !accessible }
+  })
 
   return (
     <div style={{ minHeight: '100vh', background: '#0F1115' }}>
@@ -117,7 +127,11 @@ export default function HomeScreen({ navigate }) {
             >
               <div style={{ position: 'absolute', right: -10, top: -10, fontSize: 80, opacity: 0.15 }}>{z.emoji}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                {z.locked && <span style={{ background: `${z.accent}22`, color: z.accent, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, letterSpacing: 1 }}>🔒 SEGERA HADIR</span>}
+                {z.locked && (
+                  <span style={{ background: `${z.accent}22`, color: z.accent, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, letterSpacing: 1 }}>
+                    {z.accessDenied ? '🔒 BELUM TERBUKA' : '🔒 SEGERA HADIR'}
+                  </span>
+                )}
                 <div style={{ fontSize: 11, color: z.accent, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' }}>{z.label} · {z.subtitle}</div>
               </div>
               <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', fontStyle: 'italic', marginTop: 4 }}>{z.title}</div>

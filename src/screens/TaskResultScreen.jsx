@@ -119,7 +119,7 @@ export default function TaskResultScreen({ goBack, grade, navigateTo }) {
           </div>
 
           <div style={{ fontSize: 12, color: '#6B7280' }}>
-            Diselesaikan {dateStr}, {timeStr} · Ditugaskan oleh {grade.assignedBy}
+            Diselesaikan {dateStr}, {timeStr}
           </div>
         </div>
 
