@@ -45,7 +45,7 @@ function Confetti() {
   }, [])
 
   return (
-    <canvas ref={canvasRef} style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 480, height: '100%', pointerEvents: 'none', zIndex: 100 }} />
+    <canvas ref={canvasRef} style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 'var(--shell-max)', height: '100%', pointerEvents: 'none', zIndex: 100 }} />
   )
 }
 

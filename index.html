@@ -10,6 +10,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      :root { --shell-max: 480px; --shell-max-wide: 640px; }
+      @media (min-width: 640px) { :root { --shell-max: 600px; --shell-max-wide: 760px; } }
+      @media (min-width: 900px) { :root { --shell-max: 720px; --shell-max-wide: 920px; } }
+      @media (min-width: 1280px) { :root { --shell-max: 860px; --shell-max-wide: 1080px; } }
       body { font-family: 'Inter', sans-serif; background: #0F1115; color: #E2E2E6; min-height: 100vh; }
       #root { min-height: 100vh; }
       ::-webkit-scrollbar { width: 6px; }

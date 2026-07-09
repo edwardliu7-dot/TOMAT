@@ -20,7 +20,7 @@ export default function TaskOverlay() {
       left: '50%',
       transform: 'translateX(-50%)',
       width: '100%',
-      maxWidth: 480,
+      maxWidth: 'var(--shell-max)',
       zIndex: 999,
       pointerEvents: 'none',
     }}>

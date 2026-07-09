@@ -343,7 +343,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
         ))}
       </div>
 
-      <div style={{ padding: 16, maxWidth: 640, margin: '0 auto' }}>
+      <div style={{ padding: 16 }}>
         {tab === 'tugas' && <TugasTab kelasDiampu={kelasDiampu} />}
         {tab === 'nilai' && <NilaiTab />}
         {tab === 'siswa' && <SiswaTab />}

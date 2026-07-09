@@ -280,7 +280,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     <PlayerProvider>
       <TaskProvider onTaskComplete={handleTaskComplete}>
         <BabLockProvider>
-          <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
+          <div style={{ maxWidth: 'var(--shell-max)', margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
             <ErrorBoundary key={current} onReset={goBack}>
               {renderScreen()}
             </ErrorBoundary>
@@ -312,7 +312,7 @@ export default function App() {
   if (user.role === 'guru') {
     if (guruPracticeMode) {
       return (
-        <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
+        <div style={{ maxWidth: 'var(--shell-max)', margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
           <ErrorBoundary onReset={() => setGuruPracticeMode(false)}>
             <PlayerExperience guruMode onExitGuruMode={() => setGuruPracticeMode(false)} />
           </ErrorBoundary>
@@ -320,7 +320,7 @@ export default function App() {
       )
     }
     return (
-      <div style={{ maxWidth: 640, margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
+      <div style={{ maxWidth: 'var(--shell-max-wide)', margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
         <ErrorBoundary onReset={() => {}}>
           <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
         </ErrorBoundary>
