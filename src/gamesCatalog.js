@@ -45,6 +45,22 @@ export const GAMES_CATALOG = [
   { key: 'g8penyelamatan', name: 'Misi Penyelamatan Ganda', emoji: '🆘', bab: 'IV', grade: 8 },
   { key: 'g8taktikperang', name: 'Ahli Taktik Perang', emoji: '♟️', bab: 'IV', grade: 8 },
   { key: 'g8pasarbarter', name: 'Pasar Barter Ksatria', emoji: '🛒', bab: 'IV', grade: 8 },
+
+  // Grade 9
+  { key: 'g9kargo', name: 'Sortir Kargo Pesawat', emoji: '📦', bab: 'I', grade: 9 },
+  { key: 'g9reaktor', name: 'Transfer Energi Reaktor', emoji: '⚡', bab: 'I', grade: 9 },
+  { key: 'g9lambungkapal', name: 'Perluasan Lambung Kapal', emoji: '🚀', bab: 'I', grade: 9 },
+  { key: 'g9sinyalalien', name: 'Dekripsi Sinyal Alien', emoji: '📡', bab: 'I', grade: 9 },
+  { key: 'g9pipaoksigen', name: 'Kalibrasi Pipa Oksigen', emoji: '🫁', bab: 'I', grade: 9 },
+  { key: 'g9perdagangangalaksi', name: 'Misi Perdagangan Galaksi', emoji: '👽', bab: 'I', grade: 9 },
+  { key: 'g9mikroskop', name: 'Mikroskop Sub-Atomik', emoji: '🔬', bab: 'II', grade: 9 },
+  { key: 'g9wormhole', name: 'Generator Lubang Cacing', emoji: '🌀', bab: 'II', grade: 9 },
+  { key: 'g9tahuncahaya', name: 'Navigasi Tahun Cahaya', emoji: '🌌', bab: 'II', grade: 9 },
+  { key: 'g9cetakbiru', name: 'Cetak Biru Hologram', emoji: '🧊', bab: 'III', grade: 9 },
+  { key: 'g9bayanganmenara', name: 'Bayangan Menara Alien', emoji: '🗽', bab: 'III', grade: 9 },
+  { key: 'g9panelsurya', name: 'Perakitan Panel Surya Satelit', emoji: '🛰️', bab: 'III', grade: 9 },
+  { key: 'g9medangaya', name: 'Medan Gaya Pelindung', emoji: '🛡️', bab: 'IV', grade: 9 },
+  { key: 'g9sektorpemindai', name: 'Sektor Pemindai', emoji: '📡', bab: 'IV', grade: 9 },
 ]
 
 export const BAB_LABELS = {
@@ -66,6 +82,12 @@ export const GRADE_BAB_LABELS = {
     II: 'BAB II: Relasi dan Fungsi',
     III: 'BAB III: Persamaan Garis Lurus',
     IV: 'BAB IV: Sistem Persamaan Linear Dua Variabel',
+  },
+  9: {
+    I: 'BAB I: Operasi Aljabar',
+    II: 'BAB II: Bilangan Berpangkat dan Bentuk Akar',
+    III: 'BAB III: Kesebangunan',
+    IV: 'BAB IV: Lingkaran',
   },
 }
 

@@ -70,6 +70,28 @@ import G8PenyelamatanGame from './minigames/G8PenyelamatanGame'
 import G8TaktikPerangGame from './minigames/G8TaktikPerangGame'
 import G8PasarBarterKsatriaGame from './minigames/G8PasarBarterKsatriaGame'
 
+// Grade 9: BAB I Operasi Aljabar
+import G9KargoGame from './minigames/G9KargoGame'
+import G9ReaktorGame from './minigames/G9ReaktorGame'
+import G9LambungKapalGame from './minigames/G9LambungKapalGame'
+import G9SinyalAlienGame from './minigames/G9SinyalAlienGame'
+import G9PipaOksigenGame from './minigames/G9PipaOksigenGame'
+import G9PerdagangGalaksiGame from './minigames/G9PerdaganganGalaksiGame'
+
+// Grade 9: BAB II Bilangan Berpangkat dan Bentuk Akar
+import G9MikroskopGame from './minigames/G9MikroskopGame'
+import G9WormholeGame from './minigames/G9WormholeGame'
+import G9TahunCahayaGame from './minigames/G9TahunCahayaGame'
+
+// Grade 9: BAB III Kesebangunan
+import G9CetakBiruGame from './minigames/G9CetakBiruGame'
+import G9BayanganMenaraGame from './minigames/G9BayanganMenaraGame'
+import G9PanelSuryaGame from './minigames/G9PanelSuryaGame'
+
+// Grade 9: BAB IV Lingkaran
+import G9MedanGayaGame from './minigames/G9MedanGayaGame'
+import G9SektorPemindaiGame from './minigames/G9SektorPemindaiGame'
+
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
@@ -140,6 +162,21 @@ const GAME_ROUTES = {
   g8penyelamatan: { name: 'Misi Penyelamatan Ganda', emoji: '🆘', Component: G8PenyelamatanGame },
   g8taktikperang: { name: 'Ahli Taktik Perang', emoji: '♟️', Component: G8TaktikPerangGame },
   g8pasarbarter: { name: 'Pasar Barter Ksatria', emoji: '🛒', Component: G8PasarBarterKsatriaGame },
+
+  g9kargo: { name: 'Sortir Kargo Pesawat', emoji: '📦', Component: G9KargoGame },
+  g9reaktor: { name: 'Transfer Energi Reaktor', emoji: '⚡', Component: G9ReaktorGame },
+  g9lambungkapal: { name: 'Perluasan Lambung Kapal', emoji: '🚀', Component: G9LambungKapalGame },
+  g9sinyalalien: { name: 'Dekripsi Sinyal Alien', emoji: '📡', Component: G9SinyalAlienGame },
+  g9pipaoksigen: { name: 'Kalibrasi Pipa Oksigen', emoji: '🫁', Component: G9PipaOksigenGame },
+  g9perdagangangalaksi: { name: 'Misi Perdagangan Galaksi', emoji: '👽', Component: G9PerdagangGalaksiGame },
+  g9mikroskop: { name: 'Mikroskop Sub-Atomik', emoji: '🔬', Component: G9MikroskopGame },
+  g9wormhole: { name: 'Generator Lubang Cacing', emoji: '🌀', Component: G9WormholeGame },
+  g9tahuncahaya: { name: 'Navigasi Tahun Cahaya', emoji: '🌌', Component: G9TahunCahayaGame },
+  g9cetakbiru: { name: 'Cetak Biru Hologram', emoji: '🧊', Component: G9CetakBiruGame },
+  g9bayanganmenara: { name: 'Bayangan Menara Alien', emoji: '🗽', Component: G9BayanganMenaraGame },
+  g9panelsurya: { name: 'Perakitan Panel Surya Satelit', emoji: '🛰️', Component: G9PanelSuryaGame },
+  g9medangaya: { name: 'Medan Gaya Pelindung', emoji: '🛡️', Component: G9MedanGayaGame },
+  g9sektorpemindai: { name: 'Sektor Pemindai', emoji: '📡', Component: G9SektorPemindaiGame },
 }
 
 const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen }
