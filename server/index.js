@@ -47,7 +47,7 @@ async function createServer() {
     const path = await import('node:path')
     const distPath = path.resolve(process.cwd(), 'dist')
     app.use(express.static(distPath))
-    app.get('*', (req, res) => {
+    app.use((req, res) => {
       res.sendFile(path.join(distPath, 'index.html'))
     })
   }
