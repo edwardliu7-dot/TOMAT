@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
-import NumpadAnswer from '../components/NumpadAnswer'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function genQ() {
@@ -16,17 +15,14 @@ function genQ() {
 export default function G8BukitNagaGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
-  const [digits, setDigits] = useState('')
-  const [negative, setNegative] = useState(false)
+  const [val, setVal] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setDigits(''); setNegative(false); setFeedback(null) }, [])
-
-  const numericValue = digits === '' ? null : (negative ? -parseInt(digits, 10) : parseInt(digits, 10))
+  const newQ = useCallback(() => { setQ(genQ()); setVal(0); setFeedback(null) }, [])
 
   const confirm = () => {
-    if (feedback !== null || numericValue === null) return
-    const correct = numericValue === q.answer
+    if (feedback !== null) return
+    const correct = val === q.answer
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
@@ -37,22 +33,25 @@ export default function G8BukitNagaGame({ goBack }) {
       <TopBar title="🐲 Mendaki Bukit Naga" onBack={goBack} accentColor="#93C5FD" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(147,197,253,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#93C5FD', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            KEMIRINGAN TEBING
-          </div>
-          <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 1.7 }}>
-            Titik kaki tebing ({q.x1}, {q.y1}) dan titik puncak ({q.x2}, {q.y2}).
-          </div>
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
-            Hitung gradien (m) tebing tersebut!
+          <div style={{ textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
+            Tentukan gradien dari titik ({q.x1}, {q.y1}) ke ({q.x2}, {q.y2})!
           </div>
         </Card>
 
         {feedback === null && (
           <Card>
-            <NumpadAnswer digits={digits} setDigits={setDigits} negative={negative} setNegative={setNegative} allowNegative />
-            <div style={{ marginTop: 12 }}>
-              <Btn onClick={confirm} disabled={numericValue === null} color="#1d4ed8">Daki!</Btn>
+            <SliderInput 
+              value={val} 
+              min={-5} 
+              max={5} 
+              onChange={setVal} 
+              accentColor="#93C5FD"
+              leftLabel="Curam Turun"
+              rightLabel="Curam Naik"
+              markEvery={1}
+            />
+            <div style={{ marginTop: 24 }}>
+              <Btn onClick={confirm} color="#1d4ed8">Daki!</Btn>
             </div>
           </Card>
         )}

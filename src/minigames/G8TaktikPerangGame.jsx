@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
-import NumpadAnswer from '../components/NumpadAnswer'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function genQ() {
@@ -14,14 +13,14 @@ function genQ() {
 export default function G8TaktikPerangGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
-  const [digits, setDigits] = useState('')
+  const [val, setVal] = useState(5)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setDigits(''); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setVal(5); setFeedback(null) }, [])
 
   const confirm = () => {
-    if (feedback !== null || digits === '') return
-    const correct = parseInt(digits, 10) === q.answer
+    if (feedback !== null) return
+    const correct = val === q.answer
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
@@ -32,23 +31,27 @@ export default function G8TaktikPerangGame({ goBack }) {
       <TopBar title="♟️ Ahli Taktik Perang" onBack={goBack} accentColor="#FDE68A" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(253,230,138,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#FDE68A', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            LAPORAN MATA-MATA
+          <div style={{ fontSize: 14, color: '#fff', textAlign: 'center', lineHeight: 1.7, fontFamily: 'monospace' }}>
+            x + y = {q.eq1}<br />
+            x − y = {q.eq2}
           </div>
-          <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 1.7, fontFamily: 'monospace' }}>
-            x + y = {q.eq1} (total pasukan pemanah + kavaleri)<br />
-            x − y = {q.eq2} (selisih pemanah − kavaleri)
-          </div>
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
-            Gunakan substitusi atau eliminasi. Berapa jumlah pasukan pemanah (x)?
+          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 14, color: '#FDE68A', fontWeight: 700 }}>
+            Berapa jumlah pasukan pemanah (x)?
           </div>
         </Card>
 
         {feedback === null && (
           <Card>
-            <NumpadAnswer digits={digits} setDigits={setDigits} negative={false} setNegative={() => {}} allowNegative={false} />
-            <div style={{ marginTop: 12 }}>
-              <Btn onClick={confirm} disabled={digits === ''} color="#b45309">Serang!</Btn>
+            <SliderInput 
+              value={val} 
+              min={0} 
+              max={15} 
+              onChange={setVal} 
+              accentColor="#FDE68A"
+              markEvery={1}
+            />
+            <div style={{ marginTop: 24 }}>
+              <Btn onClick={confirm} color="#b45309">Serang!</Btn>
             </div>
           </Card>
         )}

@@ -1,24 +1,30 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, OptionGrid } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DragMatch } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function genQ() {
   const canMatch = Math.random() < 0.5
   const n = 3 + Math.floor(Math.random() * 4)
   const m = canMatch ? n : n + 1 + Math.floor(Math.random() * 2)
-  return { n, m, answer: canMatch ? 'Bisa' : 'Tidak Bisa', options: ['Bisa', 'Tidak Bisa'] }
+  const items = [
+    { id: 'y', label: 'Bisa' },
+    { id: 'n', label: 'Tidak Bisa' }
+  ]
+  const slot = { id: 'match', answerId: canMatch ? 'y' : 'n' }
+  return { n, m, items, slot }
 }
 
 export default function G8DansaGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
+  const [placed, setPlaced] = useState({})
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setPlaced({}); setFeedback(null) }, [])
 
-  const choose = (opt) => {
-    if (feedback !== null) return
-    const correct = opt === q.answer
+  const confirm = () => {
+    if (placed.match === undefined) return
+    const correct = placed.match === q.slot.answerId
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
@@ -29,22 +35,30 @@ export default function G8DansaGame({ goBack }) {
       <TopBar title="💃 Pesta Dansa Kerajaan" onBack={goBack} accentColor="#FDBA74" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(253,186,116,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#FDBA74', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            PASANGAN DANSA KERAJAAN
-          </div>
-          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', lineHeight: 1.7 }}>
-            Ada <strong style={{ color: '#fff' }}>🤺 {q.n} ksatria</strong> dan <strong style={{ color: '#fff' }}>👸 {q.m} putri</strong>.
-          </div>
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
-            Bisakah dibentuk korespondensi satu-satu (setiap ksatria dapat tepat satu pasangan, tanpa sisa)?
+          <div style={{ textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
+            Ada 🤺 {q.n} ksatria dan 👸 {q.m} putri. Bisakah dibentuk korespondensi satu-satu?
           </div>
         </Card>
 
-        <OptionGrid options={q.options} onSelect={choose} correct={feedback !== null ? q.answer : null} disabled={feedback !== null} cols={2} />
+        {feedback === null && (
+          <Card>
+            <DragMatch
+              items={q.items}
+              slots={[q.slot]}
+              placed={placed}
+              onPlace={(slotId, itemId) => setPlaced({ [slotId]: itemId })}
+              accentColor="#FDBA74"
+              renderSlot={() => <span style={{ color: '#94A3B8', fontSize: 14 }}>Tarik Jawaban Disini</span>}
+            />
+            <div style={{ marginTop: 20 }}>
+              <Btn onClick={confirm} disabled={placed.match === undefined} color="#c2410c">Konfirmasi!</Btn>
+            </div>
+          </Card>
+        )}
 
         {feedback !== null && (
           <>
-            <FeedbackBanner message={feedback ? `✅ Tepat sekali!` : `❌ Kurang tepat. Jawaban yang benar: ${q.answer}`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
+            <FeedbackBanner message={feedback ? `✅ Tepat sekali!` : `❌ Kurang tepat.`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
             <Btn onClick={newQ} color="#0e7490">Misi Berikutnya ▶</Btn>
           </>
         )}

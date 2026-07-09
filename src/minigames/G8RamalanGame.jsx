@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
-import NumpadAnswer from '../components/NumpadAnswer'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function genQ() {
@@ -14,14 +13,14 @@ function genQ() {
 export default function G8RamalanGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
-  const [digits, setDigits] = useState('')
+  const [val, setVal] = useState(30)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setDigits(''); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setVal(30); setFeedback(null) }, [])
 
   const confirm = () => {
-    if (feedback !== null || digits === '') return
-    const correct = parseInt(digits, 10) === q.answer
+    if (feedback !== null) return
+    const correct = val === q.answer
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
@@ -32,23 +31,26 @@ export default function G8RamalanGame({ goBack }) {
       <TopBar title="🔮 Ramalan Penyihir Agung" onBack={goBack} accentColor="#FCA5A5" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(252,165,165,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#FCA5A5', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            BOLA KRISTAL RAMALAN
+          <div style={{ fontSize: 13, color: '#fff', textAlign: 'center', lineHeight: 1.7 }}>
+            Awal: {q.a} monster. Gelombang berikutnya bertambah {q.b}.
           </div>
-          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', lineHeight: 1.7 }}>
-            Gelombang pertama monster berjumlah <strong style={{ color: '#fff' }}>{q.a}</strong>.<br />
-            Setiap gelombang berikutnya bertambah <strong style={{ color: '#fff' }}>{q.b}</strong> monster (Uₙ = a + (n−1)b).
-          </div>
-          <div style={{ marginTop: 16, textAlign: 'center', fontSize: 15, color: '#FCA5A5', fontWeight: 800 }}>
+          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 15, color: '#FCA5A5', fontWeight: 800 }}>
             Berapa jumlah monster pada gelombang ke-{q.n}?
           </div>
         </Card>
 
         {feedback === null && (
           <Card>
-            <NumpadAnswer digits={digits} setDigits={setDigits} negative={false} setNegative={() => {}} allowNegative={false} />
-            <div style={{ marginTop: 12 }}>
-              <Btn onClick={confirm} disabled={digits === ''} color="#dc2626">Ramalkan!</Btn>
+            <SliderInput 
+              value={val} 
+              min={10} 
+              max={100} 
+              onChange={setVal} 
+              accentColor="#FCA5A5"
+              markEvery={10}
+            />
+            <div style={{ marginTop: 24 }}>
+              <Btn onClick={confirm} color="#dc2626">Ramalkan!</Btn>
             </div>
           </Card>
         )}

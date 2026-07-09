@@ -1,37 +1,34 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, OptionGrid } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DragMatch } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
-
-function shuffle(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
-  return a
-}
 
 function genQ() {
   const a = 1 + Math.floor(Math.random() * 6)
   const b = 1 + Math.floor(Math.random() * 6)
   const sum = a + b
-  const answer = `${sum}/x`
-  const distractors = new Set([`${sum + 1}/x`, `${a - b}/x`, `${sum}/x²`])
-  distractors.delete(answer)
-  while (distractors.size < 3) distractors.add(`${sum + distractors.size + 2}/x`)
-  const options = shuffle([answer, ...distractors])
-  return { a, b, answer, options }
+  const items = [
+    { id: 'ans', label: sum.toString() },
+    { id: 'd1', label: (sum + 1).toString() },
+    { id: 'd2', label: (a - b).toString() },
+    { id: 'd3', label: (sum + 2).toString() },
+  ].sort(() => Math.random() - 0.5)
+  return { a, b, sum, items }
 }
 
 export default function G9PipaOksigenGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
+  const [placed, setPlaced] = useState({})
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setPlaced({}); setFeedback(null) }, [])
 
-  const choose = (opt) => {
-    if (feedback !== null) return
-    const correct = opt === q.answer
-    setFeedback(correct)
-    if (correct) { addCoins(50); addExp(100) }
+  const handlePlace = (slotId, itemId) => {
+    const it = q.items.find(i => i.id === itemId)
+    setPlaced({ [slotId]: itemId })
+    const isCorrect = parseInt(it.label) === q.sum
+    setFeedback(isCorrect)
+    if (isCorrect) { addCoins(50); addExp(100) }
   }
 
   return (
@@ -40,22 +37,28 @@ export default function G9PipaOksigenGame({ goBack }) {
       <TopBar title="🫁 Kalibrasi Pipa Oksigen" onBack={goBack} accentColor="#67E8F9" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            SAMBUNGKAN PIPA OKSIGEN
-          </div>
-          <div style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: '#fff', fontFamily: 'monospace', marginBottom: 10 }}>
+          <div style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
             {q.a}/x + {q.b}/x
           </div>
-          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center' }}>
-            Kedua pipa berpenyebut sama (x). Sederhanakan pecahan aljabar ini agar udara mengalir ke kabin!
+          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginTop: 8 }}>
+            Sederhanakan pecahan aljabar untuk mengalirkan udara!
           </div>
         </Card>
 
-        <OptionGrid options={q.options} onSelect={choose} correct={feedback !== null ? q.answer : null} disabled={feedback !== null} cols={2} />
+        <DragMatch
+          items={q.items}
+          slots={[{ id: 'num' }]}
+          placed={placed}
+          onPlace={handlePlace}
+          disabled={feedback !== null}
+          accentColor="#67E8F9"
+          renderSlot={() => <span style={{ color: '#67E8F9', fontSize: 20 }}>?</span>}
+          renderChip={(it) => <span style={{ color: '#fff', fontWeight: 800 }}>{it.label}/x</span>}
+        />
 
         {feedback !== null && (
           <>
-            <FeedbackBanner message={feedback ? `✅ Oksigen mengalir lancar!` : `❌ Kurang tepat. Jawaban yang benar: ${q.answer}`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
+            <FeedbackBanner message={feedback ? `✅ Oksigen mengalir lancar!` : `❌ Salah. Jawaban: ${q.sum}/x`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
             <Btn onClick={newQ} color="#0e7490">Misi Berikutnya ▶</Btn>
           </>
         )}

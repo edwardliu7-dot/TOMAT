@@ -44,14 +44,11 @@ export default function G9TahunCahayaGame({ goBack }) {
       <TopBar title="🌌 Navigasi Tahun Cahaya" onBack={goBack} accentColor="#C4B5FD" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(196,181,253,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#C4B5FD', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            HITUNG JARAK ANTAR TATA SURYA
-          </div>
-          <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 900, color: '#fff', fontFamily: 'monospace', marginBottom: 10 }}>
+          <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
             ({q.m1} × 10^{q.e1}) × ({q.m2} × 10^{q.e2})
           </div>
-          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center' }}>
-            Kalikan dalam notasi ilmiah agar pesawat tidak kehabisan bahan bakar!
+          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginTop: 8 }}>
+            Kalikan dalam notasi ilmiah!
           </div>
         </Card>
 
@@ -59,7 +56,7 @@ export default function G9TahunCahayaGame({ goBack }) {
 
         {feedback !== null && (
           <>
-            <FeedbackBanner message={feedback ? `✅ Navigasi tepat!` : `❌ Kurang tepat. Jawaban yang benar: ${q.answer}`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
+            <FeedbackBanner message={feedback ? `✅ Navigasi tepat!` : `❌ Salah. Jawaban: ${q.answer}`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
             <Btn onClick={newQ} color="#0e7490">Misi Berikutnya ▶</Btn>
           </>
         )}

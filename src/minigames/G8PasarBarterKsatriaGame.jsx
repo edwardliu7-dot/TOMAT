@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
-import NumpadAnswer from '../components/NumpadAnswer'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function genQ() {
@@ -14,14 +13,14 @@ function genQ() {
 export default function G8PasarBarterKsatriaGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
-  const [digits, setDigits] = useState('')
+  const [val, setVal] = useState(15)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setDigits(''); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setVal(15); setFeedback(null) }, [])
 
   const confirm = () => {
-    if (feedback !== null || digits === '') return
-    const correct = parseInt(digits, 10) === q.answer
+    if (feedback !== null) return
+    const correct = val === q.answer
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
@@ -32,23 +31,25 @@ export default function G8PasarBarterKsatriaGame({ goBack }) {
       <TopBar title="🛒 Pasar Barter Ksatria" onBack={goBack} accentColor="#FDE68A" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(253,230,138,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#FDE68A', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            PASAR HANYA MENJUAL PAKET
-          </div>
-          <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 1.7 }}>
-            2 pedang + 1 perisai = <strong style={{ color: '#fff' }}>{q.total1}</strong> koin.<br />
-            1 pedang + 2 perisai = <strong style={{ color: '#fff' }}>{q.total2}</strong> koin.
-          </div>
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
-            Berapa harga satuan 1 pedang (x)?
+          <div style={{ fontSize: 14, color: '#fff', textAlign: 'center', lineHeight: 1.7 }}>
+            2⚔️ + 1🛡️ = {q.total1}🪙<br />
+            1⚔️ + 2🛡️ = {q.total2}🪙<br />
+            Berapa harga 1⚔️?
           </div>
         </Card>
 
         {feedback === null && (
           <Card>
-            <NumpadAnswer digits={digits} setDigits={setDigits} negative={false} setNegative={() => {}} allowNegative={false} />
-            <div style={{ marginTop: 12 }}>
-              <Btn onClick={confirm} disabled={digits === ''} color="#b45309">Tawar!</Btn>
+            <SliderInput 
+              value={val} 
+              min={5} 
+              max={40} 
+              onChange={setVal} 
+              accentColor="#FDE68A"
+              unit="🪙"
+            />
+            <div style={{ marginTop: 24 }}>
+              <Btn onClick={confirm} color="#b45309">Tawar!</Btn>
             </div>
           </Card>
         )}

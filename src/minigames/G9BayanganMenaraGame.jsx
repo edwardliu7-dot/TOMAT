@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
-import NumpadAnswer from '../components/NumpadAnswer'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function genQ() {
@@ -15,14 +14,14 @@ function genQ() {
 export default function G9BayanganMenaraGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
-  const [digits, setDigits] = useState('')
+  const [val, setVal] = useState(1)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setDigits(''); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setVal(1); setFeedback(null) }, [])
 
   const confirm = () => {
-    if (feedback !== null || digits === '') return
-    const correct = parseInt(digits, 10) === q.answer
+    if (feedback !== null) return
+    const correct = val === q.answer
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
@@ -33,30 +32,32 @@ export default function G9BayanganMenaraGame({ goBack }) {
       <TopBar title="🗽 Bayangan Menara Alien" onBack={goBack} accentColor="#86EFAC" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(134,239,172,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#86EFAC', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            MENGUKUR MENARA KOMUNIKASI ALIEN
-          </div>
           <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 1.8 }}>
-            Tinggi pesawat <strong style={{ color: '#fff' }}>{q.h1} m</strong> memiliki bayangan <strong style={{ color: '#fff' }}>{q.s1} m</strong>.<br />
-            Pada saat bersamaan, bayangan menara sepanjang <strong style={{ color: '#fff' }}>{q.s2} m</strong>.
+            Pesawat (tinggi {q.h1}m) berbayang {q.s1}m.<br />
+            Menara memiliki bayangan sepanjang {q.s2}m.
           </div>
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
-            Berapa tinggi menara komunikasi alien tersebut?
+          <div style={{ marginTop: 8, textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
+            Berapa tinggi menara komunikasi alien?
           </div>
         </Card>
 
         {feedback === null && (
           <Card>
-            <NumpadAnswer digits={digits} setDigits={setDigits} negative={false} setNegative={() => {}} allowNegative={false} />
+            <SliderInput
+              value={val} min={1} max={60} step={1}
+              onChange={setVal}
+              accentColor="#86EFAC" unit=" m"
+              leftLabel="1m" rightLabel="60m"
+            />
             <div style={{ marginTop: 12 }}>
-              <Btn onClick={confirm} disabled={digits === ''} color="#16a34a">Ukur!</Btn>
+              <Btn onClick={confirm} color="#16a34a">Ukur!</Btn>
             </div>
           </Card>
         )}
 
         {feedback !== null && (
           <>
-            <FeedbackBanner message={feedback ? `✅ Benar! Tinggi menara = ${q.answer} m` : `❌ Kurang tepat. Tinggi yang benar = ${q.answer} m`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
+            <FeedbackBanner message={feedback ? `✅ Benar! Tinggi menara = ${q.answer} m` : `❌ Salah. Tinggi yang benar = ${q.answer} m`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
             <Btn onClick={newQ} color="#0e7490">Misi Berikutnya ▶</Btn>
           </>
         )}

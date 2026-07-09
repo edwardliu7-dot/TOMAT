@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
-import NumpadAnswer from '../components/NumpadAnswer'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function genQ() {
@@ -14,14 +13,14 @@ function genQ() {
 export default function G8LogistikGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
-  const [digits, setDigits] = useState('')
+  const [val, setVal] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setDigits(''); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setVal(0); setFeedback(null) }, [])
 
   const confirm = () => {
-    if (feedback !== null || digits === '') return
-    const correct = parseInt(digits, 10) === q.answer
+    if (feedback !== null) return
+    const correct = val === q.answer
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
@@ -32,22 +31,23 @@ export default function G8LogistikGame({ goBack }) {
       <TopBar title="🚚 Jalur Suplai Logistik" onBack={goBack} accentColor="#93C5FD" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(147,197,253,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#93C5FD', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            GEROBAK SUPLAI BERGERAK
-          </div>
-          <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 1.7 }}>
-            Gerobak mulai dari posisi awal <strong style={{ color: '#fff' }}>{q.c}</strong> km, bergerak dengan kecepatan konstan <strong style={{ color: '#fff' }}>{q.v}</strong> km/jam.
-          </div>
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
-            Di posisi berapa gerobak berada setelah {q.t} jam?
+          <div style={{ fontSize: 14, color: '#fff', textAlign: 'center', lineHeight: 1.7 }}>
+            Awal: {q.c} km, Kecepatan: {q.v} km/jam. Dimana posisinya setelah {q.t} jam?
           </div>
         </Card>
 
         {feedback === null && (
           <Card>
-            <NumpadAnswer digits={digits} setDigits={setDigits} negative={false} setNegative={() => {}} allowNegative={false} />
-            <div style={{ marginTop: 12 }}>
-              <Btn onClick={confirm} disabled={digits === ''} color="#1d4ed8">Prediksi Posisi</Btn>
+            <SliderInput 
+              value={val} 
+              min={0} 
+              max={50} 
+              onChange={setVal} 
+              accentColor="#93C5FD"
+              unit=" km"
+            />
+            <div style={{ marginTop: 24 }}>
+              <Btn onClick={confirm} color="#1d4ed8">Prediksi Posisi</Btn>
             </div>
           </Card>
         )}

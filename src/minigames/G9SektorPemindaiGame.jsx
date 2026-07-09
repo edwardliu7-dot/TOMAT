@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
-import NumpadAnswer from '../components/NumpadAnswer'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 // Precomputed (r, theta) combos where area = theta/360 * 22/7 * r^2 is guaranteed to be an integer.
@@ -21,14 +20,14 @@ function genQ() {
 export default function G9SektorPemindaiGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
-  const [digits, setDigits] = useState('')
+  const [val, setVal] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setDigits(''); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setVal(0); setFeedback(null) }, [])
 
   const confirm = () => {
-    if (feedback !== null || digits === '') return
-    const correct = parseInt(digits, 10) === q.answer
+    if (feedback !== null) return
+    const correct = val === q.answer
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
@@ -39,29 +38,31 @@ export default function G9SektorPemindaiGame({ goBack }) {
       <TopBar title="📡 Sektor Pemindai" onBack={goBack} accentColor="#4ADE80" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(74,222,128,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#4ADE80', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            PEMINDAIAN DEPOSIT MINERAL
-          </div>
           <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 1.8 }}>
-            Radar memindai juring dengan jari-jari <strong style={{ color: '#fff' }}>{q.r} m</strong> dan sudut pusat <strong style={{ color: '#fff' }}>{q.theta}°</strong> (gunakan π ≈ 22/7).
+            Jari-jari: <strong style={{ color: '#fff' }}>{q.r} m</strong>, Sudut: <strong style={{ color: '#fff' }}>{q.theta}°</strong> (π ≈ 22/7).
           </div>
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
-            Berapa luas juring pemindaian tersebut?
+          <div style={{ marginTop: 8, textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
+            Berapa luas juring pemindaian?
           </div>
         </Card>
 
         {feedback === null && (
           <Card>
-            <NumpadAnswer digits={digits} setDigits={setDigits} negative={false} setNegative={() => {}} allowNegative={false} />
+            <SliderInput
+              value={val} min={0} max={2000} step={1}
+              onChange={setVal}
+              accentColor="#4ADE80" unit=" m²"
+              leftLabel="0" rightLabel="2000"
+            />
             <div style={{ marginTop: 12 }}>
-              <Btn onClick={confirm} disabled={digits === ''} color="#15803d">Pindai Area</Btn>
+              <Btn onClick={confirm} color="#15803d">Pindai Area</Btn>
             </div>
           </Card>
         )}
 
         {feedback !== null && (
           <>
-            <FeedbackBanner message={feedback ? `✅ Benar! Luas juring = ${q.answer} m²` : `❌ Kurang tepat. Luas yang benar = ${q.answer} m²`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
+            <FeedbackBanner message={feedback ? `✅ Benar! Luas juring = ${q.answer} m²` : `❌ Salah. Luas yang benar = ${q.answer} m²`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
             <Btn onClick={newQ} color="#0e7490">Misi Berikutnya ▶</Btn>
           </>
         )}

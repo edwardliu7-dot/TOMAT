@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
-import NumpadAnswer from '../components/NumpadAnswer'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function genQ() {
@@ -15,14 +14,14 @@ function genQ() {
 export default function G8PedagangMisteriusGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
-  const [digits, setDigits] = useState('')
+  const [val, setVal] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setDigits(''); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setVal(0); setFeedback(null) }, [])
 
   const confirm = () => {
-    if (feedback !== null || digits === '') return
-    const correct = parseInt(digits, 10) === q.answer
+    if (feedback !== null) return
+    const correct = val === q.answer
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
@@ -33,22 +32,25 @@ export default function G8PedagangMisteriusGame({ goBack }) {
       <TopBar title="🧪 Pedagang Misterius" onBack={goBack} accentColor="#FDE68A" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(253,230,138,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#FDE68A', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            RAK RAMUAN MISTERIUS
-          </div>
           <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 900, color: '#fff', fontFamily: 'monospace', marginBottom: 10 }}>
             {q.a}x + {q.b}y = {q.total}
           </div>
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center' }}>
-            Jika membeli <strong style={{ color: '#fff' }}>x = {q.x}</strong> ramuan penyembuh, berapa <strong style={{ color: '#fff' }}>y</strong> ramuan mana yang bisa dibeli dengan total tersebut?
+            Jika x = {q.x}, tentukan nilai y!
           </div>
         </Card>
 
         {feedback === null && (
           <Card>
-            <NumpadAnswer digits={digits} setDigits={setDigits} negative={false} setNegative={() => {}} allowNegative={false} />
-            <div style={{ marginTop: 12 }}>
-              <Btn onClick={confirm} disabled={digits === ''} color="#b45309">Beli!</Btn>
+            <SliderInput 
+              value={val} 
+              min={0} 
+              max={10} 
+              onChange={setVal} 
+              accentColor="#FDE68A"
+            />
+            <div style={{ marginTop: 24 }}>
+              <Btn onClick={confirm} color="#b45309">Beli!</Btn>
             </div>
           </Card>
         )}

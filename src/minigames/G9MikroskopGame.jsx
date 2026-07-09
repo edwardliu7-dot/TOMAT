@@ -39,14 +39,11 @@ export default function G9MikroskopGame({ goBack }) {
       <TopBar title="🔬 Mikroskop Sub-Atomik" onBack={goBack} accentColor="#C4B5FD" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(196,181,253,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#C4B5FD', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            ZOOM IN KE SEL MIKROBA
-          </div>
-          <div style={{ textAlign: 'center', fontSize: 24, fontWeight: 900, color: '#fff', fontFamily: 'monospace', marginBottom: 10 }}>
+          <div style={{ textAlign: 'center', fontSize: 24, fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
             {q.base}<sup>−{q.n}</sup>
           </div>
-          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center' }}>
-            Ubah pangkat negatif ini menjadi bentuk pecahan biasa!
+          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginTop: 8 }}>
+            Ubah pangkat negatif menjadi bentuk pecahan!
           </div>
         </Card>
 
@@ -54,7 +51,7 @@ export default function G9MikroskopGame({ goBack }) {
 
         {feedback !== null && (
           <>
-            <FeedbackBanner message={feedback ? `✅ Zoom berhasil dikalibrasi!` : `❌ Kurang tepat. Jawaban yang benar: ${q.answer}`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
+            <FeedbackBanner message={feedback ? `✅ Zoom berhasil dikalibrasi!` : `❌ Salah. Jawaban: ${q.answer}`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
             <Btn onClick={newQ} color="#0e7490">Misi Berikutnya ▶</Btn>
           </>
         )}

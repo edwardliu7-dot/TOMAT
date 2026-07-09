@@ -1,12 +1,6 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, OptionGrid } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DragMatch } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
-
-function shuffle(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
-  return a
-}
 
 function genQ() {
   const a1 = 1 + Math.floor(Math.random() * 4)
@@ -15,26 +9,33 @@ function genQ() {
   const c2 = 1 + Math.floor(Math.random() * 5)
   const A = a1 + a2
   const B = c1 + c2
-  const answer = `${A}x² + ${B}x`
-  const distractors = new Set([`${A + 1}x² + ${B}x`, `${A}x² + ${B + 1}x`, `${B}x² + ${A}x`])
-  distractors.delete(answer)
-  while (distractors.size < 3) distractors.add(`${A + distractors.size + 2}x² + ${B}x`)
-  const options = shuffle([answer, ...distractors])
-  return { a1, a2, c1, c2, answer, options }
+  const items = [
+    { id: 'sq', label: A.toString() },
+    { id: 'lin', label: B.toString() },
+    { id: 'd1', label: (A + 1).toString() },
+    { id: 'd2', label: (B + 2).toString() },
+  ].sort(() => Math.random() - 0.5)
+  return { a1, a2, c1, c2, A, B, items }
 }
 
 export default function G9KargoGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
+  const [placed, setPlaced] = useState({})
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setPlaced({}); setFeedback(null) }, [])
 
-  const choose = (opt) => {
-    if (feedback !== null) return
-    const correct = opt === q.answer
-    setFeedback(correct)
-    if (correct) { addCoins(50); addExp(100) }
+  const handlePlace = (slotId, itemId) => {
+    const newPlaced = { ...placed, [slotId]: itemId }
+    setPlaced(newPlaced)
+    if (newPlaced.sSq && newPlaced.sLin) {
+      const vSq = q.items.find(it => it.id === newPlaced.sSq).label
+      const vLin = q.items.find(it => it.id === newPlaced.sLin).label
+      const isCorrect = parseInt(vSq) === q.A && parseInt(vLin) === q.B
+      setFeedback(isCorrect)
+      if (isCorrect) { addCoins(50); addExp(100) }
+    }
   }
 
   return (
@@ -43,22 +44,28 @@ export default function G9KargoGame({ goBack }) {
       <TopBar title="📦 Sortir Kargo Pesawat" onBack={goBack} accentColor="#67E8F9" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            RUANG PENYIMPANAN KARGO
-          </div>
-          <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 900, color: '#fff', fontFamily: 'monospace', marginBottom: 10 }}>
+          <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>
             {q.a1}x² + {q.c1}x + {q.a2}x² + {q.c2}x
           </div>
-          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center' }}>
-            Kelompokkan peti sejenis (variabel sama) agar pesawat seimbang. Sederhanakan bentuk aljabar di atas!
+          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginTop: 8 }}>
+            Sederhanakan bentuk aljabar kargo!
           </div>
         </Card>
 
-        <OptionGrid options={q.options} onSelect={choose} correct={feedback !== null ? q.answer : null} disabled={feedback !== null} cols={1} />
+        <DragMatch
+          items={q.items}
+          slots={[{ id: 'sSq' }, { id: 'sLin' }]}
+          placed={placed}
+          onPlace={handlePlace}
+          disabled={feedback !== null}
+          accentColor="#67E8F9"
+          renderSlot={() => <span style={{ color: '#67E8F9', fontSize: 18 }}>?</span>}
+          renderChip={(it) => <span style={{ color: '#fff', fontWeight: 800 }}>{it.id === 'sSq' || (!Object.values(placed).includes(it.id)) ? `${it.label}x²` : `${it.label}x`}</span>}
+        />
 
         {feedback !== null && (
           <>
-            <FeedbackBanner message={feedback ? `✅ Kargo tersortir sempurna!` : `❌ Kurang tepat. Jawaban yang benar: ${q.answer}`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
+            <FeedbackBanner message={feedback ? `✅ Kargo tersortir sempurna!` : `❌ Salah. Jawaban: ${q.A}x² + ${q.B}x`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
             <Btn onClick={newQ} color="#0e7490">Misi Berikutnya ▶</Btn>
           </>
         )}

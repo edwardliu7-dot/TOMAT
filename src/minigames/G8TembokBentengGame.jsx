@@ -1,42 +1,42 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, OptionGrid } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DragMatch } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
-function shuffle(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
-  return a
-}
-
 const SCENARIOS = [
-  { m1: 2, type: 'sejajar', label: 'Tembok Utara harus SEJAJAR dengan tembok bergradien', answer: '2' },
-  { m1: 3, type: 'sejajar', label: 'Tembok Utara harus SEJAJAR dengan tembok bergradien', answer: '3' },
-  { m1: -4, type: 'sejajar', label: 'Tembok Utara harus SEJAJAR dengan tembok bergradien', answer: '-4' },
-  { m1: 2, type: 'tegak lurus', label: 'Tembok Timur harus TEGAK LURUS dengan tembok bergradien', answer: '-1/2' },
-  { m1: 4, type: 'tegak lurus', label: 'Tembok Timur harus TEGAK LURUS dengan tembok bergradien', answer: '-1/4' },
-  { m1: -1, type: 'tegak lurus', label: 'Tembok Timur harus TEGAK LURUS dengan tembok bergradien', answer: '1' },
-  { m1: 1, type: 'tegak lurus', label: 'Tembok Timur harus TEGAK LURUS dengan tembok bergradien', answer: '-1' },
-  { m1: -3, type: 'tegak lurus', label: 'Tembok Timur harus TEGAK LURUS dengan tembok bergradien', answer: '1/3' },
+  { m1: 2, type: 'sejajar', label: 'SEJAJAR dengan m₁ = 2', answer: '2' },
+  { m1: 3, type: 'sejajar', label: 'SEJAJAR dengan m₁ = 3', answer: '3' },
+  { m1: -4, type: 'sejajar', label: 'SEJAJAR dengan m₁ = -4', answer: '-4' },
+  { m1: 2, type: 'tegak lurus', label: 'TEGAK LURUS dengan m₁ = 2', answer: '-1/2' },
+  { m1: 4, type: 'tegak lurus', label: 'TEGAK LURUS dengan m₁ = 4', answer: '-1/4' },
+  { m1: -1, type: 'tegak lurus', label: 'TEGAK LURUS dengan m₁ = -1', answer: '1' },
+  { m1: 1, type: 'tegak lurus', label: 'TEGAK LURUS dengan m₁ = 1', answer: '-1' },
+  { m1: -3, type: 'tegak lurus', label: 'TEGAK LURUS dengan m₁ = -3', answer: '1/3' },
 ]
-const WRONG_POOL = ['2', '-2', '3', '-3', '4', '-4', '1', '-1', '1/2', '-1/2', '1/3', '-1/3', '1/4', '-1/4']
 
 function genQ() {
   const item = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)]
-  const wrongPool = shuffle(WRONG_POOL.filter(v => v !== item.answer)).slice(0, 3)
-  const options = shuffle([item.answer, ...wrongPool])
-  return { ...item, options }
+  const items = SCENARIOS.map((s, i) => ({ id: i, label: s.answer }))
+    // Remove duplicates from items if any, though here they might have different IDs but same label.
+    // Let's just use the scenario list and keep only unique labels for chips.
+  const uniqueLabels = [...new Set(SCENARIOS.map(s => s.answer))]
+  const finalItems = uniqueLabels.map((l, i) => ({ id: i, label: l }))
+  
+  const slot = { id: 'm2', answerLabel: item.answer }
+  return { ...item, items: finalItems, slot }
 }
 
 export default function G8TembokBentengGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
+  const [placed, setPlaced] = useState({})
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setPlaced({}); setFeedback(null) }, [])
 
-  const choose = (opt) => {
-    if (feedback !== null) return
-    const correct = opt === q.answer
+  const confirm = () => {
+    if (placed.m2 === undefined) return
+    const placedItem = q.items.find(it => it.id === placed.m2)
+    const correct = placedItem.label === q.slot.answerLabel
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
@@ -47,23 +47,33 @@ export default function G8TembokBentengGame({ goBack }) {
       <TopBar title="🧱 Rancangan Tembok Benteng" onBack={goBack} accentColor="#93C5FD" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(147,197,253,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#93C5FD', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            TEMBOK PERTAHANAN BARU
+          <div style={{ fontSize: 14, color: '#fff', textAlign: 'center', lineHeight: 1.7 }}>
+            Tembok baru harus {q.label}.
           </div>
-          <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 1.7 }}>
-            Tembok Selatan memiliki gradien m₁ = <strong style={{ color: '#fff' }}>{q.m1}</strong>.<br />
-            {q.label}.
-          </div>
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
-            Berapa gradien m₂ yang harus digunakan?
+          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 14, color: '#93C5FD', fontWeight: 700 }}>
+            Tarik gradien m₂ yang tepat!
           </div>
         </Card>
 
-        <OptionGrid options={q.options} onSelect={choose} correct={feedback !== null ? q.answer : null} disabled={feedback !== null} cols={2} />
+        {feedback === null && (
+          <Card>
+            <DragMatch
+              items={q.items}
+              slots={[q.slot]}
+              placed={placed}
+              onPlace={(slotId, itemId) => setPlaced({ [slotId]: itemId })}
+              accentColor="#93C5FD"
+              renderSlot={() => <span style={{ color: '#94A3B8', fontSize: 14 }}>Tarik m₂ Disini</span>}
+            />
+            <div style={{ marginTop: 20 }}>
+              <Btn onClick={confirm} disabled={placed.m2 === undefined} color="#1d4ed8">Konfirmasi!</Btn>
+            </div>
+          </Card>
+        )}
 
         {feedback !== null && (
           <>
-            <FeedbackBanner message={feedback ? `✅ Tembok berdiri kokoh!` : `❌ Kurang tepat. Jawaban yang benar: ${q.answer}`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
+            <FeedbackBanner message={feedback ? `✅ Tembok berdiri kokoh!` : `❌ Kurang tepat.`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
             <Btn onClick={newQ} color="#0e7490">Misi Berikutnya ▶</Btn>
           </>
         )}

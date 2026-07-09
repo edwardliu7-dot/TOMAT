@@ -1,12 +1,7 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, OptionGrid } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DragMatch } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
-function shuffle(arr) {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
-  return a
-}
 function fmt(coef, cons) { return `${coef}x ${cons >= 0 ? '+' : '−'} ${Math.abs(cons)}` }
 
 function genQ() {
@@ -14,28 +9,35 @@ function genQ() {
   const b = -6 + Math.floor(Math.random() * 13)
   const c = 1 + Math.floor(Math.random() * 5)
   const d = -6 + Math.floor(Math.random() * 13)
-  const coef = a + c
-  const cons = b + d
-  const answer = fmt(coef, cons)
-  const distractors = new Set([fmt(coef + 1, cons), fmt(coef, cons + 2), fmt(a - c, cons)])
-  distractors.delete(answer)
-  while (distractors.size < 3) distractors.add(fmt(coef, cons + distractors.size + 3))
-  const options = shuffle([answer, ...distractors])
-  return { a, b, c, d, answer, options }
+  const ansCoef = a + c
+  const ansCons = b + d
+  const items = [
+    { id: 'c', label: ansCoef.toString() },
+    { id: 'k', label: ansCons.toString() },
+    { id: 'd1', label: (ansCoef + 1).toString() },
+    { id: 'd2', label: (ansCons - 2).toString() },
+  ].sort(() => Math.random() - 0.5)
+  return { a, b, c, d, ansCoef, ansCons, items }
 }
 
 export default function G9ReaktorGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
+  const [placed, setPlaced] = useState({})
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setPlaced({}); setFeedback(null) }, [])
 
-  const choose = (opt) => {
-    if (feedback !== null) return
-    const correct = opt === q.answer
-    setFeedback(correct)
-    if (correct) { addCoins(50); addExp(100) }
+  const handlePlace = (slotId, itemId) => {
+    const newPlaced = { ...placed, [slotId]: itemId }
+    setPlaced(newPlaced)
+    if (newPlaced.sC && newPlaced.sK) {
+      const vC = q.items.find(it => it.id === newPlaced.sC).label
+      const vK = q.items.find(it => it.id === newPlaced.sK).label
+      const isCorrect = parseInt(vC) === q.ansCoef && parseInt(vK) === q.ansCons
+      setFeedback(isCorrect)
+      if (isCorrect) { addCoins(50); addExp(100) }
+    }
   }
 
   return (
@@ -44,23 +46,28 @@ export default function G9ReaktorGame({ goBack }) {
       <TopBar title="⚡ Transfer Energi Reaktor" onBack={goBack} accentColor="#67E8F9" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            GABUNGKAN DAYA REAKTOR
-          </div>
           <div style={{ fontSize: 15, color: '#94A3B8', textAlign: 'center', lineHeight: 1.8, fontFamily: 'monospace' }}>
-            Reaktor Kiri: ({fmt(q.a, q.b)})<br />
-            Reaktor Kanan: ({fmt(q.c, q.d)})
+            ({fmt(q.a, q.b)}) + ({fmt(q.c, q.d)})
           </div>
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>
-            Jumlahkan keduanya untuk total daya meriam plasma!
+          <div style={{ marginTop: 8, textAlign: 'center', fontSize: 13, color: '#fff' }}>
+            Gabungkan daya total reaktor!
           </div>
         </Card>
 
-        <OptionGrid options={q.options} onSelect={choose} correct={feedback !== null ? q.answer : null} disabled={feedback !== null} cols={1} />
+        <DragMatch
+          items={q.items}
+          slots={[{ id: 'sC' }, { id: 'sK' }]}
+          placed={placed}
+          onPlace={handlePlace}
+          disabled={feedback !== null}
+          accentColor="#67E8F9"
+          renderSlot={(s) => <span style={{ color: '#67E8F9', fontSize: 18 }}>?</span>}
+          renderChip={(it) => <span style={{ color: '#fff', fontWeight: 800 }}>{it.id === 'sC' || (!Object.values(placed).includes(it.id)) ? `${it.label}x` : it.label}</span>}
+        />
 
         {feedback !== null && (
           <>
-            <FeedbackBanner message={feedback ? `✅ Energi tersambung!` : `❌ Kurang tepat. Jawaban yang benar: ${q.answer}`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
+            <FeedbackBanner message={feedback ? `✅ Energi tersambung!` : `❌ Salah. Jawaban: ${fmt(q.ansCoef, q.ansCons)}`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
             <Btn onClick={newQ} color="#0e7490">Misi Berikutnya ▶</Btn>
           </>
         )}

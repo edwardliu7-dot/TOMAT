@@ -107,6 +107,119 @@ export function FeedbackBanner({ message, isCorrect, extras }) {
   )
 }
 
+// Big touch-friendly slider for numeric answers. Replaces numpad/typing wherever the
+// answer is a single number moving along a line (temperature, position, quantity, etc).
+export function SliderInput({
+  value, min, max, step = 1, onChange, disabled = false,
+  accentColor = '#67E8F9', unit = '', markEvery = null,
+  leftLabel, rightLabel, big = false,
+}) {
+  const pct = ((value - min) / (max - min)) * 100
+  const marks = markEvery ? (() => {
+    const arr = []
+    for (let m = min; m <= max; m += markEvery) arr.push(m)
+    return arr
+  })() : null
+  return (
+    <div style={{ width: '100%' }}>
+      <div style={{ textAlign: 'center', marginBottom: 10 }}>
+        <span style={{ fontSize: big ? 38 : 28, fontWeight: 900, color: '#fff' }}>{value}{unit}</span>
+      </div>
+      <div style={{ position: 'relative', padding: '8px 4px' }}>
+        <div style={{ position: 'relative', height: 10, borderRadius: 6, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: `linear-gradient(90deg, ${accentColor}88, ${accentColor})`, transition: 'width 0.1s' }} />
+        </div>
+        <input
+          type="range" min={min} max={max} step={step} value={value} disabled={disabled}
+          onChange={(e) => onChange(Number(e.target.value))}
+          style={{
+            position: 'absolute', top: -13, left: 0, width: '100%', height: 36,
+            appearance: 'none', background: 'transparent', margin: 0, cursor: disabled ? 'default' : 'pointer',
+          }}
+        />
+        <style>{`
+          input[type=range]::-webkit-slider-thumb {
+            appearance: none; width: 36px; height: 36px; border-radius: 50%;
+            background: ${accentColor}; border: 4px solid #0F1115; box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: ${disabled ? 'default' : 'grab'};
+          }
+          input[type=range]::-moz-range-thumb {
+            width: 36px; height: 36px; border-radius: 50%; border: 4px solid #0F1115;
+            background: ${accentColor}; box-shadow: 0 2px 8px rgba(0,0,0,0.5); cursor: ${disabled ? 'default' : 'grab'};
+          }
+        `}</style>
+      </div>
+      {marks && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 2px', marginTop: 2 }}>
+          {marks.map(m => <span key={m} style={{ fontSize: 10, color: '#6B7280' }}>{m}</span>)}
+        </div>
+      )}
+      {(leftLabel || rightLabel) && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+          <span style={{ fontSize: 12, color: '#94A3B8' }}>{leftLabel}</span>
+          <span style={{ fontSize: 12, color: '#94A3B8' }}>{rightLabel}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Generic drag-and-drop matcher: drag chips from a source tray onto target slots.
+// Used for "connect the pipe/bridge piece" style interactions instead of multiple choice text.
+export function DragMatch({ items, slots, placed, onPlace, disabled = false, accentColor = '#67E8F9', renderChip, renderSlot }) {
+  const [dragId, setDragId] = React.useState(null)
+
+  const handleDrop = (slotId) => {
+    if (disabled || dragId == null) return
+    onPlace(slotId, dragId)
+    setDragId(null)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+        {items.filter(it => !Object.values(placed).includes(it.id)).map(it => (
+          <div key={it.id}
+            draggable={!disabled}
+            onDragStart={() => setDragId(it.id)}
+            onTouchStart={() => setDragId(it.id)}
+            onClick={() => setDragId(it.id)}
+            style={{
+              cursor: disabled ? 'default' : 'grab',
+              border: dragId === it.id ? `2px solid ${accentColor}` : '2px solid rgba(255,255,255,0.15)',
+              borderRadius: 12, padding: '10px 14px', background: '#1E2128',
+              opacity: disabled ? 0.5 : 1, userSelect: 'none',
+            }}>
+            {renderChip ? renderChip(it) : <span style={{ color: '#fff', fontWeight: 700 }}>{it.label}</span>}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
+        {slots.map(slot => {
+          const filledId = placed[slot.id]
+          const filledItem = items.find(it => it.id === filledId)
+          return (
+            <div key={slot.id}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => handleDrop(slot.id)}
+              onClick={() => dragId != null && handleDrop(slot.id)}
+              style={{
+                minWidth: 70, minHeight: 60, borderRadius: 12,
+                border: `2px dashed ${filledItem ? accentColor : 'rgba(255,255,255,0.25)'}`,
+                background: filledItem ? `${accentColor}18` : 'rgba(255,255,255,0.03)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '8px 10px',
+              }}>
+              {filledItem
+                ? (renderChip ? renderChip(filledItem) : <span style={{ color: '#fff', fontWeight: 700 }}>{filledItem.label}</span>)
+                : (renderSlot ? renderSlot(slot) : <span style={{ color: '#6B7280', fontSize: 20 }}>+</span>)}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export function MissionCard({ chapter, title, description, onClick, accentColor }) {
   return (
     <div onClick={onClick} style={{

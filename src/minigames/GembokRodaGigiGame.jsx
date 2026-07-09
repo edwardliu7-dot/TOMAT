@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function gcd(a, b) { return b === 0 ? a : gcd(b, a % b) }
@@ -19,38 +19,22 @@ function genQ() {
 export default function GembokRodaGigiGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
-  const [selected, setSelected] = useState(null)
+  const [selected, setSelected] = useState(1)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setSelected(null); setFeedback(null) }, [])
-
-  const maxN = Math.max(q.a, q.b)
-  const candidates = Array.from({ length: maxN }, (_, i) => i + 1)
-  const factorsA = new Set(candidates.filter(n => q.a % n === 0))
-  const factorsB = new Set(candidates.filter(n => q.b % n === 0))
-  const common = candidates.filter(n => factorsA.has(n) && factorsB.has(n))
-
-  const tap = (n) => {
-    if (feedback !== null) return
-    if (!factorsA.has(n) || !factorsB.has(n)) return // only allow tapping common factors
-    setSelected(n)
-  }
+  const newQ = useCallback(() => { setQ(genQ()); setSelected(1); setFeedback(null) }, [])
 
   const confirm = () => {
-    if (feedback !== null || selected === null) return
+    if (feedback !== null) return
     const correct = selected === q.answer
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
 
-  const getColor = (n) => {
-    const inA = factorsA.has(n)
-    const inB = factorsB.has(n)
-    if (inA && inB) return { bg: 'rgba(52,211,153,0.15)', border: '1.5px solid rgba(52,211,153,0.5)', color: '#34D399', label: '✓' }
-    if (inA) return { bg: 'rgba(103,232,249,0.08)', border: '1px solid rgba(103,232,249,0.25)', color: '#67E8F9', label: 'A' }
-    if (inB) return { bg: 'rgba(253,186,116,0.08)', border: '1px solid rgba(253,186,116,0.25)', color: '#FDBA74', label: 'B' }
-    return { bg: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: '#475569', label: '' }
-  }
+  const factorsA = Array.from({ length: q.a }, (_, i) => i + 1).filter(n => q.a % n === 0)
+  const factorsB = Array.from({ length: q.b }, (_, i) => i + 1).filter(n => q.b % n === 0)
+  const isA = q.a % selected === 0
+  const isB = q.b % selected === 0
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
@@ -58,50 +42,36 @@ export default function GembokRodaGigiGame({ goBack }) {
       <TopBar title="⚙️ Gembok Roda Gigi" onBack={goBack} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>SISTEM PENGUNCI PINTU PENJARA</div>
-          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 12, lineHeight: 1.7 }}>
-            Mesin <strong style={{ color: '#67E8F9' }}>A = {q.a}</strong> dan Mesin <strong style={{ color: '#FDBA74' }}>B = {q.b}</strong>.<br />
-            Ketuk faktor persekutuan terbesar (FPB) dari keduanya!
+          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 16 }}>
+            Cari faktor persekutuan terbesar (FPB) dari <strong style={{ color: '#67E8F9' }}>{q.a}</strong> dan <strong style={{ color: '#FDBA74' }}>{q.b}</strong>!
           </div>
 
-          {/* Legend */}
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 12, flexWrap: 'wrap', fontSize: 11 }}>
-            <span style={{ color: '#67E8F9' }}>🔵 Faktor A saja</span>
-            <span style={{ color: '#FDBA74' }}>🟠 Faktor B saja</span>
-            <span style={{ color: '#34D399' }}>🟢 Faktor keduanya ← ketuk!</span>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 30, marginBottom: 20 }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 40, animation: `spin ${20/selected}s linear infinite` }}>⚙️</div>
+              <div style={{ fontSize: 12, color: '#67E8F9', fontWeight: 700 }}>{q.a}</div>
+              <div style={{ fontSize: 10, color: isA ? '#34D399' : '#ef4444' }}>{isA ? 'OK' : 'X'}</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 40, animation: `spin ${20/selected}s linear infinite reverse` }}>⚙️</div>
+              <div style={{ fontSize: 12, color: '#FDBA74', fontWeight: 700 }}>{q.b}</div>
+              <div style={{ fontSize: 10, color: isB ? '#34D399' : '#ef4444' }}>{isB ? 'OK' : 'X'}</div>
+            </div>
           </div>
 
-          {/* Factor grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 5 }}>
-            {candidates.slice(0, Math.min(maxN, 60)).map(n => {
-              const style = getColor(n)
-              const isSel = n === selected
-              const isCorrect = feedback !== null && n === q.answer
-              const isWrong = feedback !== null && n === selected && selected !== q.answer
-              let borderFinal = style.border
-              let bgFinal = style.bg
-              if (isSel && feedback === null) { borderFinal = '2px solid #f59e0b'; bgFinal = 'rgba(245,158,11,0.2)' }
-              if (isCorrect) { borderFinal = '2px solid #34D399'; bgFinal = 'rgba(52,211,153,0.25)' }
-              if (isWrong) { borderFinal = '2px solid #ef4444'; bgFinal = 'rgba(239,68,68,0.2)' }
-              const isCommon = factorsA.has(n) && factorsB.has(n)
-              return (
-                <button key={n} onClick={() => tap(n)} disabled={feedback !== null || !isCommon}
-                  style={{ padding: '8px 2px', borderRadius: 8, border: borderFinal, background: bgFinal, color: isWrong ? '#ef4444' : isCorrect ? '#34D399' : isSel ? '#f59e0b' : style.color, fontSize: 12, fontWeight: 700, cursor: (!isCommon || feedback !== null) ? 'default' : 'pointer', transition: 'all 0.15s', position: 'relative' }}>
-                  {n}
-                  {style.label && <span style={{ position: 'absolute', top: -1, right: 1, fontSize: 7, opacity: 0.7 }}>{style.label}</span>}
-                </button>
-              )
-            })}
-          </div>
-
-          <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(103,232,249,0.06)', borderRadius: 8, fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>
-            FPB({q.a}, {q.b}) = bilangan hijau terbesar yang kamu pilih
-          </div>
+          <SliderInput
+            value={selected}
+            min={1}
+            max={Math.min(q.a, q.b)}
+            onChange={setSelected}
+            disabled={feedback !== null}
+            accentColor={isA && isB ? '#34D399' : '#67E8F9'}
+          />
         </Card>
 
         {feedback === null && (
-          <Btn onClick={confirm} color={selected !== null ? '#0e7490' : '#334155'}>
-            {selected !== null ? `✅ FPB = ${selected}, Buka Gembok!` : 'Ketuk angka hijau terbesar...'}
+          <Btn onClick={confirm} color="#0e7490">
+            ✅ Konfirmasi FPB: {selected}
           </Btn>
         )}
 
@@ -115,6 +85,9 @@ export default function GembokRodaGigiGame({ goBack }) {
           </>
         )}
       </div>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   )
 }

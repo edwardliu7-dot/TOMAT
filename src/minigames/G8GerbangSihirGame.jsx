@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, OptionGrid } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DragMatch } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 const FUNCTION_SETS = [
@@ -17,19 +17,25 @@ function genQ() {
   const isFunction = Math.random() < 0.5
   const pool = isFunction ? FUNCTION_SETS : NON_FUNCTION_SETS
   const pairs = pool[Math.floor(Math.random() * pool.length)]
-  return { pairs, answer: isFunction ? 'Fungsi' : 'Bukan Fungsi', options: ['Fungsi', 'Bukan Fungsi'] }
+  const items = [
+    { id: 'f', label: 'Fungsi' },
+    { id: 'nf', label: 'Bukan Fungsi' }
+  ]
+  const slot = { id: 'type', answerId: isFunction ? 'f' : 'nf' }
+  return { pairs, items, slot }
 }
 
 export default function G8GerbangSihirGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
+  const [placed, setPlaced] = useState({})
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ()); setPlaced({}); setFeedback(null) }, [])
 
-  const choose = (opt) => {
-    if (feedback !== null) return
-    const correct = opt === q.answer
+  const confirm = () => {
+    if (placed.type === undefined) return
+    const correct = placed.type === q.slot.answerId
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
@@ -40,13 +46,10 @@ export default function G8GerbangSihirGame({ goBack }) {
       <TopBar title="🚪 Gerbang Seleksi Sihir" onBack={goBack} accentColor="#FDBA74" />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(253,186,116,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#FDBA74', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>
-            DAFTAR PENDAFTARAN MURID
+          <div style={{ textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700, marginBottom: 12 }}>
+            Apakah pendaftaran ini termasuk Fungsi?
           </div>
-          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 12 }}>
-            Setiap calon murid (Domain) hanya boleh memilih tepat satu elemen sihir (Kodomain).
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {q.pairs.map(([a, b], i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 15, fontWeight: 800, color: '#fff' }}>
                 <span style={{ background: 'rgba(253,186,116,0.12)', borderRadius: 8, padding: '6px 12px' }}>{a}</span>
@@ -55,14 +58,27 @@ export default function G8GerbangSihirGame({ goBack }) {
               </div>
             ))}
           </div>
-          <div style={{ textAlign: 'center', fontSize: 14, color: '#fff', fontWeight: 700 }}>Sah atau curang pendaftaran ini?</div>
         </Card>
 
-        <OptionGrid options={q.options} onSelect={choose} correct={feedback !== null ? q.answer : null} disabled={feedback !== null} cols={2} />
+        {feedback === null && (
+          <Card>
+            <DragMatch
+              items={q.items}
+              slots={[q.slot]}
+              placed={placed}
+              onPlace={(slotId, itemId) => setPlaced({ [slotId]: itemId })}
+              accentColor="#FDBA74"
+              renderSlot={() => <span style={{ color: '#94A3B8', fontSize: 14 }}>Tarik Jenis Disini</span>}
+            />
+            <div style={{ marginTop: 20 }}>
+              <Btn onClick={confirm} disabled={placed.type === undefined} color="#c2410c">Verifikasi!</Btn>
+            </div>
+          </Card>
+        )}
 
         {feedback !== null && (
           <>
-            <FeedbackBanner message={feedback ? `✅ Tepat sekali!` : `❌ Kurang tepat. Jawaban yang benar: ${q.answer}`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
+            <FeedbackBanner message={feedback ? `✅ Tepat sekali!` : `❌ Kurang tepat.`} isCorrect={feedback} extras="+50 Koin | +100 EXP" />
             <Btn onClick={newQ} color="#0e7490">Misi Berikutnya ▶</Btn>
           </>
         )}
