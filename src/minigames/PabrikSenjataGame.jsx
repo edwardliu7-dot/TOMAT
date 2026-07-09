@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, OptionGrid, FeedbackBanner } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function shuffle(arr) {
@@ -22,29 +22,37 @@ const QUESTIONS = [
 ]
 
 function genQ() {
-  const base = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]
-  const wrongs = new Set()
-  const offsets = [-base.answer * 0.5, base.answer * 0.5, -base.answer, Math.abs(base.answer), -Math.abs(base.answer)]
-  for (const o of shuffle(offsets.map(x => Math.round(x)))) {
-    if (wrongs.size >= 3) break
-    if (o !== base.answer) wrongs.add(o)
-  }
-  if (wrongs.size < 3) { wrongs.add(base.answer + 2); wrongs.add(base.answer - 2) }
-  const opts = shuffle([...wrongs].slice(0, 3).concat(base.answer)).map(String)
-  return { ...base, opts }
+  return QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]
 }
 
 export default function PabrikRobotGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
   const [q, setQ] = useState(genQ)
+  const [digits, setDigits] = useState('')
+  const [negative, setNegative] = useState(false)
   const [feedback, setFeedback] = useState(null)
-  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null) }, [])
-  const select = (opt) => {
+
+  const newQ = useCallback(() => { setQ(genQ()); setDigits(''); setNegative(false); setFeedback(null) }, [])
+
+  const pressKey = (k) => {
     if (feedback !== null) return
-    const correct = opt === String(q.answer)
+    if (k === '⌫') { setDigits(p => p.slice(0, -1)); return }
+    if (k === '+/−') { setNegative(p => !p); return }
+    if (digits.length >= 4) return
+    setDigits(p => p + k)
+  }
+
+  const displayValue = digits === '' ? '?' : `${negative ? '−' : ''}${digits}`
+  const numericValue = digits === '' ? null : (negative ? -parseInt(digits, 10) : parseInt(digits, 10))
+
+  const confirm = () => {
+    if (feedback !== null || numericValue === null) return
+    const correct = numericValue === q.answer
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
+
+  const numpadKeys = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '+/−', '0', '⌫']
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
@@ -53,23 +61,48 @@ export default function PabrikRobotGame({ goBack }) {
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>SISTEM PRODUKSI ROBOT</div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 14 }}>
             {['🤖', '🤖', '🤖'].map((r, i) => (
               <div key={i} style={{ fontSize: 32, opacity: 0.6 + i * 0.2 }}>{r}</div>
             ))}
           </div>
-          <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', marginBottom: 8 }}>
-            Perkalian/Pembagian bilangan bulat:
-          </div>
           <div style={{ padding: '14px', background: 'rgba(103,232,249,0.08)', borderRadius: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 28, fontWeight: 900, color: '#67E8F9', fontFamily: 'monospace' }}>{q.expr} = ?</div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: '#67E8F9', fontFamily: 'monospace' }}>{q.expr} = ?</div>
           </div>
           <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(99,102,241,0.1)', borderRadius: 8, fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>
-            💡 Ingat: {q.hint}
+            💡 {q.hint}
           </div>
         </Card>
-        <div style={{ fontSize: 13, color: '#67E8F9', fontWeight: 600 }}>Berapa jumlah pasukan robot yang dihasilkan?</div>
-        <OptionGrid options={q.opts} onSelect={select} correct={feedback !== null ? String(q.answer) : null} disabled={feedback !== null} />
+
+        {/* Calculator display */}
+        <Card border="rgba(103,232,249,0.2)">
+          <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 8, textAlign: 'center' }}>Ketik jawabanmu:</div>
+          <div style={{ background: '#0a1628', borderRadius: 12, padding: '14px 20px', textAlign: 'right', marginBottom: 14, border: `2px solid ${feedback === null ? 'rgba(103,232,249,0.3)' : feedback ? '#34D399' : '#ef4444'}` }}>
+            <div style={{ fontSize: 36, fontWeight: 900, color: feedback === null ? '#fff' : feedback ? '#34D399' : '#ef4444', fontFamily: 'monospace', minHeight: 44 }}>
+              {displayValue}
+            </div>
+          </div>
+
+          {/* Numpad */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {numpadKeys.map(k => {
+              const isSpecial = k === '+/−' || k === '⌫'
+              const isActive = k === '+/−' && negative
+              return (
+                <button key={k} onClick={() => pressKey(k)} disabled={feedback !== null}
+                  style={{ padding: '14px 8px', borderRadius: 12, border: `1px solid ${isActive ? '#67E8F9' : 'rgba(103,232,249,0.2)'}`, background: isActive ? 'rgba(103,232,249,0.2)' : isSpecial ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.06)', color: isActive ? '#67E8F9' : isSpecial ? '#f59e0b' : '#fff', fontSize: k === '+/−' ? 13 : 20, fontWeight: 700, cursor: feedback !== null ? 'not-allowed' : 'pointer', transition: 'all 0.1s' }}>
+                  {k}
+                </button>
+              )
+            })}
+          </div>
+        </Card>
+
+        {feedback === null && (
+          <Btn onClick={confirm} color={numericValue !== null ? '#0e7490' : '#334155'}>
+            {numericValue !== null ? `✅ Kirim Jawaban: ${displayValue}` : 'Ketik jawaban dulu...'}
+          </Btn>
+        )}
         {feedback !== null && (
           <>
             <FeedbackBanner
