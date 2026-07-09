@@ -10,29 +10,23 @@ const KELAS_OPTIONS = [
 export default function LoginScreen() {
   const { login, register } = useAuth()
   const [role, setRole] = useState('siswa')
-  const [mode, setMode] = useState('masuk') // masuk | daftar
-  const [form, setForm] = useState({ username: '', password: '', name: '', kelas: '', kelasDiampu: [], email: '', whatsapp: '' })
+  const [mode, setMode] = useState('masuk') // masuk | daftar (daftar hanya untuk siswa)
+  const [form, setForm] = useState({ username: '', password: '', name: '', kelas: '', email: '', whatsapp: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const update = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }))
 
-  const toggleKelasDiampu = (k) => {
-    setForm(f => ({
-      ...f,
-      kelasDiampu: f.kelasDiampu.includes(k)
-        ? f.kelasDiampu.filter(x => x !== k)
-        : [...f.kelasDiampu, k],
-    }))
+  const selectRole = (r) => {
+    setRole(r)
+    setError('')
+    // Guru tidak punya fitur daftar akun — akun guru dibuat lewat aplikasi administrasi.
+    if (r === 'guru') setMode('masuk')
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (mode === 'daftar' && role === 'guru' && form.kelasDiampu.length === 0) {
-      setError('Pilih minimal satu kelas yang diampu.')
-      return
-    }
     setLoading(true)
     try {
       if (mode === 'masuk') {
@@ -40,7 +34,7 @@ export default function LoginScreen() {
       } else {
         await register({
           role, username: form.username, name: form.name, password: form.password,
-          kelas: role === 'guru' ? form.kelasDiampu : form.kelas,
+          kelas: form.kelas,
           email: form.email, whatsapp: form.whatsapp,
         })
       }
@@ -81,7 +75,7 @@ export default function LoginScreen() {
           {/* Role tabs */}
           <div style={{ display: 'flex', background: '#0F1115', borderRadius: 12, padding: 4, marginBottom: 18 }}>
             {[{ id: 'siswa', label: 'Siswa' }, { id: 'guru', label: 'Guru' }].map(r => (
-              <button key={r.id} onClick={() => { setRole(r.id); setError('') }} style={{
+              <button key={r.id} onClick={() => selectRole(r.id)} style={{
                 flex: 1, padding: '10px 0', borderRadius: 9, border: 'none', cursor: 'pointer',
                 fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
                 background: role === r.id ? '#1E2128' : 'transparent',
@@ -90,20 +84,28 @@ export default function LoginScreen() {
             ))}
           </div>
 
-          {/* Mode tabs */}
-          <div style={{ display: 'flex', gap: 20, marginBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            {[{ id: 'masuk', label: 'Masuk' }, { id: 'daftar', label: 'Daftar Baru' }].map(m => (
-              <button key={m.id} onClick={() => { setMode(m.id); setError('') }} style={{
-                background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                padding: '0 0 10px', fontSize: 14, fontWeight: 700,
-                color: mode === m.id ? '#34D399' : '#6B7280',
-                borderBottom: mode === m.id ? '2px solid #34D399' : '2px solid transparent',
-              }}>{m.label}</button>
-            ))}
-          </div>
+          {/* Mode tabs — akun guru hanya bisa dibuat lewat aplikasi administrasi guru */}
+          {role === 'siswa' && (
+            <div style={{ display: 'flex', gap: 20, marginBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              {[{ id: 'masuk', label: 'Masuk' }, { id: 'daftar', label: 'Daftar Baru' }].map(m => (
+                <button key={m.id} onClick={() => { setMode(m.id); setError('') }} style={{
+                  background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  padding: '0 0 10px', fontSize: 14, fontWeight: 700,
+                  color: mode === m.id ? '#34D399' : '#6B7280',
+                  borderBottom: mode === m.id ? '2px solid #34D399' : '2px solid transparent',
+                }}>{m.label}</button>
+              ))}
+            </div>
+          )}
+
+          {role === 'guru' && (
+            <div style={{ marginBottom: 20, fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>
+              Akun guru dibuat oleh admin sekolah melalui aplikasi administrasi guru. Masuk menggunakan akun yang sudah terdaftar.
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {mode === 'daftar' && (
+            {mode === 'daftar' && role === 'siswa' && (
               <Field label="Nama Lengkap">
                 <input required value={form.name} onChange={update('name')} placeholder="Nama lengkap"
                   style={inputStyle} />
@@ -121,35 +123,6 @@ export default function LoginScreen() {
                   <option value="">Pilih kelas</option>
                   {KELAS_OPTIONS.map(k => <option key={k} value={k}>{k}</option>)}
                 </select>
-              </Field>
-            )}
-
-            {mode === 'daftar' && role === 'guru' && (
-              <Field label="Kelas yang Diampu">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {KELAS_OPTIONS.map(k => {
-                    const checked = form.kelasDiampu.includes(k)
-                    return (
-                      <label key={k} onClick={() => toggleKelasDiampu(k)} style={{
-                        display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-                        background: '#0F1115', border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 10, padding: '11px 14px', fontSize: 14, color: '#fff',
-                      }}>
-                        <span style={{
-                          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                          border: checked ? 'none' : '1px solid rgba(255,255,255,0.3)',
-                          background: checked ? '#22C55E' : 'transparent',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          {checked && (
-                            <span style={{ color: '#0F1115', fontSize: 11, fontWeight: 900 }}>✓</span>
-                          )}
-                        </span>
-                        {k}
-                      </label>
-                    )
-                  })}
-                </div>
               </Field>
             )}
 

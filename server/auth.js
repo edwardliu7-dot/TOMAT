@@ -57,33 +57,22 @@ router.post('/register', async (req, res) => {
     if (!role || !username || !name || !password) {
       return res.status(400).json({ error: 'Username, nama, dan password wajib diisi.' })
     }
-    if (role !== 'siswa' && role !== 'guru') {
-      return res.status(400).json({ error: 'Role tidak valid.' })
+    if (role !== 'siswa') {
+      return res.status(403).json({ error: 'Pendaftaran akun guru tidak tersedia di aplikasi ini. Hubungi admin sekolah untuk membuat akun guru.' })
     }
-    if (role === 'siswa' && !kelas) {
+    if (!kelas) {
       return res.status(400).json({ error: 'Kelas wajib diisi untuk siswa.' })
     }
-    if (role === 'siswa' && !KELAS_OPTIONS.includes(kelas)) {
+    if (!KELAS_OPTIONS.includes(kelas)) {
       return res.status(400).json({ error: 'Kelas tidak valid.' })
     }
-    if (role === 'guru') {
-      const kelasList = Array.isArray(kelas) ? kelas : [kelas].filter(Boolean)
-      const cleaned = [...new Set(kelasList.map(k => typeof k === 'string' ? k.trim() : '').filter(Boolean))]
-      if (cleaned.length === 0) {
-        return res.status(400).json({ error: 'Pilih minimal satu kelas yang diampu.' })
-      }
-      if (cleaned.some(k => !KELAS_OPTIONS.includes(k))) {
-        return res.status(400).json({ error: 'Kelas yang diampu tidak valid.' })
-      }
-      req.body.kelas = cleaned
-    }
-    if (role === 'siswa' && !email) {
+    if (!email) {
       return res.status(400).json({ error: 'Email wajib diisi untuk siswa.' })
     }
-    if (role === 'siswa' && !whatsapp) {
+    if (!whatsapp) {
       return res.status(400).json({ error: 'WhatsApp wajib diisi untuk siswa.' })
     }
-    const table = role === 'guru' ? 'gurus' : 'students'
+    const table = 'students'
     const id = username.trim().toLowerCase()
 
     const existing = await pool.query(`select id from ${table} where lower(username) = lower($1) or lower(id) = lower($1)`, [id])
@@ -91,20 +80,11 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'Username sudah terdaftar. Gunakan username lain.' })
     }
 
-    let user
-    if (role === 'guru') {
-      const { rows } = await pool.query(
-        `insert into gurus (id, username, name, password, kelas_diampu, created_at) values ($1,$1,$2,$3,$4, now()) returning *`,
-        [id, name, password, req.body.kelas]
-      )
-      user = rows[0]
-    } else {
-      const { rows } = await pool.query(
-        `insert into students (id, username, name, password, kelas, email, whatsapp, created_at) values ($1,$1,$2,$3,$4,$5,$6, now()) returning *`,
-        [id, name, password, kelas, email || null, whatsapp || null]
-      )
-      user = rows[0]
-    }
+    const { rows } = await pool.query(
+      `insert into students (id, username, name, password, kelas, email, whatsapp, created_at) values ($1,$1,$2,$3,$4,$5,$6, now()) returning *`,
+      [id, name, password, kelas, email || null, whatsapp || null]
+    )
+    const user = rows[0]
 
     req.session.user = { id: user.id, role }
     res.json({ user: sanitizeUser(user, role) })
