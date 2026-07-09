@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, randomSliderRange } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function genQ() {
   const start = 1 + Math.floor(Math.random() * 3)
   const terms = [0, 1, 2, 3].map(i => (start + i) * (start + i))
   const answer = (start + 4) * (start + 4)
-  return { start, terms, answer }
+  const { min, max } = randomSliderRange([terms[0], answer], { step: 1, minPad: 5, maxPad: 20 })
+  return { start, terms, answer, min, max }
 }
 
 export default function G8TamengGame({ goBack }) {
@@ -64,8 +65,8 @@ export default function G8TamengGame({ goBack }) {
           <Card>
             <SliderInput 
               value={val} 
-              min={q.terms[0]} 
-              max={q.answer + 15} 
+              min={q.min} 
+              max={q.max} 
               onChange={setVal} 
               accentColor="#FCA5A5"
             />

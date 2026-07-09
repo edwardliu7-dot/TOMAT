@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, randomSliderRange } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function genQ() {
@@ -7,7 +7,8 @@ function genQ() {
   const d = 2 + Math.floor(Math.random() * 4)
   const terms = [0, 1, 2, 3].map(i => a0 + i * d)
   const answer = a0 + 4 * d
-  return { terms, answer, d }
+  const { min, max } = randomSliderRange([terms[0], answer], { step: 1, minPad: 3, maxPad: 12 })
+  return { terms, answer, d, min, max }
 }
 
 export default function G8JembatanBatuGame({ goBack }) {
@@ -63,8 +64,8 @@ export default function G8JembatanBatuGame({ goBack }) {
           <Card>
             <SliderInput 
               value={val} 
-              min={q.terms[0]} 
-              max={q.answer + 5} 
+              min={q.min} 
+              max={q.max} 
               onChange={setVal} 
               accentColor="#FCA5A5"
             />

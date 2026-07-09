@@ -107,6 +107,24 @@ export function FeedbackBanner({ message, isCorrect, extras }) {
   )
 }
 
+// Computes a randomized [min,max] range for a SliderInput so the answer never sits at a
+// predictable position (e.g. always in the middle, or always a fixed offset from an edge).
+// Pass every value that MUST be visible on the slider (answer, start value, reference marks)
+// as `mustInclude`. Randomizes independent left/right padding and occasionally widens the
+// range further, then snaps to `step`. Call this once per new question (inside genQ()), not
+// on every render, so the range itself is part of the randomized question state.
+export function randomSliderRange(mustInclude, { step = 1, minPad = 6, maxPad = 30 } = {}) {
+  const lo = Math.min(...mustInclude)
+  const hi = Math.max(...mustInclude)
+  const padLeft = minPad + Math.random() * (maxPad - minPad)
+  const padRight = minPad + Math.random() * (maxPad - minPad)
+  const snap = (v) => Math.round(v / step) * step
+  let min = snap(lo - padLeft)
+  let max = snap(hi + padRight)
+  if (max <= min) max = min + step * 10
+  return { min, max }
+}
+
 // Big touch-friendly slider for numeric answers. Replaces numpad/typing wherever the
 // answer is a single number moving along a line (temperature, position, quantity, etc).
 export function SliderInput({

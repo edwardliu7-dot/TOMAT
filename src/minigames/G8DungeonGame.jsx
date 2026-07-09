@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, randomSliderRange } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function genQ() {
@@ -7,7 +7,8 @@ function genQ() {
   const terms = [a0]
   for (let i = 1; i < 4; i++) terms.push(terms[i - 1] * 2)
   const answer = terms[3] * 2
-  return { terms, answer }
+  const { min, max } = randomSliderRange([terms[0], answer], { step: 1, minPad: 5, maxPad: 20 })
+  return { terms, answer, min, max }
 }
 
 export default function G8DungeonGame({ goBack }) {
@@ -62,8 +63,8 @@ export default function G8DungeonGame({ goBack }) {
           <Card>
             <SliderInput 
               value={val} 
-              min={q.terms[0]} 
-              max={q.answer + 10} 
+              min={q.min} 
+              max={q.max} 
               onChange={setVal} 
               accentColor="#FCA5A5"
             />

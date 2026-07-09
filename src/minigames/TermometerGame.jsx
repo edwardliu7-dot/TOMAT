@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, randomSliderRange } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
@@ -9,11 +9,8 @@ function genQ() {
   const change = rand(2, 12)
   const isRise = Math.random() < 0.5
   const answer = isRise ? start + change : start - change
-  // Dynamic range: cover both start and answer with ~8°C padding, snapped to nearest 5
-  const lo = Math.min(start, answer)
-  const hi = Math.max(start, answer)
-  const tempMin = Math.floor((lo - 8) / 5) * 5
-  const tempMax = Math.ceil((hi + 8) / 5) * 5
+  // Randomized range so the answer never lands at a predictable spot on the slider
+  const { min: tempMin, max: tempMax } = randomSliderRange([start, answer], { step: 5, minPad: 5, maxPad: 25 })
   return { start, change, isRise, answer, tempMin, tempMax }
 }
 
