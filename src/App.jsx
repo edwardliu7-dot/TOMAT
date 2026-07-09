@@ -1,5 +1,35 @@
 import React, { useState, Component } from 'react'
 import { PlayerProvider } from './PlayerContext'
+import HomeScreen from './screens/HomeScreen'
+import Grade7ZoneScreen from './screens/Grade7ZoneScreen'
+import Grade8ZoneScreen from './screens/Grade8ZoneScreen'
+import Grade9ZoneScreen from './screens/Grade9ZoneScreen'
+
+// BAB I: Bilangan Bulat
+import TermometerGame from './minigames/TermometerGame'
+import KatakGame from './minigames/SubmarineGame'
+import PabrikRobotGame from './minigames/PabrikSenjataGame'
+import SporaJamurGame from './minigames/JembatanGame'
+import ScannerPermatGame from './minigames/SortirKargoGame'
+import GembokRodaGigiGame from './minigames/GembokRodaGigiGame'
+import MercusaarGame from './minigames/WormholeGame'
+
+// BAB II: Bilangan Rasional
+import KokiPizzaGame from './minigames/KokiPizzaGame'
+import PipaAirGame from './minigames/LabKimiaGame'
+import BorTambangGame from './minigames/BorTambangGame'
+import KeretaTambangGame from './minigames/PemanahGame'
+import BateraiGame from './minigames/ShieldGame'
+import TimbanganEmasGame from './minigames/TimbanganEmasGame'
+import FokusTeleskopGame from './minigames/FokusTeleskopGame'
+
+// BAB III: Rasio
+import RamuanJusGame from './minigames/RamuanJusGame'
+import KasirSihirGame from './minigames/PasarBarterGame'
+import BentengPertahananGame from './minigames/BentengPertahananGame'
+import NakhodaGame from './minigames/ArsitekGame'
+import RelKeretaGame from './minigames/RelKeretaGame'
+import BrankasSandiGame from './minigames/HologramGame'
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -32,38 +62,35 @@ class ErrorBoundary extends Component {
     return this.props.children
   }
 }
-import HomeScreen from './screens/HomeScreen'
-import Grade7ZoneScreen from './screens/Grade7ZoneScreen'
-import Grade8ZoneScreen from './screens/Grade8ZoneScreen'
-import Grade9ZoneScreen from './screens/Grade9ZoneScreen'
-import SubmarineGame from './minigames/SubmarineGame'
-import LabKimiaGame from './minigames/LabKimiaGame'
-import ArsitekGame from './minigames/ArsitekGame'
-import JembatanGame from './minigames/JembatanGame'
-import PabrikSenjataGame from './minigames/PabrikSenjataGame'
-import PemanahGame from './minigames/PemanahGame'
-import PasarBarterGame from './minigames/PasarBarterGame'
-import SortirKargoGame from './minigames/SortirKargoGame'
-import WormholeGame from './minigames/WormholeGame'
-import HologramGame from './minigames/HologramGame'
-import ShieldGame from './minigames/ShieldGame'
 
 const ROUTES = {
   home: HomeScreen,
   grade7: Grade7ZoneScreen,
   grade8: Grade8ZoneScreen,
   grade9: Grade9ZoneScreen,
-  submarine: SubmarineGame,
-  labkimia: LabKimiaGame,
-  arsitek: ArsitekGame,
-  jembatan: JembatanGame,
-  pabrik: PabrikSenjataGame,
-  pemanah: PemanahGame,
-  pasar: PasarBarterGame,
-  kargo: SortirKargoGame,
-  wormhole: WormholeGame,
-  hologram: HologramGame,
-  shield: ShieldGame,
+  // BAB I: Bilangan Bulat
+  termometer: TermometerGame,
+  katak: KatakGame,
+  pabrikrobot: PabrikRobotGame,
+  sporajamur: SporaJamurGame,
+  scanner: ScannerPermatGame,
+  gembok: GembokRodaGigiGame,
+  mercusuar: MercusaarGame,
+  // BAB II: Bilangan Rasional
+  kokipizza: KokiPizzaGame,
+  pipaair: PipaAirGame,
+  bortambang: BorTambangGame,
+  kabataku: KeretaTambangGame,
+  baterai: BateraiGame,
+  timbanganemas: TimbanganEmasGame,
+  fokusteleskop: FokusTeleskopGame,
+  // BAB III: Rasio
+  ramuanjus: RamuanJusGame,
+  kasirsihir: KasirSihirGame,
+  benteng: BentengPertahananGame,
+  nakhoda: NakhodaGame,
+  relkereta: RelKeretaGame,
+  brankas: BrankasSandiGame,
 }
 
 export default function App() {

@@ -2,120 +2,108 @@ import React, { useState, useCallback } from 'react'
 import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
-const BOTTLES = [
-  { label: '1/4', value: 0.25 },
-  { label: '1/2', value: 0.50 },
-  { label: '3/4', value: 0.75 },
-  { label: '0.1', value: 0.10 },
-  { label: '0.25', value: 0.25 },
-  { label: '10%', value: 0.10 },
-  { label: '25%', value: 0.25 },
-  { label: '50%', value: 0.50 },
+// Pipe segments with fraction lengths
+const PIPES = [
+  { label: '1/4 m', value: 0.25 },
+  { label: '1/2 m', value: 0.50 },
+  { label: '3/4 m', value: 0.75 },
+  { label: '1/3 m', value: 1 / 3 },
+  { label: '2/3 m', value: 2 / 3 },
+  { label: '1/8 m', value: 0.125 },
 ]
 
-const RECIPES = [
-  { value: 0.5, label: '0.5 (atau 50% / 1/2)' },
-  { value: 0.75, label: '0.75 (atau 75% / 3/4)' },
-  { value: 0.6, label: '0.6 (atau 60% / 3/5)' },
-  { value: 0.35, label: '0.35 (atau 35%)' },
-  { value: 0.85, label: '0.85 (atau 85%)' },
+const TARGETS = [
+  { value: 1.0, label: '1 meter (4/4)' },
+  { value: 0.75, label: '3/4 meter' },
+  { value: 1.25, label: '5/4 meter' },
+  { value: 1.5, label: '3/2 meter' },
+  { value: 0.5, label: '1/2 meter' },
 ]
 
-function randRecipe() { return RECIPES[Math.floor(Math.random() * RECIPES.size)] || RECIPES[Math.floor(Math.random() * RECIPES.length)] }
-
-export default function LabKimiaGame({ goBack }) {
+export default function PipaAirGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
-  const [recipe, setRecipe] = useState(() => RECIPES[Math.floor(Math.random() * RECIPES.length)])
-  const [currentSum, setCurrentSum] = useState(0)
-  const [feedback, setFeedback] = useState(null)
+  const [target, setTarget] = useState(() => TARGETS[Math.floor(Math.random() * TARGETS.length)])
+  const [total, setTotal] = useState(0)
   const [history, setHistory] = useState([])
+  const [feedback, setFeedback] = useState(null)
 
-  const newRecipe = useCallback(() => {
-    setRecipe(RECIPES[Math.floor(Math.random() * RECIPES.length)])
-    setCurrentSum(0)
-    setFeedback(null)
-    setHistory([])
+  const newTarget = useCallback(() => {
+    setTarget(TARGETS[Math.floor(Math.random() * TARGETS.length)])
+    setTotal(0); setHistory([]); setFeedback(null)
   }, [])
 
-  const addBottle = (bottle) => {
+  const addPipe = (pipe) => {
     if (feedback !== null) return
-    const newSum = Math.round((currentSum + bottle.value) * 100) / 100
-    setCurrentSum(newSum)
-    setHistory(h => [...h, bottle.label])
-    if (Math.abs(newSum - recipe.value) < 0.001) {
-      setFeedback(true)
-      addCoins(50); addExp(100)
-    } else if (newSum > recipe.value + 0.001) {
+    const newTotal = Math.round((total + pipe.value) * 1000) / 1000
+    setTotal(newTotal)
+    setHistory(h => [...h, pipe.label])
+    if (Math.abs(newTotal - target.value) < 0.01) {
+      setFeedback(true); addCoins(50); addExp(100)
+    } else if (newTotal > target.value + 0.01) {
       setFeedback(false)
     }
   }
 
-  const reset = () => { setCurrentSum(0); setFeedback(null); setHistory([]) }
-
-  const fillPct = Math.min((currentSum / recipe.value) * 100, 100)
+  const reset = () => { setTotal(0); setHistory([]); setFeedback(null) }
+  const fillPct = Math.min((total / target.value) * 100, 100)
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="⚗️ Lab Kimia Penemu" onBack={goBack} />
-
+      <TopBar title="🔧 Teknisi Pipa Air" onBack={goBack} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>RESEP KIMIA RAHASIA</div>
-          <div style={{ textAlign: 'center', fontSize: 14, color: '#94A3B8', marginBottom: 4 }}>Campurkan cairan hingga mencapai:</div>
-          <div style={{ textAlign: 'center', fontSize: 22, fontWeight: 800, color: '#fff' }}>{recipe.label}</div>
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>PERBAIKAN SALURAN BOCOR</div>
+          <div style={{ textAlign: 'center', fontSize: 14, color: '#94A3B8', marginBottom: 4 }}>Sambungkan pipa hingga mencapai:</div>
+          <div style={{ textAlign: 'center', fontSize: 20, fontWeight: 800, color: '#fff' }}>{target.label}</div>
         </Card>
 
-        {/* Cauldron */}
+        {/* Pipe progress */}
         <Card border="rgba(103,232,249,0.2)">
-          <div style={{ textAlign: 'center', fontSize: 13, color: '#94A3B8', marginBottom: 12 }}>Campuran saat ini:</div>
-          <div style={{ position: 'relative', width: 120, height: 120, margin: '0 auto 12px', background: 'rgba(255,255,255,0.05)', borderRadius: '0 0 60px 60px', border: '2px solid rgba(103,232,249,0.3)', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', bottom: 0, width: '100%', background: 'linear-gradient(180deg,#06b6d4,#0284c7)', height: `${fillPct}%`, transition: 'height 0.3s' }} />
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: 24, fontWeight: 900, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>{Math.round(currentSum * 100)}%</span>
+          <div style={{ textAlign: 'center', fontSize: 13, color: '#94A3B8', marginBottom: 12 }}>Panjang pipa terpasang:</div>
+          {/* Pipe visual */}
+          <div style={{ position: 'relative', height: 28, background: 'rgba(255,255,255,0.05)', borderRadius: 14, border: '2px solid rgba(103,232,249,0.3)', overflow: 'hidden', marginBottom: 10 }}>
+            <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${fillPct}%`, background: 'linear-gradient(90deg,#0284c7,#06b6d4)', borderRadius: 14, transition: 'width 0.3s', display: 'flex', alignItems: 'center', paddingLeft: 8 }}>
+              {fillPct > 20 && <span style={{ fontSize: 11, color: '#fff', fontWeight: 700 }}>💧</span>}
             </div>
           </div>
-          <div style={{ textAlign: 'center', fontSize: 15, color: '#67E8F9', fontWeight: 700 }}>
-            {currentSum.toFixed(2)} / {recipe.value.toFixed(2)}
+          <div style={{ textAlign: 'center', fontSize: 16, color: '#67E8F9', fontWeight: 700 }}>
+            {total.toFixed(3)} m / {target.value.toFixed(3)} m
           </div>
           {history.length > 0 && (
             <div style={{ marginTop: 8, fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>
-              Ditambah: {history.join(' + ')}
+              Potongan: {history.join(' + ')}
             </div>
           )}
         </Card>
 
-        <div style={{ fontSize: 13, color: '#94A3B8', fontWeight: 600 }}>Pilih botol untuk ditambahkan:</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-          {BOTTLES.map((b, i) => (
-            <button key={i} onClick={() => addBottle(b)} disabled={feedback !== null} style={{
-              background: '#1E2128', border: '1px solid rgba(103,232,249,0.2)', borderRadius: 12,
+        <div style={{ fontSize: 13, color: '#94A3B8', fontWeight: 600 }}>Pilih potongan pipa yang akan disambung:</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+          {PIPES.map((p, i) => (
+            <button key={i} onClick={() => addPipe(p)} disabled={feedback !== null} style={{
+              background: '#1E2128', border: '1px solid rgba(103,232,249,0.25)', borderRadius: 12,
               padding: '12px 4px', cursor: feedback !== null ? 'default' : 'pointer', fontFamily: 'inherit',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, transition: 'all 0.15s',
-            }}
-              onMouseEnter={e => { if (!feedback) e.currentTarget.style.borderColor = '#67E8F9' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(103,232,249,0.2)' }}
-            >
-              <div style={{ width: 28, height: 36, background: 'rgba(99,102,241,0.3)', borderRadius: 4, border: '1px solid rgba(103,232,249,0.3)' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#67E8F9' }}>{b.label}</span>
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            }}>
+              <div style={{ fontSize: 18 }}>🔩</div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#67E8F9' }}>{p.label}</span>
             </button>
           ))}
         </div>
 
-        {feedback === null && currentSum > 0 && (
+        {feedback === null && total > 0 && (
           <button onClick={reset} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#94A3B8', borderRadius: 10, padding: '10px', fontFamily: 'inherit', cursor: 'pointer', fontSize: 13 }}>
-            🔄 Reset Campuran
+            🔄 Lepas Semua Pipa
           </button>
         )}
 
         {feedback !== null && (
           <>
             <FeedbackBanner
-              message={feedback ? '✅ Reaksi Berhasil! Formula sempurna!' : '❌ Kelebihan! Campuran meluap!'}
-              isCorrect={feedback}
-              extras="+50 Koin | +100 EXP"
+              message={feedback ? '✅ Saluran tersambung! Air mengalir lancar!' : '❌ Pipa kelebihan! Saluran bocor lagi.'}
+              isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newRecipe} color="#0e7490">Resep Berikutnya ▶</Btn>
+            <Btn onClick={newTarget} color="#0e7490">Saluran Berikutnya ▶</Btn>
           </>
         )}
       </div>

@@ -1,95 +1,88 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback } from 'react'
 import { TopBar, PlayerHeader, Card, Btn, OptionGrid, FeedbackBanner } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
-const PATTERNS = [
-  [2, 4, 6, 8, 10, 12],
-  [3, 6, 9, 12, 15, 18],
-  [5, 10, 15, 20, 25, 30],
-  [1, 4, 9, 16, 25, 36],
-  [2, 5, 8, 11, 14, 17],
-  [10, 20, 30, 40, 50, 60],
-  [1, 2, 4, 8, 16, 32],
-]
-
-function genSequence() {
-  const pattern = PATTERNS[Math.floor(Math.random() * PATTERNS.length)]
-  const missingIdx = Math.floor(Math.random() * pattern.length)
-  const correct = String(pattern[missingIdx])
-  const seq = pattern.map((v, i) => i === missingIdx ? '?' : String(v))
-  const wrongs = new Set()
-  while (wrongs.size < 3) {
-    const offset = Math.floor(Math.random() * 10) + 1
-    const sign = Math.random() < 0.5 ? 1 : -1
-    const w = String(pattern[missingIdx] + sign * offset)
-    if (w !== correct && Number(w) > 0) wrongs.add(w)
-  }
-  const options = [...wrongs, correct].sort(() => Math.random() - 0.5)
-  return { seq, correct, options }
+function shuffle(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
+  return a
 }
 
-export default function JembatanGame({ goBack }) {
+function genQ() {
+  const bases = [2, 3, 4, 5]
+  const exps = [2, 3, 4]
+  const base = bases[Math.floor(Math.random() * bases.length)]
+  const exp = exps[Math.floor(Math.random() * exps.length)]
+  const answer = Math.pow(base, exp)
+  const wrongs = new Set()
+  const candidates = [base * exp, answer + base, answer - base, answer * 2, Math.pow(base, exp - 1), Math.pow(base + 1, exp)]
+  for (const c of shuffle(candidates)) {
+    if (wrongs.size >= 3) break
+    if (c !== answer && c > 0) wrongs.add(c)
+  }
+  const opts = shuffle([...wrongs, answer]).map(String)
+  return { base, exp, answer, opts }
+}
+
+export default function SporaJamurGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genSequence)
+  const [q, setQ] = useState(genQ)
   const [feedback, setFeedback] = useState(null)
-
-  const newQ = useCallback(() => { setQ(genSequence()); setFeedback(null) }, [])
-
+  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null) }, [])
   const select = (opt) => {
     if (feedback !== null) return
-    const correct = opt === q.correct
+    const correct = opt === String(q.answer)
     setFeedback(correct)
     if (correct) { addCoins(50); addExp(100) }
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #450A0A 0%, #3b0a0a 100%)' }}>
-      <PlayerHeader />
-      <TopBar title="🗿 Jembatan Batu Ajaib" onBack={goBack} />
+  // Show mushroom splitting visual
+  const stages = Array.from({ length: q.exp + 1 }, (_, i) => ({ detik: i, jumlah: Math.pow(q.base, i) }))
 
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
+      <PlayerHeader />
+      <TopBar title="🍄 Serangan Spora Jamur" onBack={goBack} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Card border="rgba(249,115,22,0.3)">
-          <div style={{ fontSize: 12, color: '#FDBA74', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>BATU PENYEBERANGAN</div>
-          <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 16 }}>
-            Temukan nilai batu yang hilang (?) untuk menyeberangi sungai api!
+        <Card border="rgba(103,232,249,0.3)">
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>MONITOR PENYEBARAN JAMUR HAMA</div>
+          <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', marginBottom: 12 }}>
+            Setiap detik, 1 jamur membelah menjadi <strong style={{ color: '#fff' }}>{q.base} jamur</strong>.
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8 }}>
-            {q.seq.map((v, i) => (
-              <div key={i} style={{
-                width: 54, height: 54, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: v === '?' ? '#1a0a00' : '#7F1D1D',
-                border: `2px solid ${v === '?' ? '#FDBA74' : 'rgba(253,186,116,0.3)'}`,
-                fontSize: v === '?' ? 24 : 18, fontWeight: 900,
-                color: v === '?' ? '#FDBA74' : '#fff',
-              }}>{v}</div>
+          {/* Growth table */}
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 16, overflowX: 'auto' }}>
+            {stages.map((s, i) => (
+              <div key={i} style={{ textAlign: 'center', minWidth: 52 }}>
+                <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 4 }}>Detik {s.detik}</div>
+                <div style={{ background: i === stages.length - 1 ? 'rgba(103,232,249,0.1)' : 'rgba(255,255,255,0.04)', border: `1px solid ${i === stages.length - 1 ? 'rgba(103,232,249,0.4)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 8, padding: '8px 4px' }}>
+                  <div style={{ fontSize: i < stages.length - 1 ? 13 : 11, fontWeight: 800, color: i === stages.length - 1 ? '#67E8F9' : '#fff' }}>
+                    {i < stages.length - 1 ? s.jumlah : '❓'}
+                  </div>
+                </div>
+                {i < stages.length - 1 && (
+                  <div style={{ fontSize: 18, color: '#34D399', marginTop: 2 }}>
+                    {i === 0 ? '🍄' : '🍄'.repeat(Math.min(s.jumlah, 4))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
+          <div style={{ padding: '10px 14px', background: 'rgba(103,232,249,0.08)', borderRadius: 10, textAlign: 'center' }}>
+            <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 4 }}>Berapa jamur pada detik ke-{q.exp}?</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#67E8F9', fontFamily: 'monospace' }}>
+              {q.base}<sup style={{ fontSize: 14 }}>{q.exp}</sup> = ?
+            </div>
+          </div>
         </Card>
-
-        <div style={{ fontSize: 13, color: '#FDBA74', fontWeight: 600 }}>Pilih nilai batu yang hilang:</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-          {q.options.map((opt, i) => {
-            const isCorrect = feedback !== null && opt === q.correct
-            const isWrong = feedback === false && opt !== q.correct
-            return (
-              <button key={i} onClick={() => select(opt)} disabled={feedback !== null} style={{
-                background: isCorrect ? '#16a34a' : '#1E2128',
-                border: `2px solid ${isCorrect ? '#22c55e' : 'rgba(253,186,116,0.25)'}`,
-                borderRadius: 12, padding: '16px 8px', color: '#fff', fontSize: 22, fontWeight: 900,
-                cursor: feedback !== null ? 'default' : 'pointer', fontFamily: 'inherit',
-              }}>{opt}</button>
-            )
-          })}
-        </div>
-
+        <div style={{ fontSize: 13, color: '#67E8F9', fontWeight: 600 }}>Tembak jawaban yang benar sebelum jamur menyebar!</div>
+        <OptionGrid options={q.opts} onSelect={select} correct={feedback !== null ? String(q.answer) : null} disabled={feedback !== null} />
         {feedback !== null && (
           <>
             <FeedbackBanner
-              message={feedback ? '✅ Batu ditemukan! Jembatan aman!' : `❌ Meleset! Batu yang benar adalah ${q.correct}.`}
-              isCorrect={feedback}
-              extras="+50 Koin | +100 EXP"
+              message={feedback ? `✅ Tembakan tepat! ${q.base}^${q.exp} = ${q.answer} jamur.` : `❌ Meleset! ${q.base}^${q.exp} = ${q.answer}`}
+              isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#b45309">Jembatan Berikutnya ▶</Btn>
+            <Btn onClick={newQ} color="#0e7490">Gelombang Berikutnya ▶</Btn>
           </>
         )}
       </div>

@@ -1,92 +1,93 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, OptionGrid, FeedbackBanner } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
-const SURDS = [
-  { expr: '√18', correct: '3√2', opts: ['3√2', '2√3', '9√2', '2√9'] },
-  { expr: '√50', correct: '5√2', opts: ['5√2', '2√5', '25√2', '5√5'] },
-  { expr: '√27', correct: '3√3', opts: ['3√3', '9√3', '3√9', '2√3'] },
-  { expr: '√75', correct: '5√3', opts: ['5√3', '3√5', '25√3', '15√5'] },
-  { expr: '√32', correct: '4√2', opts: ['4√2', '2√4', '16√2', '2√8'] },
-  { expr: '√12', correct: '2√3', opts: ['2√3', '3√2', '4√3', '2√6'] },
-  { expr: '√45', correct: '3√5', opts: ['3√5', '5√3', '9√5', '3√9'] },
+function shuffle(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
+  return a
+}
+function gcd(a, b) { return b === 0 ? a : gcd(b, a % b) }
+function lcm(a, b) { return (a * b) / gcd(a, b) }
+
+const PAIRS = [
+  [3, 4], [4, 6], [6, 8], [5, 4], [6, 10],
+  [8, 12], [3, 7], [4, 9], [5, 6], [9, 6],
+  [4, 10], [6, 14], [3, 5],
 ]
 
-function genSurd() {
-  const s = SURDS[Math.floor(Math.random() * SURDS.length)]
-  return { ...s, opts: [...s.opts].sort(() => Math.random() - 0.5) }
+function genQ() {
+  const [a, b] = PAIRS[Math.floor(Math.random() * PAIRS.length)]
+  const answer = lcm(a, b)
+  const wrongs = new Set()
+  const candidates = [a * b, answer + a, answer - b, answer + b, a + b]
+  for (const c of shuffle(candidates)) {
+    if (wrongs.size >= 3) break
+    if (c !== answer && c > 0) wrongs.add(c)
+  }
+  const opts = shuffle([...wrongs, answer]).map(String)
+  return { a, b, answer, opts }
 }
 
-export default function WormholeGame({ goBack }) {
+export default function MercusaarGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genSurd)
+  const [q, setQ] = useState(genQ)
   const [feedback, setFeedback] = useState(null)
-  const [spinning, setSpinning] = useState(false)
-
-  const newQ = useCallback(() => { setQ(genSurd()); setFeedback(null); setSpinning(false) }, [])
-
+  const [time, setTime] = useState(0)
+  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null); setTime(0) }, [])
   const select = (opt) => {
     if (feedback !== null) return
-    setSpinning(true)
-    setTimeout(() => {
-      const correct = opt === q.correct
-      setFeedback(correct)
-      setSpinning(false)
-      if (correct) { addCoins(50); addExp(100) }
-    }, 600)
+    const correct = opt === String(q.answer)
+    setFeedback(correct)
+    if (correct) { addCoins(50); addExp(100) }
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0F172A 0%, #0d1624 100%)' }}>
-      <PlayerHeader />
-      <TopBar title="🌀 Generator Lubang Cacing" onBack={goBack} />
+  // Show blink pattern preview for first 12 seconds
+  const preview = Array.from({ length: 13 }, (_, t) => ({
+    t, a: t % q.a === 0, b: t % q.b === 0,
+  }))
 
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
+      <PlayerHeader />
+      <TopBar title="🏮 Sinyal Mercusuar" onBack={goBack} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Card border="rgba(16,185,129,0.35)">
-          <div style={{ fontSize: 12, color: '#34D399', fontWeight: 700, letterSpacing: 1, marginBottom: 12, textAlign: 'center' }}>INTI ENERGI GENERATOR</div>
-          {/* Wormhole visual */}
-          <div style={{ textAlign: 'center', margin: '8px 0 16px' }}>
-            <div style={{
-              display: 'inline-block', width: 120, height: 120, borderRadius: '50%',
-              background: 'radial-gradient(circle, #6366F1 0%, #0f172a 60%)',
-              border: '3px solid #34D399', boxShadow: '0 0 30px rgba(52,211,153,0.3)',
-              animation: spinning ? 'spin 0.6s linear infinite' : 'none',
-              alignItems: 'center', justifyContent: 'center',
-            }}
-              className="wormhole"
-            >
-              <span style={{ fontSize: 36, fontWeight: 900, color: '#fff' }}>{q.expr}</span>
-            </div>
-            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } .wormhole { display: flex; }`}</style>
+        <Card border="rgba(103,232,249,0.3)">
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>STASIUN KOORDINASI KAPAL</div>
+          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 14, lineHeight: 1.7 }}>
+            Mercusuar <strong style={{ color: '#FFD700' }}>A</strong> berkedip setiap <strong style={{ color: '#FFD700' }}>{q.a} detik</strong>.<br />
+            Mercusuar <strong style={{ color: '#67E8F9' }}>B</strong> berkedip setiap <strong style={{ color: '#67E8F9' }}>{q.b} detik</strong>.<br />
+            Kapan keduanya berkedip <strong style={{ color: '#fff' }}>bersamaan</strong> pertama kali?
           </div>
-          <div style={{ textAlign: 'center', fontSize: 15, color: '#94A3B8' }}>
-            Sederhanakan bentuk akar ini untuk membuka portal!
+          {/* Blink timeline */}
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ display: 'flex', gap: 4, minWidth: 'max-content', marginBottom: 4 }}>
+              {preview.map(({ t, a, b }) => (
+                <div key={t} style={{ textAlign: 'center', minWidth: 28 }}>
+                  <div style={{ fontSize: 9, color: '#94A3B8', marginBottom: 2 }}>{t}</div>
+                  <div style={{ width: 24, height: 16, borderRadius: 4, background: a ? '#FFD700' : 'rgba(255,215,0,0.08)', border: `1px solid ${a ? '#FFD700' : 'rgba(255,215,0,0.15)'}`, marginBottom: 2 }} />
+                  <div style={{ width: 24, height: 16, borderRadius: 4, background: b ? '#67E8F9' : 'rgba(103,232,249,0.08)', border: `1px solid ${b ? '#67E8F9' : 'rgba(103,232,249,0.15)'}` }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 16, marginTop: 6, fontSize: 11 }}>
+              <span style={{ color: '#FFD700' }}>■ Mercusuar A (setiap {q.a}s)</span>
+              <span style={{ color: '#67E8F9' }}>■ Mercusuar B (setiap {q.b}s)</span>
+            </div>
+          </div>
+          <div style={{ marginTop: 12, padding: '10px', background: 'rgba(103,232,249,0.08)', borderRadius: 10, textAlign: 'center' }}>
+            <div style={{ fontSize: 14, color: '#94A3B8' }}>KPK dari {q.a} dan {q.b} = ?</div>
           </div>
         </Card>
-
-        <div style={{ fontSize: 13, color: '#34D399', fontWeight: 600 }}>Pilih bentuk akar yang disederhanakan:</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-          {q.opts.map((opt, i) => {
-            const isCorrect = feedback !== null && opt === q.correct
-            return (
-              <button key={i} onClick={() => select(opt)} disabled={feedback !== null || spinning} style={{
-                background: isCorrect ? '#16a34a' : '#1E2128',
-                border: `2px solid ${isCorrect ? '#22c55e' : 'rgba(52,211,153,0.25)'}`,
-                borderRadius: 12, padding: '16px 8px', color: '#fff', fontSize: 20, fontWeight: 700,
-                cursor: (feedback !== null || spinning) ? 'default' : 'pointer', fontFamily: 'monospace',
-              }}>{opt}</button>
-            )
-          })}
-        </div>
-
+        <div style={{ fontSize: 13, color: '#67E8F9', fontWeight: 600 }}>Pilih detik saat kedua mercusuar berkedip bersama:</div>
+        <OptionGrid options={q.opts} onSelect={select} correct={feedback !== null ? String(q.answer) : null} disabled={feedback !== null} />
         {feedback !== null && (
           <>
             <FeedbackBanner
-              message={feedback ? '✅ Portal terbuka! Lubang cacing berhasil dibuat!' : `❌ Energi tidak stabil! Jawaban benar: ${q.correct}`}
-              isCorrect={feedback}
-              extras="+50 Koin | +100 EXP"
+              message={feedback ? `✅ Kapal berhasil diselamatkan! KPK = ${q.answer} detik` : `❌ Sinyal terlewat! KPK yang benar = ${q.answer}`}
+              isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#065f46">Generator Berikutnya ▶</Btn>
+            <Btn onClick={newQ} color="#0e7490">Mercusuar Berikutnya ▶</Btn>
           </>
         )}
       </div>

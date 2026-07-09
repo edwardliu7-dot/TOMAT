@@ -1,105 +1,85 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, OptionGrid, FeedbackBanner } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 
-const TARGETS = [
-  { x: 2, y: 4, m: 2 },
-  { x: 3, y: 9, m: 3 },
-  { x: 4, y: 4, m: 1 },
-  { x: 5, y: 10, m: 2 },
-  { x: 3, y: 6, m: 2 },
-  { x: 4, y: -8, m: -2 },
-  { x: 5, y: -5, m: -1 },
-  { x: 6, y: 18, m: 3 },
+function shuffle(arr) {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
+  return a
+}
+
+// KABATAKU: Kurung, Kali/Bagi, Tambah/Kurang
+const QUESTIONS = [
+  { expr: '3 + 4 × 2', answer: 11, wrong: [14, 10, 7], hint: 'Kali dulu, baru tambah' },
+  { expr: '(5 + 3) × 2', answer: 16, wrong: [11, 10, 13], hint: 'Kurung dulu, baru kali' },
+  { expr: '20 ÷ 4 + 3', answer: 8, wrong: [7, 12, 5], hint: 'Bagi dulu, baru tambah' },
+  { expr: '15 − 2 × 4', answer: 7, wrong: [52, 11, 3], hint: 'Kali dulu, baru kurang' },
+  { expr: '(8 − 3) × 4', answer: 20, wrong: [29, 24, 16], hint: 'Kurung dulu, baru kali' },
+  { expr: '24 ÷ (3 + 5)', answer: 3, wrong: [13, 8, 6], hint: 'Kurung dulu, baru bagi' },
+  { expr: '6 + 4 × 3 − 2', answer: 16, wrong: [30, 12, 22], hint: 'Kali dulu, baru tambah & kurang' },
+  { expr: '(7 + 3) ÷ 2 + 5', answer: 10, wrong: [9, 8, 12], hint: 'Kurung, lalu bagi, lalu tambah' },
+  { expr: '5 × (12 − 8) ÷ 2', answer: 10, wrong: [4, 20, 8], hint: 'Kurung dulu, kali, lalu bagi' },
+  { expr: '18 ÷ 3 + 4 × 2', answer: 14, wrong: [20, 12, 16], hint: 'Bagi dan kali dulu, baru tambah' },
 ]
 
-function genTarget() { return TARGETS[Math.floor(Math.random() * TARGETS.length)] }
+function genQ() {
+  const base = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]
+  const opts = shuffle([...base.wrong.slice(0, 3), base.answer]).map(String)
+  return { ...base, opts }
+}
 
-export default function PemanahGame({ goBack }) {
+export default function KeretaTambangGame({ goBack }) {
   const { addCoins, addExp } = usePlayer()
-  const [target, setTarget] = useState(genTarget)
-  const [slope, setSlope] = useState(0)
+  const [q, setQ] = useState(genQ)
   const [feedback, setFeedback] = useState(null)
-
-  const newTarget = useCallback(() => { setTarget(genTarget()); setSlope(0); setFeedback(null) }, [])
-
-  const shoot = () => {
-    const correct = Math.abs(slope - target.m) < 0.1
+  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null) }, [])
+  const select = (opt) => {
+    if (feedback !== null) return
+    const correct = opt === String(q.answer)
     setFeedback(correct)
-    if (correct) { addCoins(60); addExp(120) }
+    if (correct) { addCoins(50); addExp(100) }
   }
 
-  // SVG arrow line
-  const cx = 120, cy = 120, scale = 20
-  const ex = cx + target.x * scale
-  const ey = cy - target.y * scale
-  const ax = cx + target.x * scale
-  const ay = cy - slope * target.x * scale
-
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #450A0A 0%, #3b0a0a 100%)' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🏹 Pemanah Balista" onBack={goBack} />
-
+      <TopBar title="🚂 Rute Kereta Tambang" onBack={goBack} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Card border="rgba(249,115,22,0.3)">
-          <div style={{ fontSize: 12, color: '#FDBA74', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>KOORDINAT TARGET MUSUH</div>
-          <div style={{ fontSize: 15, color: '#fff', textAlign: 'center' }}>
-            Target berada di titik <strong style={{ color: '#FDBA74' }}>({target.x}, {target.y})</strong>
-          </div>
-          <div style={{ textAlign: 'center', fontSize: 13, color: '#94A3B8', marginTop: 4 }}>
-            Gradien (kemiringan) = y / x = {target.y}/{target.x}
-          </div>
-        </Card>
-
-        {/* Grid visualization */}
-        <Card border="rgba(249,115,22,0.2)">
-          <div style={{ textAlign: 'center', marginBottom: 8, fontSize: 12, color: '#94A3B8' }}>Bidang Koordinat</div>
-          <svg width="240" height="240" style={{ display: 'block', margin: '0 auto' }}>
-            {/* Grid */}
-            {[-4,-2,0,2,4].map(v => (
-              <g key={v}>
-                <line x1={0} y1={cy - v*scale} x2={240} y2={cy - v*scale} stroke="rgba(255,255,255,0.08)" strokeWidth={1} />
-                <line x1={cx + v*scale} y1={0} x2={cx + v*scale} y2={240} stroke="rgba(255,255,255,0.08)" strokeWidth={1} />
-              </g>
+        <Card border="rgba(103,232,249,0.3)">
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>SISTEM TUAS REL (KABATAKU)</div>
+          {/* KABATAKU rule card */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+            {[
+              { label: 'KA', color: '#f59e0b', desc: 'kurung' },
+              { label: 'BA', color: '#6366F1', desc: 'kali/bagi' },
+              { label: 'TA', color: '#34D399', desc: 'tambah/kurang' },
+              { label: 'KU', color: '#34D399', desc: '' },
+            ].map((r, i) => (
+              <div key={i} style={{ background: `${r.color}22`, border: `1px solid ${r.color}55`, borderRadius: 8, padding: '4px 10px', textAlign: 'center' }}>
+                <div style={{ fontSize: 14, fontWeight: 900, color: r.color }}>{r.label}</div>
+                {r.desc && <div style={{ fontSize: 10, color: '#94A3B8' }}>{r.desc}</div>}
+              </div>
             ))}
-            {/* Axes */}
-            <line x1={0} y1={cy} x2={240} y2={cy} stroke="rgba(255,255,255,0.25)" strokeWidth={1.5} />
-            <line x1={cx} y1={0} x2={cx} y2={240} stroke="rgba(255,255,255,0.25)" strokeWidth={1.5} />
-            {/* Arrow line (player) */}
-            <line x1={cx} y1={cy} x2={ax} y2={ay} stroke="#FDBA74" strokeWidth={2.5} strokeDasharray="6 3" />
-            {/* Target point */}
-            <circle cx={ex} cy={ey} r={8} fill="#ef4444" stroke="#fff" strokeWidth={2} />
-            <text x={ex+10} y={ey-8} fill="#fff" fontSize={12} fontWeight="bold">({target.x},{target.y})</text>
-            {/* Origin */}
-            <circle cx={cx} cy={cy} r={4} fill="#FDBA74" />
-          </svg>
-        </Card>
-
-        <Card border="rgba(249,115,22,0.2)">
-          <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 8 }}>
-            Sesuaikan gradien panah: <strong style={{ color: '#FDBA74' }}>m = {slope.toFixed(1)}</strong>
           </div>
-          <input type="range" min={-5} max={5} step={0.5} value={slope}
-            onChange={e => { if (feedback === null) setSlope(Number(e.target.value)) }}
-            disabled={feedback !== null}
-            style={{ accentColor: '#FDBA74' }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#94A3B8', marginTop: 4 }}>
-            <span>−5</span><span>0</span><span>+5</span>
+          <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', marginBottom: 12 }}>
+            Selesaikan dengan urutan operasi yang benar:
+          </div>
+          <div style={{ padding: '16px', background: 'rgba(103,232,249,0.08)', borderRadius: 10, textAlign: 'center' }}>
+            <div style={{ fontSize: 26, fontWeight: 900, color: '#67E8F9', fontFamily: 'monospace' }}>{q.expr} = ?</div>
+          </div>
+          <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(99,102,241,0.08)', borderRadius: 8, fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>
+            💡 {q.hint}
           </div>
         </Card>
-
-        {feedback === null ? (
-          <Btn onClick={shoot} color="#b45309">🏹 Lepaskan Anak Panah!</Btn>
-        ) : (
+        <div style={{ fontSize: 13, color: '#67E8F9', fontWeight: 600 }}>Pilih posisi tuas yang benar:</div>
+        <OptionGrid options={q.opts} onSelect={select} correct={feedback !== null ? String(q.answer) : null} disabled={feedback !== null} />
+        {feedback !== null && (
           <>
             <FeedbackBanner
-              message={feedback ? '✅ TEPAT SASARAN! Musuh berhasil ditumbangkan.' : `❌ MELENSET! Gradien benar adalah m = ${target.m}.`}
-              isCorrect={feedback}
-              extras="+60 Koin | +120 EXP"
+              message={feedback ? `✅ Kereta aman! Hasil: ${q.answer}` : `❌ Kereta terguling! Jawaban benar: ${q.answer}`}
+              isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newTarget} color="#b45309">Target Berikutnya ▶</Btn>
+            <Btn onClick={newQ} color="#0e7490">Rute Berikutnya ▶</Btn>
           </>
         )}
       </div>

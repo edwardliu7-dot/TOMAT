@@ -1,0 +1,2 @@
+- [TOMAT curriculum structure](tomat-curriculum.md) — app follows Grade 7 Indonesian math curriculum; 20 games across BAB I/II/III; Grade 8/9 locked as coming soon.
+- [TOMAT fraction game data integrity](tomat-fraction-integrity.md) — hardcoded wrong-answer arrays must never include values equivalent to the correct answer (e.g. 2/6 ≡ 1/3); always verify before shipping.
