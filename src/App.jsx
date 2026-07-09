@@ -182,8 +182,9 @@ const GAME_ROUTES = {
 
 const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen }
 
-export default function App() {
-  const { user, checking } = useAuth()
+// Shared game-playing shell. Used for students (normal play with tasks/nilai) and for
+// teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
+function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [history, setHistory] = useState(['home'])
   const [pendingGame, setPendingGame] = useState(null) // { key, name, emoji }
   const [lastGrade, setLastGrade] = useState(null)
@@ -267,30 +268,12 @@ export default function App() {
       return <Component navigate={navigate} goBack={goBack} />
     }
 
+    if (current === 'home') {
+      return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} />
+    }
+
     const StaticScreen = STATIC_ROUTES[current] || HomeScreen
     return <StaticScreen navigate={navigate} goBack={goBack} />
-  }
-
-  if (checking) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#0F1115', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
-        Memuat…
-      </div>
-    )
-  }
-
-  if (!user) {
-    return <LoginScreen />
-  }
-
-  if (user.role === 'guru') {
-    return (
-      <div style={{ maxWidth: 640, margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
-        <ErrorBoundary onReset={() => {}}>
-          <GuruDashboardScreen />
-        </ErrorBoundary>
-      </div>
-    )
   }
 
   return (
@@ -308,4 +291,42 @@ export default function App() {
       </TaskProvider>
     </PlayerProvider>
   )
+}
+
+export default function App() {
+  const { user, checking } = useAuth()
+  const [guruPracticeMode, setGuruPracticeMode] = useState(false)
+
+  if (checking) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0F1115', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
+        Memuat…
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <LoginScreen />
+  }
+
+  if (user.role === 'guru') {
+    if (guruPracticeMode) {
+      return (
+        <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
+          <ErrorBoundary onReset={() => setGuruPracticeMode(false)}>
+            <PlayerExperience guruMode onExitGuruMode={() => setGuruPracticeMode(false)} />
+          </ErrorBoundary>
+        </div>
+      )
+    }
+    return (
+      <div style={{ maxWidth: 640, margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
+        <ErrorBoundary onReset={() => {}}>
+          <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
+        </ErrorBoundary>
+      </div>
+    )
+  }
+
+  return <PlayerExperience />
 }

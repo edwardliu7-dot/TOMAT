@@ -4,7 +4,7 @@ import { usePlayer } from '../PlayerContext'
 import { useTask } from '../TaskContext'
 import { useAuth } from '../AuthContext'
 import logo from '../assets/logo.png'
-import { getAccessibleGrades } from '../kelasUtils'
+import { getAccessibleGradesForUser } from '../kelasUtils'
 
 const ZONE_DEFS = [
   {
@@ -33,11 +33,11 @@ const ZONE_DEFS = [
   },
 ]
 
-export default function HomeScreen({ navigate }) {
+export default function HomeScreen({ navigate, guruMode, onExitGuruMode }) {
   const { player } = usePlayer()
   const { tasks, grades } = useTask()
   const { user } = useAuth()
-  const accessibleGrades = getAccessibleGrades(user?.kelas)
+  const accessibleGrades = getAccessibleGradesForUser(user)
   const pendingTaskCount = tasks.filter(t => t.status === 'active').length
 
   const zones = ZONE_DEFS.map(z => {
@@ -47,6 +47,21 @@ export default function HomeScreen({ navigate }) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0F1115' }}>
+      {guruMode && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 16px', background: 'rgba(52,211,153,0.12)',
+          borderBottom: '1px solid rgba(52,211,153,0.3)',
+        }}>
+          <div style={{ fontSize: 12, color: '#34D399', fontWeight: 700 }}>
+            🎓 Mode Mengajar · Latihan Bebas untuk Media Ajar
+          </div>
+          <button onClick={onExitGuruMode} style={{
+            background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff',
+            borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+          }}>← Kembali</button>
+        </div>
+      )}
       <PlayerHeader onAvatarClick={() => navigate('profile')} />
 
       {/* Hero Banner */}
@@ -81,35 +96,37 @@ export default function HomeScreen({ navigate }) {
       </div>
 
       {/* Nilai Saya shortcut */}
-      <div style={{ padding: '16px 16px 0', display: 'flex', gap: 10 }}>
-        <button
-          onClick={() => navigate('grades')}
-          style={{
-            flex: 1, background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
-            border: '1px solid rgba(167,139,250,0.3)', borderRadius: 16,
-            padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
-            display: 'flex', alignItems: 'center', gap: 12, position: 'relative',
-          }}
-        >
-          <div style={{ fontSize: 24 }}>📊</div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Nilai Akademik Saya</div>
-            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
-              {grades.length > 0 ? `${grades.length} nilai tersimpan` : 'Belum ada nilai'}
+      {!guruMode && (
+        <div style={{ padding: '16px 16px 0', display: 'flex', gap: 10 }}>
+          <button
+            onClick={() => navigate('grades')}
+            style={{
+              flex: 1, background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+              border: '1px solid rgba(167,139,250,0.3)', borderRadius: 16,
+              padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
+              display: 'flex', alignItems: 'center', gap: 12, position: 'relative',
+            }}
+          >
+            <div style={{ fontSize: 24 }}>📊</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Nilai Akademik Saya</div>
+              <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
+                {grades.length > 0 ? `${grades.length} nilai tersimpan` : 'Belum ada nilai'}
+              </div>
             </div>
-          </div>
-          {pendingTaskCount > 0 && (
-            <div style={{
-              position: 'absolute', top: 10, right: 12,
-              background: '#EF4444', color: '#fff', borderRadius: 20,
-              fontSize: 11, fontWeight: 800, padding: '2px 8px',
-              minWidth: 20, textAlign: 'center',
-            }}>
-              {pendingTaskCount} tugas
-            </div>
-          )}
-        </button>
-      </div>
+            {pendingTaskCount > 0 && (
+              <div style={{
+                position: 'absolute', top: 10, right: 12,
+                background: '#EF4444', color: '#fff', borderRadius: 20,
+                fontSize: 11, fontWeight: 800, padding: '2px 8px',
+                minWidth: 20, textAlign: 'center',
+              }}>
+                {pendingTaskCount} tugas
+              </div>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Zone Cards */}
       <div style={{ padding: '16px 16px' }}>

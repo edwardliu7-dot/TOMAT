@@ -297,7 +297,7 @@ function KunciTab({ grades }) {
   )
 }
 
-export default function GuruDashboardScreen() {
+export default function GuruDashboardScreen({ onPlayGames }) {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('tugas')
   const [view, setView] = useState('dashboard')
@@ -321,6 +321,11 @@ export default function GuruDashboardScreen() {
           <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{user?.name}</div>
           <div style={{ fontSize: 11, color: '#94A3B8' }}>Guru · {kelasDiampu.join(', ') || 'Belum ada kelas diampu'}</div>
         </div>
+        <button onClick={onPlayGames} title="Main sebagai Media Ajar" style={{
+          background: 'rgba(52,211,153,0.15)', border: 'none', color: '#34D399',
+          borderRadius: 20, padding: '8px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+          display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+        }}>🎮 Media Ajar</button>
         <button onClick={logout} title="Keluar" style={{
           background: 'rgba(255,255,255,0.06)', border: 'none', color: '#94A3B8',
           width: 34, height: 34, borderRadius: 8, cursor: 'pointer', fontSize: 15,

@@ -16,6 +16,12 @@ export function getAccessibleGrades(kelas) {
   return [7, 8, 9].filter(g => g <= grade)
 }
 
+export function getAccessibleGradesForUser(user) {
+  if (!user) return []
+  if (user.role === 'guru') return getGuruGrades(user.kelas)
+  return getAccessibleGrades(user.kelas)
+}
+
 export function getGuruGrades(kelasDiampu) {
   const list = Array.isArray(kelasDiampu) ? kelasDiampu : []
   const grades = new Set()
