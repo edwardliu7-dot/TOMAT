@@ -186,9 +186,6 @@ export default function LoginScreen() {
             </button>
           </form>
 
-          <div style={{ marginTop: 18, textAlign: 'center', fontSize: 11, color: '#4B5563' }}>
-            Gunakan akun yang sama dengan BLP Harian
-          </div>
         </div>
       </div>
     </div>
