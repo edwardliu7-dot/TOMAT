@@ -3,6 +3,7 @@ import { PlayerHeader } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 import { useTask } from '../TaskContext'
 import { useAuth } from '../AuthContext'
+import logo from '../assets/logo.png'
 import { getAccessibleGrades } from '../kelasUtils'
 
 const ZONE_DEFS = [
@@ -53,7 +54,7 @@ export default function HomeScreen({ navigate }) {
         border: '1px solid rgba(99,102,241,0.3)', padding: '24px',
         position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', right: -20, top: -20, fontSize: 100, opacity: 0.08 }}>🧠</div>
+        <img src={logo} alt="" style={{ position: 'absolute', right: -20, top: -20, width: 130, height: 130, opacity: 0.1, objectFit: 'contain' }} />
         <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
           TANTANGAN OTAK MATEMATIKA
         </div>

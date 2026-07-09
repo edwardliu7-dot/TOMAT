@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useAuth } from '../AuthContext'
+import logo from '../assets/logo.png'
 
 const KELAS_OPTIONS = [
   'VII Ibnu Batutah', 'VII Al Khawarizmi',
@@ -67,9 +68,11 @@ export default function LoginScreen() {
         }}>
           <div style={{
             width: 64, height: 64, borderRadius: 18, margin: '0 auto 14px',
-            background: 'linear-gradient(135deg, #6366F1, #A855F7)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30,
-          }}>🧠</div>
+            overflow: 'hidden',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <img src={logo} alt="TOMAT" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
           <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', fontStyle: 'italic', letterSpacing: -0.5 }}>TOMAT</div>
           <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>Tantangan Otak MATematika · SMP TISA Islamic School</div>
         </div>
