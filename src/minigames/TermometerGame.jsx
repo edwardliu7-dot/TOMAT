@@ -93,7 +93,7 @@ export default function TermometerGame({ goBack }) {
 
             {/* Tick marks */}
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: 32, paddingTop: 4 }}>
-              {[...MARKS].reverse().map(m => (
+              {[...marks].reverse().map(m => (
                 <div key={m} style={{ width: 10, height: 2, background: m % 10 === 0 ? '#67E8F9' : 'rgba(103,232,249,0.3)' }} />
               ))}
             </div>
