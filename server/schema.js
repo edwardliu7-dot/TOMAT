@@ -1,11 +1,44 @@
 import { pool } from './db.js'
 
 export async function ensureSchema() {
+  // Core identity tables (normally owned/shared by BLP Harian). Created here
+  // as a fresh baseline since this database is a new standalone instance.
+  await pool.query(`
+    create table if not exists gurus (
+      id text primary key,
+      username text unique not null,
+      name text not null,
+      password text not null,
+      kelas_diampu text[] not null default '{}',
+      email text,
+      whatsapp text,
+      created_at timestamptz not null default now()
+    );
+  `)
+  await pool.query(`
+    create table if not exists students (
+      id text primary key,
+      username text unique not null,
+      name text not null,
+      password text not null,
+      kelas text not null,
+      email text not null,
+      whatsapp text not null,
+      created_at timestamptz not null default now()
+    );
+  `)
   await pool.query(`
     alter table students add column if not exists photo_url text;
     alter table students add column if not exists bio text;
     alter table gurus add column if not exists photo_url text;
     alter table gurus add column if not exists bio text;
+  `)
+  // Seed a default teacher account covering all classes so the app is usable
+  // immediately on a fresh database. Change this password after first login.
+  await pool.query(`
+    insert into gurus (id, username, name, password, kelas_diampu)
+    values ('guru1', 'guru1', 'Guru TOMAT', 'tomat2026', array['VII Ibnu Batutah','VIII Ibnu Sina','IX Al Khawarizmi'])
+    on conflict (id) do nothing;
   `)
   await pool.query(`
     create table if not exists tugas (
