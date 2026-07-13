@@ -1,32 +1,42 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, randInt, useSurvival } from '../difficulty'
 
-function genQ() {
-  const r = 7 * (1 + Math.floor(Math.random() * 6))
+function genQ(difficulty = 'medium') {
+  const nRange = byDifficulty(difficulty, { easy: [1, 6], medium: [1, 10], hard: [5, 15] })
+  const sliderMax = byDifficulty(difficulty, { easy: 42, medium: 70, hard: 105 })
+  const r = 7 * randInt(...nRange)
   const C = 44 * (r / 7)
-  return { C, answer: r }
+  return { C, answer: r, sliderMax }
 }
 
-export default function G9MedanGayaGame({ goBack }) {
+export default function G9MedanGayaGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [val, setVal] = useState(7)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setVal(7); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setVal(7); setFeedback(null) }, [effectiveDifficulty])
 
   const confirm = () => {
     if (feedback !== null) return
     const correct = val === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); setQ(genQ('easy')); setVal(7); setFeedback(null) }} goBack={goBack} accentColor="#4ADE80" />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #1a1400 0%, #100c00 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🛡️ Medan Gaya Pelindung" onBack={goBack} accentColor="#4ADE80" />
+      <TopBar title="🛡️ Medan Gaya Pelindung" onBack={goBack} accentColor="#4ADE80" rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(74,222,128,0.3)">
           <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 1.8 }}>
@@ -40,10 +50,10 @@ export default function G9MedanGayaGame({ goBack }) {
         {feedback === null && (
           <Card>
             <SliderInput
-              value={val} min={7} max={70} step={7}
+              value={val} min={7} max={q.sliderMax} step={7}
               onChange={setVal}
               accentColor="#4ADE80" unit=" m"
-              leftLabel="7m" rightLabel="70m"
+              leftLabel="7m" rightLabel={`${q.sliderMax}m`}
             />
             <div style={{ marginTop: 12 }}>
               <Btn onClick={confirm} color="#15803d">Aktifkan Perisai</Btn>

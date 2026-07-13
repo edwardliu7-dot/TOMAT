@@ -1,12 +1,14 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DragMatch } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DragMatch, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, randInt, useSurvival } from '../difficulty'
 
 function fmt(sq, coef, cons) { return `x² ${coef >= 0 ? '+' : '−'} ${Math.abs(coef)}x ${cons >= 0 ? '+' : '−'} ${Math.abs(cons)}` }
 
-function genQ() {
-  const a = 1 + Math.floor(Math.random() * 6)
-  const b = 1 + Math.floor(Math.random() * 6)
+function genQ(difficulty = 'medium') {
+  const range = byDifficulty(difficulty, { easy: [1, 6], medium: [1, 9], hard: [3, 14] })
+  const a = randInt(...range)
+  const b = randInt(...range)
   const coef = a + b
   const cons = a * b
   const items = [
@@ -18,13 +20,15 @@ function genQ() {
   return { a, b, coef, cons, items }
 }
 
-export default function G9LambungKapalGame({ goBack }) {
+export default function G9LambungKapalGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [placed, setPlaced] = useState({})
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setPlaced({}); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setPlaced({}); setFeedback(null) }, [effectiveDifficulty])
 
   const handlePlace = (slotId, itemId) => {
     const newPlaced = { ...placed, [slotId]: itemId }
@@ -34,14 +38,19 @@ export default function G9LambungKapalGame({ goBack }) {
       const vK = q.items.find(it => it.id === newPlaced.sK).label
       const isCorrect = parseInt(vC) === q.coef && parseInt(vK) === q.cons
       setFeedback(isCorrect)
+      survivalState.recordResult(isCorrect)
       if (isCorrect) { addCoins(50); addExp(100) }
     }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); setQ(genQ('easy')); setPlaced({}); setFeedback(null) }} goBack={goBack} accentColor="#67E8F9" />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0a1a2e 0%, #060d18 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🚀 Perluasan Lambung Kapal" onBack={goBack} accentColor="#67E8F9" />
+      <TopBar title="🚀 Perluasan Lambung Kapal" onBack={goBack} accentColor="#67E8F9" rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ fontSize: 18, color: '#fff', textAlign: 'center', fontWeight: 800 }}>

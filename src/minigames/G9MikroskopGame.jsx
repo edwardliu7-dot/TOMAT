@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, OptionGrid } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, OptionGrid, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, useSurvival } from '../difficulty'
 
 function shuffle(arr) {
   const a = [...arr]
@@ -8,9 +9,11 @@ function shuffle(arr) {
   return a
 }
 
-function genQ() {
-  const base = [2, 3, 4, 5][Math.floor(Math.random() * 4)]
-  const n = 1 + Math.floor(Math.random() * 3)
+function genQ(difficulty = 'medium') {
+  const basePool = byDifficulty(difficulty, { easy: [2, 3], medium: [2, 3, 4, 5], hard: [2, 3, 4, 5, 6, 7] })
+  const nRange = byDifficulty(difficulty, { easy: [1, 2], medium: [1, 3], hard: [2, 4] })
+  const base = basePool[Math.floor(Math.random() * basePool.length)]
+  const n = nRange[0] + Math.floor(Math.random() * (nRange[1] - nRange[0] + 1))
   const answer = `1/${Math.pow(base, n)}`
   const distractors = new Set([`1/${Math.pow(base, n + 1)}`, `${Math.pow(base, n)}`, `-1/${Math.pow(base, n)}`])
   distractors.delete(answer)
@@ -19,24 +22,31 @@ function genQ() {
   return { base, n, answer, options }
 }
 
-export default function G9MikroskopGame({ goBack }) {
+export default function G9MikroskopGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setFeedback(null) }, [effectiveDifficulty])
 
   const choose = (opt) => {
     if (feedback !== null) return
     const correct = opt === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); setQ(genQ('easy')); setFeedback(null) }} goBack={goBack} accentColor="#C4B5FD" />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #1a0a2e 0%, #10071c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🔬 Mikroskop Sub-Atomik" onBack={goBack} accentColor="#C4B5FD" />
+      <TopBar title="🔬 Mikroskop Sub-Atomik" onBack={goBack} accentColor="#C4B5FD" rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(196,181,253,0.3)">
           <div style={{ textAlign: 'center', fontSize: 24, fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>

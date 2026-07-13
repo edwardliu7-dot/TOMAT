@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, OptionGrid } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, OptionGrid, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, randInt, useSurvival } from '../difficulty'
 
 function shuffle(arr) {
   const a = [...arr]
@@ -8,10 +9,12 @@ function shuffle(arr) {
   return a
 }
 
-function genQ() {
-  const a = 2 + Math.floor(Math.random() * 4)
-  const b = 2 + Math.floor(Math.random() * 4)
-  const total = 100 * (2 + Math.floor(Math.random() * 8))
+function genQ(difficulty = 'medium') {
+  const coefRange = byDifficulty(difficulty, { easy: [2, 5], medium: [2, 8], hard: [5, 12] })
+  const totalRange = byDifficulty(difficulty, { easy: [2, 9], medium: [4, 16], hard: [10, 30] })
+  const a = randInt(...coefRange)
+  const b = randInt(...coefRange)
+  const total = 100 * randInt(...totalRange)
   const answer = `${a}x + ${b}y = ${total}`
   const distractors = new Set([`${b}x + ${a}y = ${total}`, `${a}x − ${b}y = ${total}`, `${a}x + ${b}y = ${total + 100}`])
   distractors.delete(answer)
@@ -20,24 +23,31 @@ function genQ() {
   return { a, b, total, answer, options }
 }
 
-export default function G9PerdagangGalaksiGame({ goBack }) {
+export default function G9PerdagangGalaksiGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setFeedback(null) }, [effectiveDifficulty])
 
   const choose = (opt) => {
     if (feedback !== null) return
     const correct = opt === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); setQ(genQ('easy')); setFeedback(null) }} goBack={goBack} accentColor="#67E8F9" />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0a1a2e 0%, #060d18 100%)' }}>
       <PlayerHeader />
-      <TopBar title="👽 Misi Perdagangan Galaksi" onBack={goBack} accentColor="#67E8F9" />
+      <TopBar title="👽 Misi Perdagangan Galaksi" onBack={goBack} accentColor="#67E8F9" rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 1.7 }}>
