@@ -39,13 +39,21 @@ export function AuthProvider({ children }) {
     return data.user
   }, [])
 
+  // Re-fetch /me without a full login round-trip — used after actions that change
+  // server-side user fields outside AuthContext itself (e.g. equipping a shop item).
+  const refreshMe = useCallback(async () => {
+    const data = await apiCall('/me')
+    setUser(data.user)
+    return data.user
+  }, [])
+
   const logout = useCallback(async () => {
     await apiCall('/logout', { method: 'POST' })
     setUser(null)
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, checking, login, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, checking, login, logout, updateProfile, refreshMe }}>
       {children}
     </AuthContext.Provider>
   )

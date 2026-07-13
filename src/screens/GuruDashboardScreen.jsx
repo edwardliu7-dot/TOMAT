@@ -27,6 +27,7 @@ const TABS = [
   { id: 'nilai', label: '📊 Rekap Nilai' },
   { id: 'siswa', label: '👥 Siswa' },
   { id: 'kunci', label: '🔒 Kunci Bab' },
+  { id: 'insight', label: '🎮 Insight' },
 ]
 
 function Section({ children, style = {} }) {
@@ -305,6 +306,66 @@ function KunciTab({ grades }) {
   )
 }
 
+function Sparkline({ values }) {
+  const max = Math.max(1, ...values)
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 28 }}>
+      {values.map((v, i) => (
+        <div key={i} style={{
+          width: 8, borderRadius: 2, height: Math.max(3, (v / max) * 28),
+          background: i === values.length - 1 && v > 0 ? '#34D399' : v > 0 ? 'rgba(52,211,153,0.5)' : 'rgba(255,255,255,0.08)',
+        }} />
+      ))}
+    </div>
+  )
+}
+
+function InsightTab() {
+  const [students, setStudents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    apiCall('/api/guru/insight').then(({ students }) => setStudents(students)).catch(err => setError(err.message)).finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return <div style={{ color: '#94A3B8', fontSize: 13 }}>Memuat…</div>
+  if (error) return <div style={{ color: '#f87171', fontSize: 13 }}>{error}</div>
+  if (students.length === 0) return <div style={{ color: '#6B7280', fontSize: 13 }}>Belum ada siswa terdaftar di kelas yang Anda ampu.</div>
+
+  const byKelas = {}
+  for (const s of students) { (byKelas[s.kelas] ||= []).push(s) }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ fontSize: 12, color: '#6B7280' }}>
+        Aktivitas 7 hari terakhir, level, koin, dan lencana — dari data game yang sudah tercatat.
+      </div>
+      {Object.entries(byKelas).map(([kelas, list]) => (
+        <div key={kelas}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#67E8F9', marginBottom: 8 }}>{kelas} ({list.length} siswa)</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {list.map(s => (
+              <Section key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {s.name}
+                    {s.activeToday && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34D399', display: 'inline-block' }} title="Aktif hari ini" />}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                    ⭐ Lv {s.level} · 📚 {s.exp} EXP · 🪙 {s.coins} · 🏅 {s.badgeCount} · 🔥 Rekor {s.bestSurvivalStreak}
+                  </div>
+                </div>
+                <Sparkline values={s.sparkline} />
+              </Section>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function GuruDashboardScreen({ onPlayGames }) {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('tugas')
@@ -356,6 +417,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
         {tab === 'nilai' && <NilaiTab />}
         {tab === 'siswa' && <SiswaTab />}
         {tab === 'kunci' && <KunciTab grades={grades} />}
+        {tab === 'insight' && <InsightTab />}
       </div>
     </div>
   )

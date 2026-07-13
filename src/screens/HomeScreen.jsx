@@ -128,6 +128,26 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode }) {
         </div>
       )}
 
+      {/* Gamifikasi shortcuts: Toko, Papan Peringkat, Lencana */}
+      {!guruMode && (
+        <div style={{ padding: '10px 16px 0', display: 'flex', gap: 10 }}>
+          {[
+            { id: 'toko', emoji: '🛍️', label: 'Toko', color: '#818CF8' },
+            { id: 'papanperingkat', emoji: '🏆', label: 'Peringkat', color: '#34D399' },
+            { id: 'lencana', emoji: '🏅', label: 'Lencana', color: '#EAB308' },
+          ].map(item => (
+            <button key={item.id} onClick={() => navigate(item.id)} style={{
+              flex: 1, background: '#1A1D27', border: `1px solid ${item.color}33`, borderRadius: 14,
+              padding: '12px 8px', cursor: 'pointer', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: 4,
+            }}>
+              <div style={{ fontSize: 20 }}>{item.emoji}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: item.color }}>{item.label}</div>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Zone Cards */}
       <div style={{ padding: '16px 16px' }}>
         <div style={{ fontSize: 13, color: '#94A3B8', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 14 }}>

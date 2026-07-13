@@ -13,6 +13,9 @@ import ModeSelectScreen from './screens/ModeSelectScreen'
 import TaskResultScreen from './screens/TaskResultScreen'
 import GradesScreen from './screens/GradesScreen'
 import ProfileScreen from './screens/ProfileScreen'
+import ShopScreen from './screens/ShopScreen'
+import LeaderboardScreen from './screens/LeaderboardScreen'
+import BadgesScreen from './screens/BadgesScreen'
 import TaskOverlay from './components/TaskOverlay'
 
 // BAB I: Bilangan Bulat
@@ -263,6 +266,18 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (current === 'profile') {
       return <ProfileScreen goBack={goBack} />
+    }
+
+    if (current === 'toko') {
+      return <ShopScreen goBack={goBack} />
+    }
+
+    if (current === 'papanperingkat') {
+      return <LeaderboardScreen goBack={goBack} />
+    }
+
+    if (current === 'lencana') {
+      return <BadgesScreen goBack={goBack} />
     }
 
     if (GAME_ROUTES[current]) {

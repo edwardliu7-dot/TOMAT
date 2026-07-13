@@ -4,6 +4,11 @@ import connectPgSimple from 'connect-pg-simple'
 import authRouter from './auth.js'
 import guruRouter from './guru.js'
 import siswaRouter from './siswa.js'
+import playerRouter from './player.js'
+import tokoRouter from './toko.js'
+import papanPeringkatRouter from './papan-peringkat.js'
+import lencanaRouter from './lencana.js'
+import insightRouter from './insight.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
 
@@ -45,7 +50,12 @@ async function createServer() {
 
   app.use('/api/auth', authRouter)
   app.use('/api/guru', guruRouter)
+  app.use('/api/guru/insight', insightRouter)
   app.use('/api/siswa', siswaRouter)
+  app.use('/api/siswa/player', playerRouter)
+  app.use('/api/siswa/toko', tokoRouter)
+  app.use('/api/siswa/papan-peringkat', papanPeringkatRouter)
+  app.use('/api/siswa/lencana', lencanaRouter)
 
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite')

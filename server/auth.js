@@ -4,7 +4,7 @@ import { pool } from './db.js'
 const router = express.Router()
 
 function sanitizeUser(row, role) {
-  return {
+  const base = {
     id: row.id,
     username: row.username,
     name: row.name,
@@ -12,6 +12,21 @@ function sanitizeUser(row, role) {
     kelas: role === 'siswa' ? row.kelas : row.kelas_diampu,
     photoUrl: row.photo_url || null,
     bio: row.bio || null,
+  }
+  if (role !== 'siswa') return base
+  // Gamifikasi fields are server-authoritative and only meaningful for students —
+  // included on login/me so PlayerContext can hydrate without a second round-trip.
+  return {
+    ...base,
+    coins: row.coins,
+    level: row.level,
+    exp: row.exp,
+    maxExp: Math.floor(100 * Math.pow(1.5, row.level - 1)),
+    bestSurvivalStreak: row.best_survival_streak,
+    equippedBingkai: row.equipped_bingkai,
+    equippedSpanduk: row.equipped_spanduk,
+    equippedTema: row.equipped_tema,
+    equippedStiker: row.equipped_stiker,
   }
 }
 

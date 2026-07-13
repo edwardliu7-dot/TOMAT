@@ -1,0 +1,126 @@
+import express from 'express'
+import { pool } from './db.js'
+import { requireAuth, requireRole } from './auth.js'
+
+const router = express.Router()
+router.use(requireAuth, requireRole('siswa'))
+
+const EQUIP_COLUMN = {
+  bingkai: 'equipped_bingkai',
+  spanduk: 'equipped_spanduk',
+  tema: 'equipped_tema',
+  stiker: 'equipped_stiker',
+}
+
+// GET /api/siswa/toko — catalog grouped by kategori, plus this student's coin balance,
+// owned items, and currently equipped item per category.
+router.get('/', async (req, res) => {
+  try {
+    const [itemsRes, ownedRes, studentRes] = await Promise.all([
+      pool.query('select * from shop_items order by kategori, sort_order'),
+      pool.query('select item_id from student_inventory where student_id = $1', [req.session.user.id]),
+      pool.query(
+        `select coins, equipped_bingkai, equipped_spanduk, equipped_tema, equipped_stiker
+         from students where id = $1`,
+        [req.session.user.id]
+      ),
+    ])
+    const student = studentRes.rows[0]
+    if (!student) return res.status(404).json({ error: 'Siswa tidak ditemukan.' })
+    res.json({
+      items: itemsRes.rows,
+      ownedItemIds: ownedRes.rows.map(r => r.item_id),
+      coins: student.coins,
+      equipped: {
+        bingkai: student.equipped_bingkai,
+        spanduk: student.equipped_spanduk,
+        tema: student.equipped_tema,
+        stiker: student.equipped_stiker,
+      },
+    })
+  } catch (err) {
+    console.error('toko list error', err)
+    res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  }
+})
+
+// POST /api/siswa/toko/beli { itemId } — buy an item. Server re-checks price and balance
+// (never trusts a client-supplied price) and deducts coins atomically.
+router.post('/beli', async (req, res) => {
+  const client = await pool.connect()
+  try {
+    const { itemId } = req.body || {}
+    if (!itemId) return res.status(400).json({ error: 'Item tidak valid.' })
+
+    await client.query('begin')
+    const { rows: itemRows } = await client.query('select * from shop_items where id = $1', [itemId])
+    const item = itemRows[0]
+    if (!item) {
+      await client.query('rollback')
+      return res.status(404).json({ error: 'Item tidak ditemukan.' })
+    }
+    const { rows: ownedRows } = await client.query(
+      'select 1 from student_inventory where student_id = $1 and item_id = $2',
+      [req.session.user.id, itemId]
+    )
+    if (ownedRows.length > 0) {
+      await client.query('rollback')
+      return res.status(409).json({ error: 'Item ini sudah kamu miliki.' })
+    }
+    const { rows: studentRows } = await client.query(
+      'select coins from students where id = $1 for update',
+      [req.session.user.id]
+    )
+    const student = studentRows[0]
+    if (!student || student.coins < item.harga) {
+      await client.query('rollback')
+      return res.status(402).json({ error: 'Koin tidak cukup untuk membeli item ini.' })
+    }
+    await client.query('update students set coins = coins - $2 where id = $1', [req.session.user.id, item.harga])
+    await client.query(
+      'insert into student_inventory (student_id, item_id) values ($1, $2)',
+      [req.session.user.id, itemId]
+    )
+    await client.query('commit')
+    res.json({ ok: true })
+  } catch (err) {
+    await client.query('rollback').catch(() => {})
+    console.error('toko beli error', err)
+    res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  } finally {
+    client.release()
+  }
+})
+
+// POST /api/siswa/toko/pakai { itemId } — equip an owned item (or unequip if itemId is null
+// for that item's category, passed as { kategori } instead).
+router.post('/pakai', async (req, res) => {
+  try {
+    const { itemId, kategori } = req.body || {}
+    let targetKategori = kategori
+    let targetItemId = itemId ?? null
+
+    if (targetItemId) {
+      const { rows: itemRows } = await pool.query('select * from shop_items where id = $1', [targetItemId])
+      const item = itemRows[0]
+      if (!item) return res.status(404).json({ error: 'Item tidak ditemukan.' })
+      const { rows: ownedRows } = await pool.query(
+        'select 1 from student_inventory where student_id = $1 and item_id = $2',
+        [req.session.user.id, targetItemId]
+      )
+      if (ownedRows.length === 0) return res.status(403).json({ error: 'Kamu belum memiliki item ini.' })
+      targetKategori = item.kategori
+    }
+
+    const column = EQUIP_COLUMN[targetKategori]
+    if (!column) return res.status(400).json({ error: 'Kategori tidak valid.' })
+
+    await pool.query(`update students set ${column} = $2 where id = $1`, [req.session.user.id, targetItemId])
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('toko pakai error', err)
+    res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  }
+})
+
+export default router

@@ -2,6 +2,7 @@ import React from 'react'
 import { usePlayer } from '../PlayerContext'
 import { useAuth } from '../AuthContext'
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
+import { BINGKAI_VISUALS } from '../shopVisuals'
 
 export function TopBar({ title, onBack, accentColor = '#67E8F9', rightElement }) {
   return (
@@ -38,6 +39,13 @@ export function DifficultyBadge({ difficulty, survival, streak }) {
 // Shared "game over" screen for Survival mode: shown instead of the normal feedback/next-
 // question UI the instant a wrong answer is recorded. Reused by every minigame.
 export function SurvivalOverScreen({ streak, onRetry, goBack, accentColor = '#F87171' }) {
+  const { reportSurvivalStreak } = usePlayer()
+  const reportedRef = React.useRef(false)
+  React.useEffect(() => {
+    if (reportedRef.current) return
+    reportedRef.current = true
+    reportSurvivalStreak?.(streak)
+  }, [streak, reportSurvivalStreak])
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
@@ -62,6 +70,7 @@ export function PlayerHeader({ onAvatarClick }) {
   const { player } = usePlayer()
   const { logout, user } = useAuth()
   const expPct = Math.round((player.exp / player.maxExp) * 100)
+  const bingkai = user?.equippedBingkai ? BINGKAI_VISUALS[user.equippedBingkai] : null
   return (
     <div style={{ padding: '16px 20px 8px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
       <button onClick={onAvatarClick} disabled={!onAvatarClick} style={{
@@ -69,7 +78,9 @@ export function PlayerHeader({ onAvatarClick }) {
         cursor: onAvatarClick ? 'pointer' : 'default',
         background: user?.photoUrl ? `url(${user.photoUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #6366F1, #A855F7)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 20, fontWeight: 800, color: '#fff', border: '2px solid rgba(255,255,255,0.15)',
+        fontSize: 20, fontWeight: 800, color: '#fff',
+        border: bingkai ? `3px ${bingkai.style} ${bingkai.border}` : '2px solid rgba(255,255,255,0.15)',
+        boxShadow: bingkai?.glow ? `0 0 12px ${bingkai.border}88` : 'none',
       }}>{!user?.photoUrl && player.name[0].toUpperCase()}</button>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>Elite Explorer</div>
