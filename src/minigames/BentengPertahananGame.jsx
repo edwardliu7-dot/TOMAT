@@ -1,29 +1,32 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 // Inverse proportion: w1 × d1 = w2 × d2
 const SCENARIOS = [
-  { w1: 4, d1: 6, w2: 3, answer: 8 },
-  { w1: 6, d1: 4, w2: 8, answer: 3 },
-  { w1: 2, d1: 9, w2: 6, answer: 3 },
-  { w1: 5, d1: 8, w2: 4, answer: 10 },
-  { w1: 3, d1: 12, w2: 9, answer: 4 },
-  { w1: 8, d1: 3, w2: 4, answer: 6 },
-  { w1: 10, d1: 2, w2: 4, answer: 5 },
+  { w1: 4, d1: 6, w2: 3, answer: 8, tier: 'easy' },
+  { w1: 6, d1: 4, w2: 8, answer: 3, tier: 'easy' },
+  { w1: 2, d1: 9, w2: 6, answer: 3, tier: 'medium' },
+  { w1: 5, d1: 8, w2: 4, answer: 10, tier: 'medium' },
+  { w1: 3, d1: 12, w2: 9, answer: 4, tier: 'medium' },
+  { w1: 8, d1: 3, w2: 4, answer: 6, tier: 'hard' },
+  { w1: 10, d1: 2, w2: 4, answer: 5, tier: 'hard' },
 ]
 
-function genQ() {
-  return SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)]
+function genQ(difficulty = 'medium') {
+  return pickFrom(poolForDifficulty(SCENARIOS, difficulty))
 }
 
-export default function BentengPertahananGame({ goBack }) {
+export default function BentengPertahananGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [days, setDays] = useState(1)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setDays(1); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setDays(1); setFeedback(null) }, [effectiveDifficulty])
 
   const product1 = q.w1 * q.d1
   const product2 = q.w2 * days
@@ -33,7 +36,12 @@ export default function BentengPertahananGame({ goBack }) {
     if (feedback !== null) return
     const correct = days === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   const maxDays = q.answer * 3
@@ -41,7 +49,7 @@ export default function BentengPertahananGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🏰 Benteng Pertahanan" onBack={goBack} />
+      <TopBar title="🏰 Benteng Pertahanan" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 14 }}>

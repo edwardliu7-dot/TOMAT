@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DragMatch } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DragMatch, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 // Pipe segments with fraction lengths
 const PIPES = [
@@ -12,36 +13,62 @@ const PIPES = [
   { id: 'p6', label: '1/8 m', value: 0.125 },
 ]
 
+// NOTE: each puzzle's pipe combo must use distinct PIPES ids (the pipe pool has
+// exactly one chip per id, so a target requiring the same id twice is unsolvable).
 const QUESTIONS = [
-  { target: 1.0, label: '1 meter', slots: [
-    { id: 's1', accepts: ['p2', 'p2'] }, // 1/2 + 1/2
-    { id: 's2', accepts: ['p2', 'p2'] }
-  ]},
-  { target: 0.75, label: '3/4 meter', slots: [
-    { id: 's1', accepts: ['p2'] },
-    { id: 's2', accepts: ['p1'] }
-  ]},
-  { target: 1.25, label: '5/4 meter', slots: [
-    { id: 's1', accepts: ['p3'] },
+  { target: 0.75, label: '3/4 meter', tier: 'easy', slots: [
+    { id: 's1', accepts: ['p1'] },
     { id: 's2', accepts: ['p2'] }
   ]},
-  { target: 1.5, label: '3/2 meter', slots: [
-    { id: 's1', accepts: ['p3'] },
+  { target: 1.0, label: '1 meter', tier: 'easy', slots: [
+    { id: 's1', accepts: ['p1'] },
     { id: 's2', accepts: ['p3'] }
+  ]},
+  { target: 1.25, label: '5/4 meter', tier: 'medium', slots: [
+    { id: 's1', accepts: ['p2'] },
+    { id: 's2', accepts: ['p3'] }
+  ]},
+  { target: 1.5, label: '3/2 meter', tier: 'medium', slots: [
+    { id: 's1', accepts: ['p1'] },
+    { id: 's2', accepts: ['p2'] },
+    { id: 's3', accepts: ['p3'] },
+  ]},
+  { target: 1.75, label: '7/4 meter', tier: 'hard', slots: [
+    { id: 's1', accepts: ['p3'] },
+    { id: 's2', accepts: ['p4'] },
+    { id: 's3', accepts: ['p5'] },
+  ]},
+  { target: 1.625, label: '13/8 meter', tier: 'hard', slots: [
+    { id: 's1', accepts: ['p1'] },
+    { id: 's2', accepts: ['p2'] },
+    { id: 's3', accepts: ['p3'] },
+    { id: 's4', accepts: ['p6'] },
+  ]},
+  { target: 2.0, label: '2 meter', tier: 'hard', slots: [
+    { id: 's1', accepts: ['p1'] },
+    { id: 's2', accepts: ['p3'] },
+    { id: 's3', accepts: ['p4'] },
+    { id: 's4', accepts: ['p5'] },
   ]},
 ]
 
-export default function PipaAirGame({ goBack }) {
+function genQ(difficulty = 'medium') {
+  return pickFrom(poolForDifficulty(QUESTIONS, difficulty))
+}
+
+export default function PipaAirGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(() => QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)])
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [placed, setPlaced] = useState({})
   const [feedback, setFeedback] = useState(null)
 
   const newQ = useCallback(() => {
-    setQ(QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)])
+    setQ(genQ(effectiveDifficulty))
     setPlaced({})
     setFeedback(null)
-  }, [])
+  }, [effectiveDifficulty])
 
   const handlePlace = (slotId, pipeId) => {
     const newPlaced = { ...placed, [slotId]: pipeId }
@@ -55,14 +82,19 @@ export default function PipaAirGame({ goBack }) {
       
       const correct = Math.abs(totalValue - q.target) < 0.01
       setFeedback(correct)
+      survivalState.recordResult(correct)
       if (correct) { addCoins(50); addExp(100) }
     }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🔧 Teknisi Pipa Air" onBack={goBack} />
+      <TopBar title="🔧 Teknisi Pipa Air" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ textAlign: 'center', fontSize: 14, color: '#94A3B8', marginBottom: 4 }}>Sambungkan pipa hingga mencapai:</div>

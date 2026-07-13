@@ -44,6 +44,7 @@ function mapTugas(row) {
     assignedAt: row.assigned_at,
     dueAt: row.due_at,
     kelas: row.kelas,
+    difficulty: row.difficulty || 'medium',
     status: row.nilai ? 'completed' : row.status,
   }
 }

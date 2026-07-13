@@ -7,6 +7,7 @@ function kelasToGrade(kelas) {
   return KELAS_PREFIX_TO_GRADE[kelas?.trim().split(' ')[0]] || null
 }
 import { TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
+import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import ProfileScreen from './ProfileScreen'
 
 async function apiCall(path, options = {}) {
@@ -38,7 +39,7 @@ function TugasTab({ kelasDiampu }) {
   const [error, setError] = useState('')
   const initialKelas = kelasDiampu[0] || ''
   const initialGames = GAMES_CATALOG.filter(g => g.grade === kelasToGrade(initialKelas))
-  const [form, setForm] = useState({ kelas: initialKelas, gameKey: initialGames[0]?.key || '', type: 'harian', totalQuestions: 5, dueAt: '' })
+  const [form, setForm] = useState({ kelas: initialKelas, gameKey: initialGames[0]?.key || '', type: 'harian', totalQuestions: 5, dueAt: '', difficulty: 'medium' })
   const [submitting, setSubmitting] = useState(false)
 
   const availableGames = GAMES_CATALOG.filter(g => g.grade === kelasToGrade(form.kelas))
@@ -81,6 +82,7 @@ function TugasTab({ kelasDiampu }) {
           type: form.type,
           totalQuestions: form.totalQuestions,
           dueAt: form.dueAt || null,
+          difficulty: form.difficulty,
         },
       })
       await refresh()
@@ -120,6 +122,9 @@ function TugasTab({ kelasDiampu }) {
             </select>
             <input type="number" min={1} value={form.totalQuestions} onChange={e => setForm(f => ({ ...f, totalQuestions: e.target.value }))} placeholder="Jumlah soal" style={{ ...inputStyle, width: 110 }} />
           </div>
+          <select value={form.difficulty} onChange={e => setForm(f => ({ ...f, difficulty: e.target.value }))} style={inputStyle}>
+            {DIFFICULTY_LEVELS.map(level => <option key={level} value={level}>Tingkat Kesulitan: {DIFFICULTY_LABELS[level]}</option>)}
+          </select>
           <input type="date" value={form.dueAt} onChange={e => setForm(f => ({ ...f, dueAt: e.target.value }))} style={inputStyle} />
           {error && <div style={{ color: '#f87171', fontSize: 13 }}>{error}</div>}
           <button type="submit" disabled={submitting || kelasDiampu.length === 0} style={submitBtnStyle(submitting)}>
@@ -147,6 +152,9 @@ function TugasTab({ kelasDiampu }) {
                       {t.kelas} · {TYPE_ICONS[t.type]} {TYPE_LABELS[t.type]} · {t.total_questions} soal{t.due_at ? ` · Tenggat ${t.due_at}` : ''}
                     </div>
                   </div>
+                  <span style={{ background: `${DIFFICULTY_COLORS[t.difficulty] || '#67E8F9'}22`, color: DIFFICULTY_COLORS[t.difficulty] || '#67E8F9', fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20 }}>
+                    {DIFFICULTY_LABELS[t.difficulty] || t.difficulty}
+                  </span>
                   <span style={{ background: `${color}22`, color, fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20 }}>
                     {t.status === 'active' ? 'AKTIF' : 'DITUTUP'}
                   </span>

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, useSurvival } from '../difficulty'
 
 function isPrime(n) {
   if (n < 2) return false
@@ -14,19 +15,27 @@ function shuffle(arr) {
   return a
 }
 
-function genQ() {
-  const pool = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 19, 21, 23, 25, 27, 29, 31]
+const POOLS = {
+  easy: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+  medium: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 19, 21, 23, 25, 27, 29, 31],
+  hard: [23, 29, 31, 33, 37, 39, 41, 43, 45, 47, 49, 51, 53, 55, 57, 59, 61, 63, 67, 71],
+}
+
+function genQ(difficulty = 'medium') {
+  const pool = byDifficulty(difficulty, POOLS)
   const selected = shuffle(pool).slice(0, 9)
   return { rocks: selected }
 }
 
-export default function ScannerPermatGame({ goBack }) {
+export default function ScannerPermatGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [tapped, setTapped] = useState(new Set())
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setTapped(new Set()); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setTapped(new Set()); setFeedback(null) }, [effectiveDifficulty])
 
   const tapRock = (n) => {
     if (feedback !== null) return
@@ -41,7 +50,12 @@ export default function ScannerPermatGame({ goBack }) {
     const correctPrimes = new Set(q.rocks.filter(isPrime))
     const isCorrect = [...correctPrimes].every(n => tapped.has(n)) && [...tapped].every(n => correctPrimes.has(n))
     setFeedback(isCorrect)
+    survivalState.recordResult(isCorrect)
     if (isCorrect) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   const primesInSet = q.rocks.filter(isPrime)
@@ -49,7 +63,7 @@ export default function ScannerPermatGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="💎 Scanner Batu Permata" onBack={goBack} />
+      <TopBar title="💎 Scanner Batu Permata" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>KONVEYOR BATU TAMBANG</div>

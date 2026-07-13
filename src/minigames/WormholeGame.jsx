@@ -1,35 +1,43 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 function gcd(a, b) { return b === 0 ? a : gcd(b, a % b) }
 function lcm(a, b) { return (a * b) / gcd(a, b) }
 
 const PAIRS = [
-  [3, 4], [4, 6], [6, 8], [5, 4], [6, 10],
-  [8, 12], [3, 7], [4, 9], [5, 6], [9, 6],
-  [4, 10], [3, 5], [5, 8], [6, 9],
+  { a: 3, b: 4, tier: 'easy' }, { a: 4, b: 6, tier: 'easy' }, { a: 5, b: 4, tier: 'easy' }, { a: 3, b: 5, tier: 'easy' },
+  { a: 6, b: 8, tier: 'medium' }, { a: 6, b: 10, tier: 'medium' }, { a: 5, b: 6, tier: 'medium' }, { a: 9, b: 6, tier: 'medium' }, { a: 4, b: 10, tier: 'medium' },
+  { a: 3, b: 7, tier: 'hard' }, { a: 8, b: 12, tier: 'hard' }, { a: 4, b: 9, tier: 'hard' }, { a: 5, b: 8, tier: 'hard' }, { a: 6, b: 9, tier: 'hard' },
 ]
 
-function genQ() {
-  const [a, b] = PAIRS[Math.floor(Math.random() * PAIRS.length)]
+function genQ(difficulty = 'medium') {
+  const { a, b } = pickFrom(poolForDifficulty(PAIRS, difficulty))
   const answer = lcm(a, b)
   return { a, b, answer }
 }
 
-export default function MercusaarGame({ goBack }) {
+export default function MercusaarGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [selected, setSelected] = useState(1)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setSelected(1); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setSelected(1); setFeedback(null) }, [effectiveDifficulty])
 
   const confirm = () => {
     if (feedback !== null) return
     const correct = selected === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   const blinkA = selected % q.a === 0
@@ -38,7 +46,7 @@ export default function MercusaarGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🏮 Sinyal Mercusuar" onBack={goBack} />
+      <TopBar title="🏮 Sinyal Mercusuar" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 14 }}>

@@ -1,32 +1,37 @@
 import React, { useState, useCallback, useRef } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 const QUESTIONS = [
-  { pct: 75, base: 80, answer: 60 },
-  { pct: 25, base: 120, answer: 30 },
-  { pct: 50, base: 60, answer: 30 },
-  { pct: 20, base: 150, answer: 30 },
-  { pct: 40, base: 50, answer: 20 },
-  { pct: 10, base: 200, answer: 20 },
-  { pct: 30, base: 90, answer: 27 },
-  { pct: 60, base: 70, answer: 42 },
-  { pct: 80, base: 40, answer: 32 },
-  { pct: 15, base: 200, answer: 30 },
+  { pct: 50, base: 60, answer: 30, tier: 'easy' },
+  { pct: 25, base: 120, answer: 30, tier: 'easy' },
+  { pct: 10, base: 200, answer: 20, tier: 'easy' },
+  { pct: 75, base: 80, answer: 60, tier: 'medium' },
+  { pct: 20, base: 150, answer: 30, tier: 'medium' },
+  { pct: 40, base: 50, answer: 20, tier: 'medium' },
+  { pct: 60, base: 70, answer: 42, tier: 'medium' },
+  { pct: 80, base: 40, answer: 32, tier: 'medium' },
+  { pct: 30, base: 90, answer: 27, tier: 'hard' },
+  { pct: 15, base: 200, answer: 30, tier: 'hard' },
+  { pct: 35, base: 80, answer: 28, tier: 'hard' },
+  { pct: 45, base: 120, answer: 54, tier: 'hard' },
 ]
 
-function genQ() {
-  return QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]
+function genQ(difficulty = 'medium') {
+  return pickFrom(poolForDifficulty(QUESTIONS, difficulty))
 }
 
-export default function BateraiGame({ goBack }) {
+export default function BateraiGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [sliderVal, setSliderVal] = useState(0) // 0..base
   const [confirmed, setConfirmed] = useState(false)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setSliderVal(0); setConfirmed(false); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setSliderVal(0); setConfirmed(false); setFeedback(null) }, [effectiveDifficulty])
 
   const fillPct = (q.base > 0) ? (sliderVal / q.base) * 100 : 0
   const batteryColor = fillPct > 60 ? 'linear-gradient(180deg,#34D399,#16a34a)' : fillPct > 30 ? 'linear-gradient(180deg,#f59e0b,#d97706)' : 'linear-gradient(180deg,#ef4444,#dc2626)'
@@ -36,7 +41,12 @@ export default function BateraiGame({ goBack }) {
     const correct = sliderVal === q.answer
     setFeedback(correct)
     setConfirmed(true)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   const snapStep = 1
@@ -44,7 +54,7 @@ export default function BateraiGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🚀 Baterai Pesawat Luar Angkasa" onBack={goBack} />
+      <TopBar title="🚀 Baterai Pesawat Luar Angkasa" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>PANEL ENERGI PESAWAT</div>

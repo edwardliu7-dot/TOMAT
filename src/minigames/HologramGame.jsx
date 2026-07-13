@@ -1,36 +1,39 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 // Cross-multiplication: x/a = b/c → x × c = a × b → x = (a × b) / c
 const SCENARIOS = [
-  { a: 4, b: 3, c: 6, answer: 2, display: 'x/4 = 3/6' },
-  { a: 6, b: 4, c: 8, answer: 3, display: 'x/6 = 4/8' },
-  { a: 5, b: 2, c: 4, answer: 2.5, display: 'x/5 = 2/4' },
-  { a: 8, b: 3, c: 4, answer: 6, display: 'x/8 = 3/4' },
-  { a: 9, b: 2, c: 6, answer: 3, display: 'x/9 = 2/6' },
-  { a: 10, b: 3, c: 5, answer: 6, display: 'x/10 = 3/5' },
-  { a: 6, b: 5, c: 10, answer: 3, display: 'x/6 = 5/10' },
-  { a: 12, b: 1, c: 4, answer: 3, display: 'x/12 = 1/4' },
+  { a: 4, b: 3, c: 6, answer: 2, display: 'x/4 = 3/6', tier: 'easy' },
+  { a: 6, b: 4, c: 8, answer: 3, display: 'x/6 = 4/8', tier: 'easy' },
+  { a: 12, b: 1, c: 4, answer: 3, display: 'x/12 = 1/4', tier: 'easy' },
+  { a: 8, b: 3, c: 4, answer: 6, display: 'x/8 = 3/4', tier: 'medium' },
+  { a: 9, b: 2, c: 6, answer: 3, display: 'x/9 = 2/6', tier: 'medium' },
+  { a: 6, b: 5, c: 10, answer: 3, display: 'x/6 = 5/10', tier: 'medium' },
+  { a: 5, b: 2, c: 4, answer: 2.5, display: 'x/5 = 2/4', tier: 'hard' },
+  { a: 10, b: 3, c: 5, answer: 6, display: 'x/10 = 3/5', tier: 'hard' },
 ]
 
-function genQ() {
-  return SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)]
+function genQ(difficulty = 'medium') {
+  return pickFrom(poolForDifficulty(SCENARIOS, difficulty))
 }
 
 // Steps: 
 // 1. Cross-multiply: student sees x × c = a × b, confirms a×b product
 // 2. Divide: student sees a×b ÷ c = ?, inputs x
 
-export default function BrankasSandiGame({ goBack }) {
+export default function BrankasSandiGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [step, setStep] = useState(1) // 1 = cross-multiply, 2 = divide
   const [input, setInput] = useState('')
   const [stepFeedback, setStepFeedback] = useState(null)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setStep(1); setInput(''); setStepFeedback(null); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setStep(1); setInput(''); setStepFeedback(null); setFeedback(null) }, [effectiveDifficulty])
 
   const product = q.a * q.b
 
@@ -49,10 +52,14 @@ export default function BrankasSandiGame({ goBack }) {
       const val = parseInt(input, 10)
       const correct = val === product
       setStepFeedback(correct)
+      if (!correct && survival) {
+        survivalState.recordResult(false)
+      }
     } else {
       const val = parseFloat(input.replace(',', '.'))
       const correct = Math.abs(val - q.answer) < 0.01
       setStepFeedback(correct)
+      survivalState.recordResult(correct)
       if (correct) {
         setFeedback(true)
         addCoins(50); addExp(100)
@@ -71,6 +78,10 @@ export default function BrankasSandiGame({ goBack }) {
     }
   }
 
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
+  }
+
   const numpadKeys = step === 2
     ? ['7', '8', '9', '4', '5', '6', '1', '2', '3', ',', '0', '⌫']
     : ['7', '8', '9', '4', '5', '6', '1', '2', '3', '', '0', '⌫']
@@ -78,7 +89,7 @@ export default function BrankasSandiGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🔐 Peretas Brankas Sandi" onBack={goBack} />
+      <TopBar title="🔐 Peretas Brankas Sandi" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Vault + equation */}

@@ -1,23 +1,26 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 function gcdFrac(a, b) { return b === 0 ? a : gcdFrac(b, a % b) }
 function simplify(n, d) { const g = gcdFrac(n, d); return [n / g, d / g] }
 
 const QUESTIONS = [
-  { total: 8, colored: 3, answer: '3/8' },
-  { total: 4, colored: 1, answer: '1/4' },
-  { total: 6, colored: 2, answer: '1/3' },
-  { total: 8, colored: 6, answer: '3/4' },
-  { total: 5, colored: 2, answer: '2/5' },
-  { total: 6, colored: 4, answer: '2/3' },
-  { total: 10, colored: 3, answer: '3/10' },
-  { total: 12, colored: 4, answer: '1/3' },
+  { total: 4, colored: 1, answer: '1/4', tier: 'easy' },
+  { total: 6, colored: 2, answer: '1/3', tier: 'easy' },
+  { total: 5, colored: 2, answer: '2/5', tier: 'easy' },
+  { total: 8, colored: 3, answer: '3/8', tier: 'medium' },
+  { total: 8, colored: 6, answer: '3/4', tier: 'medium' },
+  { total: 6, colored: 4, answer: '2/3', tier: 'medium' },
+  { total: 10, colored: 3, answer: '3/10', tier: 'hard' },
+  { total: 12, colored: 4, answer: '1/3', tier: 'hard' },
+  { total: 16, colored: 6, answer: '3/8', tier: 'hard' },
+  { total: 14, colored: 4, answer: '2/7', tier: 'hard' },
 ]
 
-function genQ() {
-  return QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]
+function genQ(difficulty = 'medium') {
+  return pickFrom(poolForDifficulty(QUESTIONS, difficulty))
 }
 
 function toFracStr(n, d) {
@@ -25,13 +28,15 @@ function toFracStr(n, d) {
   return sd === 1 ? `${sn}` : `${sn}/${sd}`
 }
 
-export default function KokiPizzaGame({ goBack }) {
+export default function KokiPizzaGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [tapped, setTapped] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setTapped(0); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setTapped(0); setFeedback(null) }, [effectiveDifficulty])
 
   const anglePerSlice = (2 * Math.PI) / q.total
   const cx = 100, cy = 100, r = 88
@@ -57,7 +62,12 @@ export default function KokiPizzaGame({ goBack }) {
     const studentFrac = toFracStr(tapped, q.total)
     const correct = studentFrac === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   const studentFrac = tapped > 0 ? toFracStr(tapped, q.total) : null
@@ -65,7 +75,7 @@ export default function KokiPizzaGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🍕 Koki Pemotong Pizza" onBack={goBack} />
+      <TopBar title="🍕 Koki Pemotong Pizza" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 14 }}>

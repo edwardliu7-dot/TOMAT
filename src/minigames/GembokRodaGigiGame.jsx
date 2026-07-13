@@ -1,34 +1,42 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 function gcd(a, b) { return b === 0 ? a : gcd(b, a % b) }
 
 const PAIRS = [
-  [12, 8], [18, 12], [24, 16], [36, 24], [20, 15],
-  [30, 20], [15, 25], [16, 24], [28, 21], [45, 30],
-  [40, 24], [32, 48], [50, 35], [60, 45],
+  { a: 12, b: 8, tier: 'easy' }, { a: 18, b: 12, tier: 'easy' }, { a: 20, b: 15, tier: 'easy' }, { a: 15, b: 25, tier: 'easy' },
+  { a: 24, b: 16, tier: 'medium' }, { a: 36, b: 24, tier: 'medium' }, { a: 30, b: 20, tier: 'medium' }, { a: 16, b: 24, tier: 'medium' }, { a: 28, b: 21, tier: 'medium' },
+  { a: 45, b: 30, tier: 'hard' }, { a: 40, b: 24, tier: 'hard' }, { a: 32, b: 48, tier: 'hard' }, { a: 50, b: 35, tier: 'hard' }, { a: 60, b: 45, tier: 'hard' },
 ]
 
-function genQ() {
-  const [a, b] = PAIRS[Math.floor(Math.random() * PAIRS.length)]
+function genQ(difficulty = 'medium') {
+  const { a, b } = pickFrom(poolForDifficulty(PAIRS, difficulty))
   const answer = gcd(a, b)
   return { a, b, answer }
 }
 
-export default function GembokRodaGigiGame({ goBack }) {
+export default function GembokRodaGigiGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [selected, setSelected] = useState(1)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setSelected(1); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setSelected(1); setFeedback(null) }, [effectiveDifficulty])
 
   const confirm = () => {
     if (feedback !== null) return
     const correct = selected === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   const factorsA = Array.from({ length: q.a }, (_, i) => i + 1).filter(n => q.a % n === 0)
@@ -39,7 +47,7 @@ export default function GembokRodaGigiGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="⚙️ Gembok Roda Gigi" onBack={goBack} />
+      <TopBar title="⚙️ Gembok Roda Gigi" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 16 }}>

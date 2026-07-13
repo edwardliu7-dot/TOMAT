@@ -1,23 +1,29 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, useSurvival } from '../difficulty'
 
-function genQ() {
-  const bases = [2, 3, 4, 5]
-  const exps = [2, 3, 4]
+function genQ(difficulty = 'medium') {
+  const { bases, exps } = byDifficulty(difficulty, {
+    easy: { bases: [2, 3], exps: [2, 3] },
+    medium: { bases: [2, 3, 4, 5], exps: [2, 3, 4] },
+    hard: { bases: [3, 4, 5, 6, 7], exps: [3, 4, 5] },
+  })
   const base = bases[Math.floor(Math.random() * bases.length)]
   const exp = exps[Math.floor(Math.random() * exps.length)]
   const answer = Math.pow(base, exp)
   return { base, exp, answer }
 }
 
-export default function SporaJamurGame({ goBack }) {
+export default function SporaJamurGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [input, setInput] = useState('')
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setInput(''); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setInput(''); setFeedback(null) }, [effectiveDifficulty])
 
   const stages = Array.from({ length: q.exp + 1 }, (_, i) => Math.pow(q.base, i))
 
@@ -32,7 +38,12 @@ export default function SporaJamurGame({ goBack }) {
     if (feedback !== null || input === '') return
     const correct = parseInt(input, 10) === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   const numpadKeys = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '', '0', '⌫']
@@ -40,7 +51,7 @@ export default function SporaJamurGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🍄 Serangan Spora Jamur" onBack={goBack} />
+      <TopBar title="🍄 Serangan Spora Jamur" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>MONITOR PENYEBARAN JAMUR HAMA</div>

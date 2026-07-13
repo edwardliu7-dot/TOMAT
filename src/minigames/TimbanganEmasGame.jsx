@@ -1,37 +1,45 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 const QUESTIONS = [
-  { expr: '2,4 + 1,7', answer: 4.1, display: '2,4 + 1,7' },
-  { expr: '5,6 − 2,3', answer: 3.3, display: '5,6 − 2,3' },
-  { expr: '0,8 + 0,7', answer: 1.5, display: '0,8 + 0,7' },
-  { expr: '3,2 × 2', answer: 6.4, display: '3,2 × 2' },
-  { expr: '7,5 ÷ 3', answer: 2.5, display: '7,5 ÷ 3' },
-  { expr: '1,25 + 0,75', answer: 2.0, display: '1,25 + 0,75' },
-  { expr: '4,8 − 1,3', answer: 3.5, display: '4,8 − 1,3' },
-  { expr: '0,6 × 5', answer: 3.0, display: '0,6 × 5' },
-  { expr: '9,0 ÷ 4', answer: 2.25, display: '9,0 ÷ 4' },
-  { expr: '2,5 + 3,75', answer: 6.25, display: '2,5 + 3,75' },
+  { expr: '0,8 + 0,7', answer: 1.5, display: '0,8 + 0,7', tier: 'easy' },
+  { expr: '1,25 + 0,75', answer: 2.0, display: '1,25 + 0,75', tier: 'easy' },
+  { expr: '0,6 × 5', answer: 3.0, display: '0,6 × 5', tier: 'easy' },
+  { expr: '2,4 + 1,7', answer: 4.1, display: '2,4 + 1,7', tier: 'medium' },
+  { expr: '5,6 − 2,3', answer: 3.3, display: '5,6 − 2,3', tier: 'medium' },
+  { expr: '4,8 − 1,3', answer: 3.5, display: '4,8 − 1,3', tier: 'medium' },
+  { expr: '3,2 × 2', answer: 6.4, display: '3,2 × 2', tier: 'medium' },
+  { expr: '7,5 ÷ 3', answer: 2.5, display: '7,5 ÷ 3', tier: 'hard' },
+  { expr: '9,0 ÷ 4', answer: 2.25, display: '9,0 ÷ 4', tier: 'hard' },
+  { expr: '2,5 + 3,75', answer: 6.25, display: '2,5 + 3,75', tier: 'hard' },
 ]
 
-function genQ() {
-  return QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]
+function genQ(difficulty = 'medium') {
+  return pickFrom(poolForDifficulty(QUESTIONS, difficulty))
 }
 
-export default function TimbanganEmasGame({ goBack }) {
+export default function TimbanganEmasGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [selectedVal, setSelectedVal] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setSelectedVal(0); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setSelectedVal(0); setFeedback(null) }, [effectiveDifficulty])
 
   const confirm = () => {
     if (feedback !== null) return
     const correct = Math.abs(selectedVal - q.answer) < 0.01
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   const tilt = Math.max(-15, Math.min(15, (selectedVal - q.answer) * 8))
@@ -39,7 +47,7 @@ export default function TimbanganEmasGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="⚖️ Timbangan Emas Digital" onBack={goBack} />
+      <TopBar title="⚖️ Timbangan Emas Digital" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(234,179,8,0.3)">
           {/* Scale visual */}

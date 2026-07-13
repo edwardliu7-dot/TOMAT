@@ -1,31 +1,43 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, useSurvival } from '../difficulty'
 
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
 
-function genQ() {
-  const start = rand(-8, 8)
+// The number line (and its slider) is fixed at -15..15 (see toPercent()), so start/jump
+// must be chosen so the answer always stays on-screen regardless of direction.
+function genQ(difficulty = 'medium') {
+  const jumpRange = byDifficulty(difficulty, { easy: [2, 4], medium: [2, 7], hard: [4, 10] })
+  const jump = rand(...jumpRange)
+  const bound = 15 - jump
+  const start = rand(-bound, bound)
   const isForward = Math.random() < 0.5
-  const jump = rand(2, 7)
   const answer = isForward ? start + jump : start - jump
   return { start, jump, isForward, answer }
 }
 
-export default function KatakGame({ goBack }) {
+export default function KatakGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [selected, setSelected] = useState(null)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setSelected(null); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setSelected(null); setFeedback(null) }, [effectiveDifficulty])
 
   const confirm = () => {
     const currentVal = selected !== null ? selected : q.start
     if (feedback !== null) return
     const correct = currentVal === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   const toPercent = (n) => ((n + 15) / 30) * 100
@@ -34,7 +46,7 @@ export default function KatakGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🐸 Katak Pelompat Batu" onBack={goBack} />
+      <TopBar title="🐸 Katak Pelompat Batu" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 14 }}>

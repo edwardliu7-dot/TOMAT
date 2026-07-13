@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 // KABATAKU: each question broken into steps
 // Each step: { highlight: what to compute, result: numeric }
@@ -8,6 +9,7 @@ const QUESTIONS = [
   {
     expr: '3 + 4 × 2',
     answer: 11,
+    tier: 'easy',
     steps: [
       { action: 'Hitung 4 × 2', result: 8, after: '3 + 8' },
       { action: 'Hitung 3 + 8', result: 11, after: '11' },
@@ -15,17 +17,9 @@ const QUESTIONS = [
     hint: 'Kali dulu, baru tambah',
   },
   {
-    expr: '(5 + 3) × 2',
-    answer: 16,
-    steps: [
-      { action: 'Hitung (5 + 3)', result: 8, after: '8 × 2' },
-      { action: 'Hitung 8 × 2', result: 16, after: '16' },
-    ],
-    hint: 'Kurung dulu, baru kali',
-  },
-  {
     expr: '20 ÷ 4 + 3',
     answer: 8,
+    tier: 'easy',
     steps: [
       { action: 'Hitung 20 ÷ 4', result: 5, after: '5 + 3' },
       { action: 'Hitung 5 + 3', result: 8, after: '8' },
@@ -33,8 +27,19 @@ const QUESTIONS = [
     hint: 'Bagi dulu, baru tambah',
   },
   {
+    expr: '(5 + 3) × 2',
+    answer: 16,
+    tier: 'medium',
+    steps: [
+      { action: 'Hitung (5 + 3)', result: 8, after: '8 × 2' },
+      { action: 'Hitung 8 × 2', result: 16, after: '16' },
+    ],
+    hint: 'Kurung dulu, baru kali',
+  },
+  {
     expr: '15 − 2 × 4',
     answer: 7,
+    tier: 'medium',
     steps: [
       { action: 'Hitung 2 × 4', result: 8, after: '15 − 8' },
       { action: 'Hitung 15 − 8', result: 7, after: '7' },
@@ -44,6 +49,7 @@ const QUESTIONS = [
   {
     expr: '(8 − 3) × 4',
     answer: 20,
+    tier: 'medium',
     steps: [
       { action: 'Hitung (8 − 3)', result: 5, after: '5 × 4' },
       { action: 'Hitung 5 × 4', result: 20, after: '20' },
@@ -53,6 +59,7 @@ const QUESTIONS = [
   {
     expr: '24 ÷ (3 + 5)',
     answer: 3,
+    tier: 'medium',
     steps: [
       { action: 'Hitung (3 + 5)', result: 8, after: '24 ÷ 8' },
       { action: 'Hitung 24 ÷ 8', result: 3, after: '3' },
@@ -62,6 +69,7 @@ const QUESTIONS = [
   {
     expr: '6 + 4 × 3 − 2',
     answer: 16,
+    tier: 'hard',
     steps: [
       { action: 'Hitung 4 × 3', result: 12, after: '6 + 12 − 2' },
       { action: 'Hitung 6 + 12 − 2', result: 16, after: '16' },
@@ -71,6 +79,7 @@ const QUESTIONS = [
   {
     expr: '(7 + 3) ÷ 2 + 5',
     answer: 10,
+    tier: 'hard',
     steps: [
       { action: 'Hitung (7 + 3)', result: 10, after: '10 ÷ 2 + 5' },
       { action: 'Hitung 10 ÷ 2', result: 5, after: '5 + 5' },
@@ -78,22 +87,35 @@ const QUESTIONS = [
     ],
     hint: 'Kurung, lalu bagi, lalu tambah',
   },
+  {
+    expr: '18 ÷ (2 + 4) × 3',
+    answer: 9,
+    tier: 'hard',
+    steps: [
+      { action: 'Hitung (2 + 4)', result: 6, after: '18 ÷ 6 × 3' },
+      { action: 'Hitung 18 ÷ 6', result: 3, after: '3 × 3' },
+      { action: 'Hitung 3 × 3', result: 9, after: '9' },
+    ],
+    hint: 'Kurung, lalu bagi, lalu kali',
+  },
 ]
 
-function genQ() {
-  return QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]
+function genQ(difficulty = 'medium') {
+  return pickFrom(poolForDifficulty(QUESTIONS, difficulty))
 }
 
-export default function KeretaTambangGame({ goBack }) {
+export default function KeretaTambangGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [stepIdx, setStepIdx] = useState(0)
   const [input, setInput] = useState('')
   const [stepFeedback, setStepFeedback] = useState(null) // null | true | false
   const [feedback, setFeedback] = useState(null)
   const [completedSteps, setCompletedSteps] = useState([])
 
-  const newQ = useCallback(() => { setQ(genQ()); setStepIdx(0); setInput(''); setStepFeedback(null); setFeedback(null); setCompletedSteps([]) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setStepIdx(0); setInput(''); setStepFeedback(null); setFeedback(null); setCompletedSteps([]) }, [effectiveDifficulty])
 
   const currentStep = q.steps[stepIdx]
   const isLastStep = stepIdx === q.steps.length - 1
@@ -111,18 +133,22 @@ export default function KeretaTambangGame({ goBack }) {
     setStepFeedback(correct)
     if (correct) {
       setCompletedSteps(prev => [...prev, { ...currentStep, inputOk: true }])
+    } else if (survival) {
+      // Survival ends immediately on a wrong answer -- no retry.
+      survivalState.recordResult(false)
     }
   }
 
   const nextStep = () => {
     if (!stepFeedback) {
-      // retry
+      // retry (only reachable outside survival mode)
       setInput('')
       setStepFeedback(null)
       return
     }
     if (isLastStep) {
       setFeedback(true)
+      survivalState.recordResult(true)
       addCoins(50); addExp(100)
     } else {
       setStepIdx(s => s + 1)
@@ -131,12 +157,16 @@ export default function KeretaTambangGame({ goBack }) {
     }
   }
 
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
+  }
+
   const numpadKeys = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '', '0', '⌫']
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🚂 Rute Kereta Tambang" onBack={goBack} />
+      <TopBar title="🚂 Rute Kereta Tambang" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* KABATAKU rule */}

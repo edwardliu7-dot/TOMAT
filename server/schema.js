@@ -57,6 +57,9 @@ export async function ensureSchema() {
     );
   `)
   await pool.query(`
+    alter table tugas add column if not exists difficulty text not null default 'medium';
+  `)
+  await pool.query(`
     create table if not exists nilai (
       id serial primary key,
       tugas_id int not null references tugas(id) on delete cascade,

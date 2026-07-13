@@ -1,16 +1,17 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 // All answers use string fractions like '-3/4'
 const QUESTIONS = [
-  { scenario: 'Bor di −1/2 m, turun 1/4 m lagi', expr: '−1/2 − 1/4', answer: '−3/4', val: -0.75 },
-  { scenario: 'Bor di −3/4 m, naik 1/4 m', expr: '−3/4 + 1/4', answer: '−1/2', val: -0.5 },
-  { scenario: 'Bor di −2/3 m, turun 1/3 m lagi', expr: '−2/3 − 1/3', answer: '−1', val: -1 },
-  { scenario: 'Bor di −1/4 m, turun 1/2 m lagi', expr: '−1/4 − 1/2', answer: '−3/4', val: -0.75 },
-  { scenario: 'Bor di −5/8 m, naik 3/8 m', expr: '−5/8 + 3/8', answer: '−1/4', val: -0.25 },
-  { scenario: 'Bor di −1/3 m, turun 2/3 m lagi', expr: '−1/3 − 2/3', answer: '−1', val: -1 },
-  { scenario: 'Bor di −3/5 m, naik 1/5 m', expr: '−3/5 + 1/5', answer: '−2/5', val: -0.4 },
+  { scenario: 'Bor di −1/2 m, turun 1/4 m lagi', expr: '−1/2 − 1/4', answer: '−3/4', val: -0.75, tier: 'easy' },
+  { scenario: 'Bor di −3/4 m, naik 1/4 m', expr: '−3/4 + 1/4', answer: '−1/2', val: -0.5, tier: 'easy' },
+  { scenario: 'Bor di −1/4 m, turun 1/2 m lagi', expr: '−1/4 − 1/2', answer: '−3/4', val: -0.75, tier: 'easy' },
+  { scenario: 'Bor di −2/3 m, turun 1/3 m lagi', expr: '−2/3 − 1/3', answer: '−1', val: -1, tier: 'medium' },
+  { scenario: 'Bor di −1/3 m, turun 2/3 m lagi', expr: '−1/3 − 2/3', answer: '−1', val: -1, tier: 'medium' },
+  { scenario: 'Bor di −5/8 m, naik 3/8 m', expr: '−5/8 + 3/8', answer: '−1/4', val: -0.25, tier: 'hard' },
+  { scenario: 'Bor di −3/5 m, naik 1/5 m', expr: '−3/5 + 1/5', answer: '−2/5', val: -0.4, tier: 'hard' },
 ]
 
 const MARKS = [
@@ -21,23 +22,34 @@ const MARKS = [
   { label: '-1', val: -1 },
 ]
 
-export default function BorTambangGame({ goBack }) {
+function genQ(difficulty = 'medium') {
+  return pickFrom(poolForDifficulty(QUESTIONS, difficulty))
+}
+
+export default function BorTambangGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(() => QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)])
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [selectedVal, setSelectedVal] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
   const newQ = useCallback(() => {
-    setQ(QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)])
+    setQ(genQ(effectiveDifficulty))
     setSelectedVal(0)
     setFeedback(null)
-  }, [])
+  }, [effectiveDifficulty])
 
   const confirm = () => {
     if (feedback !== null) return
     const correct = Math.abs(selectedVal - q.val) < 0.05
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   const drillPercent = Math.max(0, Math.min(100, -selectedVal * 100))
@@ -45,7 +57,7 @@ export default function BorTambangGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="⛏️ Bor Tambang Bumi" onBack={goBack} />
+      <TopBar title="⛏️ Bor Tambang Bumi" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 14, lineHeight: 1.7 }}>

@@ -1,28 +1,31 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 const SCENARIOS = [
-  { item: 'Ramuan Penyembuh 🧪', qty1: 2, price1: 10, qty2: 5, answer: 25 },
-  { item: 'Buku Mantra 📗', qty1: 3, price1: 12, qty2: 7, answer: 28 },
-  { item: 'Kristal Sihir 💎', qty1: 4, price1: 20, qty2: 9, answer: 45 },
-  { item: 'Jamur Ajaib 🍄', qty1: 5, price1: 15, qty2: 8, answer: 24 },
-  { item: 'Peta Harta 🗺️', qty1: 2, price1: 6, qty2: 11, answer: 33 },
-  { item: 'Lilin Sihir 🕯️', qty1: 6, price1: 18, qty2: 10, answer: 30 },
-  { item: 'Benih Ajaib 🌱', qty1: 3, price1: 9, qty2: 12, answer: 36 },
+  { item: 'Ramuan Penyembuh 🧪', qty1: 2, price1: 10, qty2: 5, answer: 25, tier: 'easy' },
+  { item: 'Buku Mantra 📗', qty1: 3, price1: 12, qty2: 7, answer: 28, tier: 'easy' },
+  { item: 'Kristal Sihir 💎', qty1: 4, price1: 20, qty2: 9, answer: 45, tier: 'medium' },
+  { item: 'Jamur Ajaib 🍄', qty1: 5, price1: 15, qty2: 8, answer: 24, tier: 'medium' },
+  { item: 'Peta Harta 🗺️', qty1: 2, price1: 6, qty2: 11, answer: 33, tier: 'hard' },
+  { item: 'Lilin Sihir 🕯️', qty1: 6, price1: 18, qty2: 10, answer: 30, tier: 'hard' },
+  { item: 'Benih Ajaib 🌱', qty1: 3, price1: 9, qty2: 12, answer: 36, tier: 'hard' },
 ]
 
-function genQ() {
-  return SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)]
+function genQ(difficulty = 'medium') {
+  return pickFrom(poolForDifficulty(SCENARIOS, difficulty))
 }
 
-export default function KasirSihirGame({ goBack }) {
+export default function KasirSihirGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [input, setInput] = useState('')
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setInput(''); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setInput(''); setFeedback(null) }, [effectiveDifficulty])
 
   const unitPrice = q.price1 / q.qty1
   const inputNum = input === '' ? null : parseInt(input, 10)
@@ -43,7 +46,12 @@ export default function KasirSihirGame({ goBack }) {
     if (feedback !== null || inputNum === null) return
     const correct = inputNum === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   const numpadKeys = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '', '0', '⌫']
@@ -55,7 +63,7 @@ export default function KasirSihirGame({ goBack }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🏪 Kasir Toko Sihir" onBack={goBack} />
+      <TopBar title="🏪 Kasir Toko Sihir" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(234,179,8,0.3)">
           <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>TOKO RAMUAN PENYIHIR</div>

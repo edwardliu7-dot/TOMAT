@@ -188,6 +188,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [history, setHistory] = useState(['home'])
   const [pendingGame, setPendingGame] = useState(null) // { key, name, emoji }
   const [lastGrade, setLastGrade] = useState(null)
+  const [gameConfig, setGameConfig] = useState(null) // { difficulty } or { survival: true }
 
   const current = history[history.length - 1]
 
@@ -213,7 +214,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
   // Called by ModeSelectScreen when user picks a mode.
   // startTaskSession is called inside ModeSelectScreen (within TaskProvider tree) before this.
-  const handleModeSelected = useCallback((_mode, _taskId) => {
+  const handleModeSelected = useCallback((_mode, _taskId, config) => {
+    setGameConfig(config || null)
     replaceTop(pendingGame.key)
   }, [pendingGame, replaceTop])
 
@@ -265,7 +267,9 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (GAME_ROUTES[current]) {
       const { Component } = GAME_ROUTES[current]
-      return <Component navigate={navigate} goBack={goBack} />
+      const difficulty = gameConfig?.difficulty || 'medium'
+      const survival = !!gameConfig?.survival
+      return <Component navigate={navigate} goBack={goBack} difficulty={difficulty} survival={survival} />
     }
 
     if (current === 'home') {

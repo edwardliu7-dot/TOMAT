@@ -1,6 +1,31 @@
 import React from 'react'
 import { TopBar, PlayerHeader } from '../components/shared'
 import { useTask, TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
+import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
+
+// Inline 4-way picker nested inside the Latihan Bebas card: Mudah / Sedang / Sulit / Survival.
+// Each button starts free play immediately with its own config — there is no separate CTA.
+function FreePlayPicker({ onPick }) {
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 10 }}>Pilih tingkat kesulitan:</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 8 }}>
+        {DIFFICULTY_LEVELS.map(level => (
+          <button key={level} onClick={() => onPick({ difficulty: level })} style={{
+            background: `${DIFFICULTY_COLORS[level]}18`, border: `1.5px solid ${DIFFICULTY_COLORS[level]}55`,
+            borderRadius: 12, padding: '12px 6px', color: DIFFICULTY_COLORS[level], fontSize: 13,
+            fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+          }}>{DIFFICULTY_LABELS[level]}</button>
+        ))}
+      </div>
+      <button onClick={() => onPick({ survival: true })} style={{
+        width: '100%', background: 'rgba(248,113,113,0.12)', border: '1.5px solid rgba(248,113,113,0.4)',
+        borderRadius: 12, padding: '12px 6px', color: '#F87171', fontSize: 13,
+        fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+      }}>🔥 Survival — mulai dari Mudah, makin sulit tiap beberapa soal!</button>
+    </div>
+  )
+}
 
 function ModeCard({ icon, title, subtitle, badge, badgeColor, description, ctaLabel, ctaColor, onClick, disabled, disabledReason }) {
   return (
@@ -47,7 +72,7 @@ function ModeCard({ icon, title, subtitle, badge, badgeColor, description, ctaLa
         </div>
       )}
 
-      {!disabled && (
+      {!disabled && ctaLabel && (
         <div style={{ marginTop: 14, background: ctaColor, borderRadius: 12, padding: '12px 0', textAlign: 'center' }}>
           <span style={{ color: '#0A1628', fontSize: 14, fontWeight: 800 }}>{ctaLabel}</span>
         </div>
@@ -73,6 +98,11 @@ function TaskInfo({ task }) {
         <span style={{ background: 'rgba(255,255,255,0.06)', color: '#94A3B8', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20 }}>
           ⏰ Tenggat {task.dueAt}
         </span>
+        {task.difficulty && (
+          <span style={{ background: `${DIFFICULTY_COLORS[task.difficulty] || '#67E8F9'}22`, color: DIFFICULTY_COLORS[task.difficulty] || '#67E8F9', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>
+            {DIFFICULTY_LABELS[task.difficulty] || task.difficulty}
+          </span>
+        )}
       </div>
       <div style={{ fontSize: 12, color: '#6B7280' }}>
         Ditugaskan untuk kelasmu oleh guru
@@ -97,15 +127,15 @@ export default function ModeSelectScreen({ navigate, goBack, pendingGame, onMode
   const { getTaskForGame, startTaskSession } = useTask()
   const task = pendingGame ? getTaskForGame(pendingGame.key) : null
 
-  const selectFreePlay = () => {
-    onModeSelected('freeplay')
+  const selectFreePlay = (config) => {
+    onModeSelected('freeplay', null, config)
   }
 
   const selectTaskMode = () => {
     if (!task) return
     // Start the session inside the TaskProvider tree so the context is updated
     startTaskSession(task.id)
-    onModeSelected('task', task.id)
+    onModeSelected('task', task.id, { difficulty: task.difficulty || 'medium' })
   }
 
   return (
@@ -135,9 +165,9 @@ export default function ModeSelectScreen({ navigate, goBack, pendingGame, onMode
             subtitle="Latihan kapan saja, tidak ada batas soal, hasil tidak disimpan sebagai nilai."
             badge="SELALU TERSEDIA"
             badgeColor="#34D399"
-            ctaLabel="Mulai Latihan ▶"
+            description={<FreePlayPicker onPick={selectFreePlay} />}
+            ctaLabel=""
             ctaColor="#34D399"
-            onClick={selectFreePlay}
           />
 
           {/* Task Mode */}

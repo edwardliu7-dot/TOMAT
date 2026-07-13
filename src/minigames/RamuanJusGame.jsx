@@ -1,39 +1,47 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 const QUESTIONS = [
-  { f1: 'Apel 🍎', f2: 'Jeruk 🍊', r1: 2, r2: 3, total: 20, a1: 8, a2: 12 },
-  { f1: 'Mangga 🥭', f2: 'Nanas 🍍', r1: 3, r2: 2, total: 15, a1: 9, a2: 6 },
-  { f1: 'Stroberi 🍓', f2: 'Anggur 🍇', r1: 1, r2: 4, total: 25, a1: 5, a2: 20 },
-  { f1: 'Pisang 🍌', f2: 'Semangka 🍉', r1: 2, r2: 5, total: 14, a1: 4, a2: 10 },
-  { f1: 'Lemon 🍋', f2: 'Kiwi 🥝', r1: 3, r2: 4, total: 21, a1: 9, a2: 12 },
-  { f1: 'Apel 🍎', f2: 'Pir 🍐', r1: 5, r2: 3, total: 16, a1: 10, a2: 6 },
+  { f1: 'Apel 🍎', f2: 'Jeruk 🍊', r1: 2, r2: 3, total: 20, a1: 8, a2: 12, tier: 'easy' },
+  { f1: 'Mangga 🥭', f2: 'Nanas 🍍', r1: 3, r2: 2, total: 15, a1: 9, a2: 6, tier: 'easy' },
+  { f1: 'Stroberi 🍓', f2: 'Anggur 🍇', r1: 1, r2: 4, total: 25, a1: 5, a2: 20, tier: 'medium' },
+  { f1: 'Pisang 🍌', f2: 'Semangka 🍉', r1: 2, r2: 5, total: 14, a1: 4, a2: 10, tier: 'medium' },
+  { f1: 'Lemon 🍋', f2: 'Kiwi 🥝', r1: 3, r2: 4, total: 21, a1: 9, a2: 12, tier: 'hard' },
+  { f1: 'Apel 🍎', f2: 'Pir 🍐', r1: 5, r2: 3, total: 16, a1: 10, a2: 6, tier: 'hard' },
 ]
 
-function genQ() {
-  return QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]
+function genQ(difficulty = 'medium') {
+  return pickFrom(poolForDifficulty(QUESTIONS, difficulty))
 }
 
-export default function RamuanJusGame({ goBack }) {
+export default function RamuanJusGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [sel1, setSel1] = useState(0)
   const [sel2, setSel2] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setSel1(0); setSel2(0); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setSel1(0); setSel2(0); setFeedback(null) }, [effectiveDifficulty])
 
   const submit = () => {
     const correct = sel1 === q.a1 && sel2 === q.a2
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🧃 Ramuan Jus Buah" onBack={goBack} />
+      <TopBar title="🧃 Ramuan Jus Buah" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 14 }}>

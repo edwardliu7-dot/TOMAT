@@ -1,20 +1,21 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
 const QUESTIONS = [
-  { number: '380.000.000', answer: '3,8 × 10⁸', coef: 3.8, exp: 8, hint: 'Geser koma 8 tempat ke kiri' },
-  { number: '45.000', answer: '4,5 × 10⁴', coef: 4.5, exp: 4, hint: 'Geser koma 4 tempat ke kiri' },
-  { number: '7.200.000', answer: '7,2 × 10⁶', coef: 7.2, exp: 6, hint: 'Geser koma 6 tempat ke kiri' },
-  { number: '0,0056', answer: '5,6 × 10⁻³', coef: 5.6, exp: -3, hint: 'Geser koma 3 tempat ke kanan' },
-  { number: '0,00091', answer: '9,1 × 10⁻⁴', coef: 9.1, exp: -4, hint: 'Geser koma 4 tempat ke kanan' },
-  { number: '150.000.000', answer: '1,5 × 10⁸', coef: 1.5, exp: 8, hint: 'Geser koma 8 tempat ke kiri' },
-  { number: '3.000', answer: '3 × 10³', coef: 3.0, exp: 3, hint: 'Geser koma 3 tempat ke kiri' },
-  { number: '0,008', answer: '8 × 10⁻³', coef: 8.0, exp: -3, hint: 'Geser koma 3 tempat ke kanan' },
+  { number: '45.000', answer: '4,5 × 10⁴', coef: 4.5, exp: 4, hint: 'Geser koma 4 tempat ke kiri', tier: 'easy' },
+  { number: '3.000', answer: '3 × 10³', coef: 3.0, exp: 3, hint: 'Geser koma 3 tempat ke kiri', tier: 'easy' },
+  { number: '380.000.000', answer: '3,8 × 10⁸', coef: 3.8, exp: 8, hint: 'Geser koma 8 tempat ke kiri', tier: 'medium' },
+  { number: '7.200.000', answer: '7,2 × 10⁶', coef: 7.2, exp: 6, hint: 'Geser koma 6 tempat ke kiri', tier: 'medium' },
+  { number: '150.000.000', answer: '1,5 × 10⁸', coef: 1.5, exp: 8, hint: 'Geser koma 8 tempat ke kiri', tier: 'medium' },
+  { number: '0,0056', answer: '5,6 × 10⁻³', coef: 5.6, exp: -3, hint: 'Geser koma 3 tempat ke kanan', tier: 'hard' },
+  { number: '0,00091', answer: '9,1 × 10⁻⁴', coef: 9.1, exp: -4, hint: 'Geser koma 4 tempat ke kanan', tier: 'hard' },
+  { number: '0,008', answer: '8 × 10⁻³', coef: 8.0, exp: -3, hint: 'Geser koma 3 tempat ke kanan', tier: 'hard' },
 ]
 
-function genQ() {
-  return QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)]
+function genQ(difficulty = 'medium') {
+  return pickFrom(poolForDifficulty(QUESTIONS, difficulty))
 }
 
 function formatExp(e) {
@@ -22,26 +23,33 @@ function formatExp(e) {
   return String(e).split('').map(c => sups[c] || c).join('')
 }
 
-export default function FokusTeleskopGame({ goBack }) {
+export default function FokusTeleskopGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [selCoef, setSelCoef] = useState(1.0)
   const [selExp, setSelExp] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setSelCoef(1.0); setSelExp(0); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setSelCoef(1.0); setSelExp(0); setFeedback(null) }, [effectiveDifficulty])
 
   const confirm = () => {
     if (feedback !== null) return
     const correct = Math.abs(selCoef - q.coef) < 0.1 && selExp === q.exp
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🔭 Fokus Teleskop Bintang" onBack={goBack} />
+      <TopBar title="🔭 Fokus Teleskop Bintang" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 12 }}>

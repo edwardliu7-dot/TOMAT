@@ -1,8 +1,9 @@
 import React from 'react'
 import { usePlayer } from '../PlayerContext'
 import { useAuth } from '../AuthContext'
+import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 
-export function TopBar({ title, onBack, accentColor = '#67E8F9' }) {
+export function TopBar({ title, onBack, accentColor = '#67E8F9', rightElement }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', padding: '16px', gap: 12 }}>
       <button onClick={onBack} style={{
@@ -10,7 +11,49 @@ export function TopBar({ title, onBack, accentColor = '#67E8F9' }) {
         width: 40, height: 40, borderRadius: 10, cursor: 'pointer', fontSize: 20,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>←</button>
-      <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700 }}>{title}</h2>
+      <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, flex: 1 }}>{title}</h2>
+      {rightElement}
+    </div>
+  )
+}
+
+// Small pill showing the active difficulty tier (or "Survival" streak) next to a TopBar title.
+export function DifficultyBadge({ difficulty, survival, streak }) {
+  if (survival) {
+    return (
+      <span style={{ background: 'rgba(248,113,113,0.15)', color: '#F87171', fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, flexShrink: 0, whiteSpace: 'nowrap' }}>
+        🔥 Survival · {streak ?? 0}
+      </span>
+    )
+  }
+  if (!difficulty) return null
+  const color = DIFFICULTY_COLORS[difficulty] || '#67E8F9'
+  return (
+    <span style={{ background: `${color}22`, color, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, flexShrink: 0, whiteSpace: 'nowrap' }}>
+      {DIFFICULTY_LABELS[difficulty] || difficulty}
+    </span>
+  )
+}
+
+// Shared "game over" screen for Survival mode: shown instead of the normal feedback/next-
+// question UI the instant a wrong answer is recorded. Reused by every minigame.
+export function SurvivalOverScreen({ streak, onRetry, goBack, accentColor = '#F87171' }) {
+  return (
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
+      <PlayerHeader />
+      <TopBar title="🔥 Survival Berakhir" onBack={goBack} accentColor={accentColor} />
+      <div style={{ padding: '32px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        <div style={{ fontSize: 56 }}>💀</div>
+        <div style={{ fontSize: 15, color: '#94A3B8', textAlign: 'center' }}>Jawaban salah — perjalanan survival-mu berakhir di sini.</div>
+        <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: '20px 36px', textAlign: 'center' }}>
+          <div style={{ fontSize: 12, color: '#94A3B8', letterSpacing: 1, textTransform: 'uppercase' }}>Soal Benar Berturut-turut</div>
+          <div style={{ fontSize: 48, fontWeight: 900, color: '#EAB308' }}>{streak}</div>
+        </div>
+        <div style={{ width: '100%', maxWidth: 320, display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+          <Btn onClick={onRetry} color={accentColor}>🔁 Coba Lagi</Btn>
+          <Btn onClick={goBack} color="#334155">⬅ Kembali</Btn>
+        </div>
+      </div>
     </div>
   )
 }

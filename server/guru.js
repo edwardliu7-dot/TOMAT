@@ -44,13 +44,14 @@ router.get('/tugas', async (req, res) => {
 // POST /api/guru/tugas — assign a new task to a class this teacher teaches
 router.post('/tugas', async (req, res) => {
   try {
-    const { kelas, gameKey, gameName, gameEmoji, bab, type, totalQuestions, dueAt } = req.body || {}
+    const { kelas, gameKey, gameName, gameEmoji, bab, type, totalQuestions, dueAt, difficulty } = req.body || {}
     if (!kelas || !gameKey || !gameName || !type || !totalQuestions) {
       return res.status(400).json({ error: 'Data tugas tidak lengkap.' })
     }
     if (!['harian', 'formatif', 'sumatif'].includes(type)) {
       return res.status(400).json({ error: 'Jenis tugas tidak valid.' })
     }
+    const difficultyValue = ['easy', 'medium', 'hard'].includes(difficulty) ? difficulty : 'medium'
     const kelasDiampu = await getMyKelasDiampu(req)
     if (!kelasDiampu.includes(kelas)) {
       return res.status(403).json({ error: 'Anda tidak mengampu kelas ini.' })
@@ -60,9 +61,9 @@ router.post('/tugas', async (req, res) => {
       return res.status(400).json({ error: 'Jumlah soal tidak valid.' })
     }
     const { rows } = await pool.query(
-      `insert into tugas (guru_id, kelas, game_key, game_name, game_emoji, bab, type, total_questions, due_at)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning *`,
-      [req.session.user.id, kelas, gameKey, gameName, gameEmoji || null, bab || null, type, totalQ, dueAt || null]
+      `insert into tugas (guru_id, kelas, game_key, game_name, game_emoji, bab, type, total_questions, due_at, difficulty)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning *`,
+      [req.session.user.id, kelas, gameKey, gameName, gameEmoji || null, bab || null, type, totalQ, dueAt || null, difficultyValue]
     )
     res.json({ tugas: rows[0] })
   } catch (err) {
