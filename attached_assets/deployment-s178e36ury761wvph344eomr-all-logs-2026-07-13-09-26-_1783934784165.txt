@@ -1,0 +1,169 @@
+2026-Jul-13 09:14:07.809055 Docker 29.6.1 with BuildKit and Buildx detected on deployment server (localhost).
+2026-Jul-13 09:14:07.852821 Starting deployment of edwardliu7-dot/TOMAT:main to localhost.
+2026-Jul-13 09:14:08.611754 Preparing container with helper image: docker.io/coollabsio/coolify-helper:1.0.14
+2026-Jul-13 09:14:08.960760 [DEBUG] [CMD]: docker stop --time=30 s178e36ury761wvph344eomr
+2026-Jul-13 09:14:08.960760 [DEBUG] Flag --time has been deprecated, use --timeout instead
+2026-Jul-13 09:14:08.983759 [DEBUG] Error response from daemon: No such container: s178e36ury761wvph344eomr
+2026-Jul-13 09:14:12.173677 [DEBUG] [CMD]: docker run -d --network 'coolify' --name s178e36ury761wvph344eomr  --rm -v /root/.docker/buildx:/root/.docker/buildx -v /var/run/docker.sock:/var/run/docker.sock docker.io/coollabsio/coolify-helper:1.0.14
+2026-Jul-13 09:14:12.173677 [DEBUG] 5520fa3c1d0943064f203d4ad168f6cac54e84c738e28af34a60db27ce53caef
+2026-Jul-13 09:14:17.435599 [DEBUG] [CMD]: docker exec s178e36ury761wvph344eomr bash -c 'GIT_SSH_COMMAND="ssh -o ConnectTimeout=30 -p 22 -o Port=22 -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git ls-remote '\''https://x-access-token:<REDACTED>@github.com/edwardliu7-dot/TOMAT.git'\'' '\''refs/heads/main'\'''
+2026-Jul-13 09:14:17.435599 [DEBUG] 4e6aefcb0708f2143af3367c816e4368b662c6f3	refs/heads/main
+2026-Jul-13 09:14:18.000296 ----------------------------------------
+2026-Jul-13 09:14:18.028384 Importing edwardliu7-dot/TOMAT:main (commit sha 4e6aefcb0708f2143af3367c816e4368b662c6f3) to /artifacts/s178e36ury761wvph344eomr.
+2026-Jul-13 09:14:18.415000 [DEBUG] [CMD]: docker exec s178e36ury761wvph344eomr bash -c 'git -c '\''url.https://x-access-token:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 clone --depth=1 --recurse-submodules --shallow-submodules -b '\''main'\'' '\''https:<REDACTED>@github.com/edwardliu7-dot/TOMAT.git'\'' '\''/artifacts/s178e36ury761wvph344eomr'\'' && cd '\''/artifacts/s178e36ury761wvph344eomr'\'' && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https://x-access-token:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 fetch --depth=1 origin '\''4e6aefcb0708f2143af3367c816e4368b662c6f3'\'' && git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 -c advice.detachedHead=false checkout '\''4e6aefcb0708f2143af3367c816e4368b662c6f3'\'' >/dev/null 2>&1 && cd '\''/artifacts/s178e36ury761wvph344eomr'\'' && if [ -f .gitmodules ]; then git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 submodule sync && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 submodule update --init --recursive --depth=1; fi && cd '\''/artifacts/s178e36ury761wvph344eomr'\'' && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 lfs pull'
+2026-Jul-13 09:<REDACTED>@157.10.161.229:5432/postgres
+2026-Jul-13 09:14:28.083338 [DEBUG] ARG SESSION_SECRET=W0Gh0hI2Yt1O9yIcdyJiPo2tT+XjScHthg6xaRVcyWWhOJtqIjX8WAqOT9uBW5uTA1SvUf3t+GA5GcsbvRO/tw==
+2026-Jul-13 09:14:28.083338 [DEBUG] ARG COOLIFY_URL=http://tomat.coolify.io
+2026-Jul-13 09:<REDACTED>@157.10.161.229:5432/postgres
+2026-Jul-13 09:14:28.083338 [DEBUG] ARG SESSION_SECRET=W0Gh0hI2Yt1O9yIcdyJiPo2tT+XjScHthg6xaRVcyWWhOJtqIjX8WAqOT9uBW5uTA1SvUf3t+GA5GcsbvRO/tw==
+2026-Jul-13 09:14:28.083338 [DEBUG] ARG COOLIFY_URL=http://tomat.coolify.io
+2026-Jul-13 09:<REDACTED>@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+2026-Jul-13 09:14:37.054738 [DEBUG] #5 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.6s done
+2026-Jul-13 09:14:37.054738 [DEBUG] #5 DONE 0.7s
+2026-Jul-13 09:14:37.054738 [DEBUG] 
+2026-Jul-13 09:14:37.054738 [DEBUG] #4 [internal] load build context
+2026-Jul-13 09:14:37.409687 [DEBUG] #4 transferring context: 2.11MB 0.4s done
+2026-Jul-13 09:14:37.480147 [DEBUG] #4 DONE 1.2s
+2026-Jul-13 09:14:37.607236 [DEBUG] #6 [build 2/6] WORKDIR /app
+2026-Jul-13 09:14:37.607236 [DEBUG] #6 CACHED
+2026-Jul-13 09:14:37.607236 [DEBUG] 
+2026-Jul-13 09:14:37.607236 [DEBUG] #7 [build 3/6] COPY package.json package-lock.json .npmrc ./
+2026-Jul-13 09:14:37.760235 [DEBUG] #7 CACHED
+2026-Jul-13 09:14:37.760235 [DEBUG] 
+2026-Jul-13 09:14:37.760235 [DEBUG] #8 [build 4/6] RUN npm ci
+2026-Jul-13 09:14:47.659123 [DEBUG] #8 ...
+2026-Jul-13 09:14:47.659123 [DEBUG] 
+2026-Jul-13 09:14:47.659123 [DEBUG] #9 [stage-1 4/6] RUN npm ci --omit=dev
+2026-Jul-13 09:23:39.039556 [DEBUG] #9 541.4 npm notice
+2026-Jul-13 09:23:39.039556 [DEBUG] #9 541.4 npm notice New major version of npm available! 10.8.2 -> 12.0.1
+2026-Jul-13 09:23:39.039556 [DEBUG] #9 541.4 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.1
+2026-Jul-13 09:<REDACTED>@12.0.1
+2026-Jul-13 09:23:39.039556 [DEBUG] #9 541.4 npm notice
+2026-Jul-13 09:23:39.193510 [DEBUG] #9 541.4 npm error Exit handler never called!
+2026-Jul-13 09:23:39.193510 [DEBUG] #9 541.4 npm error This is an error with npm itself. Please report this error at:
+2026-Jul-13 09:23:39.193510 [DEBUG] #9 541.4 npm error   <https://github.com/npm/cli/issues>
+2026-Jul-13 09:<REDACTED>@12.0.1
+2026-Jul-13 09:23:40.133324 [DEBUG] #8 541.6 npm notice
+2026-Jul-13 09:23:40.133324 [DEBUG] #8 541.6 npm error Exit handler never called!
+2026-Jul-13 09:23:40.133324 [DEBUG] #8 541.6 npm error This is an error with npm itself. Please report this error at:
+2026-Jul-13 09:23:40.133324 [DEBUG] #8 541.6 npm error   <https://github.com/npm/cli/issues>
+2026-Jul-13 09:<REDACTED>@1.0.0 build
+2026-Jul-13 09:23:44.541758 [DEBUG] #11 1.247 > vite build
+2026-Jul-13 09:23:44.541758 [DEBUG] #11 1.247
+2026-Jul-13 09:23:44.723995 [DEBUG] #11 1.274 sh: vite: not found
+2026-Jul-13 09:23:45.545003 [DEBUG] #11 ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 127
+2026-Jul-13 09:23:46.661741 [DEBUG] ------
+2026-Jul-13 09:23:46.661741 [DEBUG] > [build 6/6] RUN npm run build:
+2026-Jul-13 09:23:46.661741 [DEBUG] 1.247
+2026-Jul-13 09:23:46.661741 [DEBUG] 1.247 > tomat-web@1.0.0 build
+2026-Jul-13 09:23:46.661741 [DEBUG] 1.247 > vite build
+2026-Jul-13 09:23:46.661741 [DEBUG] 1.247
+2026-Jul-13 09:23:46.661741 [DEBUG] 1.274 sh: vite: not found
+2026-Jul-13 09:23:46.661741 [DEBUG] ------
+2026-Jul-13 09:23:46.661741 [DEBUG] 
+2026-Jul-13 09:23:46.661741 [DEBUG] 2 warnings found (use docker --debug to expand):
+2026-Jul-13 09:23:46.661741 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "SESSION_SECRET") (line 6)
+2026-Jul-13 09:23:46.661741 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "SESSION_SECRET") (line 25)
+2026-Jul-13 09:23:46.683782 [DEBUG] Dockerfile:18
+2026-Jul-13 09:23:46.683782 [DEBUG] --------------------
+2026-Jul-13 09:23:46.683782 [DEBUG] 16 |
+2026-Jul-13 09:23:46.683782 [DEBUG] 17 |     COPY . .
+2026-Jul-13 09:23:46.683782 [DEBUG] 18 | >>> RUN npm run build
+2026-Jul-13 09:23:46.683782 [DEBUG] 19 |
+2026-Jul-13 09:23:46.683782 [DEBUG] 20 |     FROM node:20-alpine
+2026-Jul-13 09:23:46.683782 [DEBUG] --------------------
+2026-Jul-13 09:23:46.683782 [DEBUG] ERROR: failed to build: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 127
+2026-Jul-13 09:23:46.683782 [DEBUG] exit status 1
+2026-Jul-13 09:23:47.579096 ========================================
+2026-Jul-13 09:23:47.630861 Deployment failed: Command execution failed (exit code 1): docker exec s178e36ury761wvph344eomr bash -c 'bash /artifacts/build.sh'
+2026-Jul-13 09:23:47.630861 Error: #0 building with "default" instance using docker driver
+2026-Jul-13 09:23:47.630861 
+2026-Jul-13 09:23:47.630861 #1 [internal] load build definition from Dockerfile
+2026-Jul-13 09:23:47.630861 #1 transferring dockerfile:
+2026-Jul-13 09:23:47.630861 #1 transferring dockerfile: 1.39kB 0.0s done
+2026-Jul-13 09:23:47.630861 #1 DONE 1.3s
+2026-Jul-13 09:23:47.630861 
+2026-Jul-13 09:23:47.630861 #2 [internal] load metadata for docker.io/library/node:20-alpine
+2026-Jul-13 09:23:47.630861 #2 DONE 1.8s
+2026-Jul-13 09:23:47.630861 
+2026-Jul-13 09:23:47.630861 #3 [internal] load .dockerignore
+2026-Jul-13 09:23:47.630861 #3 transferring context:
+2026-Jul-13 09:23:47.630861 #3 transferring context: 151B done
+2026-Jul-13 09:23:47.630861 #3 DONE 0.7s
+2026-Jul-13 09:23:47.630861 
+2026-Jul-13 09:23:47.630861 #4 [internal] load build context
+2026-Jul-13 09:23:47.630861 #4 ...
+2026-Jul-13 09:23:47.630861 
+2026-Jul-13 09:23:47.630861 #5 [build 1/6] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+2026-Jul-13 09:23:47.630861 #5 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.6s done
+2026-Jul-13 09:23:47.630861 #5 DONE 0.7s
+2026-Jul-13 09:23:47.630861 
+2026-Jul-13 09:23:47.630861 #4 [internal] load build context
+2026-Jul-13 09:23:47.630861 #4 transferring context: 2.11MB 0.4s done
+2026-Jul-13 09:23:47.630861 #4 DONE 1.2s
+2026-Jul-13 09:23:47.630861 
+2026-Jul-13 09:23:47.630861 #6 [build 2/6] WORKDIR /app
+2026-Jul-13 09:23:47.630861 #6 CACHED
+2026-Jul-13 09:23:47.630861 
+2026-Jul-13 09:23:47.630861 #7 [build 3/6] COPY package.json package-lock.json .npmrc ./
+2026-Jul-13 09:23:47.630861 #7 CACHED
+2026-Jul-13 09:23:47.630861 
+2026-Jul-13 09:23:47.630861 #8 [build 4/6] RUN npm ci
+2026-Jul-13 09:23:47.630861 #8 ...
+2026-Jul-13 09:23:47.630861 
+2026-Jul-13 09:23:47.630861 #9 [stage-1 4/6] RUN npm ci --omit=dev
+2026-Jul-13 09:23:47.630861 #9 541.4 npm notice
+2026-Jul-13 09:23:47.630861 #9 541.4 npm notice New major version of npm available! 10.8.2 -> 12.0.1
+2026-Jul-13 09:23:47.630861 #9 541.4 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.1
+2026-Jul-13 09:<REDACTED>@12.0.1
+2026-Jul-13 09:23:47.630861 #9 541.4 npm notice
+2026-Jul-13 09:23:47.630861 #9 541.4 npm error Exit handler never called!
+2026-Jul-13 09:23:47.630861 #9 541.4 npm error This is an error with npm itself. Please report this error at:
+2026-Jul-13 09:23:47.630861 #9 541.4 npm error   <https://github.com/npm/cli/issues>
+2026-Jul-13 09:<REDACTED>@12.0.1
+2026-Jul-13 09:23:47.630861 #8 541.6 npm notice
+2026-Jul-13 09:23:47.630861 #8 541.6 npm error Exit handler never called!
+2026-Jul-13 09:23:47.630861 #8 541.6 npm error This is an error with npm itself. Please report this error at:
+2026-Jul-13 09:23:47.630861 #8 541.6 npm error   <https://github.com/npm/cli/issues>
+2026-Jul-13 09:<REDACTED>@1.0.0 build
+2026-Jul-13 09:23:47.630861 #11 1.247 > vite build
+2026-Jul-13 09:23:47.630861 #11 1.247
+2026-Jul-13 09:23:47.630861 #11 1.274 sh: vite: not found
+2026-Jul-13 09:23:47.630861 #11 ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 127
+2026-Jul-13 09:23:47.630861 ------
+2026-Jul-13 09:23:47.630861 > [build 6/6] RUN npm run build:
+2026-Jul-13 09:23:47.630861 1.247
+2026-Jul-13 09:23:47.630861 1.247 > tomat-web@1.0.0 build
+2026-Jul-13 09:23:47.630861 1.247 > vite build
+2026-Jul-13 09:23:47.630861 1.247
+2026-Jul-13 09:23:47.630861 1.274 sh: vite: not found
+2026-Jul-13 09:23:47.630861 ------
+2026-Jul-13 09:23:47.630861 
+2026-Jul-13 09:23:47.630861 2 warnings found (use docker --debug to expand):
+2026-Jul-13 09:23:47.630861 - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "SESSION_SECRET") (line 6)
+2026-Jul-13 09:23:47.630861 - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "SESSION_SECRET") (line 25)
+2026-Jul-13 09:23:47.630861 Dockerfile:18
+2026-Jul-13 09:23:47.630861 --------------------
+2026-Jul-13 09:23:47.630861 16 |
+2026-Jul-13 09:23:47.630861 17 |     COPY . .
+2026-Jul-13 09:23:47.630861 18 | >>> RUN npm run build
+2026-Jul-13 09:23:47.630861 19 |
+2026-Jul-13 09:23:47.630861 20 |     FROM node:20-alpine
+2026-Jul-13 09:23:47.630861 --------------------
+2026-Jul-13 09:23:47.630861 ERROR: failed to build: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 127
+2026-Jul-13 09:23:47.630861 exit status 1
+2026-Jul-13 09:23:47.682633 [DEBUG] Error type: App\Exceptions\DeploymentException
+2026-Jul-13 09:23:47.722994 [DEBUG] Error code: 0
+2026-Jul-13 09:23:47.764537 [DEBUG] Location: /var/www/html/app/Traits/ExecuteRemoteCommand.php:242
+2026-Jul-13 09:23:47.816275 [DEBUG] Stack trace (first 5 lines):
+2026-Jul-13 09:23:47.877228 [DEBUG] #0 /var/www/html/app/Traits/ExecuteRemoteCommand.php(106): App\Jobs\ApplicationDeploymentJob->executeCommandWithProcess()
+2026-Jul-13 09:23:47.940404 [DEBUG] #1 /var/www/html/vendor/laravel/framework/src/Illuminate/Collections/Traits/EnumeratesValues.php(275): App\Jobs\ApplicationDeploymentJob->{closure:App\Traits\ExecuteRemoteCommand::execute_remote_command():72}()
+2026-Jul-13 09:23:47.967149 [DEBUG] #2 /var/www/html/app/Traits/ExecuteRemoteCommand.php(72): Illuminate\Support\Collection->each()
+2026-Jul-13 09:23:48.002599 [DEBUG] #3 /var/www/html/app/Jobs/ApplicationDeploymentJob.php(3821): App\Jobs\ApplicationDeploymentJob->execute_remote_command()
+2026-Jul-13 09:23:48.053390 [DEBUG] #4 /var/www/html/app/Jobs/ApplicationDeploymentJob.php(912): App\Jobs\ApplicationDeploymentJob->build_image()
+2026-Jul-13 09:23:48.101198 ========================================
+2026-Jul-13 09:23:48.152602 Deployment failed. Removing the new version of your application.
+2026-Jul-13 09:23:49.508216 Gracefully shutting down build container: s178e36ury761wvph344eomr
+2026-Jul-13 09:23:49.769510 [DEBUG] [CMD]: docker stop --time=30 s178e36ury761wvph344eomr
+2026-Jul-13 09:23:49.769510 [DEBUG] Flag --time has been deprecated, use --timeout instead
+2026-Jul-13 09:23:54.831938 [DEBUG] s178e36ury761wvph344eomr
