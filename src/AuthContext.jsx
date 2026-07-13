@@ -33,12 +33,6 @@ export function AuthProvider({ children }) {
     return data.user
   }, [])
 
-  const register = useCallback(async (payload) => {
-    const data = await apiCall('/register', { method: 'POST', body: payload })
-    setUser(data.user)
-    return data.user
-  }, [])
-
   const updateProfile = useCallback(async ({ photoUrl, bio }) => {
     const data = await apiCall('/profile', { method: 'PUT', body: { photoUrl, bio } })
     setUser(data.user)
@@ -51,7 +45,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, checking, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, checking, login, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   )

@@ -2,16 +2,10 @@ import React, { useState } from 'react'
 import { useAuth } from '../AuthContext'
 import logo from '../assets/logo.png'
 
-const KELAS_OPTIONS = [
-  'VII Ibnu Batutah',
-  'VIII Ibnu Sina', 'IX Al Khawarizmi',
-]
-
 export default function LoginScreen() {
-  const { login, register } = useAuth()
+  const { login } = useAuth()
   const [role, setRole] = useState('siswa')
-  const [mode, setMode] = useState('masuk') // masuk | daftar (daftar hanya untuk siswa)
-  const [form, setForm] = useState({ username: '', password: '', name: '', kelas: '', email: '', whatsapp: '' })
+  const [form, setForm] = useState({ username: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -20,8 +14,6 @@ export default function LoginScreen() {
   const selectRole = (r) => {
     setRole(r)
     setError('')
-    // Guru tidak punya fitur daftar akun — akun guru dibuat lewat aplikasi administrasi.
-    if (r === 'guru') setMode('masuk')
   }
 
   const handleSubmit = async (e) => {
@@ -29,15 +21,7 @@ export default function LoginScreen() {
     setError('')
     setLoading(true)
     try {
-      if (mode === 'masuk') {
-        await login({ role, username: form.username, password: form.password })
-      } else {
-        await register({
-          role, username: form.username, name: form.name, password: form.password,
-          kelas: form.kelas,
-          email: form.email, whatsapp: form.whatsapp,
-        })
-      }
+      await login({ role, username: form.username, password: form.password })
     } catch (err) {
       setError(err.message || 'Terjadi kesalahan.')
     } finally {
@@ -84,59 +68,19 @@ export default function LoginScreen() {
             ))}
           </div>
 
-          {/* Mode tabs — akun guru hanya bisa dibuat lewat aplikasi administrasi guru */}
-          {role === 'siswa' && (
-            <div style={{ display: 'flex', gap: 20, marginBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              {[{ id: 'masuk', label: 'Masuk' }, { id: 'daftar', label: 'Daftar Baru' }].map(m => (
-                <button key={m.id} onClick={() => { setMode(m.id); setError('') }} style={{
-                  background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  padding: '0 0 10px', fontSize: 14, fontWeight: 700,
-                  color: mode === m.id ? '#34D399' : '#6B7280',
-                  borderBottom: mode === m.id ? '2px solid #34D399' : '2px solid transparent',
-                }}>{m.label}</button>
-              ))}
-            </div>
-          )}
-
-          {role === 'guru' && (
-            <div style={{ marginBottom: 20, fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>
-              Akun guru dibuat oleh admin sekolah melalui aplikasi administrasi guru. Masuk menggunakan akun yang sudah terdaftar.
-            </div>
-          )}
+          {/* Pendaftaran akun (siswa maupun guru) hanya dilakukan lewat aplikasi BLP,
+              agar tidak terjadi akun ganda antara kedua aplikasi. */}
+          <div style={{ marginBottom: 20, fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>
+            {role === 'guru'
+              ? 'Akun guru dibuat oleh admin sekolah melalui aplikasi BLP. Masuk menggunakan akun yang sudah terdaftar.'
+              : 'Akun siswa didaftarkan melalui aplikasi BLP. Masuk menggunakan akun yang sudah terdaftar.'}
+          </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {mode === 'daftar' && role === 'siswa' && (
-              <Field label="Nama Lengkap">
-                <input required value={form.name} onChange={update('name')} placeholder="Nama lengkap"
-                  style={inputStyle} />
-              </Field>
-            )}
-
             <Field label="Username">
               <input required value={form.username} onChange={update('username')} placeholder="username" autoCapitalize="none"
                 style={inputStyle} />
             </Field>
-
-            {mode === 'daftar' && role === 'siswa' && (
-              <Field label="Kelas">
-                <select required value={form.kelas} onChange={update('kelas')} style={inputStyle}>
-                  <option value="">Pilih kelas</option>
-                  {KELAS_OPTIONS.map(k => <option key={k} value={k}>{k}</option>)}
-                </select>
-              </Field>
-            )}
-
-            {mode === 'daftar' && role === 'siswa' && (
-              <Field label="Email">
-                <input required type="email" value={form.email} onChange={update('email')} placeholder="nama@email.com" style={inputStyle} />
-              </Field>
-            )}
-
-            {mode === 'daftar' && role === 'siswa' && (
-              <Field label="WhatsApp">
-                <input required value={form.whatsapp} onChange={update('whatsapp')} placeholder="08xxxxxxxxxx" style={inputStyle} />
-              </Field>
-            )}
 
             <Field label="Password">
               <input required type="password" value={form.password} onChange={update('password')} placeholder="••••••••"
@@ -155,7 +99,7 @@ export default function LoginScreen() {
               fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
               fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
-              {loading ? 'Memproses…' : mode === 'masuk' ? 'Masuk →' : 'Daftar →'}
+              {loading ? 'Memproses…' : 'Masuk →'}
             </button>
           </form>
 

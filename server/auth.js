@@ -3,11 +3,6 @@ import { pool } from './db.js'
 
 const router = express.Router()
 
-const KELAS_OPTIONS = [
-  'VII Ibnu Batutah',
-  'VIII Ibnu Sina', 'IX Al Khawarizmi',
-]
-
 function sanitizeUser(row, role) {
   return {
     id: row.id,
@@ -50,48 +45,10 @@ router.post('/login', async (req, res) => {
   }
 })
 
-// POST /api/auth/register  { role, username, name, password, kelas, email?, whatsapp? }
-router.post('/register', async (req, res) => {
-  try {
-    const { role, username, name, password, kelas, email, whatsapp } = req.body || {}
-    if (!role || !username || !name || !password) {
-      return res.status(400).json({ error: 'Username, nama, dan password wajib diisi.' })
-    }
-    if (role !== 'siswa') {
-      return res.status(403).json({ error: 'Pendaftaran akun guru tidak tersedia di aplikasi ini. Hubungi admin sekolah untuk membuat akun guru.' })
-    }
-    if (!kelas) {
-      return res.status(400).json({ error: 'Kelas wajib diisi untuk siswa.' })
-    }
-    if (!KELAS_OPTIONS.includes(kelas)) {
-      return res.status(400).json({ error: 'Kelas tidak valid.' })
-    }
-    if (!email) {
-      return res.status(400).json({ error: 'Email wajib diisi untuk siswa.' })
-    }
-    if (!whatsapp) {
-      return res.status(400).json({ error: 'WhatsApp wajib diisi untuk siswa.' })
-    }
-    const table = 'students'
-    const id = username.trim().toLowerCase()
-
-    const existing = await pool.query(`select id from ${table} where lower(username) = lower($1) or lower(id) = lower($1)`, [id])
-    if (existing.rows.length > 0) {
-      return res.status(409).json({ error: 'Username sudah terdaftar. Gunakan username lain.' })
-    }
-
-    const { rows } = await pool.query(
-      `insert into students (id, username, name, password, kelas, email, whatsapp, created_at) values ($1,$1,$2,$3,$4,$5,$6, now()) returning *`,
-      [id, name, password, kelas, email || null, whatsapp || null]
-    )
-    const user = rows[0]
-
-    req.session.user = { id: user.id, role }
-    res.json({ user: sanitizeUser(user, role) })
-  } catch (err) {
-    console.error('register error', err)
-    res.status(500).json({ error: 'Terjadi kesalahan server saat mendaftar.' })
-  }
+// Pendaftaran akun (siswa maupun guru) dilakukan lewat aplikasi BLP, bukan di sini,
+// agar tidak terjadi akun ganda antara TOMAT dan BLP.
+router.post('/register', (req, res) => {
+  res.status(410).json({ error: 'Pendaftaran akun tidak tersedia di aplikasi ini. Daftar melalui aplikasi BLP.' })
 })
 
 // GET /api/auth/me
