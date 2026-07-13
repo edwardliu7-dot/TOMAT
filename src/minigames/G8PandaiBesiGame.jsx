@@ -1,34 +1,48 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, randomSliderRange, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, randInt, useSurvival } from '../difficulty'
 
-function genQ() {
-  const a = 2 + Math.floor(Math.random() * 4)
-  const b = -3 + Math.floor(Math.random() * 7)
-  const x = 1 + Math.floor(Math.random() * 6)
+function genQ(difficulty = 'medium') {
+  const { aRange, bRange, xRange } = byDifficulty(difficulty, {
+    easy: { aRange: [1, 3], bRange: [-2, 2], xRange: [1, 4] },
+    medium: { aRange: [2, 5], bRange: [-3, 3], xRange: [1, 6] },
+    hard: { aRange: [3, 8], bRange: [-6, 6], xRange: [2, 9] },
+  })
+  const a = randInt(...aRange)
+  const b = randInt(...bRange)
+  const x = randInt(...xRange)
   const answer = a * x + b
-  return { a, b, x, answer }
+  const { min, max } = randomSliderRange([b, answer], { step: 1, minPad: 5, maxPad: 15 })
+  return { a, b, x, answer, min, max }
 }
 
-export default function G8PandaiBesiGame({ goBack }) {
+export default function G8PandaiBesiGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [val, setVal] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setVal(0); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setVal(0); setFeedback(null) }, [effectiveDifficulty])
 
   const confirm = () => {
     if (feedback !== null) return
     const correct = val === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #2b1400 0%, #1a0d00 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🔨 Pabrik Senjata Pandai Besi" onBack={goBack} accentColor="#FDBA74" />
+      <TopBar title="🔨 Pabrik Senjata Pandai Besi" onBack={goBack} accentColor="#FDBA74" rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(253,186,116,0.3)">
           <div style={{ textAlign: 'center', fontSize: 20, fontWeight: 900, color: '#fff', fontFamily: 'monospace', marginBottom: 10 }}>
@@ -48,8 +62,8 @@ export default function G8PandaiBesiGame({ goBack }) {
           <Card>
             <SliderInput 
               value={val} 
-              min={-10} 
-              max={30} 
+              min={q.min} 
+              max={q.max} 
               onChange={setVal} 
               accentColor="#FDBA74"
               markEvery={10}

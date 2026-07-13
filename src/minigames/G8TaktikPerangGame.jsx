@@ -1,34 +1,47 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, randInt, useSurvival } from '../difficulty'
 
-function genQ() {
-  const x = 2 + Math.floor(Math.random() * 6)
-  const y = 2 + Math.floor(Math.random() * 6)
+function genQ(difficulty = 'medium') {
+  const { xyRange, sliderMax } = byDifficulty(difficulty, {
+    easy: { xyRange: [2, 4], sliderMax: 10 },
+    medium: { xyRange: [2, 7], sliderMax: 15 },
+    hard: { xyRange: [5, 12], sliderMax: 25 },
+  })
+  const x = randInt(...xyRange)
+  const y = randInt(...xyRange)
   const eq1 = x + y
   const eq2 = x - y
-  return { eq1, eq2, answer: x }
+  return { eq1, eq2, answer: x, sliderMax }
 }
 
-export default function G8TaktikPerangGame({ goBack }) {
+export default function G8TaktikPerangGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [val, setVal] = useState(5)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setVal(5); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setVal(5); setFeedback(null) }, [effectiveDifficulty])
 
   const confirm = () => {
     if (feedback !== null) return
     const correct = val === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #2b1d00 0%, #1a1200 100%)' }}>
       <PlayerHeader />
-      <TopBar title="♟️ Ahli Taktik Perang" onBack={goBack} accentColor="#FDE68A" />
+      <TopBar title="♟️ Ahli Taktik Perang" onBack={goBack} accentColor="#FDE68A" rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(253,230,138,0.3)">
           <div style={{ fontSize: 14, color: '#fff', textAlign: 'center', lineHeight: 1.7, fontFamily: 'monospace' }}>
@@ -45,7 +58,7 @@ export default function G8TaktikPerangGame({ goBack }) {
             <SliderInput 
               value={val} 
               min={0} 
-              max={15} 
+              max={q.sliderMax} 
               onChange={setVal} 
               accentColor="#FDE68A"
               markEvery={1}

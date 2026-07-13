@@ -1,34 +1,52 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, randomSliderRange, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, randInt, useSurvival } from '../difficulty'
 
-function genQ() {
-  const a = 2 + Math.floor(Math.random() * 5)
-  const b = 2 + Math.floor(Math.random() * 4)
-  const n = 15
+function genQ(difficulty = 'medium') {
+  const { aRange, bRange, n } = byDifficulty(difficulty, {
+    easy: { aRange: [2, 4], bRange: [2, 3], n: 10 },
+    medium: { aRange: [2, 6], bRange: [2, 5], n: 12 },
+    hard: { aRange: [3, 8], bRange: [4, 7], n: 15 },
+  })
+  const a = randInt(...aRange)
+  const b = randInt(...bRange)
   const answer = a + (n - 1) * b
-  return { a, b, n, answer }
+  const { min, max } = randomSliderRange([a, answer], { step: 1, minPad: 5, maxPad: 15 })
+  return { a, b, n, answer, min, max }
 }
 
-export default function G8RamalanGame({ goBack }) {
+export default function G8RamalanGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [val, setVal] = useState(30)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setVal(30); setFeedback(null) }, [])
+  const newQ = useCallback(() => {
+    const nq = genQ(effectiveDifficulty)
+    setQ(nq)
+    setVal(nq.a)
+    setFeedback(null)
+  }, [effectiveDifficulty])
 
   const confirm = () => {
     if (feedback !== null) return
     const correct = val === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #2d0a00 0%, #1a0a00 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🔮 Ramalan Penyihir Agung" onBack={goBack} accentColor="#FCA5A5" />
+      <TopBar title="🔮 Ramalan Penyihir Agung" onBack={goBack} accentColor="#FCA5A5" rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(252,165,165,0.3)">
           <div style={{ fontSize: 13, color: '#fff', textAlign: 'center', lineHeight: 1.7 }}>
@@ -43,8 +61,8 @@ export default function G8RamalanGame({ goBack }) {
           <Card>
             <SliderInput 
               value={val} 
-              min={10} 
-              max={100} 
+              min={q.min} 
+              max={q.max} 
               onChange={setVal} 
               accentColor="#FCA5A5"
               markEvery={10}

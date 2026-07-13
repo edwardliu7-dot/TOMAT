@@ -1,35 +1,48 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, randInt, useSurvival } from '../difficulty'
 
-function genQ() {
-  const a = 2 + Math.floor(Math.random() * 4)
-  const b = 2 + Math.floor(Math.random() * 3)
-  const x = 1 + Math.floor(Math.random() * 4)
-  const y = 1 + Math.floor(Math.random() * 5)
+function genQ(difficulty = 'medium') {
+  const { aRange, bRange, xRange, yRange, sliderMax } = byDifficulty(difficulty, {
+    easy: { aRange: [1, 3], bRange: [1, 2], xRange: [1, 3], yRange: [1, 3], sliderMax: 8 },
+    medium: { aRange: [2, 5], bRange: [2, 4], xRange: [1, 4], yRange: [1, 5], sliderMax: 10 },
+    hard: { aRange: [4, 8], bRange: [3, 6], xRange: [2, 6], yRange: [2, 8], sliderMax: 15 },
+  })
+  const a = randInt(...aRange)
+  const b = randInt(...bRange)
+  const x = randInt(...xRange)
+  const y = randInt(...yRange)
   const total = a * x + b * y
-  return { a, b, x, total, answer: y }
+  return { a, b, x, total, answer: y, sliderMax }
 }
 
-export default function G8PedagangMisteriusGame({ goBack }) {
+export default function G8PedagangMisteriusGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [val, setVal] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ()); setVal(0); setFeedback(null) }, [])
+  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setVal(0); setFeedback(null) }, [effectiveDifficulty])
 
   const confirm = () => {
     if (feedback !== null) return
     const correct = val === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #2b1d00 0%, #1a1200 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🧪 Pedagang Misterius" onBack={goBack} accentColor="#FDE68A" />
+      <TopBar title="🧪 Pedagang Misterius" onBack={goBack} accentColor="#FDE68A" rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(253,230,138,0.3)">
           <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 900, color: '#fff', fontFamily: 'monospace', marginBottom: 10 }}>
@@ -45,7 +58,7 @@ export default function G8PedagangMisteriusGame({ goBack }) {
             <SliderInput 
               value={val} 
               min={0} 
-              max={10} 
+              max={q.sliderMax} 
               onChange={setVal} 
               accentColor="#FDE68A"
             />

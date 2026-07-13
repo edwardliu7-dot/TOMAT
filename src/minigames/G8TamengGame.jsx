@@ -1,27 +1,31 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, randomSliderRange } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, randomSliderRange, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
+import { byDifficulty, randInt, useSurvival } from '../difficulty'
 
-function genQ() {
-  const start = 1 + Math.floor(Math.random() * 3)
+function genQ(difficulty = 'medium') {
+  const startRange = byDifficulty(difficulty, { easy: [1, 2], medium: [1, 4], hard: [3, 6] })
+  const start = randInt(...startRange)
   const terms = [0, 1, 2, 3].map(i => (start + i) * (start + i))
   const answer = (start + 4) * (start + 4)
   const { min, max } = randomSliderRange([terms[0], answer], { step: 1, minPad: 5, maxPad: 20 })
   return { start, terms, answer, min, max }
 }
 
-export default function G8TamengGame({ goBack }) {
+export default function G8TamengGame({ goBack, difficulty = 'medium', survival = false }) {
   const { addCoins, addExp } = usePlayer()
-  const [q, setQ] = useState(genQ)
+  const survivalState = useSurvival(survival)
+  const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
+  const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [val, setVal] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
   const newQ = useCallback(() => { 
-    const nq = genQ()
+    const nq = genQ(effectiveDifficulty)
     setQ(nq)
     setVal(nq.terms[3])
     setFeedback(null) 
-  }, [])
+  }, [effectiveDifficulty])
 
   React.useEffect(() => {
     setVal(q.terms[3])
@@ -31,13 +35,18 @@ export default function G8TamengGame({ goBack }) {
     if (feedback !== null) return
     const correct = val === q.answer
     setFeedback(correct)
+    survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+  }
+
+  if (survival && survivalState.gameOver) {
+    return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #2d0a00 0%, #1a0a00 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🛡️ Formasi Pasukan Tameng" onBack={goBack} accentColor="#FCA5A5" />
+      <TopBar title="🛡️ Formasi Pasukan Tameng" onBack={goBack} accentColor="#FCA5A5" rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(252,165,165,0.3)">
           <div style={{ fontSize: 13, color: '#fff', textAlign: 'center', marginBottom: 14 }}>
