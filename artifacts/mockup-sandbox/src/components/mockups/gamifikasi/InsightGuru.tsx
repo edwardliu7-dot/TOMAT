@@ -48,7 +48,7 @@ export function InsightGuru() {
               Guru Dashboard
             </div>
             <h1 className="text-2xl font-black tracking-tight text-white leading-tight">
-              VII Ibnu Batutah
+              VII Ibnu Battutah
             </h1>
             <p className="text-sm text-indigo-200 mt-1 opacity-80 font-medium">Insight Keterlibatan Siswa</p>
           </div>
