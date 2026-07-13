@@ -37,8 +37,6 @@ async function createServer() {
     },
   }))
 
-  await ensureSchema()
-
   app.use('/api/auth', authRouter)
   app.use('/api/guru', guruRouter)
   app.use('/api/siswa', siswaRouter)
@@ -59,8 +57,16 @@ async function createServer() {
     })
   }
 
+  // Bind the port immediately so container healthchecks succeed right away,
+  // even if the database connection is slow. Schema setup runs in the
+  // background afterward; requests that hit the DB before it finishes will
+  // simply wait on the pool/queries as usual.
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`TOMAT server running on port ${PORT}`)
+  })
+
+  ensureSchema().catch((err) => {
+    console.error('Failed to ensure database schema:', err)
   })
 }
 
