@@ -4,3 +4,4 @@
 - [TOMAT guru/siswa role split](tomat-guru-siswa-roles.md) — grade-access hierarchy, tugas/bab-lock scoping rules, server-authoritative nilai scoring.
 - [TOMAT profile photo pipeline](tomat-profile-photo.md) — crop-then-compress-to-1MB flow using react-easy-crop; profile data is shared live with BLP Harian via the same Neon tables, no sync code needed.
 - [TOMAT slider answer-position bug](tomat-slider-predictable-range.md) — SliderInput ranges must use randomSliderRange(), never fixed padding around the answer, or students learn to guess by position.
+- [TOMAT post-merge setup script](tomat-post-merge-setup.md) — pnpm install only; schema syncs itself via ensureSchema() on server startup, no migration step needed.
