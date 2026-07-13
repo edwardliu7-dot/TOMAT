@@ -32,7 +32,13 @@ async function createServer() {
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
-      secure: isProd,
+      // 'auto' lets express-session decide per-request from req.secure
+      // (which respects X-Forwarded-Proto since trust proxy is enabled
+      // above). A hardcoded `isProd` here breaks login entirely whenever
+      // the app is reachable over plain HTTP (e.g. no TLS/domain configured
+      // yet on the reverse proxy): browsers silently drop secure cookies
+      // sent over HTTP, so every request after login looks unauthenticated.
+      secure: 'auto',
       maxAge: 1000 * 60 * 60 * 24 * 7,
     },
   }))
