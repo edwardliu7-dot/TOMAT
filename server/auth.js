@@ -1,4 +1,5 @@
 import express from 'express'
+import bcrypt from 'bcryptjs'
 import { pool } from './db.js'
 
 const router = express.Router()
@@ -33,6 +34,27 @@ function sanitizeUser(row, role) {
 const MAX_PHOTO_BYTES = 800 * 1024 // ~800KB base64 data URL
 const MAX_BIO_LENGTH = 300
 
+// Regex to detect bcrypt hash format (starts with $2a$, $2b$, or $2y$)
+const BCRYPT_HASH_RE = /^\$2[aby]\$/
+
+// Helper: Verify password (supports both bcrypt hash and plaintext for legacy accounts)
+async function verifyPassword(inputPassword, storedPassword) {
+  if (!storedPassword) return false
+  
+  // If stored password looks like a bcrypt hash, use bcrypt verification
+  if (BCRYPT_HASH_RE.test(storedPassword)) {
+    try {
+      return await bcrypt.compare(inputPassword, storedPassword)
+    } catch (err) {
+      console.error('bcrypt compare error:', err)
+      return false
+    }
+  }
+  
+  // Fallback: plaintext comparison for legacy accounts
+  return inputPassword === storedPassword
+}
+
 // POST /api/auth/login  { role: 'siswa' | 'guru', username, password }
 router.post('/login', async (req, res) => {
   try {
@@ -49,9 +71,16 @@ router.post('/login', async (req, res) => {
       [username]
     )
     const user = rows[0]
-    if (!user || user.password !== password) {
+    if (!user) {
       return res.status(401).json({ error: 'Username atau password salah.' })
     }
+    
+    // Verify password: supports both bcrypt hash (from GuruEOB5) and plaintext (legacy)
+    const passwordMatch = await verifyPassword(password, user.password)
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Username atau password salah.' })
+    }
+    
     req.session.user = { id: user.id, role }
     res.json({ user: sanitizeUser(user, role) })
   } catch (err) {
