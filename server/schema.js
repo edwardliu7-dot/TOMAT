@@ -37,7 +37,7 @@ export async function ensureSchema() {
   // immediately on a fresh database. Change this password after first login.
   await pool.query(`
     insert into gurus (id, username, name, password, kelas_diampu)
-    values ('guru1', 'guru1', 'Guru TOMAT', 'tomat2026', array['VII Ibnu Battutah','VIII Ibnu Sina','IX Al Khawarizmi'])
+    values ('guru1', 'guru1', 'Guru TOMAT', 'tomat2026', array['VII Ibnu Batuttah','VIII Ibnu Sina','IX Al Khawarizmi'])
     on conflict (id) do nothing;
   `)
   await pool.query(`

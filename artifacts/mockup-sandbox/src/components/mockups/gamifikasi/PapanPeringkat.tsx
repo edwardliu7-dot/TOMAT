@@ -42,7 +42,7 @@ export function PapanPeringkat() {
           </button>
           <div className="text-center">
             <h1 className="text-xl font-bold tracking-wider">PAPAN PERINGKAT</h1>
-            <p className="text-indigo-200 text-sm font-medium">VII Ibnu Battutah</p>
+            <p className="text-indigo-200 text-sm font-medium">VII Ibnu Batuttah</p>
           </div>
           <div className="w-10 h-10"></div> {/* Spacer for centering */}
         </div>
