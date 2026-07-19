@@ -6,6 +6,7 @@ const KELAS_PREFIX_TO_GRADE = { VII: 7, VIII: 8, IX: 9 }
 function kelasToGrade(kelas) {
   return KELAS_PREFIX_TO_GRADE[kelas?.trim().split(' ')[0]] || null
 }
+import GuruHafalanScreen from './GuruHafalanScreen'
 import { TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import ProfileScreen from './ProfileScreen'
@@ -23,10 +24,11 @@ async function apiCall(path, options = {}) {
 }
 
 const TABS = [
-  { id: 'tugas', label: '📋 Tugas', },
-  { id: 'nilai', label: '📊 Rekap Nilai' },
-  { id: 'siswa', label: '👥 Siswa' },
-  { id: 'kunci', label: '🔒 Kunci Bab' },
+  { id: 'tugas',   label: '📋 Tugas' },
+  { id: 'hafalan', label: '🧮 Hafalan' },
+  { id: 'nilai',   label: '📊 Rekap Nilai' },
+  { id: 'siswa',   label: '👥 Siswa' },
+  { id: 'kunci',   label: '🔒 Kunci Bab' },
   { id: 'insight', label: '🎮 Insight' },
 ]
 
@@ -413,10 +415,11 @@ export default function GuruDashboardScreen({ onPlayGames }) {
       </div>
 
       <div style={{ padding: 16 }}>
-        {tab === 'tugas' && <TugasTab kelasDiampu={kelasDiampu} />}
-        {tab === 'nilai' && <NilaiTab />}
-        {tab === 'siswa' && <SiswaTab />}
-        {tab === 'kunci' && <KunciTab grades={grades} />}
+        {tab === 'tugas'   && <TugasTab kelasDiampu={kelasDiampu} />}
+        {tab === 'hafalan' && <GuruHafalanScreen />}
+        {tab === 'nilai'   && <NilaiTab />}
+        {tab === 'siswa'   && <SiswaTab />}
+        {tab === 'kunci'   && <KunciTab grades={grades} />}
         {tab === 'insight' && <InsightTab />}
       </div>
     </div>

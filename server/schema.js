@@ -175,6 +175,19 @@ export async function ensureSchema() {
     )
   }
 
+  // Hafalan setoran table — each row is one assessment by a guru for a student
+  await pool.query(`
+    create table if not exists hafalan_setoran (
+      id serial primary key,
+      student_id text not null references students(id) on delete cascade,
+      guru_id    text not null references gurus(id),
+      jenis      text not null check (jenis in ('perkalian','pembagian')),
+      angka      int  not null check (angka between 1 and 10),
+      status     text not null check (status in ('lulus','diulang')),
+      dinilai_at timestamptz not null default now()
+    );
+  `)
+
   // Seed badge definitions (idempotent — award logic in gamify.js checks these by id).
   const badgeDefs = [
     ['pemula_tangguh', 'Pemula Tangguh', 'Mencapai Level 5', '⚡', '#EAB308', 1],
@@ -187,6 +200,27 @@ export async function ensureSchema() {
     ['kolektor_emas', 'Kolektor Emas', 'Kumpulkan total 2.000 koin', '💰', '#EAB308', 8],
     ['juara_kelas', 'Juara Kelas', 'Peringkat #1 EXP di kelasmu', '🥇', '#FDE047', 9],
     ['penjelajah_lengkap', 'Penjelajah Lengkap', 'Selesaikan tugas Harian, Formatif & Sumatif', '🗺️', '#67E8F9', 10],
+    // Hafalan badges — awarded by guru after setoran
+    ['hafalan_kali_1',  'Hafal Perkalian 1',  'Lulus setoran hafalan perkalian 1',  '✖️', '#FBBF24', 101],
+    ['hafalan_kali_2',  'Hafal Perkalian 2',  'Lulus setoran hafalan perkalian 2',  '✖️', '#FBBF24', 102],
+    ['hafalan_kali_3',  'Hafal Perkalian 3',  'Lulus setoran hafalan perkalian 3',  '✖️', '#FBBF24', 103],
+    ['hafalan_kali_4',  'Hafal Perkalian 4',  'Lulus setoran hafalan perkalian 4',  '✖️', '#FBBF24', 104],
+    ['hafalan_kali_5',  'Hafal Perkalian 5',  'Lulus setoran hafalan perkalian 5',  '✖️', '#FBBF24', 105],
+    ['hafalan_kali_6',  'Hafal Perkalian 6',  'Lulus setoran hafalan perkalian 6',  '✖️', '#FBBF24', 106],
+    ['hafalan_kali_7',  'Hafal Perkalian 7',  'Lulus setoran hafalan perkalian 7',  '✖️', '#FBBF24', 107],
+    ['hafalan_kali_8',  'Hafal Perkalian 8',  'Lulus setoran hafalan perkalian 8',  '✖️', '#FBBF24', 108],
+    ['hafalan_kali_9',  'Hafal Perkalian 9',  'Lulus setoran hafalan perkalian 9',  '✖️', '#FBBF24', 109],
+    ['hafalan_kali_10', 'Hafal Perkalian 10', 'Lulus setoran hafalan perkalian 10', '✖️', '#FBBF24', 110],
+    ['hafalan_bagi_1',  'Hafal Pembagian 1',  'Lulus setoran hafalan pembagian 1',  '➗', '#60A5FA', 111],
+    ['hafalan_bagi_2',  'Hafal Pembagian 2',  'Lulus setoran hafalan pembagian 2',  '➗', '#60A5FA', 112],
+    ['hafalan_bagi_3',  'Hafal Pembagian 3',  'Lulus setoran hafalan pembagian 3',  '➗', '#60A5FA', 113],
+    ['hafalan_bagi_4',  'Hafal Pembagian 4',  'Lulus setoran hafalan pembagian 4',  '➗', '#60A5FA', 114],
+    ['hafalan_bagi_5',  'Hafal Pembagian 5',  'Lulus setoran hafalan pembagian 5',  '➗', '#60A5FA', 115],
+    ['hafalan_bagi_6',  'Hafal Pembagian 6',  'Lulus setoran hafalan pembagian 6',  '➗', '#60A5FA', 116],
+    ['hafalan_bagi_7',  'Hafal Pembagian 7',  'Lulus setoran hafalan pembagian 7',  '➗', '#60A5FA', 117],
+    ['hafalan_bagi_8',  'Hafal Pembagian 8',  'Lulus setoran hafalan pembagian 8',  '➗', '#60A5FA', 118],
+    ['hafalan_bagi_9',  'Hafal Pembagian 9',  'Lulus setoran hafalan pembagian 9',  '➗', '#60A5FA', 119],
+    ['hafalan_bagi_10', 'Hafal Pembagian 10', 'Lulus setoran hafalan pembagian 10', '➗', '#60A5FA', 120],
   ]
   for (const [id, nama, deskripsi, icon, color, sortOrder] of badgeDefs) {
     await pool.query(

@@ -1,8 +1,15 @@
-import React, { useRef, useState, useCallback } from 'react'
+import React, { useRef, useState, useCallback, useEffect } from 'react'
 import Cropper from 'react-easy-crop'
 import { TopBar, Btn, Card } from '../components/shared'
 import { useAuth } from '../AuthContext'
 import { readFileAsDataUrl, getCroppedImage, compressDataUrlToLimit } from '../utils/imageUtils'
+
+async function apiGet(path) {
+  const res = await fetch(path, { credentials: 'include' })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan.')
+  return data
+}
 
 const MAX_BIO_LENGTH = 300
 const MAX_PHOTO_BYTES = 1024 * 1024 // 1 MB
@@ -214,7 +221,78 @@ export default function ProfileScreen({ goBack }) {
         )}
 
         <Btn onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan Profil'}</Btn>
+
+        <HafalanSection />
       </div>
     </div>
+  )
+}
+
+function HafalanBadge({ label, lulus }) {
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+      padding: '10px 6px', borderRadius: 12,
+      background: lulus ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.03)',
+      border: `1px solid ${lulus ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.06)'}`,
+    }}>
+      <div style={{ fontSize: 14 }}>{lulus ? '✅' : '🔒'}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: lulus ? '#FBBF24' : '#4B5563' }}>{label}</div>
+    </div>
+  )
+}
+
+function HafalanSection() {
+  const [hafalan, setHafalan] = useState(null)
+
+  useEffect(() => {
+    apiGet('/api/siswa/hafalan').then(setHafalan).catch(() => {})
+  }, [])
+
+  if (!hafalan) return null
+
+  const { perkalian = {}, pembagian = {}, totalLulus = 0 } = hafalan
+  const pct = Math.round((totalLulus / 20) * 100)
+
+  return (
+    <Card>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <div style={{ fontSize: 20 }}>🧮</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Hafalan Matematika</div>
+          <div style={{ fontSize: 11, color: '#94A3B8' }}>Diverifikasi langsung oleh Guru</div>
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#FBBF24' }}>{totalLulus}/20</div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.08)', marginBottom: 16, overflow: 'hidden' }}>
+        <div style={{ height: '100%', borderRadius: 99, background: 'linear-gradient(90deg,#FBBF24,#F59E0B)', width: `${pct}%`, transition: 'width 0.5s' }} />
+      </div>
+
+      {/* Perkalian */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#34D399', marginBottom: 6 }}>
+          ✖ Perkalian — {Object.values(perkalian).filter(s => s === 'lulus').length}/10 lulus
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 5 }}>
+          {[1,2,3,4,5,6,7,8,9,10].map(n => (
+            <HafalanBadge key={n} label={`×${n}`} lulus={perkalian[n] === 'lulus'} />
+          ))}
+        </div>
+      </div>
+
+      {/* Pembagian */}
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#60A5FA', marginBottom: 6 }}>
+          ➗ Pembagian — {Object.values(pembagian).filter(s => s === 'lulus').length}/10 lulus
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 5 }}>
+          {[1,2,3,4,5,6,7,8,9,10].map(n => (
+            <HafalanBadge key={n} label={`÷${n}`} lulus={pembagian[n] === 'lulus'} />
+          ))}
+        </div>
+      </div>
+    </Card>
   )
 }
