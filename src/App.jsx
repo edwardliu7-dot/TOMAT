@@ -44,57 +44,50 @@ import NakhodaGame from './minigames/ArsitekGame'
 import RelKeretaGame from './minigames/RelKeretaGame'
 import BrankasSandiGame from './minigames/HologramGame'
 
-// Grade 8: BAB I Pola Bilangan
-import G8TamengGame from './minigames/G8TamengGame'
-import G8BungaGame from './minigames/G8BungaGame'
-import G8JembatanBatuGame from './minigames/G8JembatanBatuGame'
-import G8RamalanGame from './minigames/G8RamalanGame'
-import G8DungeonGame from './minigames/G8DungeonGame'
+// Grade 8: BAB I Bilangan Berpangkat
+import G8SelRamuanGame from './minigames/G8SelRamuanGame'
+import G8RacunMiniaturGame from './minigames/G8RacunMiniaturGame'
+import G8KristalGame from './minigames/G8KristalGame'
+import G8FusiEnergiGame from './minigames/G8FusiEnergiGame'
+import G8MantraAkarGame from './minigames/G8MantraAkarGame'
+import G8GeologGame from './minigames/G8GeologGame'
 
-// Grade 8: BAB II Relasi dan Fungsi
-import G8RadarNagaGame from './minigames/G8RadarNagaGame'
-import G8MakcomblangGame from './minigames/G8MakcomblangGame'
-import G8GerbangSihirGame from './minigames/G8GerbangSihirGame'
-import G8PandaiBesiGame from './minigames/G8PandaiBesiGame'
-import G8MenaraGame from './minigames/G8MenaraGame'
-import G8DansaGame from './minigames/G8DansaGame'
+// Grade 8: BAB II Teorema Pythagoras
+import G8TrebuchetGame from './minigames/G8TrebuchetGame'
+import G8PerisaiGame from './minigames/G8PerisaiGame'
+import G8HartaKarunGame from './minigames/G8HartaKarunGame'
+import G8InspeksiSudutGame from './minigames/G8InspeksiSudutGame'
+import G8PetaRadarGame from './minigames/G8PetaRadarGame'
+import G8TaliGantungGame from './minigames/G8TaliGantungGame'
 
-// Grade 8: BAB III Persamaan Garis Lurus
-import G8PetaKerajaanGame from './minigames/G8PetaKerajaanGame'
-import G8BalistaGame from './minigames/G8BalistaGame'
-import G8BukitNagaGame from './minigames/G8BukitNagaGame'
-import G8TembokBentengGame from './minigames/G8TembokBentengGame'
-import G8LogistikGame from './minigames/G8LogistikGame'
-import G8PertahananBerlapisGame from './minigames/G8PertahananBerlapisGame'
+// Grade 8: BAB III Persamaan & Pertidaksamaan Linear Satu Variabel
+import G8GerbangLogikaGame from './minigames/G8GerbangLogikaGame'
+import G8KatrolGame from './minigames/G8KatrolGame'
+import G8GulunganGame from './minigames/G8GulunganGame'
+import G8KeretaKudaGame from './minigames/G8KeretaKudaGame'
 
-// Grade 8: BAB IV Sistem Persamaan Linear Dua Variabel
-import G8TimbanganGame from './minigames/G8TimbanganGame'
-import G8PedagangMisteriusGame from './minigames/G8PedagangMisteriusGame'
-import G8PenyelamatanGame from './minigames/G8PenyelamatanGame'
-import G8TaktikPerangGame from './minigames/G8TaktikPerangGame'
-import G8PasarBarterKsatriaGame from './minigames/G8PasarBarterKsatriaGame'
+// Grade 9: BAB I Sistem Persamaan Linear Dua Variabel
+import G9ManifestGame from './minigames/G9ManifestGame'
+import G9PlotRuteGame from './minigames/G9PlotRuteGame'
+import G9InterseksiGame from './minigames/G9InterseksiGame'
+import G9KonsolGame from './minigames/G9KonsolGame'
+import G9PasarGalaksiGame from './minigames/G9PasarGalaksiGame'
 
-// Grade 9: BAB I Operasi Aljabar
-import G9KargoGame from './minigames/G9KargoGame'
-import G9ReaktorGame from './minigames/G9ReaktorGame'
-import G9LambungKapalGame from './minigames/G9LambungKapalGame'
-import G9SinyalAlienGame from './minigames/G9SinyalAlienGame'
-import G9PipaOksigenGame from './minigames/G9PipaOksigenGame'
-import G9PerdagangGalaksiGame from './minigames/G9PerdaganganGalaksiGame'
+// Grade 9: BAB II Lingkaran
+import G9KalibrasiRadaGame from './minigames/G9KalibrasiRadaGame'
+import G9OrbitGame from './minigames/G9OrbitGame'
+import G9ShieldGayaGame from './minigames/G9ShieldGayaGame'
+import G9LaserJuringGame from './minigames/G9LaserJuringGame'
+import G9AsteroidGame from './minigames/G9AsteroidGame'
 
-// Grade 9: BAB II Bilangan Berpangkat dan Bentuk Akar
-import G9MikroskopGame from './minigames/G9MikroskopGame'
-import G9WormholeGame from './minigames/G9WormholeGame'
-import G9TahunCahayaGame from './minigames/G9TahunCahayaGame'
-
-// Grade 9: BAB III Kesebangunan
-import G9CetakBiruGame from './minigames/G9CetakBiruGame'
-import G9BayanganMenaraGame from './minigames/G9BayanganMenaraGame'
-import G9PanelSuryaGame from './minigames/G9PanelSuryaGame'
-
-// Grade 9: BAB IV Lingkaran
-import G9MedanGayaGame from './minigames/G9MedanGayaGame'
-import G9SektorPemindaiGame from './minigames/G9SektorPemindaiGame'
+// Grade 9: BAB III Bangun Ruang
+import G9BoksBateraiGame from './minigames/G9BoksBateraiGame'
+import G9RefraktorGame from './minigames/G9RefraktorGame'
+import G9KuilAlienGame from './minigames/G9KuilAlienGame'
+import G9ReaktorBahanGame from './minigames/G9ReaktorBahanGame'
+import G9SinyalKerucutGame from './minigames/G9SinyalKerucutGame'
+import G9BintangGame from './minigames/G9BintangGame'
+import G9UpgradeKapalGame from './minigames/G9UpgradeKapalGame'
 
 class ErrorBoundary extends Component {
   constructor(props) {

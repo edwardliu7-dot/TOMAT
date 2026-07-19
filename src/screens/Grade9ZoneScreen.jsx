@@ -25,11 +25,7 @@ function TaskBadge({ task }) {
   const color = TYPE_COLORS[task.type]
   const icon = TYPE_ICONS[task.type]
   return (
-    <span style={{
-      background: `${color}22`, color, fontSize: 10, fontWeight: 700,
-      padding: '2px 7px', borderRadius: 20, letterSpacing: 0.3,
-      flexShrink: 0,
-    }}>
+    <span style={{ background: `${color}22`, color, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, letterSpacing: 0.3, flexShrink: 0 }}>
       {icon} TUGAS
     </span>
   )
@@ -43,7 +39,6 @@ function MissionBtn({ emoji, title, desc, onClick, accent, locked, task }) {
       padding: '14px', cursor: locked ? 'default' : 'pointer',
       display: 'flex', gap: 12, alignItems: 'flex-start',
       opacity: locked ? 0.45 : 1, transition: 'all 0.15s',
-      position: 'relative',
     }}
       onMouseEnter={e => { if (!locked) { e.currentTarget.style.borderColor = task ? TYPE_COLORS[task.type] : accent; e.currentTarget.style.transform = 'translateY(-1px)' } }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = task ? (TYPE_COLORS[task.type] + '55') : locked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = '' }}
@@ -55,11 +50,7 @@ function MissionBtn({ emoji, title, desc, onClick, accent, locked, task }) {
           {task && <TaskBadge task={task} />}
         </div>
         <div style={{ fontSize: 12, color: '#94A3B8', lineHeight: 1.5 }}>{desc}</div>
-        {task && (
-          <div style={{ marginTop: 6, fontSize: 11, color: TYPE_COLORS[task.type], fontWeight: 600 }}>
-            📚 {task.totalQuestions} soal · Tenggat {task.dueAt}
-          </div>
-        )}
+        {task && <div style={{ marginTop: 6, fontSize: 11, color: TYPE_COLORS[task.type], fontWeight: 600 }}>📚 {task.totalQuestions} soal · Tenggat {task.dueAt}</div>}
       </div>
       {!locked && <div style={{ flexShrink: 0, color: task ? TYPE_COLORS[task.type] : accent, fontSize: 16, paddingTop: 4 }}>▶</div>}
     </div>
@@ -71,51 +62,48 @@ export default function Grade9ZoneScreen({ navigate, goBack }) {
   const { getTaskForGame } = useTask()
   const { isBabLocked } = useBabLock()
 
-  const babILocked = isBabLocked(9, 'I')
-  const babIILocked = isBabLocked(9, 'II')
+  const babILocked   = isBabLocked(9, 'I')
+  const babIILocked  = isBabLocked(9, 'II')
   const babIIILocked = isBabLocked(9, 'III')
-  const babIVLocked = isBabLocked(9, 'IV')
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0F172A 0%, #0d1624 100%)' }}>
       <PlayerHeader />
-      <TopBar title="🚀 Zona Penjelajah Luar Angkasa" onBack={goBack} accentColor={accent} />
+      <TopBar title="🚀 Zona Komandan Antariksa" onBack={goBack} accentColor={accent} />
       <div style={{ padding: '0 16px 40px' }}>
-        <div style={{ fontSize: 12, color: accent, fontWeight: 600, marginBottom: 4 }}>KELAS 9 · 14 MISI</div>
+        <div style={{ fontSize: 12, color: accent, fontWeight: 600, marginBottom: 4 }}>KELAS 9 · 17 MISI</div>
         <div style={{ fontSize: 13, color: '#94A3B8' }}>Pilih misi dan selesaikan tantangan matematika!</div>
 
         {/* BAB I */}
-        <SectionHeader title={GRADE_BAB_LABELS[9].I} subtitle="6 Misi" color="#67E8F9" locked={babILocked} />
+        <SectionHeader title={GRADE_BAB_LABELS[9].I} subtitle="5 Misi" color="#67E8F9" locked={babILocked} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <MissionBtn emoji="📦" title="Sortir Kargo Pesawat" desc="Kelompokkan peti kargo berlabel variabel sejenis agar pesawat seimbang (sederhanakan bentuk aljabar)." onClick={() => navigate('g9kargo')} accent="#67E8F9" task={getTaskForGame('g9kargo')} locked={babILocked} />
-          <MissionBtn emoji="⚡" title="Transfer Energi Reaktor" desc="Jumlahkan daya dua reaktor untuk mengetahui total daya tembak meriam plasma." onClick={() => navigate('g9reaktor')} accent="#67E8F9" task={getTaskForGame('g9reaktor')} locked={babILocked} />
-          <MissionBtn emoji="🚀" title="Perluasan Lambung Kapal" desc="Kalikan silang dua suku dua untuk menentukan luas total area pesawat baru." onClick={() => navigate('g9lambungkapal')} accent="#67E8F9" task={getTaskForGame('g9lambungkapal')} locked={babILocked} />
-          <MissionBtn emoji="📡" title="Dekripsi Sinyal Alien" desc="Faktorkan persamaan kuadrat untuk menerjemahkan pesan damai dari alien." onClick={() => navigate('g9sinyalalien')} accent="#67E8F9" task={getTaskForGame('g9sinyalalien')} locked={babILocked} />
-          <MissionBtn emoji="🫁" title="Kalibrasi Pipa Oksigen" desc="Samakan penyebut pecahan aljabar untuk mengalirkan udara ke kabin." onClick={() => navigate('g9pipaoksigen')} accent="#67E8F9" task={getTaskForGame('g9pipaoksigen')} locked={babILocked} />
-          <MissionBtn emoji="👽" title="Misi Perdagangan Galaksi" desc="Terjemahkan tawaran barter alien menjadi model aljabar untuk bernegosiasi." onClick={() => navigate('g9perdagangangalaksi')} accent="#67E8F9" task={getTaskForGame('g9perdagangangalaksi')} locked={babILocked} />
+          <MissionBtn emoji="📦" title="Manifest Kargo Alien"      desc="Buat persamaan dari deklarasi bea cukai alien: dua kontainer dengan berat berbeda, total diketahui."      onClick={() => navigate('g9manifest')}     accent="#67E8F9" task={getTaskForGame('g9manifest')}     locked={babILocked} />
+          <MissionBtn emoji="🗺️" title="Plotting Rute Grafik"      desc="Gambar garis lurus di layar navigasi (y=mx+b) untuk mendeteksi koordinat kapal yang mungkin dilewati." onClick={() => navigate('g9plotrute')}      accent="#67E8F9" task={getTaskForGame('g9plotrute')}      locked={babILocked} />
+          <MissionBtn emoji="📡" title="Interseksi Radar Sinyal"   desc="Gabungkan dua persamaan radar untuk menemukan satu titik potong (x,y) kapal induk musuh."             onClick={() => navigate('g9interseksi')}    accent="#67E8F9" task={getTaskForGame('g9interseksi')}    locked={babILocked} />
+          <MissionBtn emoji="💻" title="Dekripsi Konsol Komputer"  desc="Pilih metode eliminasi atau substitusi untuk memecahkan SPLDV dan meretas kode pertahanan musuh."       onClick={() => navigate('g9konsol')}        accent="#67E8F9" task={getTaskForGame('g9konsol')}        locked={babILocked} />
+          <MissionBtn emoji="👽" title="Barter Di Pasar Galaksi"   desc="Hitung harga satuan 1 Tiket Warp dan 1 Botol Oksigen dari paket kombinasi pedagang antariksa."         onClick={() => navigate('g9pasargalaksi')}  accent="#67E8F9" task={getTaskForGame('g9pasargalaksi')}  locked={babILocked} />
         </div>
 
         {/* BAB II */}
-        <SectionHeader title={GRADE_BAB_LABELS[9].II} subtitle="3 Misi" color="#C4B5FD" locked={babIILocked} />
+        <SectionHeader title={GRADE_BAB_LABELS[9].II} subtitle="5 Misi" color="#C4B5FD" locked={babIILocked} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <MissionBtn emoji="🔬" title="Mikroskop Sub-Atomik" desc="Ubah bentuk pangkat negatif menjadi pecahan biasa saat zoom in ke sel mikroba." onClick={() => navigate('g9mikroskop')} accent="#C4B5FD" task={getTaskForGame('g9mikroskop')} locked={babIILocked} />
-          <MissionBtn emoji="🌀" title="Generator Lubang Cacing" desc="Sederhanakan bentuk akar agar selaras dengan frekuensi portal hyperspace." onClick={() => navigate('g9wormhole')} accent="#C4B5FD" task={getTaskForGame('g9wormhole')} locked={babIILocked} />
-          <MissionBtn emoji="🌌" title="Navigasi Tahun Cahaya" desc="Kalikan notasi ilmiah untuk menghitung jarak antar tata surya." onClick={() => navigate('g9tahuncahaya')} accent="#C4B5FD" task={getTaskForGame('g9tahuncahaya')} locked={babIILocked} />
+          <MissionBtn emoji="🎯" title="Kalibrasi Jangkauan Radar"    desc="Atur titik pusat dan jari-jari (r) untuk membuat lingkaran sensor pemindai. Hitung kelilingnya!"        onClick={() => navigate('g9kalibrasirada')} accent="#C4B5FD" task={getTaskForGame('g9kalibrasirada')} locked={babIILocked} />
+          <MissionBtn emoji="🛰️" title="Kalkulasi Orbit Satelit"       desc="Hitung panjang lintasan orbit melingkar satelit agar tidak menabrak atmosfer planet."                  onClick={() => navigate('g9orbit')}         accent="#C4B5FD" task={getTaskForGame('g9orbit')}         locked={babIILocked} />
+          <MissionBtn emoji="🛡️" title="Medan Gaya Shield Pelindung"  desc="Aktifkan perisai plasma lingkaran. Hitung luas area yang harus dilindungi dari serangan musuh."       onClick={() => navigate('g9shieldgaya')}    accent="#C4B5FD" task={getTaskForGame('g9shieldgaya')}    locked={babIILocked} />
+          <MissionBtn emoji="⚡" title="Tembakan Laser Sektor"        desc="Laser hanya menembak dalam juring tertentu. Hitung luas area tembakan dari sudut dan jari-jari."       onClick={() => navigate('g9laserjuring')}   accent="#C4B5FD" task={getTaskForGame('g9laserjuring')}   locked={babIILocked} />
+          <MissionBtn emoji="☄️" title="Jalur Pintas Sabuk Asteroid"  desc="Hitung jarak dari pusat ke tali busur lingkaran asteroid untuk menemukan rute pelarian tercepat."      onClick={() => navigate('g9asteroid')}      accent="#C4B5FD" task={getTaskForGame('g9asteroid')}      locked={babIILocked} />
         </div>
 
         {/* BAB III */}
-        <SectionHeader title={GRADE_BAB_LABELS[9].III} subtitle="3 Misi" color="#86EFAC" locked={babIIILocked} />
+        <SectionHeader title={GRADE_BAB_LABELS[9].III} subtitle="7 Misi" color="#86EFAC" locked={babIIILocked} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <MissionBtn emoji="🧊" title="Cetak Biru Hologram" desc="Bangun suku cadang asli yang sebangun dan proporsional dengan hologram kecil." onClick={() => navigate('g9cetakbiru')} accent="#86EFAC" task={getTaskForGame('g9cetakbiru')} locked={babIIILocked} />
-          <MissionBtn emoji="🗽" title="Bayangan Menara Alien" desc="Gunakan perbandingan bayangan segitiga sebangun untuk mengukur tinggi menara." onClick={() => navigate('g9bayanganmenara')} accent="#86EFAC" task={getTaskForGame('g9bayanganmenara')} locked={babIIILocked} />
-          <MissionBtn emoji="🛰️" title="Perakitan Panel Surya Satelit" desc="Hitung perubahan luas panel surya saat skala stasiun luar angkasa diperbesar." onClick={() => navigate('g9panelsurya')} accent="#86EFAC" task={getTaskForGame('g9panelsurya')} locked={babIIILocked} />
-        </div>
-
-        {/* BAB IV */}
-        <SectionHeader title={GRADE_BAB_LABELS[9].IV} subtitle="2 Misi" color="#4ADE80" locked={babIVLocked} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <MissionBtn emoji="🛡️" title="Medan Gaya Pelindung" desc="Aktifkan perisai lingkaran dengan menghitung jari-jari dari keliling minimum." onClick={() => navigate('g9medangaya')} accent="#4ADE80" task={getTaskForGame('g9medangaya')} locked={babIVLocked} />
-          <MissionBtn emoji="📡" title="Sektor Pemindai" desc="Atur besar sudut pusat juring radar untuk memindai deposit mineral di kawah planet." onClick={() => navigate('g9sektorpemindai')} accent="#4ADE80" task={getTaskForGame('g9sektorpemindai')} locked={babIVLocked} />
+          <MissionBtn emoji="🔋" title="Optimalisasi Boks Baterai"     desc="Susun sel baterai berbentuk kubus ke dalam kompartemen balok. Hitung volume P×L×T agar semua muat."  onClick={() => navigate('g9boksbaterai')}  accent="#86EFAC" task={getTaskForGame('g9boksbaterai')}  locked={babIIILocked} />
+          <MissionBtn emoji="💎" title="Refraktor Kristal Energi"      desc="Hitung luas selimut prisma segitiga kristal untuk memantulkan laser ke seluruh subsistem kapal."      onClick={() => navigate('g9refraktor')}    accent="#86EFAC" task={getTaskForGame('g9refraktor')}    locked={babIIILocked} />
+          <MissionBtn emoji="🏛️" title="Eksplorasi Kuil Alien"         desc="Hitung volume udara dalam kuil berbentuk limas segi empat sebelum mengirim robot penjelajah."        onClick={() => navigate('g9kuilalien')}    accent="#86EFAC" task={getTaskForGame('g9kuilalien')}    locked={babIIILocked} />
+          <MissionBtn emoji="⚛️" title="Pengisian Reaktor Bahan Bakar" desc="Hitung volume cairan hidrogen dalam tangki tabung silinder agar muatan kapal tidak berlebih."       onClick={() => navigate('g9reaktorbahan')} accent="#86EFAC" task={getTaskForGame('g9reaktorbahan')} locked={babIIILocked} />
+          <MissionBtn emoji="📡" title="Zona Pancaran Sinyal"          desc="Antena memancarkan sinyal berbentuk kerucut. Hitung volume jangkauan pancaran gelombangnya."         onClick={() => navigate('g9sinyalkerucut')} accent="#86EFAC" task={getTaskForGame('g9sinyalkerucut')} locked={babIIILocked} />
+          <MissionBtn emoji="⭐" title="Kompresi Inti Bintang"         desc="Hitung luas permukaan mini-planet bola sempurna menggunakan rumus 4πr²."                            onClick={() => navigate('g9bintang')}      accent="#86EFAC" task={getTaskForGame('g9bintang')}      locked={babIIILocked} />
+          <MissionBtn emoji="🚀" title="Upgrade Kapal Induk"           desc="Jika dimensi kargo diduakalikan (k×), volume melonjak k³ kali lipat. Hitung volume kontainer baru!"  onClick={() => navigate('g9upgradekapal')} accent="#86EFAC" task={getTaskForGame('g9upgradekapal')} locked={babIIILocked} />
         </div>
       </div>
     </div>
