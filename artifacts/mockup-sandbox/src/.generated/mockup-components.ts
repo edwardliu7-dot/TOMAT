@@ -4,5 +4,8 @@ export const modules: ModuleMap = {
   "./components/mockups/gamifikasi/InsightGuru.tsx": () => import("../components/mockups/gamifikasi/InsightGuru.tsx"),
   "./components/mockups/gamifikasi/LencanaPencapaian.tsx": () => import("../components/mockups/gamifikasi/LencanaPencapaian.tsx"),
   "./components/mockups/gamifikasi/PapanPeringkat.tsx": () => import("../components/mockups/gamifikasi/PapanPeringkat.tsx"),
-  "./components/mockups/gamifikasi/TokoKoin.tsx": () => import("../components/mockups/gamifikasi/TokoKoin.tsx")
+  "./components/mockups/gamifikasi/TokoKoin.tsx": () => import("../components/mockups/gamifikasi/TokoKoin.tsx"),
+  "./components/mockups/hafalan/GuruPanel.tsx": () => import("../components/mockups/hafalan/GuruPanel.tsx"),
+  "./components/mockups/hafalan/Leaderboard.tsx": () => import("../components/mockups/hafalan/Leaderboard.tsx"),
+  "./components/mockups/hafalan/SiswaProfil.tsx": () => import("../components/mockups/hafalan/SiswaProfil.tsx")
 };
