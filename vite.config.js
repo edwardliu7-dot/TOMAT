@@ -8,4 +8,21 @@ export default defineConfig({
     port: 5000,
     allowedHosts: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'vendor-react'
+          }
+          if (id.includes('node_modules/react-easy-crop')) {
+            return 'vendor-crop'
+          }
+          if (id.includes('/src/minigames/')) {
+            return 'games'
+          }
+        },
+      },
+    },
+  },
 })

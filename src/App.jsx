@@ -1,4 +1,4 @@
-import React, { useState, useCallback, Component } from 'react'
+import React, { useState, useCallback, Component, Suspense, useEffect } from 'react'
 import { PlayerProvider } from './PlayerContext'
 import { TaskProvider } from './TaskContext'
 import { BabLockProvider } from './BabLockContext'
@@ -18,116 +18,32 @@ import LeaderboardScreen from './screens/LeaderboardScreen'
 import BadgesScreen from './screens/BadgesScreen'
 import TaskOverlay from './components/TaskOverlay'
 
-// BAB I: Bilangan Bulat
-import TermometerGame from './minigames/TermometerGame'
-import KatakGame from './minigames/SubmarineGame'
-import PabrikRobotGame from './minigames/PabrikSenjataGame'
-import SporaJamurGame from './minigames/JembatanGame'
-import ScannerPermatGame from './minigames/SortirKargoGame'
-import GembokRodaGigiGame from './minigames/GembokRodaGigiGame'
-import MercusaarGame from './minigames/WormholeGame'
+// All game components are lazy-loaded on first navigation to keep initial bundle small
 
-// BAB II: Bilangan Rasional
-import KokiPizzaGame from './minigames/KokiPizzaGame'
-import PipaAirGame from './minigames/LabKimiaGame'
-import BorTambangGame from './minigames/BorTambangGame'
-import KeretaTambangGame from './minigames/PemanahGame'
-import BateraiGame from './minigames/ShieldGame'
-import TimbanganEmasGame from './minigames/TimbanganEmasGame'
-import FokusTeleskopGame from './minigames/FokusTeleskopGame'
-
-// BAB III: Rasio
-import RamuanJusGame from './minigames/RamuanJusGame'
-import KasirSihirGame from './minigames/PasarBarterGame'
-import BentengPertahananGame from './minigames/BentengPertahananGame'
-import NakhodaGame from './minigames/ArsitekGame'
-import RelKeretaGame from './minigames/RelKeretaGame'
-import BrankasSandiGame from './minigames/HologramGame'
-
-// Grade 8: BAB I Bilangan Berpangkat
-import G8SelRamuanGame from './minigames/G8SelRamuanGame'
-import G8RacunMiniaturGame from './minigames/G8RacunMiniaturGame'
-import G8KristalGame from './minigames/G8KristalGame'
-import G8FusiEnergiGame from './minigames/G8FusiEnergiGame'
-import G8MantraAkarGame from './minigames/G8MantraAkarGame'
-import G8GeologGame from './minigames/G8GeologGame'
-
-// Grade 8: BAB II Teorema Pythagoras
-import G8TrebuchetGame from './minigames/G8TrebuchetGame'
-import G8PerisaiGame from './minigames/G8PerisaiGame'
-import G8HartaKarunGame from './minigames/G8HartaKarunGame'
-import G8InspeksiSudutGame from './minigames/G8InspeksiSudutGame'
-import G8PetaRadarGame from './minigames/G8PetaRadarGame'
-import G8TaliGantungGame from './minigames/G8TaliGantungGame'
-
-// Grade 8: BAB III Persamaan & Pertidaksamaan Linear Satu Variabel
-import G8GerbangLogikaGame from './minigames/G8GerbangLogikaGame'
-import G8KatrolGame from './minigames/G8KatrolGame'
-import G8GulunganGame from './minigames/G8GulunganGame'
-import G8KeretaKudaGame from './minigames/G8KeretaKudaGame'
-
-// Grade 8: Additional games
-import G8TamengGame from './minigames/G8TamengGame'
-import G8BungaGame from './minigames/G8BungaGame'
-import G8JembatanBatuGame from './minigames/G8JembatanBatuGame'
-import G8RamalanGame from './minigames/G8RamalanGame'
-import G8DungeonGame from './minigames/G8DungeonGame'
-import G8RadarNagaGame from './minigames/G8RadarNagaGame'
-import G8MakcomblangGame from './minigames/G8MakcomblangGame'
-import G8GerbangSihirGame from './minigames/G8GerbangSihirGame'
-import G8PandaiBesiGame from './minigames/G8PandaiBesiGame'
-import G8MenaraGame from './minigames/G8MenaraGame'
-import G8DansaGame from './minigames/G8DansaGame'
-import G8PetaKerajaanGame from './minigames/G8PetaKerajaanGame'
-import G8BalistaGame from './minigames/G8BalistaGame'
-import G8BukitNagaGame from './minigames/G8BukitNagaGame'
-import G8TembokBentengGame from './minigames/G8TembokBentengGame'
-import G8LogistikGame from './minigames/G8LogistikGame'
-import G8PertahananBerlapisGame from './minigames/G8PertahananBerlapisGame'
-import G8TimbanganGame from './minigames/G8TimbanganGame'
-import G8PedagangMisteriusGame from './minigames/G8PedagangMisteriusGame'
-import G8PenyelamatanGame from './minigames/G8PenyelamatanGame'
-import G8TaktikPerangGame from './minigames/G8TaktikPerangGame'
-import G8PasarBarterKsatriaGame from './minigames/G8PasarBarterKsatriaGame'
-
-// Grade 9: BAB I Sistem Persamaan Linear Dua Variabel
-import G9ManifestGame from './minigames/G9ManifestGame'
-import G9PlotRuteGame from './minigames/G9PlotRuteGame'
-import G9InterseksiGame from './minigames/G9InterseksiGame'
-import G9KonsolGame from './minigames/G9KonsolGame'
-import G9PasarGalaksiGame from './minigames/G9PasarGalaksiGame'
-
-// Grade 9: BAB II Lingkaran
-import G9KalibrasiRadaGame from './minigames/G9KalibrasiRadaGame'
-import G9OrbitGame from './minigames/G9OrbitGame'
-import G9ShieldGayaGame from './minigames/G9ShieldGayaGame'
-import G9LaserJuringGame from './minigames/G9LaserJuringGame'
-import G9AsteroidGame from './minigames/G9AsteroidGame'
-
-// Grade 9: BAB III Bangun Ruang
-import G9BoksBateraiGame from './minigames/G9BoksBateraiGame'
-import G9RefraktorGame from './minigames/G9RefraktorGame'
-import G9KuilAlienGame from './minigames/G9KuilAlienGame'
-import G9ReaktorBahanGame from './minigames/G9ReaktorBahanGame'
-import G9SinyalKerucutGame from './minigames/G9SinyalKerucutGame'
-import G9BintangGame from './minigames/G9BintangGame'
-import G9UpgradeKapalGame from './minigames/G9UpgradeKapalGame'
-
-// Grade 9: Additional games
-import G9KargoGame from './minigames/G9KargoGame'
-import G9ReaktorGame from './minigames/G9ReaktorGame'
-import G9LambungKapalGame from './minigames/G9LambungKapalGame'
-import G9SinyalAlienGame from './minigames/G9SinyalAlienGame'
-import G9PipaOksigenGame from './minigames/G9PipaOksigenGame'
-import G9PerdagangGalaksiGame from './minigames/G9PerdagangGalaksiGame'
-import G9MikroskopGame from './minigames/G9MikroskopGame'
-import G9WormholeGame from './minigames/G9WormholeGame'
-import G9TahunCahayaGame from './minigames/G9TahunCahayaGame'
-import G9CetakBiruGame from './minigames/G9CetakBiruGame'
-import G9BayanganMenaraGame from './minigames/G9BayanganMenaraGame'
-import G9PanelSuryaGame from './minigames/G9PanelSuryaGame'
-import G9MedanGayaGame from './minigames/G9MedanGayaGame'
-import G9SektorPemindaiGame from './minigames/G9SektorPemindaiGame'
+// Shown while a lazy game chunk is downloading (typically <0.5s on wifi)
+function GameLoadingFallback() {
+  return (
+    <div style={{
+      minHeight: '100vh', background: '#0F1115',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 16,
+    }}>
+      <div style={{ fontSize: 40 }}>⚔️</div>
+      <div style={{ color: '#6366F1', fontSize: 15, fontWeight: 700 }}>Memuat misi…</div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{
+            width: 10, height: 10, borderRadius: '50%',
+            background: i === 0 ? '#6366F1' : i === 1 ? '#A78BFA' : '#C4B5FD',
+            animation: 'bounce 1s ease-in-out infinite',
+            animationDelay: `${i * 0.15}s`,
+          }} />
+        ))}
+      </div>
+      <style>{`@keyframes bounce{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}`}</style>
+    </div>
+  )
+}
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -154,66 +70,99 @@ class ErrorBoundary extends Component {
   }
 }
 
-// All game routes that require mode selection before entry
+// Lazy-load all game components — each is fetched only when the student first opens that game
 const GAME_ROUTES = {
-  termometer: { name: 'Termometer Penyelamat', emoji: '🌡️', Component: TermometerGame },
-  katak: { name: 'Katak Pelompat Batu', emoji: '🐸', Component: KatakGame },
-  pabrikrobot: { name: 'Pabrik Pasukan Robot', emoji: '🤖', Component: PabrikRobotGame },
-  sporajamur: { name: 'Serangan Spora Jamur', emoji: '🍄', Component: SporaJamurGame },
-  scanner: { name: 'Scanner Batu Permata', emoji: '💎', Component: ScannerPermatGame },
-  gembok: { name: 'Gembok Roda Gigi', emoji: '⚙️', Component: GembokRodaGigiGame },
-  mercusuar: { name: 'Sinyal Mercusuar', emoji: '🏮', Component: MercusaarGame },
-  kokipizza: { name: 'Koki Pemotong Pizza', emoji: '🍕', Component: KokiPizzaGame },
-  pipaair: { name: 'Teknisi Pipa Air', emoji: '🔧', Component: PipaAirGame },
-  bortambang: { name: 'Bor Tambang Bumi', emoji: '⛏️', Component: BorTambangGame },
-  kabataku: { name: 'Rute Kereta Tambang', emoji: '🚂', Component: KeretaTambangGame },
-  baterai: { name: 'Baterai Pesawat Luar Angkasa', emoji: '🚀', Component: BateraiGame },
-  timbanganemas: { name: 'Timbangan Emas Digital', emoji: '⚖️', Component: TimbanganEmasGame },
-  fokusteleskop: { name: 'Fokus Teleskop Bintang', emoji: '🔭', Component: FokusTeleskopGame },
-  ramuanjus: { name: 'Ramuan Jus Buah', emoji: '🧃', Component: RamuanJusGame },
-  kasirsihir: { name: 'Kasir Toko Sihir', emoji: '🏪', Component: KasirSihirGame },
-  benteng: { name: 'Pembangun Benteng Pertahanan', emoji: '🏰', Component: BentengPertahananGame },
-  nakhoda: { name: 'Nakhoda Kapal Penjelajah', emoji: '⚓', Component: NakhodaGame },
-  relkereta: { name: 'Menyusun Rel Kereta Cepat', emoji: '🚄', Component: RelKeretaGame },
-  brankas: { name: 'Peretas Brankas Sandi', emoji: '🔐', Component: BrankasSandiGame },
-
-  g8tameng: { name: 'Formasi Pasukan Tameng', emoji: '🛡️', Component: G8TamengGame },
-  g8bunga: { name: 'Teka-teki Hutan Bunga', emoji: '🌸', Component: G8BungaGame },
-  g8jembatanbatu: { name: 'Jembatan Batu Ajaib', emoji: '🌉', Component: G8JembatanBatuGame },
-  g8ramalan: { name: 'Ramalan Penyihir Agung', emoji: '🔮', Component: G8RamalanGame },
-  g8dungeon: { name: 'Sandi Pintu Dungeon', emoji: '🗝️', Component: G8DungeonGame },
-  g8radar: { name: 'Radar Naga Pengintai', emoji: '🐉', Component: G8RadarNagaGame },
-  g8makcomblang: { name: 'Makcomblang Desa', emoji: '💘', Component: G8MakcomblangGame },
-  g8gerbang: { name: 'Gerbang Seleksi Sihir', emoji: '🚪', Component: G8GerbangSihirGame },
-  g8pandaibesi: { name: 'Pabrik Senjata Pandai Besi', emoji: '🔨', Component: G8PandaiBesiGame },
-  g8menara: { name: 'Kombinasi Kunci Menara', emoji: '🗼', Component: G8MenaraGame },
-  g8dansa: { name: 'Pesta Dansa Kerajaan', emoji: '💃', Component: G8DansaGame },
-  g8petakerajaan: { name: 'Ahli Peta Kerajaan', emoji: '🗺️', Component: G8PetaKerajaanGame },
-  g8balista: { name: 'Pemanah Balista', emoji: '🏹', Component: G8BalistaGame },
-  g8bukitnaga: { name: 'Mendaki Bukit Naga', emoji: '🐲', Component: G8BukitNagaGame },
-  g8tembokbenteng: { name: 'Rancangan Tembok Benteng', emoji: '🧱', Component: G8TembokBentengGame },
-  g8logistik: { name: 'Jalur Suplai Logistik', emoji: '🚚', Component: G8LogistikGame },
-  g8pertahananberlapis: { name: 'Sistem Pertahanan Berlapis', emoji: '🛡️', Component: G8PertahananBerlapisGame },
-  g8timbangan: { name: 'Timbangan Emas dan Perak', emoji: '⚖️', Component: G8TimbanganGame },
-  g8pedagangmisterius: { name: 'Pedagang Misterius', emoji: '🧪', Component: G8PedagangMisteriusGame },
-  g8penyelamatan: { name: 'Misi Penyelamatan Ganda', emoji: '🆘', Component: G8PenyelamatanGame },
-  g8taktikperang: { name: 'Ahli Taktik Perang', emoji: '♟️', Component: G8TaktikPerangGame },
-  g8pasarbarter: { name: 'Pasar Barter Ksatria', emoji: '🛒', Component: G8PasarBarterKsatriaGame },
-
-  g9kargo: { name: 'Sortir Kargo Pesawat', emoji: '📦', Component: G9KargoGame },
-  g9reaktor: { name: 'Transfer Energi Reaktor', emoji: '⚡', Component: G9ReaktorGame },
-  g9lambungkapal: { name: 'Perluasan Lambung Kapal', emoji: '🚀', Component: G9LambungKapalGame },
-  g9sinyalalien: { name: 'Dekripsi Sinyal Alien', emoji: '📡', Component: G9SinyalAlienGame },
-  g9pipaoksigen: { name: 'Kalibrasi Pipa Oksigen', emoji: '🫁', Component: G9PipaOksigenGame },
-  g9perdagangangalaksi: { name: 'Misi Perdagangan Galaksi', emoji: '👽', Component: G9PerdagangGalaksiGame },
-  g9mikroskop: { name: 'Mikroskop Sub-Atomik', emoji: '🔬', Component: G9MikroskopGame },
-  g9wormhole: { name: 'Generator Lubang Cacing', emoji: '🌀', Component: G9WormholeGame },
-  g9tahuncahaya: { name: 'Navigasi Tahun Cahaya', emoji: '🌌', Component: G9TahunCahayaGame },
-  g9cetakbiru: { name: 'Cetak Biru Hologram', emoji: '🧊', Component: G9CetakBiruGame },
-  g9bayanganmenara: { name: 'Bayangan Menara Alien', emoji: '🗽', Component: G9BayanganMenaraGame },
-  g9panelsurya: { name: 'Perakitan Panel Surya Satelit', emoji: '🛰️', Component: G9PanelSuryaGame },
-  g9medangaya: { name: 'Medan Gaya Pelindung', emoji: '🛡️', Component: G9MedanGayaGame },
-  g9sektorpemindai: { name: 'Sektor Pemindai', emoji: '📡', Component: G9SektorPemindaiGame },
+  termometer:         { name: 'Termometer Penyelamat',          emoji: '🌡️', Component: React.lazy(() => import('./minigames/TermometerGame')) },
+  katak:              { name: 'Katak Pelompat Batu',            emoji: '🐸', Component: React.lazy(() => import('./minigames/SubmarineGame')) },
+  pabrikrobot:        { name: 'Pabrik Pasukan Robot',           emoji: '🤖', Component: React.lazy(() => import('./minigames/PabrikSenjataGame')) },
+  sporajamur:         { name: 'Serangan Spora Jamur',           emoji: '🍄', Component: React.lazy(() => import('./minigames/JembatanGame')) },
+  scanner:            { name: 'Scanner Batu Permata',           emoji: '💎', Component: React.lazy(() => import('./minigames/SortirKargoGame')) },
+  gembok:             { name: 'Gembok Roda Gigi',               emoji: '⚙️', Component: React.lazy(() => import('./minigames/GembokRodaGigiGame')) },
+  mercusuar:          { name: 'Sinyal Mercusuar',               emoji: '🏮', Component: React.lazy(() => import('./minigames/WormholeGame')) },
+  kokipizza:          { name: 'Koki Pemotong Pizza',            emoji: '🍕', Component: React.lazy(() => import('./minigames/KokiPizzaGame')) },
+  pipaair:            { name: 'Teknisi Pipa Air',               emoji: '🔧', Component: React.lazy(() => import('./minigames/LabKimiaGame')) },
+  bortambang:         { name: 'Bor Tambang Bumi',               emoji: '⛏️', Component: React.lazy(() => import('./minigames/BorTambangGame')) },
+  kabataku:           { name: 'Rute Kereta Tambang',            emoji: '🚂', Component: React.lazy(() => import('./minigames/PemanahGame')) },
+  baterai:            { name: 'Baterai Pesawat Luar Angkasa',   emoji: '🚀', Component: React.lazy(() => import('./minigames/ShieldGame')) },
+  timbanganemas:      { name: 'Timbangan Emas Digital',         emoji: '⚖️', Component: React.lazy(() => import('./minigames/TimbanganEmasGame')) },
+  fokusteleskop:      { name: 'Fokus Teleskop Bintang',         emoji: '🔭', Component: React.lazy(() => import('./minigames/FokusTeleskopGame')) },
+  ramuanjus:          { name: 'Ramuan Jus Buah',                emoji: '🧃', Component: React.lazy(() => import('./minigames/RamuanJusGame')) },
+  kasirsihir:         { name: 'Kasir Toko Sihir',               emoji: '🏪', Component: React.lazy(() => import('./minigames/PasarBarterGame')) },
+  benteng:            { name: 'Pembangun Benteng Pertahanan',   emoji: '🏰', Component: React.lazy(() => import('./minigames/BentengPertahananGame')) },
+  nakhoda:            { name: 'Nakhoda Kapal Penjelajah',       emoji: '⚓', Component: React.lazy(() => import('./minigames/ArsitekGame')) },
+  relkereta:          { name: 'Menyusun Rel Kereta Cepat',      emoji: '🚄', Component: React.lazy(() => import('./minigames/RelKeretaGame')) },
+  brankas:            { name: 'Peretas Brankas Sandi',          emoji: '🔐', Component: React.lazy(() => import('./minigames/HologramGame')) },
+  // Grade 8
+  g8selramuan:        { name: 'Penggandaan Sel Ramuan',         emoji: '🧪', Component: React.lazy(() => import('./minigames/G8SelRamuanGame')) },
+  g8racunminiatur:    { name: 'Ekstraksi Racun Miniatur',       emoji: '☠️', Component: React.lazy(() => import('./minigames/G8RacunMiniaturGame')) },
+  g8kristal:          { name: 'Pemisahan Elemen Kristal',       emoji: '💎', Component: React.lazy(() => import('./minigames/G8KristalGame')) },
+  g8fusienergi:       { name: 'Fusi Energi Alkemis',           emoji: '⚗️', Component: React.lazy(() => import('./minigames/G8FusiEnergiGame')) },
+  g8mantraakar:       { name: 'Penyederhanaan Mantra Akar',    emoji: '✨', Component: React.lazy(() => import('./minigames/G8MantraAkarGame')) },
+  g8geolog:           { name: 'Ekspedisi Geolog Kerajaan',      emoji: '⛏️', Component: React.lazy(() => import('./minigames/G8GeologGame')) },
+  g8trebuchet:        { name: 'Bidikan Tepat Trebuchet',        emoji: '⚔️', Component: React.lazy(() => import('./minigames/G8TrebuchetGame')) },
+  g8perisai:          { name: 'Restorasi Perisai Kerajaan',     emoji: '🛡️', Component: React.lazy(() => import('./minigames/G8PerisaiGame')) },
+  g8hartakarun:       { name: 'Harta Karun di Sudut Ruangan',  emoji: '💰', Component: React.lazy(() => import('./minigames/G8HartaKarunGame')) },
+  g8inspeksisudut:    { name: 'Inspeksi Sudut Menara',         emoji: '🗼', Component: React.lazy(() => import('./minigames/G8InspeksiSudutGame')) },
+  g8petaradar:        { name: 'Peta Radar Pengintai',          emoji: '📡', Component: React.lazy(() => import('./minigames/G8PetaRadarGame')) },
+  g8taligantung:      { name: 'Misi Penyelamatan Tali Gantung',emoji: '🪢', Component: React.lazy(() => import('./minigames/G8TaliGantungGame')) },
+  g8gerbanglogika:    { name: 'Teka-Teki Gerbang Logika',      emoji: '🚪', Component: React.lazy(() => import('./minigames/G8GerbangLogikaGame')) },
+  g8katrol:           { name: 'Katrol Penyeimbang Jembatan',   emoji: '⚙️', Component: React.lazy(() => import('./minigames/G8KatrolGame')) },
+  g8gulungan:         { name: 'Penerjemah Gulungan Kuno',      emoji: '📜', Component: React.lazy(() => import('./minigames/G8GulunganGame')) },
+  g8keretakuda:       { name: 'Kapasitas Kereta Kuda',         emoji: '🐴', Component: React.lazy(() => import('./minigames/G8KeretaKudaGame')) },
+  g8tameng:           { name: 'Formasi Pasukan Tameng',         emoji: '🛡️', Component: React.lazy(() => import('./minigames/G8TamengGame')) },
+  g8bunga:            { name: 'Teka-teki Hutan Bunga',          emoji: '🌸', Component: React.lazy(() => import('./minigames/G8BungaGame')) },
+  g8jembatanbatu:     { name: 'Jembatan Batu Ajaib',           emoji: '🌉', Component: React.lazy(() => import('./minigames/G8JembatanBatuGame')) },
+  g8ramalan:          { name: 'Ramalan Penyihir Agung',        emoji: '🔮', Component: React.lazy(() => import('./minigames/G8RamalanGame')) },
+  g8dungeon:          { name: 'Sandi Pintu Dungeon',           emoji: '🗝️', Component: React.lazy(() => import('./minigames/G8DungeonGame')) },
+  g8radar:            { name: 'Radar Naga Pengintai',          emoji: '🐉', Component: React.lazy(() => import('./minigames/G8RadarNagaGame')) },
+  g8makcomblang:      { name: 'Makcomblang Desa',              emoji: '💘', Component: React.lazy(() => import('./minigames/G8MakcomblangGame')) },
+  g8gerbang:          { name: 'Gerbang Seleksi Sihir',         emoji: '🚪', Component: React.lazy(() => import('./minigames/G8GerbangSihirGame')) },
+  g8pandaibesi:       { name: 'Pabrik Senjata Pandai Besi',   emoji: '🔨', Component: React.lazy(() => import('./minigames/G8PandaiBesiGame')) },
+  g8menara:           { name: 'Kombinasi Kunci Menara',        emoji: '🗼', Component: React.lazy(() => import('./minigames/G8MenaraGame')) },
+  g8dansa:            { name: 'Pesta Dansa Kerajaan',          emoji: '💃', Component: React.lazy(() => import('./minigames/G8DansaGame')) },
+  g8petakerajaan:     { name: 'Ahli Peta Kerajaan',           emoji: '🗺️', Component: React.lazy(() => import('./minigames/G8PetaKerajaanGame')) },
+  g8balista:          { name: 'Pemanah Balista',               emoji: '🏹', Component: React.lazy(() => import('./minigames/G8BalistaGame')) },
+  g8bukitnaga:        { name: 'Mendaki Bukit Naga',           emoji: '🐲', Component: React.lazy(() => import('./minigames/G8BukitNagaGame')) },
+  g8tembokbenteng:    { name: 'Rancangan Tembok Benteng',     emoji: '🧱', Component: React.lazy(() => import('./minigames/G8TembokBentengGame')) },
+  g8logistik:         { name: 'Jalur Suplai Logistik',        emoji: '🚚', Component: React.lazy(() => import('./minigames/G8LogistikGame')) },
+  g8pertahananberlapis:{ name: 'Sistem Pertahanan Berlapis',  emoji: '🛡️', Component: React.lazy(() => import('./minigames/G8PertahananBerlapisGame')) },
+  g8timbangan:        { name: 'Timbangan Emas dan Perak',     emoji: '⚖️', Component: React.lazy(() => import('./minigames/G8TimbanganGame')) },
+  g8pedagangmisterius:{ name: 'Pedagang Misterius',           emoji: '🧪', Component: React.lazy(() => import('./minigames/G8PedagangMisteriusGame')) },
+  g8penyelamatan:     { name: 'Misi Penyelamatan Ganda',      emoji: '🆘', Component: React.lazy(() => import('./minigames/G8PenyelamatanGame')) },
+  g8taktikperang:     { name: 'Ahli Taktik Perang',           emoji: '♟️', Component: React.lazy(() => import('./minigames/G8TaktikPerangGame')) },
+  g8pasarbarter:      { name: 'Pasar Barter Ksatria',         emoji: '🛒', Component: React.lazy(() => import('./minigames/G8PasarBarterKsatriaGame')) },
+  // Grade 9
+  g9manifest:         { name: 'Manifest Kargo Alien',         emoji: '📦', Component: React.lazy(() => import('./minigames/G9ManifestGame')) },
+  g9plotrute:         { name: 'Plotting Rute Grafik',         emoji: '🗺️', Component: React.lazy(() => import('./minigames/G9PlotRuteGame')) },
+  g9interseksi:       { name: 'Interseksi Radar Sinyal',      emoji: '📡', Component: React.lazy(() => import('./minigames/G9InterseksiGame')) },
+  g9konsol:           { name: 'Dekripsi Konsol Komputer',     emoji: '💻', Component: React.lazy(() => import('./minigames/G9KonsolGame')) },
+  g9pasargalaksi:     { name: 'Barter Di Pasar Galaksi',      emoji: '👽', Component: React.lazy(() => import('./minigames/G9PasarGalaksiGame')) },
+  g9kalibrasirada:    { name: 'Kalibrasi Jangkauan Radar',    emoji: '🎯', Component: React.lazy(() => import('./minigames/G9KalibrasiRadaGame')) },
+  g9orbit:            { name: 'Kalkulasi Orbit Satelit',      emoji: '🛰️', Component: React.lazy(() => import('./minigames/G9OrbitGame')) },
+  g9shieldgaya:       { name: 'Medan Gaya Shield Pelindung',  emoji: '🛡️', Component: React.lazy(() => import('./minigames/G9ShieldGayaGame')) },
+  g9laserjuring:      { name: 'Tembakan Laser Sektor',        emoji: '⚡', Component: React.lazy(() => import('./minigames/G9LaserJuringGame')) },
+  g9asteroid:         { name: 'Jalur Pintas Sabuk Asteroid',  emoji: '☄️', Component: React.lazy(() => import('./minigames/G9AsteroidGame')) },
+  g9boksbaterai:      { name: 'Optimalisasi Boks Baterai',    emoji: '🔋', Component: React.lazy(() => import('./minigames/G9BoksBateraiGame')) },
+  g9refraktor:        { name: 'Refraktor Kristal Energi',     emoji: '💎', Component: React.lazy(() => import('./minigames/G9RefraktorGame')) },
+  g9kuilalien:        { name: 'Eksplorasi Kuil Alien',        emoji: '🏛️', Component: React.lazy(() => import('./minigames/G9KuilAlienGame')) },
+  g9reaktorbahan:     { name: 'Pengisian Reaktor Bahan Bakar',emoji: '⚛️', Component: React.lazy(() => import('./minigames/G9ReaktorBahanGame')) },
+  g9sinyalkerucut:    { name: 'Zona Pancaran Sinyal',         emoji: '📡', Component: React.lazy(() => import('./minigames/G9SinyalKerucutGame')) },
+  g9bintang:          { name: 'Kompresi Inti Bintang',        emoji: '⭐', Component: React.lazy(() => import('./minigames/G9BintangGame')) },
+  g9upgradekapal:     { name: 'Upgrade Kapal Induk',          emoji: '🚀', Component: React.lazy(() => import('./minigames/G9UpgradeKapalGame')) },
+  g9kargo:            { name: 'Sortir Kargo Pesawat',         emoji: '📦', Component: React.lazy(() => import('./minigames/G9KargoGame')) },
+  g9reaktor:          { name: 'Transfer Energi Reaktor',      emoji: '⚡', Component: React.lazy(() => import('./minigames/G9ReaktorGame')) },
+  g9lambungkapal:     { name: 'Perluasan Lambung Kapal',      emoji: '🚀', Component: React.lazy(() => import('./minigames/G9LambungKapalGame')) },
+  g9sinyalalien:      { name: 'Dekripsi Sinyal Alien',        emoji: '📡', Component: React.lazy(() => import('./minigames/G9SinyalAlienGame')) },
+  g9pipaoksigen:      { name: 'Kalibrasi Pipa Oksigen',       emoji: '🫁', Component: React.lazy(() => import('./minigames/G9PipaOksigenGame')) },
+  g9perdagangangalaksi:{ name: 'Misi Perdagangan Galaksi',    emoji: '👽', Component: React.lazy(() => import('./minigames/G9PerdagangGalaksiGame')) },
+  g9mikroskop:        { name: 'Mikroskop Sub-Atomik',         emoji: '🔬', Component: React.lazy(() => import('./minigames/G9MikroskopGame')) },
+  g9wormhole:         { name: 'Generator Lubang Cacing',      emoji: '🌀', Component: React.lazy(() => import('./minigames/G9WormholeGame')) },
+  g9tahuncahaya:      { name: 'Navigasi Tahun Cahaya',        emoji: '🌌', Component: React.lazy(() => import('./minigames/G9TahunCahayaGame')) },
+  g9cetakbiru:        { name: 'Cetak Biru Hologram',          emoji: '🧊', Component: React.lazy(() => import('./minigames/G9CetakBiruGame')) },
+  g9bayanganmenara:   { name: 'Bayangan Menara Alien',        emoji: '🗽', Component: React.lazy(() => import('./minigames/G9BayanganMenaraGame')) },
+  g9panelsurya:       { name: 'Perakitan Panel Surya Satelit',emoji: '🛰️', Component: React.lazy(() => import('./minigames/G9PanelSuryaGame')) },
+  g9medangaya:        { name: 'Medan Gaya Pelindung',         emoji: '🛡️', Component: React.lazy(() => import('./minigames/G9MedanGayaGame')) },
+  g9sektorpemindai:   { name: 'Sektor Pemindai',              emoji: '📡', Component: React.lazy(() => import('./minigames/G9SektorPemindaiGame')) },
 }
 
 const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen }
@@ -317,7 +266,11 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       const { Component } = GAME_ROUTES[current]
       const difficulty = gameConfig?.difficulty || 'medium'
       const survival = !!gameConfig?.survival
-      return <Component navigate={navigate} goBack={goBack} difficulty={difficulty} survival={survival} />
+      return (
+        <Suspense fallback={<GameLoadingFallback />}>
+          <Component navigate={navigate} goBack={goBack} difficulty={difficulty} survival={survival} />
+        </Suspense>
+      )
     }
 
     if (current === 'home') {
@@ -349,12 +302,16 @@ export default function App() {
   const { user, checking } = useAuth()
   const [guruPracticeMode, setGuruPracticeMode] = useState(false)
 
+  // Hide the inline HTML splash once React has mounted and auth check is done
+  useEffect(() => {
+    if (!checking) {
+      window.__hideSplash?.()
+    }
+  }, [checking])
+
   if (checking) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#0F1115', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
-        Memuat…
-      </div>
-    )
+    // Splash is still visible — render nothing so there's no flash
+    return null
   }
 
   if (!user) {
