@@ -2,6 +2,7 @@ import React from 'react'
 import { TopBar, PlayerHeader } from '../components/shared'
 import { useTask, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { useBabLock } from '../BabLockContext'
+import { GRADE_BAB_LABELS } from '../gamesCatalog'
 
 function SectionHeader({ title, subtitle, color, locked }) {
   return (
@@ -83,7 +84,7 @@ export default function Grade7ZoneScreen({ navigate, goBack }) {
         <div style={{ fontSize: 13, color: '#94A3B8' }}>Pilih misi dan selesaikan tantangan matematika!</div>
 
         {/* BAB I */}
-        <SectionHeader title="BAB I: Bilangan Bulat" subtitle="7 Misi" color="#67E8F9" locked={babILocked} />
+        <SectionHeader title={GRADE_BAB_LABELS[7].I} subtitle="7 Misi" color="#67E8F9" locked={babILocked} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <MissionBtn emoji="🌡️" title="Termometer Penyelamat" desc="Selamatkan hewan peliharaan dari cuaca ekstrem dengan memahami bilangan positif & negatif." onClick={() => navigate('termometer')} accent={accent} task={getTaskForGame('termometer')} locked={babILocked} />
           <MissionBtn emoji="🐸" title="Katak Pelompat Batu" desc="Katak menyeberangi sungai. Angka positif = lompat maju, negatif = lompat mundur." onClick={() => navigate('katak')} accent={accent} task={getTaskForGame('katak')} locked={babILocked} />
@@ -95,7 +96,7 @@ export default function Grade7ZoneScreen({ navigate, goBack }) {
         </div>
 
         {/* BAB II */}
-        <SectionHeader title="BAB II: Bilangan Rasional" subtitle="7 Misi" color="#A78BFA" locked={babIILocked} />
+        <SectionHeader title={GRADE_BAB_LABELS[7].II} subtitle="7 Misi" color="#A78BFA" locked={babIILocked} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <MissionBtn emoji="🍕" title="Koki Pemotong Pizza" desc="Potong pizza menjadi bagian yang tepat sebelum monster marah. Belajar pecahan & lambangnya." onClick={() => navigate('kokipizza')} accent="#A78BFA" task={getTaskForGame('kokipizza')} locked={babIILocked} />
           <MissionBtn emoji="🔧" title="Teknisi Pipa Air" desc="Sambungkan potongan pipa dengan panjang pecahan untuk memperbaiki saluran bocor." onClick={() => navigate('pipaair')} accent="#A78BFA" task={getTaskForGame('pipaair')} locked={babIILocked} />
@@ -107,7 +108,7 @@ export default function Grade7ZoneScreen({ navigate, goBack }) {
         </div>
 
         {/* BAB III */}
-        <SectionHeader title="BAB III: Rasio" subtitle="6 Misi" color="#34D399" locked={babIIILocked} />
+        <SectionHeader title={GRADE_BAB_LABELS[7].III} subtitle="6 Misi" color="#34D399" locked={babIIILocked} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <MissionBtn emoji="🧃" title="Ramuan Jus Buah" desc="Campur buah ke dalam blender sesuai rasio yang diminta untuk membuat jus sempurna." onClick={() => navigate('ramuanjus')} accent="#34D399" task={getTaskForGame('ramuanjus')} locked={babIIILocked} />
           <MissionBtn emoji="🏪" title="Kasir Toko Sihir" desc="Hitung harga total barang menggunakan konsep perbandingan senilai." onClick={() => navigate('kasirsihir')} accent="#34D399" task={getTaskForGame('kasirsihir')} locked={babIIILocked} />
