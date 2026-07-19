@@ -146,18 +146,34 @@ export function OptionGrid({ options, onSelect, correct = null, disabled = false
   )
 }
 
-export function FeedbackBanner({ message, isCorrect, extras }) {
-  if (!message) return null
+// FeedbackBanner supports two call patterns:
+//   New (G7 games): <FeedbackBanner message="..." isCorrect={bool} extras="..." />
+//   Legacy (G8/G9): <FeedbackBanner correct={bool} answer={val} onNext={fn} />
+export function FeedbackBanner({ message, isCorrect, extras, correct, answer, onNext }) {
+  // Resolve which pattern is being used
+  const resolvedIsCorrect = isCorrect !== undefined ? isCorrect : correct
+  const resolvedMessage = message !== undefined
+    ? message
+    : resolvedIsCorrect
+      ? `✅ Benar! Jawaban: ${answer}`
+      : `❌ Salah! Jawaban yang benar: ${answer}`
+  if (resolvedMessage === null || resolvedMessage === undefined || resolvedMessage === '') return null
   return (
-    <div style={{
-      padding: '14px 16px', borderRadius: 12, marginTop: 16,
-      background: isCorrect ? 'rgba(22,163,74,0.15)' : 'rgba(220,38,38,0.15)',
-      border: `1px solid ${isCorrect ? '#16a34a' : '#dc2626'}`,
-      textAlign: 'center',
-    }}>
-      <div style={{ fontSize: 16, fontWeight: 700, color: isCorrect ? '#4ade80' : '#f87171' }}>{message}</div>
-      {isCorrect && extras && <div style={{ fontSize: 14, color: '#EAB308', marginTop: 4 }}>{extras}</div>}
-    </div>
+    <>
+      <div style={{
+        padding: '14px 16px', borderRadius: 12, marginTop: 16,
+        background: resolvedIsCorrect ? 'rgba(22,163,74,0.15)' : 'rgba(220,38,38,0.15)',
+        border: `1px solid ${resolvedIsCorrect ? '#16a34a' : '#dc2626'}`,
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: resolvedIsCorrect ? '#4ade80' : '#f87171' }}>{resolvedMessage}</div>
+        {resolvedIsCorrect && extras && <div style={{ fontSize: 14, color: '#EAB308', marginTop: 4 }}>{extras}</div>}
+        {resolvedIsCorrect && !extras && onNext && <div style={{ fontSize: 14, color: '#EAB308', marginTop: 4 }}>+50 Koin | +100 EXP</div>}
+      </div>
+      {onNext && (
+        <Btn onClick={onNext} color="#0e7490" style={{ marginTop: 8 }}>Misi Berikutnya ▶</Btn>
+      )}
+    </>
   )
 }
 
@@ -184,7 +200,7 @@ export function randomSliderRange(mustInclude, { step = 1, minPad = 6, maxPad = 
 export function SliderInput({
   value, min, max, step = 1, onChange, disabled = false,
   accentColor = '#67E8F9', unit = '', markEvery = null,
-  leftLabel, rightLabel, big = false,
+  leftLabel, rightLabel, big = false, label,
 }) {
   const pct = ((value - min) / (max - min)) * 100
   const marks = markEvery ? (() => {
@@ -195,7 +211,9 @@ export function SliderInput({
   return (
     <div style={{ width: '100%' }}>
       <div style={{ textAlign: 'center', marginBottom: 10 }}>
-        <span style={{ fontSize: big ? 38 : 28, fontWeight: 900, color: '#fff' }}>{value}{unit}</span>
+        <span style={{ fontSize: big ? 38 : 28, fontWeight: 900, color: '#fff' }}>
+          {label !== undefined ? label : `${value}${unit}`}
+        </span>
       </div>
       <div style={{ position: 'relative', padding: '8px 4px' }}>
         <div style={{ position: 'relative', height: 10, borderRadius: 6, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>

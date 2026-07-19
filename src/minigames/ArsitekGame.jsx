@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, randomSliderRange, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 import { byDifficulty, useSurvival } from '../difficulty'
 
@@ -12,7 +12,10 @@ function genBlueprint(difficulty = 'medium') {
   const mapDistance = distances[Math.floor(Math.random() * distances.length)]
   const scale = scales[Math.floor(Math.random() * scales.length)]
   const correct = (mapDistance * scale) / 100
-  return { mapDistance, scale, correct }
+  // step must divide the correct answer evenly so the slider thumb can land on it
+  const step = scale / 100
+  const { min, max } = randomSliderRange([correct], { step, minPad: 3, maxPad: 15 })
+  return { mapDistance, scale, correct, step, min, max }
 }
 
 export default function NakhodaGame({ goBack, difficulty = 'medium', survival = false }) {
@@ -20,10 +23,15 @@ export default function NakhodaGame({ goBack, difficulty = 'medium', survival = 
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [bp, setBp] = useState(() => genBlueprint(effectiveDifficulty))
-  const [selectedVal, setSelectedVal] = useState(0)
+  const [selectedVal, setSelectedVal] = useState(() => genBlueprint(effectiveDifficulty).min)
   const [feedback, setFeedback] = useState(null)
 
-  const newBp = useCallback(() => { setBp(genBlueprint(effectiveDifficulty)); setSelectedVal(0); setFeedback(null) }, [effectiveDifficulty])
+  const newBp = useCallback(() => {
+    const nb = genBlueprint(effectiveDifficulty)
+    setBp(nb); setSelectedVal(nb.min); setFeedback(null)
+  }, [effectiveDifficulty])
+
+  React.useEffect(() => { setSelectedVal(bp.min) }, [bp])
 
   const confirm = () => {
     if (feedback !== null) return
@@ -36,8 +44,6 @@ export default function NakhodaGame({ goBack, difficulty = 'medium', survival = 
   if (survival && survivalState.gameOver) {
     return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newBp() }} goBack={goBack} />
   }
-
-  const maxVal = (bp.mapDistance * bp.scale) / 100 * 1.5
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
@@ -54,9 +60,9 @@ export default function NakhodaGame({ goBack, difficulty = 'medium', survival = 
           </div>
           <SliderInput
             value={selectedVal}
-            min={0}
-            max={maxVal}
-            step={50}
+            min={bp.min}
+            max={bp.max}
+            step={bp.step}
             onChange={setSelectedVal}
             disabled={feedback !== null}
             accentColor="#67E8F9"

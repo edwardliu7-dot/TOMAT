@@ -65,17 +65,13 @@ export default function Grade8ZoneScreen({ navigate, goBack }) {
   const babILocked    = isBabLocked(8, 'I')
   const babIILocked   = isBabLocked(8, 'II')
   const babIIILocked  = isBabLocked(8, 'III')
-  const babIVLocked   = isBabLocked(8, 'IV')
-  const babVLocked    = isBabLocked(8, 'V')
-  const babVILocked   = isBabLocked(8, 'VI')
-  const babVIILocked  = isBabLocked(8, 'VII')
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #1a0a00 0%, #2d1400 100%)' }}>
       <PlayerHeader />
       <TopBar title="⚔️ Zona Ksatria Geometri" onBack={goBack} accentColor={accent} />
       <div style={{ padding: '0 16px 40px' }}>
-        <div style={{ fontSize: 12, color: accent, fontWeight: 600, marginBottom: 4 }}>KELAS 8 · 38 MISI</div>
+        <div style={{ fontSize: 12, color: accent, fontWeight: 600, marginBottom: 4 }}>KELAS 8 · 16 MISI</div>
         <div style={{ fontSize: 13, color: '#94A3B8' }}>Pilih misi dan selesaikan tantangan matematika!</div>
 
         {/* BAB I */}
@@ -109,47 +105,6 @@ export default function Grade8ZoneScreen({ navigate, goBack }) {
           <MissionBtn emoji="🐴" title="Kapasitas Kereta Kuda"       desc="Muat logistik kerajaan ke kereta. Total beban tidak boleh melebihi batas (ax+b ≤ C). Berapa peti max?" onClick={() => navigate('g8keretakuda')}    accent="#86EFAC" task={getTaskForGame('g8keretakuda')}    locked={babIIILocked} />
         </div>
 
-        {/* BAB IV */}
-        <SectionHeader title={GRADE_BAB_LABELS[8].IV} subtitle="6 Misi" color="#FBBF24" locked={babIVLocked} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <MissionBtn emoji="🛡️" title="Formasi Pasukan Tameng"      desc="Barisan pasukan bertambah setiap hari. Hitung suku ke-n barisan aritmetika (Uₙ = a + (n-1)d)."        onClick={() => navigate('g8tameng')}         accent="#FBBF24" task={getTaskForGame('g8tameng')}         locked={babIVLocked} />
-          <MissionBtn emoji="🌸" title="Teka-teki Hutan Bunga"        desc="Mahkota bunga berpola. Hitung beda (d) barisan aritmetika dari dua suku yang diketahui."              onClick={() => navigate('g8bunga')}          accent="#FBBF24" task={getTaskForGame('g8bunga')}          locked={babIVLocked} />
-          <MissionBtn emoji="🌉" title="Jembatan Batu Ajaib"          desc="Batu jembatan berlipat setiap pekan. Hitung suku ke-n barisan geometri (Uₙ = a × r^(n-1))."          onClick={() => navigate('g8jembatanbatu')}   accent="#FBBF24" task={getTaskForGame('g8jembatanbatu')}   locked={babIVLocked} />
-          <MissionBtn emoji="🔮" title="Ramalan Penyihir Agung"       desc="Penyihir meramalkan jumlah total kejadian. Hitung deret aritmetika Sₙ = n/2 × (2a + (n-1)d)."        onClick={() => navigate('g8ramalan')}        accent="#FBBF24" task={getTaskForGame('g8ramalan')}        locked={babIVLocked} />
-          <MissionBtn emoji="🗝️" title="Sandi Pintu Dungeon"          desc="Temukan suku pertama (a) barisan aritmetika dari petunjuk suku ke-n dan beda yang diberikan."        onClick={() => navigate('g8dungeon')}        accent="#FBBF24" task={getTaskForGame('g8dungeon')}        locked={babIVLocked} />
-          <MissionBtn emoji="🐉" title="Radar Naga Pengintai"         desc="Naga terbang berlipat jarak setiap jam. Hitung suku ke-n barisan geometri dengan rasio berbeda."      onClick={() => navigate('g8radar')}          accent="#FBBF24" task={getTaskForGame('g8radar')}          locked={babIVLocked} />
-        </div>
-
-        {/* BAB V */}
-        <SectionHeader title={GRADE_BAB_LABELS[8].V} subtitle="8 Misi" color="#F9A8D4" locked={babVLocked} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <MissionBtn emoji="💘" title="Makcomblang Desa"             desc="Hitung luas taman berbentuk segitiga menggunakan rumus L = ½ × alas × tinggi."                        onClick={() => navigate('g8makcomblang')}    accent="#F9A8D4" task={getTaskForGame('g8makcomblang')}    locked={babVLocked} />
-          <MissionBtn emoji="🚪" title="Gerbang Seleksi Sihir"        desc="Pintu berbentuk persegi panjang. Hitung lebar dari keliling yang diketahui: K = 2(p + l)."             onClick={() => navigate('g8gerbang')}        accent="#F9A8D4" task={getTaskForGame('g8gerbang')}        locked={babVLocked} />
-          <MissionBtn emoji="🔨" title="Pabrik Senjata Pandai Besi"   desc="Besi trapesium untuk pelindung bahu. Hitung luas: L = ½ × (a + b) × tinggi."                         onClick={() => navigate('g8pandaibesi')}     accent="#F9A8D4" task={getTaskForGame('g8pandaibesi')}     locked={babVLocked} />
-          <MissionBtn emoji="🗼" title="Kombinasi Kunci Menara"        desc="Lantai menara berbentuk persegi panjang. Hitung luas: L = panjang × lebar."                           onClick={() => navigate('g8menara')}         accent="#F9A8D4" task={getTaskForGame('g8menara')}         locked={babVLocked} />
-          <MissionBtn emoji="💃" title="Pesta Dansa Kerajaan"          desc="Lantai dansa berbentuk persegi. Hitung luas dari sisi: L = s²."                                       onClick={() => navigate('g8dansa')}          accent="#F9A8D4" task={getTaskForGame('g8dansa')}          locked={babVLocked} />
-          <MissionBtn emoji="🗺️" title="Ahli Peta Kerajaan"           desc="Wilayah berbentuk jajargenjang. Hitung luas peta: L = alas × tinggi."                                 onClick={() => navigate('g8petakerajaan')}   accent="#F9A8D4" task={getTaskForGame('g8petakerajaan')}   locked={babVLocked} />
-          <MissionBtn emoji="🏹" title="Pemanah Balista"               desc="Target berbentuk belah ketupat. Hitung luas: L = ½ × d₁ × d₂."                                        onClick={() => navigate('g8balista')}        accent="#F9A8D4" task={getTaskForGame('g8balista')}        locked={babVLocked} />
-          <MissionBtn emoji="🐲" title="Mendaki Bukit Naga"            desc="Layangan dekorasi istana berbentuk layang-layang. Hitung luas: L = ½ × d₁ × d₂."                     onClick={() => navigate('g8bukitnaga')}      accent="#F9A8D4" task={getTaskForGame('g8bukitnaga')}      locked={babVLocked} />
-        </div>
-
-        {/* BAB VI */}
-        <SectionHeader title={GRADE_BAB_LABELS[8].VI} subtitle="4 Misi" color="#34D399" locked={babVILocked} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <MissionBtn emoji="🧱" title="Rancangan Tembok Benteng"     desc="Hitung rata-rata ketebalan 4 lapisan tembok benteng kerajaan."                                          onClick={() => navigate('g8tembokbenteng')}  accent="#34D399" task={getTaskForGame('g8tembokbenteng')}  locked={babVILocked} />
-          <MissionBtn emoji="🚚" title="Jalur Suplai Logistik"        desc="Data kargo 5 hari sudah diurutkan. Temukan nilai median (nilai tengah) dari data tersebut."             onClick={() => navigate('g8logistik')}       accent="#34D399" task={getTaskForGame('g8logistik')}       locked={babVILocked} />
-          <MissionBtn emoji="🛡️" title="Sistem Pertahanan Berlapis"   desc="Temukan modus (nilai paling sering muncul) dari ketebalan panel baja pertahanan benteng."             onClick={() => navigate('g8pertahananberlapis')} accent="#34D399" task={getTaskForGame('g8pertahananberlapis')} locked={babVILocked} />
-          <MissionBtn emoji="⚖️" title="Timbangan Emas dan Perak"     desc="Diketahui rata-rata 5 kantong dan isi 4 kantong. Temukan isi kantong yang kelima!"                   onClick={() => navigate('g8timbangan')}      accent="#34D399" task={getTaskForGame('g8timbangan')}      locked={babVILocked} />
-        </div>
-
-        {/* BAB VII */}
-        <SectionHeader title={GRADE_BAB_LABELS[8].VII} subtitle="4 Misi" color="#A78BFA" locked={babVIILocked} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <MissionBtn emoji="🧪" title="Pedagang Misterius"           desc="Dadu dilempar sekali. Hitung banyaknya hasil yang memenuhi syarat kejadian (n(A))."                    onClick={() => navigate('g8pedagangmisterius')} accent="#A78BFA" task={getTaskForGame('g8pedagangmisterius')} locked={babVIILocked} />
-          <MissionBtn emoji="🆘" title="Misi Penyelamatan Ganda"      desc="Hitung banyaknya hasil kejadian komplemen (A'): n(A') = n(S) − n(A)."                               onClick={() => navigate('g8penyelamatan')}    accent="#A78BFA" task={getTaskForGame('g8penyelamatan')}    locked={babVIILocked} />
-          <MissionBtn emoji="♟️" title="Ahli Taktik Perang"           desc="Dua koin dilempar. Hitung banyaknya pasangan hasil yang memenuhi kejadian tertentu."                  onClick={() => navigate('g8taktikperang')}   accent="#A78BFA" task={getTaskForGame('g8taktikperang')}   locked={babVIILocked} />
-          <MissionBtn emoji="🛒" title="Pasar Barter Ksatria"         desc="Hitung frekuensi harapan: fh = P(A) × n, dimana n percobaan adalah kelipatan dari n(S)."              onClick={() => navigate('g8pasarbarter')}    accent="#A78BFA" task={getTaskForGame('g8pasarbarter')}    locked={babVIILocked} />
-        </div>
       </div>
     </div>
   )
