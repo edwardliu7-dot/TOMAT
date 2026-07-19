@@ -41,6 +41,32 @@ export const GAMES_CATALOG = [
   { key: 'g8katrol',       name: 'Katrol Penyeimbang Jembatan',   emoji: '⚙️',  bab: 'III', grade: 8 },
   { key: 'g8gulungan',     name: 'Penerjemah Gulungan Kuno',      emoji: '📜',  bab: 'III', grade: 8 },
   { key: 'g8keretakuda',   name: 'Kapasitas Kereta Kuda',         emoji: '🐴',  bab: 'III', grade: 8 },
+  // Grade 8 — BAB IV: Pola Bilangan
+  { key: 'g8tameng',           name: 'Formasi Pasukan Tameng',        emoji: '🛡️',  bab: 'IV',  grade: 8 },
+  { key: 'g8bunga',            name: 'Teka-teki Hutan Bunga',         emoji: '🌸',  bab: 'IV',  grade: 8 },
+  { key: 'g8jembatanbatu',     name: 'Jembatan Batu Ajaib',           emoji: '🌉',  bab: 'IV',  grade: 8 },
+  { key: 'g8ramalan',          name: 'Ramalan Penyihir Agung',        emoji: '🔮',  bab: 'IV',  grade: 8 },
+  { key: 'g8dungeon',          name: 'Sandi Pintu Dungeon',           emoji: '🗝️',  bab: 'IV',  grade: 8 },
+  { key: 'g8radar',            name: 'Radar Naga Pengintai',          emoji: '🐉',  bab: 'IV',  grade: 8 },
+  // Grade 8 — BAB V: Bangun Datar
+  { key: 'g8makcomblang',      name: 'Makcomblang Desa',              emoji: '💘',  bab: 'V',   grade: 8 },
+  { key: 'g8gerbang',          name: 'Gerbang Seleksi Sihir',         emoji: '🚪',  bab: 'V',   grade: 8 },
+  { key: 'g8pandaibesi',       name: 'Pabrik Senjata Pandai Besi',    emoji: '🔨',  bab: 'V',   grade: 8 },
+  { key: 'g8menara',           name: 'Kombinasi Kunci Menara',        emoji: '🗼',  bab: 'V',   grade: 8 },
+  { key: 'g8dansa',            name: 'Pesta Dansa Kerajaan',          emoji: '💃',  bab: 'V',   grade: 8 },
+  { key: 'g8petakerajaan',     name: 'Ahli Peta Kerajaan',            emoji: '🗺️',  bab: 'V',   grade: 8 },
+  { key: 'g8balista',          name: 'Pemanah Balista',               emoji: '🏹',  bab: 'V',   grade: 8 },
+  { key: 'g8bukitnaga',        name: 'Mendaki Bukit Naga',            emoji: '🐲',  bab: 'V',   grade: 8 },
+  // Grade 8 — BAB VI: Statistika
+  { key: 'g8tembokbenteng',    name: 'Rancangan Tembok Benteng',      emoji: '🧱',  bab: 'VI',  grade: 8 },
+  { key: 'g8logistik',         name: 'Jalur Suplai Logistik',         emoji: '🚚',  bab: 'VI',  grade: 8 },
+  { key: 'g8pertahananberlapis',name:'Sistem Pertahanan Berlapis',    emoji: '🛡️',  bab: 'VI',  grade: 8 },
+  { key: 'g8timbangan',        name: 'Timbangan Emas dan Perak',      emoji: '⚖️',  bab: 'VI',  grade: 8 },
+  // Grade 8 — BAB VII: Peluang
+  { key: 'g8pedagangmisterius',name: 'Pedagang Misterius',            emoji: '🧪',  bab: 'VII', grade: 8 },
+  { key: 'g8penyelamatan',     name: 'Misi Penyelamatan Ganda',       emoji: '🆘',  bab: 'VII', grade: 8 },
+  { key: 'g8taktikperang',     name: 'Ahli Taktik Perang',            emoji: '♟️',  bab: 'VII', grade: 8 },
+  { key: 'g8pasarbarter',      name: 'Pasar Barter Ksatria',          emoji: '🛒',  bab: 'VII', grade: 8 },
 
   // Grade 9 — BAB I: Sistem Persamaan Linear Dua Variabel
   { key: 'g9manifest',     name: 'Manifest Kargo Alien',          emoji: '📦',  bab: 'I',   grade: 9 },
@@ -62,6 +88,22 @@ export const GAMES_CATALOG = [
   { key: 'g9sinyalkerucut',name: 'Zona Pancaran Sinyal',          emoji: '📡',  bab: 'III', grade: 9 },
   { key: 'g9bintang',      name: 'Kompresi Inti Bintang',         emoji: '⭐',  bab: 'III', grade: 9 },
   { key: 'g9upgradekapal', name: 'Upgrade Kapal Induk',           emoji: '🚀',  bab: 'III', grade: 9 },
+  // Grade 9 — BAB IV: Transformasi Geometri
+  { key: 'g9kargo',            name: 'Sortir Kargo Pesawat',          emoji: '📦',  bab: 'IV',  grade: 9 },
+  { key: 'g9reaktor',          name: 'Transfer Energi Reaktor',       emoji: '⚡',  bab: 'IV',  grade: 9 },
+  { key: 'g9lambungkapal',     name: 'Perluasan Lambung Kapal',       emoji: '🚀',  bab: 'IV',  grade: 9 },
+  { key: 'g9sinyalalien',      name: 'Dekripsi Sinyal Alien',         emoji: '📡',  bab: 'IV',  grade: 9 },
+  { key: 'g9pipaoksigen',      name: 'Kalibrasi Pipa Oksigen',        emoji: '🫁',  bab: 'IV',  grade: 9 },
+  { key: 'g9perdagangangalaksi',name:'Misi Perdagangan Galaksi',      emoji: '👽',  bab: 'IV',  grade: 9 },
+  { key: 'g9mikroskop',        name: 'Mikroskop Sub-Atomik',          emoji: '🔬',  bab: 'IV',  grade: 9 },
+  // Grade 9 — BAB V: Statistika & Peluang
+  { key: 'g9wormhole',         name: 'Generator Lubang Cacing',       emoji: '🌀',  bab: 'V',   grade: 9 },
+  { key: 'g9tahuncahaya',      name: 'Navigasi Tahun Cahaya',         emoji: '🌌',  bab: 'V',   grade: 9 },
+  { key: 'g9cetakbiru',        name: 'Cetak Biru Hologram',           emoji: '🧊',  bab: 'V',   grade: 9 },
+  { key: 'g9bayanganmenara',   name: 'Bayangan Menara Alien',         emoji: '🗽',  bab: 'V',   grade: 9 },
+  { key: 'g9panelsurya',       name: 'Perakitan Panel Surya Satelit', emoji: '🛰️',  bab: 'V',   grade: 9 },
+  { key: 'g9medangaya',        name: 'Medan Gaya Pelindung',          emoji: '🛡️',  bab: 'V',   grade: 9 },
+  { key: 'g9sektorpemindai',   name: 'Sektor Pemindai',               emoji: '📡',  bab: 'V',   grade: 9 },
 ]
 
 export const BAB_LABELS = {
@@ -79,11 +121,17 @@ export const GRADE_BAB_LABELS = {
     I:   'BAB I: Bilangan Berpangkat',
     II:  'BAB II: Teorema Pythagoras',
     III: 'BAB III: Persamaan & Pertidaksamaan Linear Satu Variabel',
+    IV:  'BAB IV: Pola Bilangan',
+    V:   'BAB V: Bangun Datar',
+    VI:  'BAB VI: Statistika',
+    VII: 'BAB VII: Peluang',
   },
   9: {
     I:   'BAB I: Sistem Persamaan Linear Dua Variabel',
     II:  'BAB II: Lingkaran',
     III: 'BAB III: Bangun Ruang',
+    IV:  'BAB IV: Transformasi Geometri',
+    V:   'BAB V: Statistika & Peluang',
   },
 }
 

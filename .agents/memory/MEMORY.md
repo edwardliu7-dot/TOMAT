@@ -1,4 +1,5 @@
-- [TOMAT curriculum structure](tomat-curriculum.md) — app follows Grade 7 Indonesian math curriculum; 20 games across BAB I/II/III; Grade 8/9 locked as coming soon.
+- [TOMAT curriculum structure](tomat-curriculum.md) — Grade 7: 20 games (BAB I–III); Grade 8: 38 games (BAB I–VII, IV=Pola Bilangan, V=Bangun Datar, VI=Statistika, VII=Peluang); Grade 9: 31 games (BAB I–V, IV=Transformasi Geometri, V=Statistika & Peluang). All game files exist; catalog+zone screens updated.
+- [TOMAT G8/G9 game conventions](tomat-g8g9-game-conventions.md) — transformation games frame questions so slider answers are always positive integers; stat games generate integer means by computing the Nth value from a pre-chosen mean; probability games use dice (n(S)=6) or coins (n(S)=4) with integer n(A) answers.
 - [TOMAT fraction game data integrity](tomat-fraction-integrity.md) — hardcoded wrong-answer arrays must never include values equivalent to the correct answer (e.g. 2/6 ≡ 1/3); always verify before shipping.
 - [TOMAT shared auth with BLP Harian](tomat-shared-auth.md) — TOMAT logs in against BLP Harian's Neon `gurus`/`students` tables (plaintext passwords, NOT NULL email/whatsapp).
 - [TOMAT guru/siswa role split](tomat-guru-siswa-roles.md) — grade-access hierarchy, tugas/bab-lock scoping rules, server-authoritative nilai scoring.
