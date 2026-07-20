@@ -177,6 +177,89 @@ export function FeedbackBanner({ message, isCorrect, extras, correct, answer, on
   )
 }
 
+// ── Keyboard-first numeric answer field ──────────────────────────────────────
+// Use instead of SliderInput when the student should TYPE the answer.
+export function NumericInput({ value, onChange, onSubmit, unit = '', accentColor = '#67E8F9', placeholder = 'Ketik jawaban…', disabled = false }) {
+  const handleKey = (e) => { if (e.key === 'Enter' && !disabled) onSubmit?.() }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <input
+        type="number" inputMode="numeric" value={value} disabled={disabled}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={handleKey}
+        placeholder={placeholder}
+        style={{
+          background: 'rgba(255,255,255,0.06)', border: `2px solid ${accentColor}55`,
+          borderRadius: 14, padding: '18px 20px', fontSize: 32, fontWeight: 900,
+          color: '#fff', textAlign: 'center', width: '100%', outline: 'none',
+          fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s',
+        }}
+        onFocus={e => { e.target.style.borderColor = accentColor }}
+        onBlur={e => { e.target.style.borderColor = `${accentColor}55` }}
+      />
+      {unit && <div style={{ textAlign: 'center', fontSize: 13, color: '#94A3B8' }}>Satuan: <strong style={{ color: '#fff' }}>{unit}</strong></div>}
+    </div>
+  )
+}
+
+// ── 2×2 / 4-option multiple-choice tile grid ─────────────────────────────────
+// `options` — array of strings/numbers shown as tiles.
+// `correct`  — the correct value; null while waiting for input.
+// Pass `cols` to override the 2-column default (e.g. cols=1 for Yes/No pairs).
+export function MultipleChoice({ options, selected, onSelect, correct = null, disabled = false, accentColor = '#67E8F9', cols = 2 }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 10 }}>
+      {options.map((opt, i) => {
+        const isCorrect = correct !== null && String(opt) === String(correct)
+        const isWrong   = correct !== null && String(selected) === String(opt) && !isCorrect
+        let bg = '#1E2128', border = 'rgba(255,255,255,0.1)'
+        if (isCorrect) { bg = 'rgba(34,197,94,0.15)';  border = '#22c55e' }
+        else if (isWrong)  { bg = 'rgba(239,68,68,0.15)'; border = '#ef4444' }
+        else if (String(selected) === String(opt)) { bg = `${accentColor}22`; border = accentColor }
+        return (
+          <button key={i} onClick={() => !disabled && onSelect(opt)} style={{
+            background: bg, border: `2px solid ${border}`, borderRadius: 14,
+            padding: '18px 10px', color: '#fff', fontSize: 15, fontWeight: 700,
+            cursor: disabled ? 'default' : 'pointer', fontFamily: 'inherit',
+            transition: 'all 0.18s', textAlign: 'center', lineHeight: 1.3,
+          }}>{String(opt)}</button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Unified answer feedback + "Next" button ───────────────────────────────────
+// Replaces the old FeedbackBanner usage in G8/G9 games.
+export function GameFeedback({ correct, correctAnswer, onNext, unit = '' }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{
+        padding: '18px 16px', borderRadius: 16, textAlign: 'center',
+        background: correct ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+        border: `1px solid ${correct ? '#22c55e' : '#ef4444'}`,
+      }}>
+        <div style={{ fontSize: 32, marginBottom: 8 }}>{correct ? '✅' : '❌'}</div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: correct ? '#4ade80' : '#f87171' }}>
+          {correct ? 'Benar! Mantap 🎉' : 'Belum tepat'}
+        </div>
+        {!correct && correctAnswer !== undefined && (
+          <div style={{ fontSize: 14, color: '#94A3B8', marginTop: 6 }}>
+            Jawaban yang benar:{' '}
+            <span style={{ color: '#fff', fontWeight: 800 }}>{correctAnswer}{unit ? ' ' + unit : ''}</span>
+          </div>
+        )}
+        {correct && <div style={{ fontSize: 13, color: '#EAB308', marginTop: 6 }}>+50 🪙 &nbsp;+100 XP</div>}
+      </div>
+      <button onClick={onNext} style={{
+        background: '#1E2128', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 14,
+        padding: '14px', color: '#fff', fontSize: 15, fontWeight: 700,
+        cursor: 'pointer', fontFamily: 'inherit',
+      }}>Soal Berikutnya →</button>
+    </div>
+  )
+}
+
 // Computes a randomized [min,max] range for a SliderInput so the answer never sits at a
 // predictable position (e.g. always in the middle, or always a fixed offset from an edge).
 // Pass every value that MUST be visible on the slider (answer, start value, reference marks)
