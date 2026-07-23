@@ -10,6 +10,7 @@ import GuruHafalanScreen from './GuruHafalanScreen'
 import { TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import ProfileScreen from './ProfileScreen'
+import CommunicationScreen from './CommunicationScreen'
 
 async function apiCall(path, options = {}) {
   const res = await fetch(path, {
@@ -27,6 +28,7 @@ const TABS = [
   { id: 'tugas',   label: '📋', text: 'Tugas' },
   { id: 'hafalan', label: '🧮', text: 'Hafalan' },
   { id: 'nilai',   label: '📊', text: 'Nilai' },
+  { id: 'komunikasi', label: '💬', text: 'Chat' },
   { id: 'siswa',   label: '👥', text: 'Siswa' },
   { id: 'kunci',   label: '🔒', text: 'Kunci Bab' },
   { id: 'insight', label: '🎮', text: 'Insight' },
@@ -600,6 +602,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           {tab === 'tugas'   && <TugasTab kelasDiampu={kelasDiampu} />}
           {tab === 'hafalan' && <GuruHafalanScreen />}
           {tab === 'nilai'   && <NilaiTab />}
+          {tab === 'komunikasi' && <CommunicationScreen embedded />}
           {tab === 'siswa'   && <SiswaTab />}
           {tab === 'kunci'   && <KunciTab grades={grades} />}
           {tab === 'insight' && <InsightTab />}

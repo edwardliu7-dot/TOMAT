@@ -146,6 +146,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode }) {
         {!guruMode && (
           <div style={{ padding: '10px 16px 0', display: 'flex', gap: 10 }}>
             {[
+              { id: 'komunikasi', emoji: '💬', label: 'Chat & Forum', color: '#67E8F9', bg: 'rgba(103,232,249,0.12)' },
               { id: 'toko', emoji: '🛍️', label: 'Toko', color: '#818CF8', bg: 'rgba(129,140,248,0.12)' },
               { id: 'papanperingkat', emoji: '🏆', label: 'Peringkat', color: '#34D399', bg: 'rgba(52,211,153,0.12)' },
               { id: 'lencana', emoji: '🏅', label: 'Lencana', color: '#FBBF24', bg: 'rgba(251,191,36,0.12)' },

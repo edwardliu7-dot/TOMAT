@@ -72,6 +72,41 @@ export async function ensureSchema() {
       check (correct_count <= total_questions)
     );
   `)
+  // Communication: private teacher/student messages and class forums.
+  // Access is enforced in server/komunikasi.js using the exact class roster
+  // and teaching assignments, not only the client-side visibility.
+  await pool.query(`
+    create table if not exists pesan_pribadi (
+      id serial primary key,
+      sender_id text not null,
+      sender_role text not null check (sender_role in ('guru','siswa')),
+      recipient_id text not null,
+      recipient_role text not null check (recipient_role in ('guru','siswa')),
+      body text not null check (char_length(body) between 1 and 2000),
+      created_at timestamptz not null default now(),
+      check (sender_id <> recipient_id),
+      check (
+        (sender_role = 'guru' and recipient_role = 'siswa')
+        or (sender_role = 'siswa' and recipient_role = 'guru')
+      )
+    );
+    create index if not exists pesan_pribadi_pair_idx
+      on pesan_pribadi (sender_id, recipient_id, created_at);
+    create index if not exists pesan_pribadi_recipient_idx
+      on pesan_pribadi (recipient_id, created_at);
+  `)
+  await pool.query(`
+    create table if not exists pesan_forum_kelas (
+      id serial primary key,
+      kelas text not null,
+      sender_id text not null,
+      sender_role text not null check (sender_role in ('guru','siswa')),
+      body text not null check (char_length(body) between 1 and 2000),
+      created_at timestamptz not null default now()
+    );
+    create index if not exists pesan_forum_kelas_idx
+      on pesan_forum_kelas (kelas, created_at);
+  `)
   // Add check constraints idempotently in case the table was created before they existed.
   await pool.query(`
     do $do$

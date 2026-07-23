@@ -17,6 +17,7 @@ import ShopScreen from './screens/ShopScreen'
 import LeaderboardScreen from './screens/LeaderboardScreen'
 import BadgesScreen from './screens/BadgesScreen'
 import TaskOverlay from './components/TaskOverlay'
+import CommunicationScreen from './screens/CommunicationScreen'
 
 // All game components are lazy-loaded on first navigation to keep initial bundle small
 
@@ -129,7 +130,7 @@ const GAME_ROUTES = {
   g9upgradekapal:     { name: 'Upgrade Kapal Induk',          emoji: '🚀', Component: React.lazy(() => import('./minigames/G9UpgradeKapalGame')) },
 }
 
-const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen }
+const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen, komunikasi: CommunicationScreen }
 
 // Shared game-playing shell. Used for students (normal play with tasks/nilai) and for
 // teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
@@ -229,6 +230,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (current === 'lencana') {
       return <BadgesScreen goBack={goBack} />
+    }
+
+    if (current === 'komunikasi') {
+      return <CommunicationScreen goBack={goBack} />
     }
 
     if (GAME_ROUTES[current]) {

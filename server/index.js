@@ -11,6 +11,7 @@ import lencanaRouter from './lencana.js'
 import insightRouter from './insight.js'
 import hafalanGuruRouter from './hafalan-guru.js'
 import hafalanSiswaRouter from './hafalan-siswa.js'
+import komunikasiRouter from './komunikasi.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
 
@@ -60,6 +61,7 @@ async function createServer() {
   app.use('/api/siswa/lencana', lencanaRouter)
   app.use('/api/guru/hafalan', hafalanGuruRouter)
   app.use('/api/siswa/hafalan', hafalanSiswaRouter)
+  app.use('/api/komunikasi', komunikasiRouter)
 
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite')
