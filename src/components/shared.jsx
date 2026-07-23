@@ -57,8 +57,27 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
   )
 }
 
-// Profile cover for the equipped spanduk. The shop item is a profile banner,
-// not an avatar border, so keep it as a separate layer in profile surfaces.
+// Keyframe CSS injected once for luxury cosmetic animations
+const LUXURY_KEYFRAMES = `
+@keyframes tomat-spin-cw  { from { transform: rotate(0deg) }   to { transform: rotate(360deg) } }
+@keyframes tomat-spin-ccw { from { transform: rotate(0deg) }   to { transform: rotate(-360deg) } }
+@keyframes tomat-orbit    { from { transform: rotate(0deg) }   to { transform: rotate(360deg) } }
+@keyframes tomat-orbit-r  { from { transform: rotate(360deg) } to { transform: rotate(0deg) } }
+@keyframes tomat-pulse-g  { 0%,100% { opacity:.5; transform:scale(1) } 50% { opacity:1; transform:scale(1.18) } }
+@keyframes tomat-float-a  { 0%,100% { transform:translateY(0px) } 50% { transform:translateY(-6px) } }
+@keyframes tomat-float-b  { 0%,100% { transform:translateY(0px) } 50% { transform:translateY(5px) } }
+@keyframes tomat-shimmer  { 0% { left:-60% } 100% { left:160% } }
+`
+let _luxuryStyleInjected = false
+function ensureLuxuryStyles() {
+  if (_luxuryStyleInjected) return
+  _luxuryStyleInjected = true
+  const el = document.createElement('style')
+  el.textContent = LUXURY_KEYFRAMES
+  document.head.appendChild(el)
+}
+
+// Profile cover for the equipped spanduk — kept as a compact strip for non-modal contexts.
 export function ProfileBanner({ user, height = 92 }) {
   const spandukId = user?.equippedSpanduk ?? user?.equipped_spanduk
   const spanduk = spandukId ? SPANDUK_VISUALS[spandukId] : null
@@ -115,52 +134,316 @@ export function ProfileBanner({ user, height = 92 }) {
   )
 }
 
-export function PublicProfileModal({ profile, loading, error, onClose }) {
-  if (!profile && !loading && !error) return null
+// Avatar wrapped with animated luxury frame rings (for Aurum/Void Monarch).
+function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
+  React.useEffect(() => { ensureLuxuryStyles() }, [])
+  const isAurum = bingkai?.luxury === 'aurum'
+  const isVoid  = bingkai?.luxury === 'void'
+  const ringColor = bingkai?.border || '#D4AF37'
+
+  // Diamond dot at each cardinal position of the rotating ring
+  const DiamondDot = ({ angle }) => (
+    <div style={{
+      position: 'absolute',
+      width: 7, height: 7,
+      background: ringColor,
+      transform: `rotate(${angle}deg) translateY(-${size / 2 + 14}px) rotate(45deg)`,
+      top: '50%', left: '50%',
+      marginTop: -3.5, marginLeft: -3.5,
+      opacity: 0.85,
+      boxShadow: `0 0 6px ${ringColor}cc`,
+    }} />
+  )
+
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      {/* Outer rotating ring */}
+      <div style={{
+        position: 'absolute',
+        inset: -14,
+        borderRadius: '50%',
+        border: `1px solid ${ringColor}44`,
+        animation: 'tomat-spin-cw 18s linear infinite',
+      }}>
+        <DiamondDot angle={0} />
+        <DiamondDot angle={90} />
+        <DiamondDot angle={180} />
+        <DiamondDot angle={270} />
+      </div>
+      {/* Inner dashed ring */}
+      <div style={{
+        position: 'absolute',
+        inset: -6,
+        borderRadius: '50%',
+        border: `1.5px dashed ${ringColor}55`,
+        animation: 'tomat-spin-ccw 12s linear infinite',
+      }} />
+      {/* Glow pulse */}
+      {isAurum && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          borderRadius: size * 0.3,
+          boxShadow: `0 0 22px 6px ${ringColor}55`,
+          animation: 'tomat-pulse-g 2.8s ease-in-out infinite',
+          pointerEvents: 'none',
+        }} />
+      )}
+      {isVoid && (
+        <>
+          <div style={{
+            position: 'absolute', inset: -9,
+            borderRadius: '50%',
+            border: `1px solid ${ringColor}66`,
+            animation: 'tomat-spin-cw 30s linear infinite',
+          }} />
+          <div style={{
+            position: 'absolute', inset: 0,
+            borderRadius: size * 0.3,
+            boxShadow: `0 0 28px 8px ${ringColor}44`,
+            animation: 'tomat-pulse-g 3.5s ease-in-out infinite',
+            pointerEvents: 'none',
+          }} />
+        </>
+      )}
+      {/* Avatar itself */}
+      <div style={{
+        width: size, height: size, borderRadius: size * 0.3, flexShrink: 0,
+        background: user?.photoUrl || user?.photo_url
+          ? `url(${user.photoUrl ?? user.photo_url}) center/cover no-repeat`
+          : user?.role === 'guru'
+            ? 'linear-gradient(135deg, #8B5CF6, #6366F1)'
+            : 'linear-gradient(135deg, #0891B2, #2563EB)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: size * 0.38, fontWeight: 900, color: '#fff',
+        border: `${Math.max(2, Math.round(size / 16))}px ${bingkai.style} ${ringColor}`,
+        boxSizing: 'border-box',
+        position: 'relative', zIndex: 1,
+      }}>
+        {!(user?.photoUrl || user?.photo_url) && (user?.name || '?')[0]?.toUpperCase()}
+      </div>
+    </div>
+  )
+}
+
+// Animated orbiting particles for Celestia banner background
+function CelestiaParticles() {
+  React.useEffect(() => { ensureLuxuryStyles() }, [])
+  const orbs = [
+    { size: 5, dist: 94, dur: '9s',  delay: '0s',    color: '#93c5fd' },
+    { size: 3, dist: 90, dur: '13s', delay: '-4s',   color: '#bfdbfe' },
+    { size: 4, dist: 86, dur: '7s',  delay: '-2s',   color: '#60a5fa' },
+    { size: 2, dist: 92, dur: '16s', delay: '-7s',   color: '#e0f2fe' },
+    { size: 3, dist: 88, dur: '11s', delay: '-10s',  color: '#93c5fd' },
+    { size: 5, dist: 83, dur: '8s',  delay: '-5.5s', color: '#38bdf8' },
+  ]
+  return (
+    <>
+      {orbs.map((o, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          top: '50%', left: '50%',
+          width: o.size, height: o.size,
+          marginTop: -o.size / 2, marginLeft: -o.size / 2,
+          borderRadius: '50%',
+          background: o.color,
+          boxShadow: `0 0 8px 2px ${o.color}99`,
+          animation: `tomat-orbit ${o.dur} linear ${o.delay} infinite`,
+          transformOrigin: `${o.size / 2}px ${o.size / 2}px`,
+          transform: `rotate(${i * 60}deg) translateX(${o.dist}px)`,
+        }} />
+      ))}
+    </>
+  )
+}
+
+// Royal shimmer streak
+function RoyalShimmer() {
+  React.useEffect(() => { ensureLuxuryStyles() }, [])
   return (
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.72)',
+      position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 'inherit', pointerEvents: 'none',
+    }}>
+      <div style={{
+        position: 'absolute', top: 0, bottom: 0, width: '40%',
+        background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.18), transparent)',
+        animation: 'tomat-shimmer 3.5s ease-in-out 1.2s infinite',
+      }} />
+    </div>
+  )
+}
+
+export function PublicProfileModal({ profile, loading, error, onClose }) {
+  if (!profile && !loading && !error) return null
+
+  const spandukId = profile?.equippedSpanduk ?? profile?.equipped_spanduk
+  const spanduk    = spandukId ? SPANDUK_VISUALS[spandukId] : null
+  const bingkaiId  = profile?.equippedBingkai ?? profile?.equipped_bingkai
+  const bingkai    = bingkaiId ? BINGKAI_VISUALS[bingkaiId] : null
+  const isCelestia = spanduk?.luxury === 'celestia'
+  const isRoyal    = spanduk?.luxury === 'royal'
+  const isLuxuryFrame = bingkai?.luxury === 'aurum' || bingkai?.luxury === 'void'
+
+  // Card border color driven by the equipped spanduk
+  const cardBorder = isCelestia
+    ? '1px solid rgba(147,197,253,0.35)'
+    : isRoyal
+      ? '1px solid rgba(212,175,55,0.45)'
+      : '1px solid rgba(103,232,249,0.25)'
+  const cardGlow = isCelestia
+    ? '0 20px 55px rgba(0,0,0,0.55), 0 0 40px rgba(96,165,250,0.12)'
+    : isRoyal
+      ? '0 20px 55px rgba(0,0,0,0.55), 0 0 40px rgba(212,175,55,0.12)'
+      : '0 20px 55px rgba(0,0,0,0.55)'
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.75)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
     }} onClick={onClose}>
       <div style={{
-        width: '100%', maxWidth: 360, background: '#111827',
-        border: '1px solid rgba(103,232,249,0.25)', borderRadius: 20,
-        boxShadow: '0 20px 55px rgba(0,0,0,0.55)', overflow: 'hidden',
-      }} onClick={event => event.stopPropagation()}>
-        <div style={{ height: 3, background: 'linear-gradient(90deg,#06B6D4,#8B5CF6)' }} />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 12px 0' }}>
-          <button onClick={onClose} aria-label="Tutup profil" style={{
-            width: 30, height: 30, borderRadius: 9, border: 'none',
-            background: 'rgba(255,255,255,0.08)', color: '#94A3B8',
-            cursor: 'pointer', fontSize: 16,
-          }}>×</button>
-        </div>
+        width: '100%', maxWidth: 360, background: '#0f172a',
+        border: cardBorder, borderRadius: 22,
+        boxShadow: cardGlow, overflow: 'hidden', position: 'relative',
+      }} onClick={e => e.stopPropagation()}>
+
         {loading ? (
-          <div style={{ color: '#64748B', textAlign: 'center', padding: '34px 20px 42px', fontSize: 12 }}>Memuat profil…</div>
+          <div style={{ color: '#64748B', textAlign: 'center', padding: '60px 20px', fontSize: 12 }}>Memuat profil…</div>
         ) : error ? (
-          <div style={{ color: '#FCA5A5', textAlign: 'center', padding: '25px 20px 42px', fontSize: 12 }}>{error}</div>
+          <div style={{ color: '#FCA5A5', textAlign: 'center', padding: '50px 20px', fontSize: 12 }}>{error}</div>
         ) : (
-          <div style={{ padding: '4px 22px 26px', textAlign: 'center' }}>
-            <ProfileBanner user={profile} height={78} />
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-              <UserAvatar user={profile} size={82} />
-            </div>
-            <div style={{ color: '#fff', fontSize: 18, fontWeight: 900 }}>{profile.name}</div>
+          <>
+            {/* ── BANNER BACKGROUND (fullscreen top section) ── */}
             <div style={{
-              display: 'inline-block', marginTop: 7, padding: '5px 12px', borderRadius: 99,
-              background: profile.role === 'guru' ? 'rgba(167,139,250,0.14)' : 'rgba(103,232,249,0.12)',
-              color: profile.role === 'guru' ? '#C4B5FD' : '#67E8F9',
-              fontSize: 11, fontWeight: 800,
-            }}>{profile.role === 'guru' ? '🎓 Guru' : '🧑‍🎓 Siswa'}</div>
-            <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 14 }}>
-              {Array.isArray(profile.kelas) ? profile.kelas.join(' · ') : profile.kelas}
+              position: 'relative',
+              height: 140,
+              background: spanduk
+                ? spanduk.gradient
+                : 'linear-gradient(160deg,#0c1a2e,#111827)',
+              overflow: 'hidden',
+            }}>
+              {/* Glow overlay */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: isCelestia
+                  ? 'radial-gradient(circle at 20% 60%, rgba(191,219,254,0.28), transparent 35%), radial-gradient(circle at 80% 30%, rgba(96,165,250,0.2), transparent 30%)'
+                  : isRoyal
+                    ? 'radial-gradient(circle at 50% 0%, rgba(212,175,55,0.25), transparent 55%), linear-gradient(90deg, transparent, rgba(212,175,55,0.08), transparent)'
+                    : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)',
+                pointerEvents: 'none',
+              }} />
+
+              {/* Celestia animated orbiting particles */}
+              {isCelestia && (
+                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                  <CelestiaParticles />
+                  {/* Static star dots */}
+                  {[...Array(18)].map((_, i) => (
+                    <div key={i} style={{
+                      position: 'absolute',
+                      width: i % 3 === 0 ? 2 : 1,
+                      height: i % 3 === 0 ? 2 : 1,
+                      borderRadius: '50%',
+                      background: '#bfdbfe',
+                      opacity: 0.4 + (i % 4) * 0.12,
+                      top: `${10 + (i * 17 + i * 3) % 80}%`,
+                      left: `${5 + (i * 23 + i * 7) % 90}%`,
+                      animation: i % 2 === 0 ? 'tomat-float-a 4s ease-in-out infinite' : 'tomat-float-b 5s ease-in-out infinite',
+                      animationDelay: `${(i * 0.4).toFixed(1)}s`,
+                    }} />
+                  ))}
+                </div>
+              )}
+
+              {/* Royal shimmer */}
+              {isRoyal && <RoyalShimmer />}
+
+              {/* Item label bottom-left */}
+              {spanduk && (
+                <div style={{
+                  position: 'absolute', left: 16, bottom: 48,
+                  color: isRoyal ? '#f5e7b2cc' : isCelestia ? '#dbeafecc' : '#ffffffaa',
+                  fontSize: 8, fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase',
+                  textShadow: '0 1px 10px rgba(0,0,0,0.7)',
+                }}>
+                  {isRoyal ? 'Royal Mathematician' : isCelestia ? 'Celestia Relic' : spandukId}
+                </div>
+              )}
+
+              {/* Close button top-right */}
+              <button onClick={onClose} aria-label="Tutup profil" style={{
+                position: 'absolute', top: 10, right: 10,
+                width: 28, height: 28, borderRadius: 8, border: 'none',
+                background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(4px)',
+                color: '#94A3B8', cursor: 'pointer', fontSize: 16,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>×</button>
+
+              {/* Decorative icon top-left */}
+              {spanduk && (
+                <div style={{
+                  position: 'absolute', top: 12, left: 14,
+                  color: isRoyal ? '#d4af37' : isCelestia ? '#93c5fd' : '#cbd5e1',
+                  fontSize: 13, opacity: 0.75,
+                }}>
+                  {isRoyal ? '◇' : isCelestia ? '✦' : '✧'}
+                </div>
+              )}
+
+              {/* Soft fade-to-card at bottom */}
+              <div style={{
+                position: 'absolute', left: 0, right: 0, bottom: 0, height: 56,
+                background: 'linear-gradient(to bottom, transparent, #0f172a)',
+                pointerEvents: 'none',
+              }} />
             </div>
+
+            {/* ── AVATAR (overlapping banner bottom) ── */}
             <div style={{
-              marginTop: 16, padding: '13px 14px', borderRadius: 13, textAlign: 'left',
-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
-              color: profile.bio ? '#CBD5E1' : '#64748B', fontSize: 12, lineHeight: 1.6,
-            }}>{profile.bio || 'Belum ada bio.'}</div>
-          </div>
+              display: 'flex', justifyContent: 'center',
+              marginTop: -52, marginBottom: 10, position: 'relative', zIndex: 2,
+            }}>
+              {isLuxuryFrame ? (
+                <LuxuryAvatarFrame user={profile} size={88} bingkai={bingkai} bingkaiId={bingkaiId} />
+              ) : (
+                <UserAvatar user={profile} size={88} />
+              )}
+            </div>
+
+            {/* ── PROFILE INFO ── */}
+            <div style={{ padding: '0 22px 24px', textAlign: 'center' }}>
+              <div style={{ color: '#fff', fontSize: 18, fontWeight: 900 }}>{profile.name}</div>
+              <div style={{
+                display: 'inline-block', marginTop: 7, padding: '5px 12px', borderRadius: 99,
+                background: profile.role === 'guru' ? 'rgba(167,139,250,0.14)' : 'rgba(103,232,249,0.12)',
+                color: profile.role === 'guru' ? '#C4B5FD' : '#67E8F9',
+                fontSize: 11, fontWeight: 800,
+              }}>{profile.role === 'guru' ? '🎓 Guru' : '🧑‍🎓 Siswa'}</div>
+              <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 12 }}>
+                {Array.isArray(profile.kelas) ? profile.kelas.join(' · ') : profile.kelas}
+              </div>
+              <div style={{
+                marginTop: 14, padding: '13px 14px', borderRadius: 13, textAlign: 'left',
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+                color: profile.bio ? '#CBD5E1' : '#64748B', fontSize: 12, lineHeight: 1.6,
+              }}>{profile.bio || 'Belum ada bio.'}</div>
+            </div>
+
+            {/* Celestia animated edge shimmer strip at very bottom */}
+            {isCelestia && (
+              <div style={{
+                height: 2,
+                background: 'linear-gradient(90deg, transparent, #60a5fa, #93c5fd, #60a5fa, transparent)',
+                opacity: 0.7,
+              }} />
+            )}
+            {isRoyal && (
+              <div style={{
+                height: 2,
+                background: 'linear-gradient(90deg, transparent, #d4af37, #f5e7b2, #d4af37, transparent)',
+                opacity: 0.7,
+              }} />
+            )}
+          </>
         )}
       </div>
     </div>
