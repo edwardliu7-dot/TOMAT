@@ -92,6 +92,51 @@ router.post('/beli', async (req, res) => {
   }
 })
 
+// POST /api/siswa/toko/stiker-layout { layout: [{uid,catalogId,emoji,x,y,size},...] }
+// Saves the student's free-placed sticker layout on the banner canvas.
+// Server verifies every catalogId used is actually owned by this student.
+router.post('/stiker-layout', async (req, res) => {
+  try {
+    const { layout } = req.body || {}
+    if (!Array.isArray(layout)) return res.status(400).json({ error: 'Layout tidak valid.' })
+
+    // Collect unique catalogIds in the layout
+    const usedIds = [...new Set(layout.map(s => s.catalogId).filter(Boolean))]
+
+    if (usedIds.length > 0) {
+      const { rows: ownedRows } = await pool.query(
+        `select item_id from student_inventory
+         where student_id = $1 and item_id = any($2::text[])`,
+        [req.session.user.id, usedIds]
+      )
+      const ownedSet = new Set(ownedRows.map(r => r.item_id))
+      const notOwned = usedIds.filter(id => !ownedSet.has(id))
+      if (notOwned.length > 0) {
+        return res.status(403).json({ error: `Stiker belum dimiliki: ${notOwned.join(', ')}` })
+      }
+    }
+
+    // Sanitise layout — only persist safe fields
+    const safe = layout.map(s => ({
+      uid: String(s.uid).slice(0, 36),
+      catalogId: String(s.catalogId).slice(0, 64),
+      emoji: String(s.emoji).slice(0, 8),
+      x: Math.max(0, Math.min(100, Number(s.x) || 0)),
+      y: Math.max(0, Math.min(100, Number(s.y) || 0)),
+      size: Math.max(16, Math.min(72, Number(s.size) || 28)),
+    }))
+
+    await pool.query(
+      'update students set stiker_layout = $2 where id = $1',
+      [req.session.user.id, JSON.stringify(safe)]
+    )
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('stiker-layout error', err)
+    res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  }
+})
+
 // POST /api/siswa/toko/pakai { itemId } — equip an owned item (or unequip if itemId is null
 // for that item's category, passed as { kategori } instead).
 router.post('/pakai', async (req, res) => {

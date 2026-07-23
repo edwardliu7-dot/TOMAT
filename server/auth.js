@@ -28,6 +28,7 @@ function sanitizeUser(row, role) {
     equippedSpanduk: row.equipped_spanduk,
     equippedTema: row.equipped_tema,
     equippedStiker: row.equipped_stiker,
+    stikerLayout: row.stiker_layout || [],
   }
 }
 

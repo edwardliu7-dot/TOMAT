@@ -84,24 +84,104 @@ function PhotoCropModal({ imageSrc, onCancel, onConfirm }) {
 }
 
 function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
+  const { refreshMe } = useAuth()
   const spandukId = user?.equippedSpanduk ?? user?.equipped_spanduk
   const spanduk   = spandukId ? SPANDUK_VISUALS[spandukId] : null
   const bingkaiId = user?.equippedBingkai ?? user?.equipped_bingkai
   const bingkai   = bingkaiId ? BINGKAI_VISUALS[bingkaiId] : null
-  const isCelestia   = spanduk?.luxury === 'celestia'
-  const isRoyal      = spanduk?.luxury === 'royal'
+  const isCelestia    = spanduk?.luxury === 'celestia'
+  const isRoyal       = spanduk?.luxury === 'royal'
   const isLuxuryFrame = bingkai?.luxury === 'aurum' || bingkai?.luxury === 'void'
 
   React.useEffect(() => { ensureLuxuryStyles() }, [])
+
+  // ── Stiker canvas state ──
+  const [stikerLayout, setStikerLayout] = useState(user?.stikerLayout || [])
+  const [stikerEditMode, setStikerEditMode] = useState(false)
+  const [ownedStiker, setOwnedStiker] = useState([])
+  const [savingStiker, setSavingStiker] = useState(false)
+  const [draggingUid, setDraggingUid] = useState(null)
+  const bannerRef = useRef(null)
+  const dragOffsetRef = useRef({ ox: 0, oy: 0 })
+
+  useEffect(() => { setStikerLayout(user?.stikerLayout || []) }, [user?.stikerLayout])
+
+  useEffect(() => {
+    if (!stikerEditMode) return
+    fetch('/api/siswa/toko', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        setOwnedStiker((d.items || []).filter(it => it.kategori === 'stiker' && (d.ownedItemIds || []).includes(it.id)))
+      })
+      .catch(() => {})
+  }, [stikerEditMode])
+
+  const onStikerPointerDown = useCallback((e, uid) => {
+    e.stopPropagation()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setDraggingUid(uid)
+    const banner = bannerRef.current
+    if (!banner) return
+    const rect = banner.getBoundingClientRect()
+    const s = stikerLayout.find(s => s.uid === uid)
+    if (!s) return
+    dragOffsetRef.current = {
+      ox: e.clientX - rect.left - (s.x / 100) * rect.width,
+      oy: e.clientY - rect.top  - (s.y / 100) * rect.height,
+    }
+  }, [stikerLayout])
+
+  const onStikerPointerMove = useCallback((e, uid) => {
+    if (draggingUid !== uid) return
+    const banner = bannerRef.current
+    if (!banner) return
+    const rect = banner.getBoundingClientRect()
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left - dragOffsetRef.current.ox) / rect.width)  * 100))
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top  - dragOffsetRef.current.oy) / rect.height) * 100))
+    setStikerLayout(prev => prev.map(s => s.uid === uid ? { ...s, x, y } : s))
+  }, [draggingUid])
+
+  const onStikerPointerUp = useCallback(() => setDraggingUid(null), [])
+
+  function addStikerToCanvas(item) {
+    const uid = `sk${Date.now()}${Math.random().toString(36).slice(2, 5)}`
+    setStikerLayout(prev => [...prev, {
+      uid, catalogId: item.id,
+      emoji: item.visual?.emoji || '🪄',
+      x: 20 + Math.random() * 60,
+      y: 15 + Math.random() * 65,
+      size: 28,
+    }])
+  }
+
+  async function saveStikerLayout() {
+    setSavingStiker(true)
+    try {
+      const res = await fetch('/api/siswa/toko/stiker-layout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ layout: stikerLayout }),
+      })
+      if (res.ok) { await refreshMe(); setStikerEditMode(false) }
+    } catch {}
+    setSavingStiker(false)
+  }
+
+  function cancelEdit() {
+    setStikerLayout(user?.stikerLayout || [])
+    setStikerEditMode(false)
+  }
 
   const previewUser = { ...user, photoUrl: photoPreview }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: 8 }}>
-      {/* Banner hero background */}
-      <div style={{
+      {/* Banner hero background — doubles as stiker drag canvas */}
+      <div ref={bannerRef} style={{
         position: 'relative', width: '100%', height: 150, overflow: 'hidden',
         background: spanduk ? spanduk.gradient : 'linear-gradient(160deg,#0c1a2e,#111827)',
+        cursor: stikerEditMode ? 'crosshair' : 'default',
       }}>
         {/* Glow overlay */}
         <div style={{
@@ -152,7 +232,7 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
           <div style={{
             position: 'absolute', top: 12, right: 16,
             color: isRoyal ? '#d4af37' : isCelestia ? '#93c5fd' : '#cbd5e1',
-            fontSize: 13, opacity: 0.75,
+            fontSize: 13, opacity: 0.75, pointerEvents: 'none',
           }}>
             {isRoyal ? '◇' : isCelestia ? '✦' : '✧'}
           </div>
@@ -165,13 +245,69 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
           pointerEvents: 'none',
         }} />
 
-        {/* Celestia accent strip */}
+        {/* Accent strips */}
         {isCelestia && (
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #60a5fa, #93c5fd, #60a5fa, transparent)', opacity: 0.6 }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #60a5fa, #93c5fd, #60a5fa, transparent)', opacity: 0.6, pointerEvents: 'none' }} />
         )}
         {isRoyal && (
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #d4af37, #f5e7b2, #d4af37, transparent)', opacity: 0.6 }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #d4af37, #f5e7b2, #d4af37, transparent)', opacity: 0.6, pointerEvents: 'none' }} />
         )}
+
+        {/* ── Stiker layer ── */}
+        {stikerLayout.map(s => (
+          <div
+            key={s.uid}
+            onPointerDown={stikerEditMode ? e => onStikerPointerDown(e, s.uid) : undefined}
+            onPointerMove={stikerEditMode ? e => onStikerPointerMove(e, s.uid) : undefined}
+            onPointerUp={stikerEditMode ? onStikerPointerUp : undefined}
+            style={{
+              position: 'absolute',
+              left: `${s.x}%`, top: `${s.y}%`,
+              fontSize: s.size,
+              lineHeight: 1,
+              transform: 'translate(-50%,-50%)',
+              zIndex: 15,
+              cursor: stikerEditMode ? (draggingUid === s.uid ? 'grabbing' : 'grab') : 'default',
+              userSelect: 'none',
+              filter: stikerEditMode
+                ? 'drop-shadow(0 0 5px rgba(129,140,248,0.9))'
+                : 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
+              pointerEvents: stikerEditMode ? 'auto' : 'none',
+            }}
+          >
+            {s.emoji}
+            {stikerEditMode && (
+              <button
+                onPointerDown={e => e.stopPropagation()}
+                onClick={e => { e.stopPropagation(); setStikerLayout(prev => prev.filter(x => x.uid !== s.uid)) }}
+                style={{
+                  position: 'absolute', top: -6, right: -6,
+                  width: 15, height: 15, borderRadius: '50%',
+                  background: '#ef4444', border: 'none', color: '#fff',
+                  fontSize: 10, lineHeight: '15px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: 0, fontFamily: 'inherit', zIndex: 1,
+                }}
+              >×</button>
+            )}
+          </div>
+        ))}
+
+        {/* Edit stiker toggle button */}
+        <button
+          onClick={() => stikerEditMode ? cancelEdit() : setStikerEditMode(true)}
+          style={{
+            position: 'absolute', bottom: 8, right: 8, zIndex: 20,
+            background: stikerEditMode ? 'rgba(239,68,68,0.85)' : 'rgba(0,0,0,0.45)',
+            backdropFilter: 'blur(6px)',
+            border: `1px solid ${stikerEditMode ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.18)'}`,
+            color: '#fff', borderRadius: 8, padding: '5px 10px',
+            fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          {stikerEditMode ? '✕ Batal' : '✨ Edit Stiker'}
+        </button>
       </div>
 
       {/* Avatar — overlapping banner */}
@@ -204,6 +340,55 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
       }}>
         {user?.kelas || 'Siswa'} · SMP TISA
       </div>
+
+      {/* ── Stiker edit panel ── */}
+      {stikerEditMode && (
+        <div style={{ width: '100%', padding: '12px 0 4px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px' }}>
+            <div style={{ fontSize: 11, color: '#64748B', flex: 1, lineHeight: 1.4 }}>
+              Tap stiker → tambah ke banner · drag untuk geser · × untuk hapus
+            </div>
+            <button
+              onClick={saveStikerLayout}
+              disabled={savingStiker}
+              style={{
+                flexShrink: 0, background: 'linear-gradient(135deg,#10B981,#059669)',
+                border: 'none', color: '#fff', borderRadius: 10,
+                padding: '8px 18px', fontSize: 12, fontWeight: 800,
+                cursor: savingStiker ? 'default' : 'pointer', fontFamily: 'inherit',
+                opacity: savingStiker ? 0.7 : 1,
+              }}
+            >{savingStiker ? '…' : '💾 Simpan'}</button>
+          </div>
+
+          {ownedStiker.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '10px 0', color: '#64748B', fontSize: 12 }}>
+              Belum punya stiker — beli di Toko Kosmetik!
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 0 4px' }}>
+              {ownedStiker.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => addStikerToCanvas(item)}
+                  title={item.nama}
+                  style={{
+                    flexShrink: 0, width: 52, height: 52, borderRadius: 14,
+                    background: '#1A1D27', border: '1px solid rgba(255,255,255,0.1)',
+                    fontSize: 26, cursor: 'pointer', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    transition: 'transform 0.1s', fontFamily: 'inherit',
+                  }}
+                  onPointerDown={e => e.currentTarget.style.transform = 'scale(0.9)'}
+                  onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  {item.visual?.emoji || '🪄'}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {onRemovePhoto && (
         <button onClick={onRemovePhoto} style={{

@@ -105,6 +105,25 @@ function ItemVisual({ item }) {
       }} />
     )
   }
+  if (item.kategori === 'stiker') {
+    const emoji = item.visual?.emoji || '🪄'
+    const tier = item.visual?.tier || 'common'
+    const tierBg = tier === 'epic' ? 'radial-gradient(circle,#3b0764,#1e1b4b)' : tier === 'rare' ? 'radial-gradient(circle,#1e3a5f,#0f172a)' : 'radial-gradient(circle,#1e293b,#0f172a)'
+    const tierBorder = tier === 'epic' ? 'rgba(168,85,247,0.5)' : tier === 'rare' ? 'rgba(96,165,250,0.5)' : 'rgba(100,116,139,0.4)'
+    return (
+      <div style={{
+        width: '100%', height: 100, borderRadius: 12, background: tierBg,
+        border: `1px solid ${tierBorder}`, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 6,
+      }}>
+        <div style={{ fontSize: 44, lineHeight: 1 }}>{emoji}</div>
+        <div style={{
+          fontSize: 9, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase',
+          color: tier === 'epic' ? '#c084fc' : tier === 'rare' ? '#93c5fd' : '#94a3b8',
+        }}>{tier === 'epic' ? '★ Epik' : tier === 'rare' ? '◆ Langka' : 'Umum'}</div>
+      </div>
+    )
+  }
   return <div style={{ width: 76, height: 76, borderRadius: 12, background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>❔</div>
 }
 

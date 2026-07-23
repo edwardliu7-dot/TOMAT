@@ -26,3 +26,22 @@ export const KATEGORI_LABELS = {
   tema: 'Tema',
   stiker: 'Stiker',
 }
+
+// Static catalog of stiker visuals — mirrors shop_items seed in server/schema.js.
+// Used by ShopScreen item previews and profile banner sticker rendering.
+export const STIKER_VISUALS = {
+  stiker_roket:   { emoji: '🚀', nama: 'Roket Belajar', tier: 'common' },
+  stiker_api:     { emoji: '🔥', nama: 'Api Semangat',  tier: 'common' },
+  stiker_petir:   { emoji: '⚡', nama: 'Kilat Pintar',  tier: 'common' },
+  stiker_bintang: { emoji: '⭐', nama: 'Bintang Lima',  tier: 'common' },
+  stiker_awan:    { emoji: '☁️', nama: 'Awan Cerah',    tier: 'common' },
+  stiker_hati:    { emoji: '💜', nama: 'Hati Ungu',     tier: 'common' },
+  stiker_otak:    { emoji: '🧠', nama: 'Brainiac',      tier: 'rare'   },
+  stiker_mahkota: { emoji: '👑', nama: 'Mahkota',       tier: 'rare'   },
+  stiker_berlian: { emoji: '💎', nama: 'Berlian',       tier: 'rare'   },
+  stiker_medali:  { emoji: '🏅', nama: 'Medali Emas',   tier: 'rare'   },
+  stiker_naga:    { emoji: '🐉', nama: 'Sang Naga',     tier: 'epic'   },
+  stiker_galaksi: { emoji: '🌌', nama: 'Galaksi',       tier: 'epic'   },
+}
+
+export const STIKER_TIER_LABEL = { common: 'Umum', rare: 'Langka', epic: 'Epik' }

@@ -3,7 +3,7 @@ import { usePlayer } from '../PlayerContext'
 import { useAuth } from '../AuthContext'
 import { useTask, TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
-import { BINGKAI_VISUALS, SPANDUK_VISUALS } from '../shopVisuals'
+import { BINGKAI_VISUALS, SPANDUK_VISUALS, STIKER_VISUALS } from '../shopVisuals'
 import { useAppNotifications, usePushNotifications } from '../notifications'
 
 export function TopBar({ title, onBack, accentColor = '#67E8F9', rightElement }) {
@@ -395,6 +395,19 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
                 background: 'linear-gradient(to bottom, transparent, #0f172a)',
                 pointerEvents: 'none',
               }} />
+
+              {/* ── Placed stickers (read-only) ── */}
+              {(profile.stikerLayout || []).map(s => (
+                <div key={s.uid} style={{
+                  position: 'absolute',
+                  left: `${s.x}%`, top: `${s.y}%`,
+                  fontSize: s.size, lineHeight: 1,
+                  transform: 'translate(-50%,-50%)',
+                  pointerEvents: 'none',
+                  zIndex: 12,
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
+                }}>{s.emoji}</div>
+              ))}
             </div>
 
             {/* ── AVATAR (overlapping banner bottom) ── */}

@@ -203,6 +203,7 @@ export async function ensureSchema() {
     alter table students add column if not exists equipped_spanduk text;
     alter table students add column if not exists equipped_tema text;
     alter table students add column if not exists equipped_stiker text;
+    alter table students add column if not exists stiker_layout jsonb not null default '[]';
   `)
 
   await pool.query(`
@@ -270,6 +271,19 @@ export async function ensureSchema() {
       gradient: 'linear-gradient(115deg,#17120c,#45351b 48%,#d4af37)', limited: true, edition: '02 / 20',
       description: 'Dekrit mahaguru bagi penakluk anatomi angka.', luxury: 'royal'
     }, 5],
+    // Stiker — placed freely on banner canvas
+    ['stiker_roket',   'stiker', 'Roket Belajar',  200,  { emoji: '🚀', tier: 'common' }, 1],
+    ['stiker_api',     'stiker', 'Api Semangat',   200,  { emoji: '🔥', tier: 'common' }, 2],
+    ['stiker_petir',   'stiker', 'Kilat Pintar',   200,  { emoji: '⚡', tier: 'common' }, 3],
+    ['stiker_bintang', 'stiker', 'Bintang Lima',   200,  { emoji: '⭐', tier: 'common' }, 4],
+    ['stiker_awan',    'stiker', 'Awan Cerah',     200,  { emoji: '☁️', tier: 'common' }, 5],
+    ['stiker_hati',    'stiker', 'Hati Ungu',      200,  { emoji: '💜', tier: 'common' }, 6],
+    ['stiker_otak',    'stiker', 'Brainiac',       600,  { emoji: '🧠', tier: 'rare'   }, 7],
+    ['stiker_mahkota', 'stiker', 'Mahkota',        600,  { emoji: '👑', tier: 'rare'   }, 8],
+    ['stiker_berlian', 'stiker', 'Berlian',        600,  { emoji: '💎', tier: 'rare'   }, 9],
+    ['stiker_medali',  'stiker', 'Medali Emas',    600,  { emoji: '🏅', tier: 'rare'   }, 10],
+    ['stiker_naga',    'stiker', 'Sang Naga',      1500, { emoji: '🐉', tier: 'epic'   }, 11],
+    ['stiker_galaksi', 'stiker', 'Galaksi',        1500, { emoji: '🌌', tier: 'epic'   }, 12],
   ]
   for (const [id, kategori, nama, harga, visual, sortOrder] of shopItems) {
     await pool.query(
