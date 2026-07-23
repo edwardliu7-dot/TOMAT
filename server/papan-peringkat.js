@@ -51,7 +51,8 @@ router.get('/', async (req, res) => {
         from students s
         left join avg_nilai an on an.student_id = s.id
         left join hafalan_lulus hl on hl.student_id = s.id
-        where s.kelas = $1
+         where s.kelas = $1
+           and not s.is_test_account
       )
       select *, rank() over (order by composite_score desc, level desc, exp desc) as rank
       from composite

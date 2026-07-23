@@ -18,6 +18,70 @@ async function apiCall(path, options = {}) {
 const TABS = ['bingkai', 'spanduk', 'tema', 'stiker']
 
 function ItemVisual({ item }) {
+  const luxury = item.visual?.luxury
+  if (luxury === 'aurum') {
+    return (
+      <div style={{
+        width: '100%', height: 150, borderRadius: 8, padding: 1,
+        background: 'linear-gradient(145deg,#fff5b8,#d4af37 22%,#2a220b 52%,#aa7c11)',
+        boxShadow: '0 12px 26px rgba(212,175,55,0.18)',
+      }}>
+        <div style={{
+          height: '100%', borderRadius: 7, background: 'radial-gradient(circle at 50% 32%,rgba(212,175,55,.28),transparent 45%),#0a0a0a',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          color: '#e8d08c', position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', inset: 10, border: '1px solid rgba(212,175,55,.45)' }} />
+          <div style={{ fontSize: 42, lineHeight: 1, filter: 'drop-shadow(0 0 10px rgba(212,175,55,.5))' }}>♛</div>
+          <div style={{ marginTop: 10, fontSize: 9, letterSpacing: 2.2, fontWeight: 800 }}>AURUM SOVEREIGN</div>
+        </div>
+      </div>
+    )
+  }
+  if (luxury === 'void') {
+    return (
+      <div style={{
+        width: '100%', height: 150, borderRadius: 8, background: 'radial-gradient(circle at 50% 22%,rgba(79,70,229,.24),transparent 46%),#040406',
+        border: '1px solid #2a2a3a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        color: '#a5b4fc', boxShadow: '0 12px 30px rgba(49,46,129,.2)', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', width: 112, height: 112, border: '1px dashed rgba(99,102,241,.35)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', width: 78, height: 78, border: '1px solid rgba(129,140,248,.3)', borderRadius: '50%' }} />
+        <div style={{ fontSize: 38, lineHeight: 1, zIndex: 1, filter: 'drop-shadow(0 0 12px rgba(99,102,241,.8))' }}>◈</div>
+        <div style={{ marginTop: 12, fontSize: 9, letterSpacing: 2, fontWeight: 800, zIndex: 1 }}>VOID MONARCH</div>
+      </div>
+    )
+  }
+  if (luxury === 'celestia' || luxury === 'royal') {
+    const celestial = luxury === 'celestia'
+    return (
+      <div style={{
+        width: '100%', height: 116, borderRadius: 12,
+        background: celestial
+          ? 'linear-gradient(145deg,#0f172a,#030712 72%)'
+          : 'linear-gradient(145deg,#0d1222,#05070c 72%)',
+        border: `1px solid ${celestial ? 'rgba(96,165,250,.35)' : 'rgba(212,175,55,.3)'}`,
+        display: 'flex', alignItems: 'center', gap: 14, padding: '0 16px', position: 'relative', overflow: 'hidden',
+        boxShadow: celestial ? '0 12px 28px rgba(37,99,235,.16)' : '0 12px 28px rgba(212,175,55,.12)',
+      }}>
+        <div style={{
+          width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
+          border: `1px ${celestial ? 'solid' : 'dashed'} ${celestial ? 'rgba(147,197,253,.55)' : 'rgba(212,175,55,.55)'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: celestial ? '#bfdbfe' : '#d4af37', fontSize: 30,
+          boxShadow: celestial ? '0 0 28px rgba(96,165,250,.24)' : '0 0 24px rgba(212,175,55,.2)',
+        }}>{celestial ? '✦' : '◇'}</div>
+        <div style={{ minWidth: 0, position: 'relative', zIndex: 1 }}>
+          <div style={{ color: celestial ? '#dbeafe' : '#f5e7b2', fontSize: 13, fontWeight: 700, letterSpacing: .5 }}>
+            {celestial ? 'PIJAR BINTANG' : 'DEKRIT MAHAGURU'}
+          </div>
+          <div style={{ color: celestial ? '#93c5fd' : '#d4af37', fontSize: 9, letterSpacing: 1.4, marginTop: 6, fontWeight: 800 }}>
+            {celestial ? 'COSMIC RELIC' : 'ACADEMIC ROYALTY'}
+          </div>
+        </div>
+      </div>
+    )
+  }
   if (item.kategori === 'bingkai') {
     const v = item.visual || {}
     return (

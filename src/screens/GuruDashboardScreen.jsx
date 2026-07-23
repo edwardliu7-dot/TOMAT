@@ -425,7 +425,8 @@ function SiswaTab({ onProfileClick }) {
                   color: '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
                 }}>
                   <div style={{ fontSize: 13, color: '#fff', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
-                  <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{s.username}</div>
+                   <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{s.username}</div>
+                   {s.is_test_account && <div style={{ fontSize: 9, color: '#FBBF24', fontWeight: 800, letterSpacing: .8, marginTop: 3 }}>AKUN DEMO · FULL CATALOG</div>}
                 </button>
               </Section>
             ))}
@@ -536,12 +537,13 @@ function InsightTab({ onProfileClick }) {
                     cursor: 'pointer', fontFamily: 'inherit', display: 'flex',
                     alignItems: 'center', gap: 6, textAlign: 'left',
                   }}>
-                    <span style={{ fontSize: 13, fontWeight: 700 }}>{s.name}</span>
+                     <span style={{ fontSize: 13, fontWeight: 700 }}>{s.name}</span>
                     {s.activeToday && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34D399', display: 'inline-block', boxShadow: '0 0 6px rgba(52,211,153,0.8)' }} />}
                   </button>
                   <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
                     ⭐ Lv {s.level} · 📚 {s.exp} EXP · 🪙 {s.coins} · 🏅 {s.badgeCount} · 🔥 {s.bestSurvivalStreak}
                   </div>
+                   {s.is_test_account && <div style={{ fontSize: 9, color: '#FBBF24', fontWeight: 800, letterSpacing: .8, marginTop: 3 }}>AKUN DEMO · SEMUA ITEM TERSEDIA</div>}
                 </div>
                 <Sparkline values={s.sparkline} />
               </Section>

@@ -74,7 +74,7 @@ function StudentList({ students, loading, error, onSelect, onProfileClick }) {
                       color: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       maxWidth: '100%', display: 'block',
-                    }}>{s.name}</button>
+                     }}>{s.name}{s.is_test_account && <span style={{ color: '#FBBF24', fontSize: 9, marginLeft: 6, letterSpacing: .6 }}>DEMO</span>}</button>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 5 }}>
                       <HafalanDots count={s.hafalanPerkalian} color="#34D399" />
                       <HafalanDots count={s.hafalanPembagian} color="#60A5FA" />

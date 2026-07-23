@@ -78,6 +78,7 @@ export async function notifyClassMembers(kelas, sender, payload) {
   try {
     const { rows } = await pool.query(
       `select id, 'siswa' as role from students where kelas = $1
+       and not is_test_account
        union all
        select id, 'guru' as role from gurus where $1 = any(kelas_diampu)`,
       [kelas]
@@ -93,7 +94,8 @@ export async function notifyClassStudents(kelas, payload) {
   if (!kelas) return
   try {
     const { rows } = await pool.query(
-      `select id, 'siswa' as role from students where kelas = $1`,
+      `select id, 'siswa' as role from students where kelas = $1
+       and not is_test_account`,
       [kelas]
     )
     await notifyUsers(rows, payload)

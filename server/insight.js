@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
     if (kelasDiampu.length === 0) return res.json({ students: [] })
 
     const { rows: students } = await pool.query(
-       `select id, name, username, kelas, level, exp, coins, best_survival_streak, photo_url, equipped_bingkai
+       `select id, name, username, kelas, level, exp, coins, best_survival_streak, photo_url, equipped_bingkai, is_test_account
        from students where kelas = any($1) order by kelas, level desc, exp desc`,
       [kelasDiampu]
     )

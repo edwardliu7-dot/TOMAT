@@ -18,7 +18,8 @@ router.get('/students', async (req, res) => {
     const kelasDiampu = await getMyKelasDiampu(req)
     if (kelasDiampu.length === 0) return res.json({ students: [] })
     const { rows } = await pool.query(
-       `select id, username, name, kelas, photo_url, equipped_bingkai from students where kelas = any($1) order by kelas, name`,
+       `select id, username, name, kelas, photo_url, equipped_bingkai, is_test_account
+        from students where kelas = any($1) order by kelas, name`,
       [kelasDiampu]
     )
     res.json({ students: rows })

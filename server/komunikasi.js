@@ -38,6 +38,14 @@ async function canPrivateChat(user, otherId, otherRole) {
     return rows.length > 0
   }
 
+  if (user.role === 'siswa' && otherRole === 'siswa') {
+    const { rows } = await pool.query(
+      'select id from students where id = $1 and not is_test_account',
+      [otherId]
+    )
+    if (rows.length === 0) return false
+  }
+
   const kelas = await getStudentClass(user.id)
   if (!kelas) return false
   const { rows } = await pool.query(
@@ -83,7 +91,7 @@ async function canViewProfile(user, otherId, otherRole) {
   }
 
   const { rows } = await pool.query(
-    'select id from students where id = $1 and kelas = $2',
+    'select id from students where id = $1 and kelas = $2 and not is_test_account',
     [otherId, kelas]
   )
   return rows.length > 0
@@ -96,7 +104,7 @@ router.get('/contacts', async (req, res) => {
     if (user.role === 'guru') {
       const classes = await getGuruClasses(user.id)
       const { rows } = await pool.query(
-        `select id, name, username, kelas, photo_url, equipped_bingkai
+        `select id, name, username, kelas, photo_url, equipped_bingkai, is_test_account
          from students
          where kelas = any($1::text[])
          order by kelas, name`,
@@ -148,7 +156,8 @@ router.get('/profile/:otherRole/:otherId', async (req, res) => {
     const { rows } = await pool.query(
        `select id, name, photo_url, bio, ${otherRole === 'guru' ? 'null::text as equipped_bingkai, kelas_diampu' : 'equipped_bingkai, kelas'} as kelas
        from ${table}
-       where id = $1
+        where id = $1
+          ${otherRole === 'siswa' && user.role === 'siswa' && user.id !== otherId ? 'and not is_test_account' : ''}
        limit 1`,
       [otherId]
     )
@@ -434,11 +443,19 @@ router.get('/forum/:kelas/messages', async (req, res) => {
             then (select equipped_bingkai from students where id = f.sender_id)
             else null
           end as sender_equipped_bingkai
-       from pesan_forum_kelas f
-       where f.kelas = $1
+         from pesan_forum_kelas f
+        where f.kelas = $1
+          and (
+            $2 = 'guru'
+            or not exists (
+              select 1 from students test_student
+              where test_student.id = f.sender_id
+                and test_student.is_test_account
+            )
+          )
        order by f.created_at asc
        limit 300`,
-      [kelas]
+       [kelas, user.role]
     )
     res.json({ messages: rows })
   } catch (err) {

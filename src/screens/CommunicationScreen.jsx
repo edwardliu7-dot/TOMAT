@@ -167,7 +167,9 @@ function ContactList({ contacts, selected, onSelect, onProfileClick, loading }) 
               cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', padding: 0,
             }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.name}</div>
+                 <div style={{ fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                   {contact.name}{contact.is_test_account && <span style={{ color: '#FBBF24', fontSize: 9, marginLeft: 5 }}>DEMO</span>}
+                 </div>
                 <div style={{ color: '#64748B', fontSize: 10, marginTop: 2 }}>{contact.kelas || 'Guru'}</div>
               </div>
             </button>

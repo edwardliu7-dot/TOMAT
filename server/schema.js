@@ -30,6 +30,7 @@ export async function ensureSchema() {
   await pool.query(`
     alter table students add column if not exists photo_url text;
     alter table students add column if not exists bio text;
+    alter table students add column if not exists is_test_account boolean not null default false;
     alter table gurus add column if not exists photo_url text;
     alter table gurus add column if not exists bio text;
   `)
@@ -252,22 +253,22 @@ export async function ensureSchema() {
     ['bingkai_void', 'bingkai', 'Void King', 3000, { border: '#A855F7', style: 'solid', glow: true }, 6],
     ['bingkai_aurum_sovereign', 'bingkai', 'Aurum Sovereign', 12000, {
       border: '#D4AF37', style: 'double', glow: true, limited: true, edition: '01 / 25',
-      description: 'Warisan mahkota bagi penguasa rasio.'
+      description: 'Warisan mahkota bagi penguasa rasio.', luxury: 'aurum'
     }, 7],
     ['bingkai_void_monarch', 'bingkai', 'Void Monarch', 18000, {
       border: '#6366F1', style: 'solid', glow: true, limited: true, edition: '03 / 13',
-      description: 'Akuisisi langka dari singgasana kehampaan.'
+      description: 'Akuisisi langka dari singgasana kehampaan.', luxury: 'void'
     }, 8],
     ['spanduk_galaksi', 'spanduk', 'Galaksi', 1000, { gradient: 'linear-gradient(90deg,#312e81,#581c87,#000)' }, 1],
     ['spanduk_hutan', 'spanduk', 'Hutan Ajaib', 1200, { gradient: 'linear-gradient(90deg,#064e3b,#134e4a)' }, 2],
     ['spanduk_retro', 'spanduk', 'Retro 8-bit', 2500, { gradient: 'linear-gradient(90deg,#374151,#111827)' }, 3],
     ['spanduk_celestia_relic', 'spanduk', 'Celestia Relic', 22000, {
       gradient: 'linear-gradient(115deg,#020617,#172554 48%,#e0f2fe)', limited: true, edition: '07 / 12',
-      description: 'Artefak kosmik untuk kolektor yang tak tersentuh.'
+      description: 'Artefak kosmik untuk kolektor yang tak tersentuh.', luxury: 'celestia'
     }, 4],
     ['spanduk_royal_mathematician', 'spanduk', 'Royal Mathematician', 15000, {
       gradient: 'linear-gradient(115deg,#17120c,#45351b 48%,#d4af37)', limited: true, edition: '02 / 20',
-      description: 'Dekrit mahaguru bagi penakluk anatomi angka.'
+      description: 'Dekrit mahaguru bagi penakluk anatomi angka.', luxury: 'royal'
     }, 5],
   ]
   for (const [id, kategori, nama, harga, visual, sortOrder] of shopItems) {
@@ -278,6 +279,36 @@ export async function ensureSchema() {
       [id, kategori, nama, harga, JSON.stringify(visual), sortOrder]
     )
   }
+
+  // Internal showcase account: teachers can use it to preview the complete
+  // luxury catalog, while student-facing queries filter it by this flag.
+  await pool.query(`
+    insert into students
+      (id, username, name, password, kelas, email, whatsapp, is_test_account)
+    values
+      ('tomat-demo', 'tomat_demo', 'TOMAT Demo', 'TomatDemo2026!', 'VII Ibnu Batuttah',
+       'tomat-demo@tomat.local', '0000000000', true)
+    on conflict (id) do update set
+      username = excluded.username,
+      name = excluded.name,
+      password = excluded.password,
+      kelas = excluded.kelas,
+      email = excluded.email,
+      whatsapp = excluded.whatsapp,
+      is_test_account = true
+  `)
+  await pool.query(`
+    insert into student_inventory (student_id, item_id)
+    select 'tomat-demo', id from shop_items
+    on conflict (student_id, item_id) do nothing
+  `)
+  await pool.query(`
+    update students
+    set coins = 999999,
+        equipped_bingkai = 'bingkai_aurum_sovereign',
+        equipped_spanduk = 'spanduk_celestia_relic'
+    where id = 'tomat-demo'
+  `)
 
   // Hafalan setoran table — each row is one assessment by a guru for a student
   await pool.query(`
