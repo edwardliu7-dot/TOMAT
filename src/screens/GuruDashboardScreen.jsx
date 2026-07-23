@@ -41,11 +41,13 @@ function TugasTab({ kelasDiampu }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const initialKelas = kelasDiampu[0] || ''
-  const initialGames = GAMES_CATALOG.filter(g => g.grade === kelasToGrade(initialKelas))
+  const initialGrade = kelasToGrade(initialKelas)
+  const initialGames = GAMES_CATALOG.filter(g => initialGrade ? g.grade <= initialGrade : false)
   const [form, setForm] = useState({ kelas: initialKelas, gameKey: initialGames[0]?.key || '', type: 'harian', totalQuestions: 5, dueAt: '', difficulty: 'medium' })
   const [submitting, setSubmitting] = useState(false)
 
-  const availableGames = GAMES_CATALOG.filter(g => g.grade === kelasToGrade(form.kelas))
+  const classGrade = kelasToGrade(form.kelas)
+  const availableGames = GAMES_CATALOG.filter(g => classGrade ? g.grade <= classGrade : false)
 
   useEffect(() => {
     if (!availableGames.some(g => g.key === form.gameKey)) {
@@ -115,7 +117,15 @@ function TugasTab({ kelasDiampu }) {
           </select>
           <select value={form.gameKey} onChange={e => setForm(f => ({ ...f, gameKey: e.target.value }))} style={inputStyle}>
             {availableGames.length === 0 && <option value="">Tidak ada game untuk kelas ini</option>}
-            {availableGames.map(g => <option key={g.key} value={g.key}>{g.emoji} {g.name} ({GRADE_BAB_LABELS[g.grade]?.[g.bab] || g.bab})</option>)}
+            {[9, 8, 7].filter(gr => gr <= (classGrade || 0)).map(gr => {
+              const gradeGames = availableGames.filter(g => g.grade === gr)
+              if (gradeGames.length === 0) return null
+              return (
+                <optgroup key={gr} label={`Kelas ${gr === 7 ? 'VII' : gr === 8 ? 'VIII' : 'IX'}`}>
+                  {gradeGames.map(g => <option key={g.key} value={g.key}>{g.emoji} {g.name} ({GRADE_BAB_LABELS[g.grade]?.[g.bab] || g.bab})</option>)}
+                </optgroup>
+              )
+            })}
           </select>
           <div style={{ display: 'flex', gap: 10 }}>
             <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} style={{ ...inputStyle, flex: 1 }}>
