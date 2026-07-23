@@ -84,7 +84,8 @@ function PhotoCropModal({ imageSrc, onCancel, onConfirm }) {
 
 export default function ProfileScreen({ goBack }) {
   const { user, updateProfile } = useAuth()
-  const { player } = usePlayer()
+  const playerCtx = usePlayer()
+  const player = playerCtx?.player ?? null
   const fileInputRef = useRef(null)
   const [photoPreview, setPhotoPreview] = useState(user?.photoUrl || null)
   const [cropSrc, setCropSrc] = useState(null)
@@ -202,24 +203,26 @@ export default function ProfileScreen({ goBack }) {
           )}
         </div>
 
-        {/* Stats row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '16px 20px' }}>
-          {[
-            { icon: '⭐', label: 'Level', value: player.level, color: '#FBBF24' },
-            { icon: '🪙', label: 'Koin', value: player.coins?.toLocaleString?.() ?? player.coins, color: '#FBBF24' },
-            { icon: '⚡', label: 'EXP', value: player.exp?.toLocaleString?.() ?? player.exp, color: '#67E8F9' },
-          ].map(s => (
-            <div key={s.label} style={{
-              background: '#111827', borderRadius: 18, padding: '14px 8px',
-              border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-            }}>
-              <div style={{ fontSize: 26, lineHeight: 1 }}>{s.icon}</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</div>
-              <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>{s.value}</div>
-            </div>
-          ))}
-        </div>
+        {/* Stats row — siswa only */}
+        {player && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '16px 20px' }}>
+            {[
+              { icon: '⭐', label: 'Level', value: player.level, color: '#FBBF24' },
+              { icon: '🪙', label: 'Koin', value: player.coins?.toLocaleString?.() ?? player.coins, color: '#FBBF24' },
+              { icon: '⚡', label: 'EXP', value: player.exp?.toLocaleString?.() ?? player.exp, color: '#67E8F9' },
+            ].map(s => (
+              <div key={s.label} style={{
+                background: '#111827', borderRadius: 18, padding: '14px 8px',
+                border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              }}>
+                <div style={{ fontSize: 26, lineHeight: 1 }}>{s.icon}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</div>
+                <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Form */}
         <div style={{ padding: '0 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
