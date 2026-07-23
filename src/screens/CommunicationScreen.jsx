@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   PlayerHeader, TopBar, PublicProfileModal, UserAvatar,
 } from '../components/shared'
@@ -33,6 +33,25 @@ function formatTime(value) {
   return new Date(value).toLocaleString('id-ID', {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
+}
+
+function MessageStatus({ message }) {
+  if (message.sender_role === undefined) return null
+  const read = Boolean(message.read_at)
+  const delivered = Boolean(message.delivered_at)
+  const label = read ? 'Dibaca' : delivered ? 'Tersampaikan' : 'Terkirim'
+  return (
+    <span
+      title={label}
+      aria-label={label}
+      style={{
+        color: read ? '#67E8F9' : 'rgba(255,255,255,0.72)',
+        fontSize: 11, fontWeight: 900, letterSpacing: -2, marginLeft: 4,
+      }}
+    >
+      {read || delivered ? '✓✓' : '✓'}
+    </span>
+  )
 }
 
 function EmptyMessages({ forum }) {
@@ -94,8 +113,9 @@ function MessageList({ messages, user, forum, onProfileClick }) {
               <div style={{ color: '#fff', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
                 {message.body}
               </div>
-              <div style={{ color: own ? 'rgba(255,255,255,0.65)' : '#64748B', fontSize: 9, marginTop: 5, textAlign: 'right' }}>
+              <div style={{ color: own ? 'rgba(255,255,255,0.65)' : '#64748B', fontSize: 9, marginTop: 5, textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                 {formatTime(message.created_at)}
+                {own && !forum && <MessageStatus message={message} />}
               </div>
             </div>
           </div>
@@ -188,6 +208,21 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
   const [viewedProfile, setViewedProfile] = useState(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState('')
+  const messageScrollRef = useRef(null)
+  const shouldScrollToBottomRef = useRef(true)
+  const previousLatestMessageIdRef = useRef(null)
+
+  const isNearBottom = useCallback(() => {
+    const element = messageScrollRef.current
+    if (!element) return true
+    return element.scrollHeight - element.scrollTop - element.clientHeight < 90
+  }, [])
+
+  const scrollToBottom = useCallback((behavior = 'auto') => {
+    const element = messageScrollRef.current
+    if (!element) return
+    element.scrollTo({ top: element.scrollHeight, behavior })
+  }, [])
 
   const loadOptions = useCallback(async () => {
     setLoadingContacts(true)
@@ -238,12 +273,19 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
       : (selectedClass ? `/api/komunikasi/forum/${encodeURIComponent(selectedClass)}/messages` : null)
     if (!path) {
       setMessages([])
+      previousLatestMessageIdRef.current = null
       return
     }
+    const keepAtBottom = isNearBottom()
     setLoadingMessages(true)
     try {
       const data = await apiCall(path)
-      setMessages(data.messages)
+      const nextMessages = data.messages || []
+      const latestMessageId = nextMessages[nextMessages.length - 1]?.id ?? null
+      const latestChanged = latestMessageId !== previousLatestMessageIdRef.current
+      shouldScrollToBottomRef.current = shouldScrollToBottomRef.current || (keepAtBottom && latestChanged)
+      previousLatestMessageIdRef.current = latestMessageId
+      setMessages(nextMessages)
       markConversationRead({ tab, selectedContact, selectedClass, messages: data.messages }).catch(() => {})
       setError('')
     } catch (err) {
@@ -258,6 +300,15 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
     const timer = window.setInterval(loadMessages, 5000)
     return () => window.clearInterval(timer)
   }, [loadMessages])
+
+  useEffect(() => {
+    if (loadingMessages || !shouldScrollToBottomRef.current) return
+    const frame = window.requestAnimationFrame(() => {
+      scrollToBottom()
+      shouldScrollToBottomRef.current = false
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [messages, loadingMessages, scrollToBottom])
 
   const activeTitle = useMemo(() => {
     if (tab === 'forum') return selectedClass ? `Forum ${selectedClass}` : 'Pilih kelas'
@@ -276,6 +327,7 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
     try {
       await apiCall(path, { method: 'POST', body: { body: trimmed } })
       setBody('')
+      shouldScrollToBottomRef.current = true
       await loadMessages()
     } catch (err) {
       setError(err.message)
@@ -287,6 +339,24 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
   const selectTab = nextTab => {
     setTab(nextTab)
     setMessages([])
+    previousLatestMessageIdRef.current = null
+    shouldScrollToBottomRef.current = true
+    setError('')
+  }
+
+  const selectContact = contact => {
+    setSelectedContact(contact)
+    setMessages([])
+    previousLatestMessageIdRef.current = null
+    shouldScrollToBottomRef.current = true
+    setError('')
+  }
+
+  const selectClass = kelas => {
+    setSelectedClass(kelas)
+    setMessages([])
+    previousLatestMessageIdRef.current = null
+    shouldScrollToBottomRef.current = true
     setError('')
   }
 
@@ -325,7 +395,7 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
             <ContactList
               contacts={contacts}
               selected={selectedContact}
-              onSelect={contact => { setSelectedContact(contact); setError('') }}
+              onSelect={selectContact}
               onProfileClick={openProfile}
               loading={loadingContacts}
             />
@@ -334,7 +404,7 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
               ? <div style={{ color: '#64748B', fontSize: 12, padding: 12 }}>Belum ada kelas yang tersedia.</div>
               : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 3, scrollbarWidth: 'thin' }}>
                 {classes.map(kelas => (
-                  <button key={kelas} onClick={() => { setSelectedClass(kelas); setError('') }} style={{
+                  <button key={kelas} onClick={() => selectClass(kelas)} style={{
                     border: `1px solid ${selectedClass === kelas ? 'rgba(103,232,249,0.45)' : 'rgba(255,255,255,0.07)'}`,
                     background: selectedClass === kelas ? 'rgba(103,232,249,0.12)' : 'rgba(255,255,255,0.035)',
                     borderRadius: 12, padding: '11px 10px', color: selectedClass === kelas ? '#67E8F9' : '#CBD5E1',
@@ -365,8 +435,8 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
               <div style={{ color: '#64748B', fontSize: 10, marginTop: 2 }}>{tab === 'forum' ? 'Guru dan siswa dapat berdiskusi bersama' : 'Percakapan pribadi'}</div>
             </div>
           </div>
-          <div style={{ flex: 1, padding: 12, overflowY: 'auto', minHeight: 300, maxHeight: 430 }}>
-            {loadingMessages
+          <div ref={messageScrollRef} style={{ flex: 1, padding: 12, overflowY: 'auto', minHeight: 300, maxHeight: 430 }}>
+            {loadingMessages && messages.length === 0
               ? <div style={{ color: '#64748B', fontSize: 12, textAlign: 'center', padding: 30 }}>Memuat pesan…</div>
               : <MessageList messages={messages} user={user} forum={tab === 'forum'} onProfileClick={openProfile} />}
           </div>

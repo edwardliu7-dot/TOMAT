@@ -175,6 +175,16 @@ router.get('/profile/:otherRole/:otherId', async (req, res) => {
 router.get('/unread', async (req, res) => {
   try {
     const user = currentUser(req)
+    // The recipient's active app polling this endpoint is the delivery
+    // acknowledgement. Read status is intentionally handled separately by
+    // POST /read when the conversation is opened.
+    await pool.query(
+      `update pesan_pribadi
+       set delivered_at = coalesce(delivered_at, now())
+       where recipient_id = $1 and recipient_role = $2
+         and delivered_at is null`,
+      [user.id, user.role]
+    )
     const contacts = user.role === 'guru'
       ? (await (async () => {
         const classes = await getGuruClasses(user.id)
@@ -300,6 +310,18 @@ router.post('/read', async (req, res) => {
       return res.json({ ok: true })
     }
 
+    if (type === 'private') {
+      await pool.query(
+        `update pesan_pribadi
+         set delivered_at = coalesce(delivered_at, now()),
+             read_at = coalesce(read_at, now())
+         where id <= $5
+           and sender_id = $3 and sender_role = $4
+           and recipient_id = $1 and recipient_role = $2`,
+        [user.id, user.role, otherId, otherRole, lastReadMessageId]
+      )
+    }
+
     await pool.query(
       `insert into komunikasi_dibaca
          (reader_id, reader_role, conversation_type, conversation_key, last_read_at, last_read_message_id)
@@ -325,14 +347,28 @@ router.get('/private/:otherRole/:otherId/messages', async (req, res) => {
     if (!(await canPrivateChat(user, otherId, otherRole))) {
       return res.status(403).json({ error: 'Anda tidak memiliki akses ke percakapan ini.' })
     }
-    const { rows } = await pool.query(
-       `select id, sender_id, sender_role, recipient_id, recipient_role, body, created_at
+    await pool.query(
+      `update pesan_pribadi
+       set delivered_at = coalesce(delivered_at, now())
+       where sender_id = $2 and sender_role = $3
+         and recipient_id = $1 and recipient_role = $4
+         and delivered_at is null`,
+      [user.id, otherId, otherRole, user.role]
+    )
+     const { rows } = await pool.query(
+       `select id, sender_id, sender_role, recipient_id, recipient_role, body, created_at,
+          delivered_at, read_at
        from pesan_pribadi
-       where (sender_id = $1 and recipient_id = $2)
-          or (sender_id = $2 and recipient_id = $1)
-       order by created_at asc
+        where (
+          sender_id = $1 and sender_role = $2
+          and recipient_id = $3 and recipient_role = $4
+        ) or (
+          sender_id = $3 and sender_role = $4
+          and recipient_id = $1 and recipient_role = $2
+        )
+        order by id asc
        limit 200`,
-      [user.id, otherId]
+       [user.id, user.role, otherId, otherRole]
     )
     res.json({ messages: rows })
   } catch (err) {
@@ -352,10 +388,11 @@ router.post('/private/:otherRole/:otherId/messages', async (req, res) => {
       return res.status(403).json({ error: 'Anda tidak memiliki akses ke percakapan ini.' })
     }
     const { rows } = await pool.query(
-      `insert into pesan_pribadi
+       `insert into pesan_pribadi
          (sender_id, sender_role, recipient_id, recipient_role, body)
        values ($1,$2,$3,$4,$5)
-       returning id, sender_id, sender_role, recipient_id, recipient_role, body, created_at`,
+        returning id, sender_id, sender_role, recipient_id, recipient_role, body, created_at,
+          delivered_at, read_at`,
       [user.id, user.role, otherId, otherRole, body]
     )
     const senderName = user.name || user.id

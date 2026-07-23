@@ -84,6 +84,8 @@ export async function ensureSchema() {
       recipient_role text not null check (recipient_role in ('guru','siswa')),
       body text not null check (char_length(body) between 1 and 2000),
       created_at timestamptz not null default now(),
+      delivered_at timestamptz,
+      read_at timestamptz,
       check (sender_id <> recipient_id),
       check (
         (sender_role = 'guru' and recipient_role = 'siswa')
@@ -94,6 +96,12 @@ export async function ensureSchema() {
       on pesan_pribadi (sender_id, recipient_id, created_at);
     create index if not exists pesan_pribadi_recipient_idx
       on pesan_pribadi (recipient_id, created_at);
+    alter table pesan_pribadi
+      add column if not exists delivered_at timestamptz;
+    alter table pesan_pribadi
+      add column if not exists read_at timestamptz;
+    create index if not exists pesan_pribadi_status_idx
+      on pesan_pribadi (recipient_id, recipient_role, delivered_at, read_at);
   `)
   await pool.query(`
     create table if not exists pesan_forum_kelas (

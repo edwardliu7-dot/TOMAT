@@ -12,3 +12,4 @@
 - [TOMAT public profiles](tomat-public-profiles.md) — users can view limited profiles only within their permitted class circle.
 - [TOMAT push notifications](tomat-push-notifications.md) — in-app notifications are the baseline; Web Push requires VAPID secrets and per-device permission.
 - [TOMAT coin economy](tomat-coin-economy.md) — correct gameplay answers award 15 coins; premium cosmetics use limited-edition pricing and server-side reward caps.
+- [TOMAT message delivery status](tomat-message-delivery-status.md) — private messages progress from sent to delivered when recipient loads the chat, then read when the conversation is opened.
