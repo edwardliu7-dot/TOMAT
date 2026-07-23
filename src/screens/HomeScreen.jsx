@@ -86,6 +86,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode }) {
         <PlayerHeader
           onAvatarClick={() => navigate('profile')}
           onNotificationTaskClick={openTask}
+          onCommunicationClick={() => navigate('komunikasi')}
         />
 
         {/* Hero Banner */}

@@ -143,6 +143,14 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
   const current = history[history.length - 1]
 
+  useEffect(() => {
+    const openCommunication = () => {
+      setHistory(h => h.includes('komunikasi') ? h : [...h, 'komunikasi'])
+    }
+    window.addEventListener('tomat:open-komunikasi', openCommunication)
+    return () => window.removeEventListener('tomat:open-komunikasi', openCommunication)
+  }, [])
+
   // Push a new route onto the stack
   const navigate = useCallback((route, options = {}) => {
     if (GAME_ROUTES[route]) {

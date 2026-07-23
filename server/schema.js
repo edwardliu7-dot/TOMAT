@@ -107,6 +107,21 @@ export async function ensureSchema() {
     create index if not exists pesan_forum_kelas_idx
       on pesan_forum_kelas (kelas, created_at);
   `)
+  await pool.query(`
+    create table if not exists komunikasi_dibaca (
+      reader_id text not null,
+      reader_role text not null check (reader_role in ('guru','siswa')),
+      conversation_type text not null check (conversation_type in ('private','forum')),
+      conversation_key text not null,
+      last_read_at timestamptz not null default now(),
+      last_read_message_id int not null default 0,
+      primary key (reader_id, reader_role, conversation_type, conversation_key)
+    );
+    alter table komunikasi_dibaca
+      add column if not exists last_read_message_id int not null default 0;
+    create index if not exists komunikasi_dibaca_reader_idx
+      on komunikasi_dibaca (reader_id, reader_role, conversation_type);
+  `)
   // Add check constraints idempotently in case the table was created before they existed.
   await pool.query(`
     do $do$

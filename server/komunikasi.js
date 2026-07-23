@@ -101,6 +101,152 @@ router.get('/classes', async (req, res) => {
   }
 })
 
+// GET /api/komunikasi/unread — unread private and class-forum message counts.
+router.get('/unread', async (req, res) => {
+  try {
+    const user = currentUser(req)
+    const contacts = user.role === 'guru'
+      ? (await (async () => {
+        const classes = await getGuruClasses(user.id)
+        const { rows } = await pool.query(
+          'select id from students where kelas = any($1::text[])',
+          [classes]
+        )
+        return rows.map(row => ({ id: row.id, role: 'siswa' }))
+      })())
+      : (await (async () => {
+        const kelas = await getStudentClass(user.id)
+        if (!kelas) return []
+        const { rows } = await pool.query(
+          'select id from gurus where $1 = any(kelas_diampu)',
+          [kelas]
+        )
+        return rows.map(row => ({ id: row.id, role: 'guru' }))
+      })())
+
+    const privateReadParams = [user.id, user.role]
+    const privateConditions = []
+    contacts.forEach((contact, index) => {
+      const keyIndex = privateReadParams.length + 1
+      privateReadParams.push(contact.role, contact.id)
+      privateConditions.push(`(
+        p.sender_id = $${keyIndex + 1} and p.sender_role = $${keyIndex}
+        and p.recipient_id = $1 and p.recipient_role = $2
+        and p.id > coalesce((
+           select d.last_read_message_id from komunikasi_dibaca d
+          where d.reader_id = $1 and d.reader_role = $2
+            and d.conversation_type = 'private'
+            and d.conversation_key = $${keyIndex} || ':' || $${keyIndex + 1}
+        ), 0)
+      )`)
+    })
+
+    // The query above is intentionally built from server-authorized contacts,
+    // so a client cannot ask for unread counts for another class.
+    let privateCount = 0
+    if (privateConditions.length > 0) {
+      const { rows } = await pool.query(
+        `select count(*)::int as count
+         from pesan_pribadi p
+         where ${privateConditions.join(' or ')}`,
+        privateReadParams
+      )
+      privateCount = rows[0]?.count || 0
+    }
+
+    const classes = user.role === 'guru'
+      ? await getGuruClasses(user.id)
+      : [await getStudentClass(user.id)]
+    const validClasses = classes.filter(Boolean)
+    let forumCount = 0
+    if (validClasses.length > 0) {
+      const { rows } = await pool.query(
+        `select count(*)::int as count
+         from pesan_forum_kelas p
+         where p.kelas = any($3::text[])
+           and not (p.sender_id = $1 and p.sender_role = $2)
+           and p.id > coalesce((
+             select max(d.last_read_message_id)
+             from komunikasi_dibaca d
+             where d.reader_id = $1 and d.reader_role = $2
+               and d.conversation_type = 'forum'
+               and d.conversation_key = p.kelas
+           ), 0)`,
+        [user.id, user.role, validClasses]
+      )
+      forumCount = rows[0]?.count || 0
+    }
+
+    res.json({ total: privateCount + forumCount, privateCount, forumCount })
+  } catch (err) {
+    console.error('komunikasi/unread error', err)
+    res.status(500).json({ error: 'Gagal memuat notifikasi pesan.' })
+  }
+})
+
+// POST /api/komunikasi/read — record the newest message visible in a conversation.
+router.post('/read', async (req, res) => {
+  try {
+    const user = currentUser(req)
+    const type = req.body?.type
+    if (!['private', 'forum'].includes(type)) {
+      return res.status(400).json({ error: 'Data pembacaan pesan tidak valid.' })
+    }
+
+    let key
+    let latestQuery
+    let latestParams
+    if (type === 'private') {
+      const otherRole = req.body?.otherRole
+      const otherId = req.body?.otherId
+      if (!(await canPrivateChat(user, otherId, otherRole))) {
+        return res.status(403).json({ error: 'Anda tidak memiliki akses ke percakapan ini.' })
+      }
+      key = `${otherRole}:${otherId}`
+      latestQuery = `
+        select max(id) as last_read_message_id
+        from pesan_pribadi
+        where (
+          sender_id = $1 and sender_role = $2
+          and recipient_id = $3 and recipient_role = $4
+        ) or (
+          sender_id = $3 and sender_role = $4
+          and recipient_id = $1 and recipient_role = $2
+        )`
+      latestParams = [user.id, user.role, otherId, otherRole]
+    } else {
+      const kelas = req.body?.kelas
+      if (!(await canUseClassForum(user, kelas))) {
+        return res.status(403).json({ error: 'Anda tidak memiliki akses ke forum kelas ini.' })
+      }
+      key = kelas
+      latestQuery = 'select max(id) as last_read_message_id from pesan_forum_kelas where kelas = $1'
+      latestParams = [kelas]
+    }
+
+    const { rows: latestRows } = await pool.query(latestQuery, latestParams)
+    const lastReadMessageId = latestRows[0]?.last_read_message_id
+    if (!lastReadMessageId) {
+      return res.json({ ok: true })
+    }
+
+    await pool.query(
+      `insert into komunikasi_dibaca
+         (reader_id, reader_role, conversation_type, conversation_key, last_read_at, last_read_message_id)
+       values ($1,$2,$3,$4,now(),$5)
+       on conflict (reader_id, reader_role, conversation_type, conversation_key)
+       do update set
+         last_read_at = now(),
+         last_read_message_id = greatest(komunikasi_dibaca.last_read_message_id, $5)`,
+      [user.id, user.role, type, key, lastReadMessageId]
+    )
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('komunikasi/read error', err)
+    res.status(500).json({ error: 'Gagal memperbarui status pesan.' })
+  }
+})
+
 // GET /api/komunikasi/private/:otherRole/:otherId/messages
 router.get('/private/:otherRole/:otherId/messages', async (req, res) => {
   try {

@@ -14,6 +14,18 @@ async function apiCall(path, options = {}) {
   return data
 }
 
+async function markConversationRead({ tab, selectedContact, selectedClass, messages }) {
+  if (messages.length === 0) return
+  const body = tab === 'private'
+    ? {
+      type: 'private',
+      otherRole: selectedContact.role,
+      otherId: selectedContact.id,
+    }
+    : { type: 'forum', kelas: selectedClass }
+  await apiCall('/api/komunikasi/read', { method: 'POST', body })
+}
+
 function formatTime(value) {
   if (!value) return ''
   return new Date(value).toLocaleString('id-ID', {
@@ -155,6 +167,7 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
     try {
       const data = await apiCall(path)
       setMessages(data.messages)
+      markConversationRead({ tab, selectedContact, selectedClass, messages: data.messages }).catch(() => {})
       setError('')
     } catch (err) {
       setError(err.message)

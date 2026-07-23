@@ -11,6 +11,7 @@ import { TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import ProfileScreen from './ProfileScreen'
 import CommunicationScreen from './CommunicationScreen'
+import { MessageNotificationBell } from '../components/shared'
 
 async function apiCall(path, options = {}) {
   const res = await fetch(path, {
@@ -564,7 +565,9 @@ export default function GuruDashboardScreen({ onPlayGames }) {
             </div>
           </div>
 
-          <button onClick={onPlayGames} style={{
+           <MessageNotificationBell onClick={() => setTab('komunikasi')} />
+
+           <button onClick={onPlayGames} style={{
             background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)',
             color: '#34D399', borderRadius: 20, padding: '8px 14px', cursor: 'pointer',
             fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,

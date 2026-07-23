@@ -67,12 +67,103 @@ export function SurvivalOverScreen({ streak, onRetry, goBack, accentColor = '#F8
   )
 }
 
-export function PlayerHeader({ onAvatarClick, onNotificationTaskClick }) {
+export function useMessageNotifications(enabled = true) {
+  const [notifications, setNotifications] = React.useState({ total: 0, privateCount: 0, forumCount: 0 })
+  const refresh = React.useCallback(async () => {
+    if (!enabled) return
+    try {
+      const res = await fetch('/api/komunikasi/unread', { credentials: 'include' })
+      if (!res.ok) return
+      const data = await res.json()
+      setNotifications({
+        total: Number(data.total) || 0,
+        privateCount: Number(data.privateCount) || 0,
+        forumCount: Number(data.forumCount) || 0,
+      })
+    } catch {
+      // Notifications are supplementary; a temporary polling failure should not
+      // interrupt the screen the user is currently using.
+    }
+  }, [enabled])
+
+  React.useEffect(() => {
+    refresh()
+    if (!enabled) return undefined
+    const timer = window.setInterval(refresh, 5000)
+    return () => window.clearInterval(timer)
+  }, [enabled, refresh])
+
+  return notifications
+}
+
+export function MessageNotificationBell({ onClick }) {
+  const notifications = useMessageNotifications(true)
+  const [open, setOpen] = React.useState(false)
+  const openCommunication = () => {
+    setOpen(false)
+    onClick?.()
+  }
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        onClick={() => setOpen(value => !value)}
+        title="Notifikasi pesan"
+        aria-label={`Notifikasi pesan${notifications.total ? `, ${notifications.total} pesan baru` : ''}`}
+        aria-expanded={open}
+        style={{
+          position: 'relative', width: 36, height: 36, borderRadius: 10,
+          background: open ? 'rgba(103,232,249,0.16)' : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${open ? 'rgba(103,232,249,0.45)' : 'rgba(255,255,255,0.08)'}`,
+          color: '#67E8F9', cursor: 'pointer', fontSize: 17,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        💬
+        {notifications.total > 0 && (
+          <span style={{
+            position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18,
+            padding: '0 4px', borderRadius: 99, background: '#EF4444', color: '#fff',
+            fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px solid #0A0B14',
+          }}>{notifications.total > 99 ? '99+' : notifications.total}</span>
+        )}
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 46, right: 0, width: 245, maxWidth: 'calc(100vw - 32px)',
+          background: '#151923', border: '1px solid rgba(103,232,249,0.25)',
+          borderRadius: 16, boxShadow: '0 14px 34px rgba(0,0,0,0.45)', overflow: 'hidden', zIndex: 60,
+        }}>
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontWeight: 800 }}>
+            💬 Pesan Baru
+          </div>
+          {notifications.total === 0 ? (
+            <div style={{ padding: '18px 14px', color: '#64748B', fontSize: 12, textAlign: 'center' }}>Tidak ada pesan baru.</div>
+          ) : (
+            <button onClick={openCommunication} style={{
+              width: '100%', border: 'none', background: 'transparent', color: '#CBD5E1',
+              padding: '12px 14px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              <div style={{ color: '#67E8F9', fontSize: 12, fontWeight: 800, marginBottom: 5 }}>Buka Komunikasi →</div>
+              <div style={{ fontSize: 11, lineHeight: 1.6 }}>
+                {notifications.privateCount > 0 && <div>✉️ {notifications.privateCount} chat pribadi</div>}
+                {notifications.forumCount > 0 && <div>💬 {notifications.forumCount} pesan forum</div>}
+              </div>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommunicationClick }) {
   const { player } = usePlayer()
   const { logout, user } = useAuth()
   const { tasks = [] } = useTask() || {}
   const [notificationsOpen, setNotificationsOpen] = React.useState(false)
-  const activeTasks = tasks.filter(task => task.status === 'active')
+  const activeTasks = onNotificationTaskClick ? tasks.filter(task => task.status === 'active') : []
+  const messageNotifications = useMessageNotifications(true)
   const expPct = Math.min(100, Math.round((player.exp / player.maxExp) * 100))
   const bingkai = user?.equippedBingkai ? BINGKAI_VISUALS[user.equippedBingkai] : null
   return (
@@ -107,12 +198,12 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick }) {
           border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 4,
         }}>🪙 {player.coins}</div>
       </div>
-      {onNotificationTaskClick && (
+      {user && (
         <div style={{ position: 'relative', flexShrink: 0 }}>
           <button
             onClick={() => setNotificationsOpen(open => !open)}
-            title="Notifikasi tugas"
-            aria-label={`Notifikasi tugas${activeTasks.length ? `, ${activeTasks.length} tugas aktif` : ''}`}
+            title="Notifikasi"
+            aria-label={`Notifikasi${activeTasks.length || messageNotifications.total ? `, ${activeTasks.length + messageNotifications.total} item baru` : ''}`}
             aria-expanded={notificationsOpen}
             style={{
               position: 'relative', width: 36, height: 36, borderRadius: 10,
@@ -123,13 +214,13 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick }) {
             }}
           >
             🔔
-            {activeTasks.length > 0 && (
+            {(activeTasks.length + messageNotifications.total) > 0 && (
               <span style={{
                 position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18,
                 padding: '0 4px', borderRadius: 99, background: '#EF4444', color: '#fff',
                 fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: '2px solid #0A0B14',
-              }}>{activeTasks.length}</span>
+              }}>{activeTasks.length + messageNotifications.total > 99 ? '99+' : activeTasks.length + messageNotifications.total}</span>
             )}
           </button>
           {notificationsOpen && (
@@ -142,14 +233,35 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick }) {
                 padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)',
                 color: '#fff', fontSize: 13, fontWeight: 800,
               }}>
-                🔔 Tugas Baru
+                 🔔 Notifikasi
               </div>
-              {activeTasks.length === 0 ? (
+               {activeTasks.length === 0 && messageNotifications.total === 0 ? (
                 <div style={{ padding: '18px 14px', color: '#64748B', fontSize: 12, textAlign: 'center' }}>
-                  Tidak ada tugas aktif saat ini.
+                   Tidak ada notifikasi baru.
                 </div>
               ) : (
                 <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                   {messageNotifications.total > 0 && (
+                     <button
+                       onClick={() => {
+                         setNotificationsOpen(false)
+                         onCommunicationClick?.()
+                         if (!onCommunicationClick) window.dispatchEvent(new CustomEvent('tomat:open-komunikasi'))
+                       }}
+                       style={{
+                         width: '100%', textAlign: 'left', cursor: 'pointer',
+                         background: 'rgba(103,232,249,0.08)', border: '1px solid rgba(103,232,249,0.25)',
+                         borderRadius: 12, padding: '10px 11px', color: '#fff', fontFamily: 'inherit',
+                       }}
+                     >
+                       <div style={{ fontSize: 12, fontWeight: 800, color: '#67E8F9' }}>💬 Pesan Baru</div>
+                       <div style={{ color: '#CBD5E1', fontSize: 10, marginTop: 4 }}>
+                         {messageNotifications.privateCount > 0 && `${messageNotifications.privateCount} chat pribadi`}
+                         {messageNotifications.privateCount > 0 && messageNotifications.forumCount > 0 ? ' · ' : ''}
+                         {messageNotifications.forumCount > 0 && `${messageNotifications.forumCount} pesan forum`}
+                       </div>
+                     </button>
+                   )}
                   {activeTasks.map(task => {
                     const color = TYPE_COLORS[task.type] || '#67E8F9'
                     return (
@@ -157,7 +269,7 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick }) {
                         key={task.id}
                         onClick={() => {
                           setNotificationsOpen(false)
-                          onNotificationTaskClick(task)
+                          onNotificationTaskClick?.(task)
                         }}
                         style={{
                           width: '100%', textAlign: 'left', cursor: 'pointer',
