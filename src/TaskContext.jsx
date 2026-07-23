@@ -111,12 +111,13 @@ export function TaskProvider({ children, onTaskComplete }) {
     setActiveSession(null)
   }, [])
 
-  // Override addCoins: when a task session is active, track each correct answer (addCoins(50)).
+  // Override addCoins: game files use the legacy 50 marker, while the actual
+  // normalized economy reward is 15 coins per correct answer.
   // When all questions are answered, submit the grade to the server and fire onTaskComplete.
   const addCoins = useCallback((amount) => {
     playerCtx.addCoins(amount)
     const session = activeSessionRef.current
-    if (!session || amount !== 50) return // 50 coins = one correct game answer
+    if (!session || amount !== 50) return // legacy marker = one correct game answer
 
     const newCorrect = session.correctAnswers + 1
     if (newCorrect >= session.totalQuestions) {

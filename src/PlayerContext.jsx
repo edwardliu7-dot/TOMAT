@@ -19,6 +19,11 @@ async function persistGain(coins, exp) {
   }
 }
 
+// Game files still call addCoins(50) so task-session tracking remains compatible.
+// The actual economy reward is deliberately normalized here to slow down shop
+// progression without requiring a risky edit across every minigame.
+export const CORRECT_ANSWER_COIN_REWARD = 15
+
 // Guru "Mode Mengajar" free-play also mounts PlayerProvider, but there is no student row to
 // persist to (teachers don't earn coins/EXP) — persistence below is skipped for non-siswa.
 export function PlayerProvider({ children }) {
@@ -54,8 +59,9 @@ export function PlayerProvider({ children }) {
   }, [user?.id])
 
   const addCoins = useCallback((amount) => {
-    setPlayer(p => ({ ...p, coins: p.coins + amount }))
-    if (isSiswa) persistGain(amount, 0)
+    const reward = amount === 50 ? CORRECT_ANSWER_COIN_REWARD : amount
+    setPlayer(p => ({ ...p, coins: p.coins + reward }))
+    if (isSiswa) persistGain(reward, 0)
   }, [isSiswa])
 
   const addExp = useCallback((amount) => {

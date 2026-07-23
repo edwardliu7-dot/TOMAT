@@ -242,9 +242,25 @@ export async function ensureSchema() {
     ['bingkai_sakura', 'bingkai', 'Sakura Petal', 950, { border: '#F9A8D4', style: 'dotted' }, 4],
     ['bingkai_emas', 'bingkai', 'Golden Halo', 2000, { border: '#EAB308', style: 'solid', glow: true }, 5],
     ['bingkai_void', 'bingkai', 'Void King', 3000, { border: '#A855F7', style: 'solid', glow: true }, 6],
+    ['bingkai_aurum_sovereign', 'bingkai', 'Aurum Sovereign', 12000, {
+      border: '#D4AF37', style: 'double', glow: true, limited: true, edition: '01 / 25',
+      description: 'Warisan mahkota bagi penguasa rasio.'
+    }, 7],
+    ['bingkai_void_monarch', 'bingkai', 'Void Monarch', 18000, {
+      border: '#6366F1', style: 'solid', glow: true, limited: true, edition: '03 / 13',
+      description: 'Akuisisi langka dari singgasana kehampaan.'
+    }, 8],
     ['spanduk_galaksi', 'spanduk', 'Galaksi', 1000, { gradient: 'linear-gradient(90deg,#312e81,#581c87,#000)' }, 1],
     ['spanduk_hutan', 'spanduk', 'Hutan Ajaib', 1200, { gradient: 'linear-gradient(90deg,#064e3b,#134e4a)' }, 2],
     ['spanduk_retro', 'spanduk', 'Retro 8-bit', 2500, { gradient: 'linear-gradient(90deg,#374151,#111827)' }, 3],
+    ['spanduk_celestia_relic', 'spanduk', 'Celestia Relic', 22000, {
+      gradient: 'linear-gradient(115deg,#020617,#172554 48%,#e0f2fe)', limited: true, edition: '07 / 12',
+      description: 'Artefak kosmik untuk kolektor yang tak tersentuh.'
+    }, 4],
+    ['spanduk_royal_mathematician', 'spanduk', 'Royal Mathematician', 15000, {
+      gradient: 'linear-gradient(115deg,#17120c,#45351b 48%,#d4af37)', limited: true, edition: '02 / 20',
+      description: 'Dekrit mahaguru bagi penakluk anatomi angka.'
+    }, 5],
   ]
   for (const [id, kategori, nama, harga, visual, sortOrder] of shopItems) {
     await pool.query(

@@ -6,6 +6,8 @@ import { applyExp, checkAndAwardBadges } from './gamify.js'
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
 
+const MAX_GAMEPLAY_COIN_REWARD = 15
+
 function playerFields(row) {
   return {
     coins: row.coins,
@@ -30,6 +32,9 @@ router.post('/gain', async (req, res) => {
     const expGain = Math.max(0, parseInt(req.body?.exp, 10) || 0)
     if (coinsGain === 0 && expGain === 0) {
       return res.status(400).json({ error: 'Tidak ada koin atau EXP untuk disimpan.' })
+    }
+    if (coinsGain > MAX_GAMEPLAY_COIN_REWARD) {
+      return res.status(400).json({ error: `Hadiah koin maksimal ${MAX_GAMEPLAY_COIN_REWARD} per jawaban.` })
     }
     await client.query('begin')
     const { rows } = await client.query(

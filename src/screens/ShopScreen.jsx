@@ -33,7 +33,13 @@ function ItemVisual({ item }) {
   }
   if (item.kategori === 'spanduk') {
     const v = item.visual || {}
-    return <div style={{ width: '100%', height: 64, borderRadius: 12, background: v.gradient || '#334155' }} />
+    return (
+      <div style={{
+        width: '100%', height: 64, borderRadius: 12, background: v.gradient || '#334155',
+        boxShadow: v.glow ? '0 0 20px rgba(212,175,55,0.3)' : 'none',
+        border: v.limited ? '1px solid rgba(212,175,55,0.55)' : 'none',
+      }} />
+    )
   }
   return <div style={{ width: 76, height: 76, borderRadius: 12, background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>❔</div>
 }
@@ -142,8 +148,19 @@ export default function ShopScreen({ goBack }) {
                   {equipped && (
                     <div style={{ position: 'absolute', top: 0, right: 0, background: '#EAB308', color: '#000', fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: '0 14px 0 10px' }}>DIPAKAI</div>
                   )}
+                   {item.visual?.limited && !equipped && (
+                     <div style={{ position: 'absolute', top: 0, left: 0, background: 'linear-gradient(90deg,#D4AF37,#F8E7A1)', color: '#21180a', fontSize: 9, fontWeight: 900, letterSpacing: 0.7, padding: '4px 7px', borderRadius: '14px 0 10px 0' }}>
+                       LIMITED
+                     </div>
+                   )}
                   <ItemVisual item={item} />
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', textAlign: 'center' }}>{item.nama}</div>
+                   {item.visual?.edition && (
+                     <div style={{ fontSize: 10, color: '#D4AF37', fontWeight: 800, letterSpacing: 0.8 }}>EDISI {item.visual.edition}</div>
+                   )}
+                   {item.visual?.description && (
+                     <div style={{ fontSize: 10, lineHeight: 1.35, color: '#94A3B8', textAlign: 'center' }}>{item.visual.description}</div>
+                   )}
                   {equipped ? (
                     <button disabled style={{ width: '100%', padding: '9px 0', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: '#94A3B8', border: 'none', fontSize: 12, fontWeight: 700 }}>✓ Terpasang</button>
                   ) : owned ? (

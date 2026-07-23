@@ -11,3 +11,4 @@
 - [TOMAT message notifications](tomat-message-notifications.md) — unread markers use server-derived message IDs, avoiding timestamp precision errors.
 - [TOMAT public profiles](tomat-public-profiles.md) — users can view limited profiles only within their permitted class circle.
 - [TOMAT push notifications](tomat-push-notifications.md) — in-app notifications are the baseline; Web Push requires VAPID secrets and per-device permission.
+- [TOMAT coin economy](tomat-coin-economy.md) — correct gameplay answers award 15 coins; premium cosmetics use limited-edition pricing and server-side reward caps.
