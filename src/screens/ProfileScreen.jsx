@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react'
 import Cropper from 'react-easy-crop'
-import { TopBar, Btn, Card } from '../components/shared'
+import { TopBar, Btn, Card, ProfileBanner, UserAvatar } from '../components/shared'
 import { useAuth } from '../AuthContext'
 import { usePlayer } from '../PlayerContext'
 import { readFileAsDataUrl, getCroppedImage, compressDataUrlToLimit } from '../utils/imageUtils'
@@ -155,21 +155,11 @@ export default function ProfileScreen({ goBack }) {
 
         {/* Avatar */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 32, paddingBottom: 8 }}>
+          <div style={{ width: 'calc(100% - 40px)', maxWidth: 420, marginBottom: 18 }}>
+            <ProfileBanner user={user} height={104} />
+          </div>
           <div style={{ position: 'relative' }}>
-            <div style={{
-              width: 112, height: 112, borderRadius: '50%', padding: 3,
-              background: photoPreview ? 'transparent' : 'linear-gradient(135deg, #8B5CF6, #06B6D4, #34D399)',
-              boxShadow: '0 0 32px rgba(103,232,249,0.3)',
-            }}>
-              <div style={{
-                width: '100%', height: '100%', borderRadius: '50%',
-                background: photoPreview ? `url(${photoPreview}) center/cover no-repeat` : '#1E2130',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 40, fontWeight: 800, color: '#fff',
-              }}>
-                {!photoPreview && (initial || '🧑‍🚀')}
-              </div>
-            </div>
+            <UserAvatar user={{ ...user, photoUrl: photoPreview }} size={112} />
             <button onClick={handlePickPhoto} style={{
               position: 'absolute', bottom: 0, right: 0, width: 36, height: 36,
               borderRadius: '50%', background: '#06B6D4', border: '3px solid #0A0B14',

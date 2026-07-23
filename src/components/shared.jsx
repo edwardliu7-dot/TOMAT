@@ -3,7 +3,7 @@ import { usePlayer } from '../PlayerContext'
 import { useAuth } from '../AuthContext'
 import { useTask, TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
-import { BINGKAI_VISUALS } from '../shopVisuals'
+import { BINGKAI_VISUALS, SPANDUK_VISUALS } from '../shopVisuals'
 import { useAppNotifications, usePushNotifications } from '../notifications'
 
 export function TopBar({ title, onBack, accentColor = '#67E8F9', rightElement }) {
@@ -57,6 +57,64 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
   )
 }
 
+// Profile cover for the equipped spanduk. The shop item is a profile banner,
+// not an avatar border, so keep it as a separate layer in profile surfaces.
+export function ProfileBanner({ user, height = 92 }) {
+  const spandukId = user?.equippedSpanduk ?? user?.equipped_spanduk
+  const spanduk = spandukId ? SPANDUK_VISUALS[spandukId] : null
+  if (!spanduk) return null
+  const isCelestia = spanduk.luxury === 'celestia'
+  const isRoyal = spanduk.luxury === 'royal'
+  return (
+    <div
+      aria-label={`Spanduk ${spandukId}`}
+      style={{
+        height,
+        width: '100%',
+        borderRadius: 18,
+        overflow: 'hidden',
+        position: 'relative',
+        background: spanduk.gradient,
+        border: `1px solid ${isRoyal ? 'rgba(212,175,55,0.5)' : isCelestia ? 'rgba(147,197,253,0.42)' : 'rgba(255,255,255,0.12)'}`,
+        boxShadow: isRoyal
+          ? '0 0 28px rgba(212,175,55,0.16)'
+          : isCelestia
+            ? '0 0 28px rgba(96,165,250,0.16)'
+            : 'none',
+      }}
+    >
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: isCelestia
+          ? 'radial-gradient(circle at 18% 50%, rgba(191,219,254,0.3), transparent 20%), radial-gradient(circle at 82% 25%, rgba(96,165,250,0.22), transparent 28%)'
+          : isRoyal
+            ? 'radial-gradient(circle at 50% 0%, rgba(212,175,55,0.2), transparent 45%), linear-gradient(90deg, transparent, rgba(212,175,55,0.08), transparent)'
+            : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)',
+      }} />
+      <div style={{
+        position: 'absolute', inset: 12,
+        border: `1px solid ${isRoyal ? 'rgba(212,175,55,0.28)' : isCelestia ? 'rgba(147,197,253,0.24)' : 'rgba(255,255,255,0.12)'}`,
+        borderRadius: 12,
+      }} />
+      <div style={{
+        position: 'absolute', left: 18, bottom: 12,
+        color: isRoyal ? '#f5e7b2' : isCelestia ? '#dbeafe' : '#fff',
+        fontSize: 9, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase',
+        textShadow: '0 1px 8px rgba(0,0,0,0.6)',
+      }}>
+        {isRoyal ? 'Royal Mathematician' : isCelestia ? 'Celestia Relic' : 'Spanduk Profil'}
+      </div>
+      <div style={{
+        position: 'absolute', right: 18, top: 12,
+        color: isRoyal ? '#d4af37' : isCelestia ? '#93c5fd' : '#cbd5e1',
+        fontSize: 16, opacity: 0.9,
+      }}>
+        {isRoyal ? '◇' : isCelestia ? '✦' : '✧'}
+      </div>
+    </div>
+  )
+}
+
 export function PublicProfileModal({ profile, loading, error, onClose }) {
   if (!profile && !loading && !error) return null
   return (
@@ -83,6 +141,7 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
           <div style={{ color: '#FCA5A5', textAlign: 'center', padding: '25px 20px 42px', fontSize: 12 }}>{error}</div>
         ) : (
           <div style={{ padding: '4px 22px 26px', textAlign: 'center' }}>
+            <ProfileBanner user={profile} height={78} />
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
               <UserAvatar user={profile} size={82} />
             </div>

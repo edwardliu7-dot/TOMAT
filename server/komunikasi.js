@@ -154,7 +154,9 @@ router.get('/profile/:otherRole/:otherId', async (req, res) => {
 
     const table = otherRole === 'guru' ? 'gurus' : 'students'
     const { rows } = await pool.query(
-       `select id, name, photo_url, bio, ${otherRole === 'guru' ? 'null::text as equipped_bingkai, kelas_diampu' : 'equipped_bingkai, kelas'} as kelas
+       `select id, name, photo_url, bio, ${otherRole === 'guru'
+         ? 'null::text as equipped_bingkai, null::text as equipped_spanduk, kelas_diampu'
+         : 'equipped_bingkai, equipped_spanduk, kelas'} as kelas
        from ${table}
         where id = $1
           ${otherRole === 'siswa' && user.role === 'siswa' && user.id !== otherId ? 'and not is_test_account' : ''}
@@ -170,6 +172,7 @@ router.get('/profile/:otherRole/:otherId', async (req, res) => {
         role: otherRole,
         photoUrl: profile.photo_url || null,
         equippedBingkai: profile.equipped_bingkai || null,
+        equippedSpanduk: profile.equipped_spanduk || null,
         bio: profile.bio || '',
         kelas: profile.kelas || [],
       },
