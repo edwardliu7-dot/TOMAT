@@ -47,7 +47,84 @@ function EmptyMessages({ forum }) {
   )
 }
 
-function MessageList({ messages, user, forum }) {
+function ProfileAvatar({ profile, size = 40 }) {
+  const initial = (profile?.name || '?')[0]?.toUpperCase()
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: size * 0.3, flexShrink: 0,
+      background: profile?.photoUrl
+        ? `url(${profile.photoUrl}) center/cover no-repeat`
+        : profile?.role === 'guru'
+          ? 'linear-gradient(135deg, #8B5CF6, #6366F1)'
+          : 'linear-gradient(135deg, #0891B2, #2563EB)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: '#fff', fontSize: size * 0.38, fontWeight: 900,
+    }}>
+      {!profile?.photoUrl && initial}
+    </div>
+  )
+}
+
+function ProfileModal({ profile, loading, error, onClose }) {
+  if (!profile && !loading && !error) return null
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.72)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
+    }} onClick={onClose}>
+      <div style={{
+        width: '100%', maxWidth: 360, background: '#111827',
+        border: '1px solid rgba(103,232,249,0.25)', borderRadius: 20,
+        boxShadow: '0 20px 55px rgba(0,0,0,0.55)', overflow: 'hidden',
+      }} onClick={event => event.stopPropagation()}>
+        <div style={{ height: 3, background: 'linear-gradient(90deg,#06B6D4,#8B5CF6)' }} />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 12px 0' }}>
+          <button onClick={onClose} aria-label="Tutup profil" style={{
+            width: 30, height: 30, borderRadius: 9, border: 'none',
+            background: 'rgba(255,255,255,0.08)', color: '#94A3B8',
+            cursor: 'pointer', fontSize: 16,
+          }}>×</button>
+        </div>
+        {loading ? (
+          <div style={{ color: '#64748B', textAlign: 'center', padding: '34px 20px 42px', fontSize: 12 }}>
+            Memuat profil…
+          </div>
+        ) : error ? (
+          <div style={{ color: '#FCA5A5', textAlign: 'center', padding: '25px 20px 42px', fontSize: 12 }}>
+            {error}
+          </div>
+        ) : (
+          <div style={{ padding: '4px 22px 26px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <ProfileAvatar profile={profile} size={82} />
+            </div>
+            <div style={{ color: '#fff', fontSize: 18, fontWeight: 900 }}>{profile.name}</div>
+            <div style={{
+              display: 'inline-block', marginTop: 7, padding: '5px 12px', borderRadius: 99,
+              background: profile.role === 'guru' ? 'rgba(167,139,250,0.14)' : 'rgba(103,232,249,0.12)',
+              color: profile.role === 'guru' ? '#C4B5FD' : '#67E8F9',
+              fontSize: 11, fontWeight: 800,
+            }}>
+              {profile.role === 'guru' ? '🎓 Guru' : '🧑‍🎓 Siswa'}
+            </div>
+            <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 14 }}>
+              {Array.isArray(profile.kelas) ? profile.kelas.join(' · ') : profile.kelas}
+            </div>
+            <div style={{
+              marginTop: 16, padding: '13px 14px', borderRadius: 13, textAlign: 'left',
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+              color: profile.bio ? '#CBD5E1' : '#64748B', fontSize: 12, lineHeight: 1.6,
+            }}>
+              {profile.bio || 'Belum ada bio.'}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function MessageList({ messages, user, forum, onProfileClick }) {
   if (messages.length === 0) return <EmptyMessages forum={forum} />
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
@@ -66,12 +143,18 @@ function MessageList({ messages, user, forum }) {
               padding: '9px 12px',
             }}>
               {forum && !own && (
-                <div style={{
+                <button onClick={() => onProfileClick?.({
+                  id: message.sender_id,
+                  role: message.sender_role,
+                  name: message.sender_name,
+                })} style={{
+                  display: 'block', padding: 0, border: 'none', background: 'none',
+                  cursor: 'pointer', fontFamily: 'inherit',
                   color: message.sender_role === 'guru' ? '#C4B5FD' : '#67E8F9',
                   fontSize: 10, fontWeight: 800, marginBottom: 4,
-                }}>
+                }} title="Lihat profil">
                   {message.sender_name || 'Pengguna'} · {message.sender_role === 'guru' ? 'Guru' : 'Siswa'}
-                </div>
+                </button>
               )}
               <div style={{ color: '#fff', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
                 {message.body}
@@ -87,7 +170,7 @@ function MessageList({ messages, user, forum }) {
   )
 }
 
-function ContactList({ contacts, selected, onSelect, loading }) {
+function ContactList({ contacts, selected, onSelect, onProfileClick, loading }) {
   if (loading) return <div style={{ color: '#64748B', fontSize: 12, padding: 12 }}>Memuat kontak…</div>
   if (contacts.length === 0) {
     return <div style={{ color: '#64748B', fontSize: 12, lineHeight: 1.5, padding: 12 }}>Belum ada kontak yang dapat dihubungi.</div>
@@ -101,22 +184,26 @@ function ContactList({ contacts, selected, onSelect, loading }) {
       {contacts.map(contact => {
         const active = selected?.id === contact.id && selected?.role === contact.role
         return (
-          <button key={`${contact.role}-${contact.id}`} onClick={() => onSelect(contact)} style={{
+          <div key={`${contact.role}-${contact.id}`} style={{
             border: `1px solid ${active ? 'rgba(103,232,249,0.45)' : 'rgba(255,255,255,0.07)'}`,
             background: active ? 'rgba(103,232,249,0.12)' : 'rgba(255,255,255,0.035)',
-            borderRadius: 12, padding: '10px 11px', color: '#fff', cursor: 'pointer',
-            textAlign: 'left', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 9,
+            borderRadius: 12, padding: '7px 8px', display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            <div style={{
-              width: 31, height: 31, borderRadius: 10, background: contact.role === 'guru'
-                ? 'rgba(167,139,250,0.18)' : 'rgba(103,232,249,0.14)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
-            }}>{contact.role === 'guru' ? '🎓' : '🧑‍🎓'}</div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.name}</div>
-              <div style={{ color: '#64748B', fontSize: 10, marginTop: 2 }}>{contact.kelas || 'Guru'}</div>
-            </div>
-          </button>
+            <button onClick={() => onProfileClick?.(contact)} aria-label={`Lihat profil ${contact.name}`} style={{
+              border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+            }}>
+              <ProfileAvatar profile={contact} size={31} />
+            </button>
+            <button onClick={() => onSelect(contact)} style={{
+              flex: 1, minWidth: 0, border: 'none', background: 'none', color: '#fff',
+              cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', padding: 0,
+            }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.name}</div>
+                <div style={{ color: '#64748B', fontSize: 10, marginTop: 2 }}>{contact.kelas || 'Guru'}</div>
+              </div>
+            </button>
+          </div>
         )
       })}
     </div>
@@ -136,6 +223,9 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [viewedProfile, setViewedProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileError, setProfileError] = useState('')
 
   const loadOptions = useCallback(async () => {
     setLoadingContacts(true)
@@ -156,6 +246,27 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
   }, [])
 
   useEffect(() => { loadOptions() }, [loadOptions])
+
+  const openProfile = useCallback(async target => {
+    if (!target?.id || !target?.role) return
+    setViewedProfile(null)
+    setProfileError('')
+    setProfileLoading(true)
+    try {
+      const data = await apiCall(`/api/komunikasi/profile/${target.role}/${encodeURIComponent(target.id)}`)
+      setViewedProfile(data.profile)
+    } catch (err) {
+      setProfileError(err.message)
+    } finally {
+      setProfileLoading(false)
+    }
+  }, [])
+
+  const closeProfile = () => {
+    setViewedProfile(null)
+    setProfileError('')
+    setProfileLoading(false)
+  }
 
   const loadMessages = useCallback(async () => {
     const path = tab === 'private'
@@ -249,7 +360,13 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
             {tab === 'private' ? (user.role === 'guru' ? 'Daftar Siswa' : 'Guru Kelas') : 'Kelas Saya'}
           </div>
           {tab === 'private' ? (
-            <ContactList contacts={contacts} selected={selectedContact} onSelect={contact => { setSelectedContact(contact); setError('') }} loading={loadingContacts} />
+            <ContactList
+              contacts={contacts}
+              selected={selectedContact}
+              onSelect={contact => { setSelectedContact(contact); setError('') }}
+              onProfileClick={openProfile}
+              loading={loadingContacts}
+            />
           ) : (
             classes.length === 0
               ? <div style={{ color: '#64748B', fontSize: 12, padding: 12 }}>Belum ada kelas yang tersedia.</div>
@@ -271,7 +388,16 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
           borderRadius: 16, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}>
           <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 9 }}>
-            <div style={{ fontSize: 19 }}>{tab === 'forum' ? '💬' : selectedContact?.role === 'guru' ? '🎓' : '🧑‍🎓'}</div>
+            <button
+              onClick={() => tab === 'private' && openProfile(selectedContact)}
+              disabled={tab !== 'private' || !selectedContact}
+              aria-label="Lihat profil"
+              style={{ border: 'none', background: 'none', padding: 0, cursor: tab === 'private' ? 'pointer' : 'default' }}
+            >
+              {tab === 'forum'
+                ? <div style={{ fontSize: 19 }}>💬</div>
+                : <ProfileAvatar profile={selectedContact} size={31} />}
+            </button>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: '#fff', fontSize: 13, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeTitle}</div>
               <div style={{ color: '#64748B', fontSize: 10, marginTop: 2 }}>{tab === 'forum' ? 'Guru dan siswa dapat berdiskusi bersama' : 'Percakapan pribadi'}</div>
@@ -280,7 +406,7 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
           <div style={{ flex: 1, padding: 12, overflowY: 'auto', minHeight: 300, maxHeight: 430 }}>
             {loadingMessages
               ? <div style={{ color: '#64748B', fontSize: 12, textAlign: 'center', padding: 30 }}>Memuat pesan…</div>
-              : <MessageList messages={messages} user={user} forum={tab === 'forum'} />}
+              : <MessageList messages={messages} user={user} forum={tab === 'forum'} onProfileClick={openProfile} />}
           </div>
           <form onSubmit={sendMessage} style={{ display: 'flex', gap: 8, padding: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
             <textarea
@@ -306,6 +432,12 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
           {error}
         </div>
       )}
+      <ProfileModal
+        profile={viewedProfile}
+        loading={profileLoading}
+        error={profileError}
+        onClose={closeProfile}
+      />
     </div>
   )
 

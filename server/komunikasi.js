@@ -55,6 +55,39 @@ async function canUseClassForum(user, kelas) {
   return (await getStudentClass(user.id)) === kelas
 }
 
+async function canViewProfile(user, otherId, otherRole) {
+  if (otherRole !== 'guru' && otherRole !== 'siswa') return false
+  if (user.id === otherId && user.role === otherRole) return true
+
+  if (user.role === 'guru') {
+    const classes = await getGuruClasses(user.id)
+    if (otherRole === 'siswa') {
+      const { rows } = await pool.query(
+        'select id from students where id = $1 and kelas = any($2::text[])',
+        [otherId, classes]
+      )
+      return rows.length > 0
+    }
+    return false
+  }
+
+  const kelas = await getStudentClass(user.id)
+  if (!kelas) return false
+  if (otherRole === 'guru') {
+    const { rows } = await pool.query(
+      'select id from gurus where id = $1 and $2 = any(kelas_diampu)',
+      [otherId, kelas]
+    )
+    return rows.length > 0
+  }
+
+  const { rows } = await pool.query(
+    'select id from students where id = $1 and kelas = $2',
+    [otherId, kelas]
+  )
+  return rows.length > 0
+}
+
 // GET /api/komunikasi/contacts — people this user is allowed to message privately.
 router.get('/contacts', async (req, res) => {
   try {
@@ -98,6 +131,41 @@ router.get('/classes', async (req, res) => {
   } catch (err) {
     console.error('komunikasi/classes error', err)
     res.status(500).json({ error: 'Gagal memuat forum kelas.' })
+  }
+})
+
+// GET /api/komunikasi/profile/:role/:id — public profile within the user's class circle.
+router.get('/profile/:otherRole/:otherId', async (req, res) => {
+  try {
+    const user = currentUser(req)
+    const { otherRole, otherId } = req.params
+    if (!(await canViewProfile(user, otherId, otherRole))) {
+      return res.status(403).json({ error: 'Anda tidak memiliki akses ke profil ini.' })
+    }
+
+    const table = otherRole === 'guru' ? 'gurus' : 'students'
+    const { rows } = await pool.query(
+      `select id, name, photo_url, bio, ${otherRole === 'guru' ? 'kelas_diampu' : 'kelas'} as kelas
+       from ${table}
+       where id = $1
+       limit 1`,
+      [otherId]
+    )
+    const profile = rows[0]
+    if (!profile) return res.status(404).json({ error: 'Profil tidak ditemukan.' })
+    res.json({
+      profile: {
+        id: profile.id,
+        name: profile.name,
+        role: otherRole,
+        photoUrl: profile.photo_url || null,
+        bio: profile.bio || '',
+        kelas: profile.kelas || [],
+      },
+    })
+  } catch (err) {
+    console.error('komunikasi/profile error', err)
+    res.status(500).json({ error: 'Gagal memuat profil.' })
   }
 })
 

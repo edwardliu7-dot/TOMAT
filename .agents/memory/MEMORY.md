@@ -9,3 +9,4 @@
 - [TOMAT FeedbackBanner dual-prop fix](tomat-feedbackbanner-fix.md) — all G8/G9 games use {correct, answer, onNext} props; shared.jsx FeedbackBanner must support both patterns.
 - [TOMAT communication access](tomat-communication-access.md) — private chat and class forums are restricted server-side to exact guru/student class relationships.
 - [TOMAT message notifications](tomat-message-notifications.md) — unread markers use server-derived message IDs, avoiding timestamp precision errors.
+- [TOMAT public profiles](tomat-public-profiles.md) — users can view limited profiles only within their permitted class circle.
