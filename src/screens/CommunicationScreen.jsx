@@ -93,7 +93,11 @@ function ContactList({ contacts, selected, onSelect, loading }) {
     return <div style={{ color: '#64748B', fontSize: 12, lineHeight: 1.5, padding: 12 }}>Belum ada kontak yang dapat dihubungi.</div>
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 6,
+      flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 3,
+      scrollbarWidth: 'thin',
+    }}>
       {contacts.map(contact => {
         const active = selected?.id === contact.id && selected?.role === contact.role
         return (
@@ -232,10 +236,14 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(145px, 0.75fr) minmax(0, 1.6fr)', gap: 10, minHeight: 430 }}>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'minmax(145px, 0.75fr) minmax(0, 1.6fr)',
+        gap: 10, height: 'min(430px, calc(100vh - 230px))', minHeight: 360,
+      }}>
         <div style={{
           background: '#111827', border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 16, padding: 10, minWidth: 0,
+          borderRadius: 16, padding: 10, minWidth: 0, minHeight: 0,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}>
           <div style={{ color: '#64748B', fontSize: 10, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', padding: '3px 2px 9px' }}>
             {tab === 'private' ? (user.role === 'guru' ? 'Daftar Siswa' : 'Guru Kelas') : 'Kelas Saya'}
@@ -245,7 +253,7 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
           ) : (
             classes.length === 0
               ? <div style={{ color: '#64748B', fontSize: 12, padding: 12 }}>Belum ada kelas yang tersedia.</div>
-              : <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 3, scrollbarWidth: 'thin' }}>
                 {classes.map(kelas => (
                   <button key={kelas} onClick={() => { setSelectedClass(kelas); setError('') }} style={{
                     border: `1px solid ${selectedClass === kelas ? 'rgba(103,232,249,0.45)' : 'rgba(255,255,255,0.07)'}`,
