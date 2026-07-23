@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react'
 import Cropper from 'react-easy-crop'
-import { TopBar, Btn, Card, ProfileBanner, UserAvatar } from '../components/shared'
+import { TopBar, Btn, Card, ProfileBanner, UserAvatar, LuxuryAvatarFrame, CelestiaParticles, RoyalShimmer, ensureLuxuryStyles } from '../components/shared'
+import { BINGKAI_VISUALS, SPANDUK_VISUALS } from '../shopVisuals'
 import { useAuth } from '../AuthContext'
 import { usePlayer } from '../PlayerContext'
 import { readFileAsDataUrl, getCroppedImage, compressDataUrlToLimit } from '../utils/imageUtils'
@@ -82,6 +83,138 @@ function PhotoCropModal({ imageSrc, onCancel, onConfirm }) {
   )
 }
 
+function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
+  const spandukId = user?.equippedSpanduk ?? user?.equipped_spanduk
+  const spanduk   = spandukId ? SPANDUK_VISUALS[spandukId] : null
+  const bingkaiId = user?.equippedBingkai ?? user?.equipped_bingkai
+  const bingkai   = bingkaiId ? BINGKAI_VISUALS[bingkaiId] : null
+  const isCelestia   = spanduk?.luxury === 'celestia'
+  const isRoyal      = spanduk?.luxury === 'royal'
+  const isLuxuryFrame = bingkai?.luxury === 'aurum' || bingkai?.luxury === 'void'
+
+  React.useEffect(() => { ensureLuxuryStyles() }, [])
+
+  const previewUser = { ...user, photoUrl: photoPreview }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: 8 }}>
+      {/* Banner hero background */}
+      <div style={{
+        position: 'relative', width: '100%', height: 150, overflow: 'hidden',
+        background: spanduk ? spanduk.gradient : 'linear-gradient(160deg,#0c1a2e,#111827)',
+      }}>
+        {/* Glow overlay */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: isCelestia
+            ? 'radial-gradient(circle at 20% 60%, rgba(191,219,254,0.28), transparent 35%), radial-gradient(circle at 80% 30%, rgba(96,165,250,0.2), transparent 30%)'
+            : isRoyal
+              ? 'radial-gradient(circle at 50% 0%, rgba(212,175,55,0.25), transparent 55%), linear-gradient(90deg, transparent, rgba(212,175,55,0.08), transparent)'
+              : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)',
+        }} />
+
+        {/* Celestia particles */}
+        {isCelestia && (
+          <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+            <CelestiaParticles />
+            {[...Array(18)].map((_, i) => (
+              <div key={i} style={{
+                position: 'absolute',
+                width: i % 3 === 0 ? 2 : 1, height: i % 3 === 0 ? 2 : 1,
+                borderRadius: '50%', background: '#bfdbfe',
+                opacity: 0.4 + (i % 4) * 0.12,
+                top: `${10 + (i * 17 + i * 3) % 80}%`,
+                left: `${5 + (i * 23 + i * 7) % 90}%`,
+                animation: i % 2 === 0 ? 'tomat-float-a 4s ease-in-out infinite' : 'tomat-float-b 5s ease-in-out infinite',
+                animationDelay: `${(i * 0.4).toFixed(1)}s`,
+              }} />
+            ))}
+          </div>
+        )}
+
+        {/* Royal shimmer */}
+        {isRoyal && <RoyalShimmer />}
+
+        {/* Item label */}
+        {spanduk && (
+          <div style={{
+            position: 'absolute', left: 16, bottom: 52,
+            color: isRoyal ? '#f5e7b2cc' : isCelestia ? '#dbeafecc' : '#ffffffaa',
+            fontSize: 8, fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase',
+            textShadow: '0 1px 10px rgba(0,0,0,0.7)',
+          }}>
+            {isRoyal ? 'Royal Mathematician' : isCelestia ? 'Celestia Relic' : spandukId}
+          </div>
+        )}
+
+        {/* Decorative icon */}
+        {spanduk && (
+          <div style={{
+            position: 'absolute', top: 12, right: 16,
+            color: isRoyal ? '#d4af37' : isCelestia ? '#93c5fd' : '#cbd5e1',
+            fontSize: 13, opacity: 0.75,
+          }}>
+            {isRoyal ? '◇' : isCelestia ? '✦' : '✧'}
+          </div>
+        )}
+
+        {/* Fade-to-page-bg at bottom */}
+        <div style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0, height: 60,
+          background: 'linear-gradient(to bottom, transparent, #0A0B14)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Celestia accent strip */}
+        {isCelestia && (
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #60a5fa, #93c5fd, #60a5fa, transparent)', opacity: 0.6 }} />
+        )}
+        {isRoyal && (
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #d4af37, #f5e7b2, #d4af37, transparent)', opacity: 0.6 }} />
+        )}
+      </div>
+
+      {/* Avatar — overlapping banner */}
+      <div style={{ marginTop: -56, position: 'relative', zIndex: 2 }}>
+        <div style={{ position: 'relative' }}>
+          {isLuxuryFrame ? (
+            <LuxuryAvatarFrame user={previewUser} size={112} bingkai={bingkai} bingkaiId={bingkaiId} />
+          ) : (
+            <UserAvatar user={previewUser} size={112} />
+          )}
+          <button onClick={onPickPhoto} style={{
+            position: 'absolute', bottom: 0, right: isLuxuryFrame ? -6 : 0,
+            width: 36, height: 36,
+            borderRadius: '50%', background: '#06B6D4', border: '3px solid #0A0B14',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16, cursor: 'pointer', boxShadow: '0 2px 10px rgba(6,182,212,0.5)',
+            zIndex: 3,
+          }}>📷</button>
+        </div>
+      </div>
+
+      {/* Name & class */}
+      <h2 style={{ marginTop: 14, fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '0.05em' }}>
+        {user?.name?.toUpperCase()}
+      </h2>
+      <div style={{
+        marginTop: 6, padding: '5px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(103,232,249,0.2)', color: '#67E8F9',
+        fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
+      }}>
+        {user?.kelas || 'Siswa'} · SMP TISA
+      </div>
+
+      {onRemovePhoto && (
+        <button onClick={onRemovePhoto} style={{
+          marginTop: 8, background: 'none', border: 'none', color: '#F87171',
+          fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+        }}>Hapus Foto</button>
+      )}
+    </div>
+  )
+}
+
 export default function ProfileScreen({ goBack }) {
   const { user, updateProfile } = useAuth()
   const playerCtx = usePlayer()
@@ -153,45 +286,21 @@ export default function ProfileScreen({ goBack }) {
           <h1 style={{ fontSize: 17, fontWeight: 900, color: '#fff', marginLeft: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Profil Saya</h1>
         </div>
 
-        {/* Avatar */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 32, paddingBottom: 8 }}>
-          <div style={{ width: 'calc(100% - 40px)', maxWidth: 420, marginBottom: 18 }}>
-            <ProfileBanner user={user} height={104} />
-          </div>
-          <div style={{ position: 'relative' }}>
-            <UserAvatar user={{ ...user, photoUrl: photoPreview }} size={112} />
-            <button onClick={handlePickPhoto} style={{
-              position: 'absolute', bottom: 0, right: 0, width: 36, height: 36,
-              borderRadius: '50%', background: '#06B6D4', border: '3px solid #0A0B14',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 16, cursor: 'pointer', boxShadow: '0 2px 10px rgba(6,182,212,0.5)',
-            }}>📷</button>
-          </div>
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
-          {cropSrc && (
-            <PhotoCropModal
-              imageSrc={cropSrc}
-              onCancel={() => setCropSrc(null)}
-              onConfirm={(compressed) => { setPhotoPreview(compressed); setCropSrc(null) }}
-            />
-          )}
-
-          <h2 style={{ marginTop: 14, fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '0.05em' }}>{user?.name?.toUpperCase()}</h2>
-          <div style={{
-            marginTop: 6, padding: '5px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(103,232,249,0.2)', color: '#67E8F9',
-            fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
-          }}>
-            {user?.kelas || 'Siswa'} · SMP TISA
-          </div>
-
-          {photoPreview && (
-            <button onClick={() => setPhotoPreview(null)} style={{
-              marginTop: 8, background: 'none', border: 'none', color: '#F87171',
-              fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            }}>Hapus Foto</button>
-          )}
-        </div>
+        {/* Hero section — banner + avatar, same visual system as PublicProfileModal */}
+        <ProfileHero
+          user={user}
+          photoPreview={photoPreview}
+          onPickPhoto={handlePickPhoto}
+          onRemovePhoto={photoPreview ? () => setPhotoPreview(null) : null}
+        />
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+        {cropSrc && (
+          <PhotoCropModal
+            imageSrc={cropSrc}
+            onCancel={() => setCropSrc(null)}
+            onConfirm={(compressed) => { setPhotoPreview(compressed); setCropSrc(null) }}
+          />
+        )}
 
         {/* Stats row — siswa only */}
         {player && (

@@ -69,7 +69,7 @@ const LUXURY_KEYFRAMES = `
 @keyframes tomat-shimmer  { 0% { left:-60% } 100% { left:160% } }
 `
 let _luxuryStyleInjected = false
-function ensureLuxuryStyles() {
+export function ensureLuxuryStyles() {
   if (_luxuryStyleInjected) return
   _luxuryStyleInjected = true
   const el = document.createElement('style')
@@ -135,7 +135,7 @@ export function ProfileBanner({ user, height = 92 }) {
 }
 
 // Avatar wrapped with animated luxury frame rings (for Aurum/Void Monarch).
-function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
+export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
   React.useEffect(() => { ensureLuxuryStyles() }, [])
   const isAurum = bingkai?.luxury === 'aurum'
   const isVoid  = bingkai?.luxury === 'void'
@@ -226,7 +226,7 @@ function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
 }
 
 // Animated orbiting particles for Celestia banner background
-function CelestiaParticles() {
+export function CelestiaParticles() {
   React.useEffect(() => { ensureLuxuryStyles() }, [])
   const orbs = [
     { size: 5, dist: 94, dur: '9s',  delay: '0s',    color: '#93c5fd' },
@@ -257,7 +257,7 @@ function CelestiaParticles() {
 }
 
 // Royal shimmer streak
-function RoyalShimmer() {
+export function RoyalShimmer() {
   React.useEffect(() => { ensureLuxuryStyles() }, [])
   return (
     <div style={{
