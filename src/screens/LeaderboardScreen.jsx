@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { TopBar, PlayerHeader } from '../components/shared'
-import { BINGKAI_VISUALS } from '../shopVisuals'
+import {
+  TopBar, PlayerHeader, PublicProfileModal, UserAvatar, usePublicProfile,
+} from '../components/shared'
 
 async function apiCall(path) {
   const res = await fetch(path, { credentials: 'include' })
@@ -10,20 +11,6 @@ async function apiCall(path) {
 }
 
 const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' }
-
-function Avatar({ name, bingkaiId, size = 40 }) {
-  const v = bingkaiId ? BINGKAI_VISUALS[bingkaiId] : null
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%', flexShrink: 0,
-      background: 'linear-gradient(135deg,#6366F1,#A855F7)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.4, fontWeight: 800, color: '#fff',
-      border: v ? `3px ${v.style} ${v.border}` : '2px solid rgba(255,255,255,0.15)',
-      boxShadow: v?.glow ? `0 0 10px ${v.border}88` : 'none',
-    }}>{name?.[0]?.toUpperCase()}</div>
-  )
-}
 
 // Two rows of 10 dots: green for perkalian, blue for pembagian
 function HafalanDots({ perkalian = 0, pembagian = 0 }) {
@@ -63,6 +50,7 @@ function HafalanChip({ total }) {
 export default function LeaderboardScreen({ goBack }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
+  const publicProfile = usePublicProfile()
 
   useEffect(() => {
     apiCall('/api/siswa/papan-peringkat').then(setData).catch(err => setError(err.message))
@@ -111,15 +99,21 @@ export default function LeaderboardScreen({ goBack }) {
                     <div style={{ width: 28, textAlign: 'center', fontSize: s.rank <= 3 ? 20 : 13, fontWeight: 800, color: s.rank <= 3 ? '#fff' : '#6B7280', flexShrink: 0 }}>
                       {MEDALS[s.rank] || `#${s.rank}`}
                     </div>
-                    <Avatar name={s.name} bingkaiId={s.equippedBingkai} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <UserAvatar
+                      user={{ ...s, role: 'siswa' }}
+                      onClick={() => publicProfile.openProfile({ ...s, role: 'siswa' })}
+                    />
+                    <button onClick={() => publicProfile.openProfile({ ...s, role: 'siswa' })} style={{
+                      flex: 1, minWidth: 0, border: 'none', background: 'none',
+                      padding: 0, color: '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                    }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {s.name}{s.isMe && <span style={{ color: '#A5B4FC' }}> (Kamu)</span>}
                       </div>
                       <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
                         Level {s.level} · {s.exp} EXP · {s.compositeScore} poin
                       </div>
-                    </div>
+                    </button>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
                       <HafalanChip total={hafalanTotal} />
                       <HafalanDots perkalian={s.hafalanPerkalian} pembagian={s.hafalanPembagian} />
@@ -138,6 +132,12 @@ export default function LeaderboardScreen({ goBack }) {
             <div style={{ fontWeight: 700, color: '#94A3B8', marginBottom: 4 }}>📊 Cara hitung poin:</div>
             <div>📝 Rata-rata tugas <strong style={{ color: '#A5B4FC' }}>40%</strong> + 🏆 Level <strong style={{ color: '#A5B4FC' }}>20%</strong> + ⚡ EXP <strong style={{ color: '#A5B4FC' }}>10%</strong> + 🧮 Hafalan <strong style={{ color: '#A5B4FC' }}>30%</strong></div>
           </div>
+          <PublicProfileModal
+            profile={publicProfile.profile}
+            loading={publicProfile.loading}
+            error={publicProfile.error}
+            onClose={publicProfile.closeProfile}
+          />
         </div>
       )}
     </div>

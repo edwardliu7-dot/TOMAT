@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
       ),
       composite as (
         select
-          s.id, s.name, s.level, s.exp, s.equipped_bingkai,
+           s.id, s.name, s.level, s.exp, s.photo_url, s.equipped_bingkai,
           coalesce(hl.perkalian_lulus, 0)::int as perkalian_lulus,
           coalesce(hl.pembagian_lulus, 0)::int as pembagian_lulus,
           round((
@@ -64,6 +64,7 @@ router.get('/', async (req, res) => {
       level: r.level,
       exp: r.exp,
       equippedBingkai: r.equipped_bingkai,
+      photoUrl: r.photo_url || null,
       rank: Number(r.rank),
       compositeScore: Number(r.composite_score),
       hafalanPerkalian: Number(r.perkalian_lulus),

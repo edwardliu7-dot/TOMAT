@@ -95,7 +95,7 @@ router.get('/contacts', async (req, res) => {
     if (user.role === 'guru') {
       const classes = await getGuruClasses(user.id)
       const { rows } = await pool.query(
-        `select id, name, username, kelas
+        `select id, name, username, kelas, photo_url, equipped_bingkai
          from students
          where kelas = any($1::text[])
          order by kelas, name`,
@@ -107,7 +107,7 @@ router.get('/contacts', async (req, res) => {
     const kelas = await getStudentClass(user.id)
     if (!kelas) return res.json({ contacts: [] })
     const { rows } = await pool.query(
-      `select id, name, username
+       `select id, name, username, photo_url
        from gurus
        where $1 = any(kelas_diampu)
        order by name`,
@@ -145,7 +145,7 @@ router.get('/profile/:otherRole/:otherId', async (req, res) => {
 
     const table = otherRole === 'guru' ? 'gurus' : 'students'
     const { rows } = await pool.query(
-      `select id, name, photo_url, bio, ${otherRole === 'guru' ? 'kelas_diampu' : 'kelas'} as kelas
+       `select id, name, photo_url, bio, ${otherRole === 'guru' ? 'null::text as equipped_bingkai, kelas_diampu' : 'equipped_bingkai, kelas'} as kelas
        from ${table}
        where id = $1
        limit 1`,
@@ -159,6 +159,7 @@ router.get('/profile/:otherRole/:otherId', async (req, res) => {
         name: profile.name,
         role: otherRole,
         photoUrl: profile.photo_url || null,
+        equippedBingkai: profile.equipped_bingkai || null,
         bio: profile.bio || '',
         kelas: profile.kelas || [],
       },
@@ -324,7 +325,7 @@ router.get('/private/:otherRole/:otherId/messages', async (req, res) => {
       return res.status(403).json({ error: 'Anda tidak memiliki akses ke percakapan ini.' })
     }
     const { rows } = await pool.query(
-      `select id, sender_id, sender_role, recipient_id, recipient_role, body, created_at
+       `select id, sender_id, sender_role, recipient_id, recipient_role, body, created_at
        from pesan_pribadi
        where (sender_id = $1 and recipient_id = $2)
           or (sender_id = $2 and recipient_id = $1)
@@ -372,11 +373,19 @@ router.get('/forum/:kelas/messages', async (req, res) => {
       return res.status(403).json({ error: 'Anda tidak memiliki akses ke forum kelas ini.' })
     }
     const { rows } = await pool.query(
-      `select f.id, f.kelas, f.sender_id, f.sender_role, f.body, f.created_at,
+       `select f.id, f.kelas, f.sender_id, f.sender_role, f.body, f.created_at,
          case when f.sender_role = 'guru'
            then (select name from gurus where id = f.sender_id)
            else (select name from students where id = f.sender_id)
-         end as sender_name
+          end as sender_name,
+          case when f.sender_role = 'guru'
+            then (select photo_url from gurus where id = f.sender_id)
+            else (select photo_url from students where id = f.sender_id)
+          end as sender_photo_url,
+          case when f.sender_role = 'siswa'
+            then (select equipped_bingkai from students where id = f.sender_id)
+            else null
+          end as sender_equipped_bingkai
        from pesan_forum_kelas f
        where f.kelas = $1
        order by f.created_at asc

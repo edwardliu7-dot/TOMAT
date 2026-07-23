@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { PlayerHeader, TopBar } from '../components/shared'
+import {
+  PlayerHeader, TopBar, PublicProfileModal, UserAvatar,
+} from '../components/shared'
 import { useAuth } from '../AuthContext'
 
 async function apiCall(path, options = {}) {
@@ -47,83 +49,6 @@ function EmptyMessages({ forum }) {
   )
 }
 
-function ProfileAvatar({ profile, size = 40 }) {
-  const initial = (profile?.name || '?')[0]?.toUpperCase()
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: size * 0.3, flexShrink: 0,
-      background: profile?.photoUrl
-        ? `url(${profile.photoUrl}) center/cover no-repeat`
-        : profile?.role === 'guru'
-          ? 'linear-gradient(135deg, #8B5CF6, #6366F1)'
-          : 'linear-gradient(135deg, #0891B2, #2563EB)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      color: '#fff', fontSize: size * 0.38, fontWeight: 900,
-    }}>
-      {!profile?.photoUrl && initial}
-    </div>
-  )
-}
-
-function ProfileModal({ profile, loading, error, onClose }) {
-  if (!profile && !loading && !error) return null
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.72)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
-    }} onClick={onClose}>
-      <div style={{
-        width: '100%', maxWidth: 360, background: '#111827',
-        border: '1px solid rgba(103,232,249,0.25)', borderRadius: 20,
-        boxShadow: '0 20px 55px rgba(0,0,0,0.55)', overflow: 'hidden',
-      }} onClick={event => event.stopPropagation()}>
-        <div style={{ height: 3, background: 'linear-gradient(90deg,#06B6D4,#8B5CF6)' }} />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 12px 0' }}>
-          <button onClick={onClose} aria-label="Tutup profil" style={{
-            width: 30, height: 30, borderRadius: 9, border: 'none',
-            background: 'rgba(255,255,255,0.08)', color: '#94A3B8',
-            cursor: 'pointer', fontSize: 16,
-          }}>×</button>
-        </div>
-        {loading ? (
-          <div style={{ color: '#64748B', textAlign: 'center', padding: '34px 20px 42px', fontSize: 12 }}>
-            Memuat profil…
-          </div>
-        ) : error ? (
-          <div style={{ color: '#FCA5A5', textAlign: 'center', padding: '25px 20px 42px', fontSize: 12 }}>
-            {error}
-          </div>
-        ) : (
-          <div style={{ padding: '4px 22px 26px', textAlign: 'center' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-              <ProfileAvatar profile={profile} size={82} />
-            </div>
-            <div style={{ color: '#fff', fontSize: 18, fontWeight: 900 }}>{profile.name}</div>
-            <div style={{
-              display: 'inline-block', marginTop: 7, padding: '5px 12px', borderRadius: 99,
-              background: profile.role === 'guru' ? 'rgba(167,139,250,0.14)' : 'rgba(103,232,249,0.12)',
-              color: profile.role === 'guru' ? '#C4B5FD' : '#67E8F9',
-              fontSize: 11, fontWeight: 800,
-            }}>
-              {profile.role === 'guru' ? '🎓 Guru' : '🧑‍🎓 Siswa'}
-            </div>
-            <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 14 }}>
-              {Array.isArray(profile.kelas) ? profile.kelas.join(' · ') : profile.kelas}
-            </div>
-            <div style={{
-              marginTop: 16, padding: '13px 14px', borderRadius: 13, textAlign: 'left',
-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
-              color: profile.bio ? '#CBD5E1' : '#64748B', fontSize: 12, lineHeight: 1.6,
-            }}>
-              {profile.bio || 'Belum ada bio.'}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function MessageList({ messages, user, forum, onProfileClick }) {
   if (messages.length === 0) return <EmptyMessages forum={forum} />
   return (
@@ -148,12 +73,22 @@ function MessageList({ messages, user, forum, onProfileClick }) {
                   role: message.sender_role,
                   name: message.sender_name,
                 })} style={{
-                  display: 'block', padding: 0, border: 'none', background: 'none',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  color: message.sender_role === 'guru' ? '#C4B5FD' : '#67E8F9',
-                  fontSize: 10, fontWeight: 800, marginBottom: 4,
+                  display: 'flex', alignItems: 'center', gap: 6, padding: 0,
+                  border: 'none', background: 'none', cursor: 'pointer',
+                  fontFamily: 'inherit', color: '#fff', marginBottom: 5,
                 }} title="Lihat profil">
-                  {message.sender_name || 'Pengguna'} · {message.sender_role === 'guru' ? 'Guru' : 'Siswa'}
+                  <UserAvatar user={{
+                    name: message.sender_name,
+                    role: message.sender_role,
+                    photoUrl: message.sender_photo_url,
+                    equippedBingkai: message.sender_equipped_bingkai,
+                  }} size={24} />
+                  <span style={{
+                    color: message.sender_role === 'guru' ? '#C4B5FD' : '#67E8F9',
+                    fontSize: 10, fontWeight: 800,
+                  }}>
+                    {message.sender_name || 'Pengguna'} · {message.sender_role === 'guru' ? 'Guru' : 'Siswa'}
+                  </span>
                 </button>
               )}
               <div style={{ color: '#fff', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
@@ -184,17 +119,30 @@ function ContactList({ contacts, selected, onSelect, onProfileClick, loading }) 
       {contacts.map(contact => {
         const active = selected?.id === contact.id && selected?.role === contact.role
         return (
-          <div key={`${contact.role}-${contact.id}`} style={{
+          <div
+            key={`${contact.role}-${contact.id}`}
+            onClick={() => onProfileClick?.(contact)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={event => {
+              if (event.key === 'Enter' || event.key === ' ') onProfileClick?.(contact)
+            }}
+            title={`Lihat profil ${contact.name}`}
+            style={{
             border: `1px solid ${active ? 'rgba(103,232,249,0.45)' : 'rgba(255,255,255,0.07)'}`,
             background: active ? 'rgba(103,232,249,0.12)' : 'rgba(255,255,255,0.035)',
             borderRadius: 12, padding: '7px 8px', display: 'flex', alignItems: 'center', gap: 8,
+            cursor: 'pointer',
           }}>
             <button onClick={() => onProfileClick?.(contact)} aria-label={`Lihat profil ${contact.name}`} style={{
               border: 'none', background: 'none', padding: 0, cursor: 'pointer',
             }}>
-              <ProfileAvatar profile={contact} size={31} />
+              <UserAvatar user={contact} size={31} />
             </button>
-            <button onClick={() => onSelect(contact)} style={{
+            <button onClick={event => {
+              event.stopPropagation()
+              onProfileClick?.(contact)
+            }} style={{
               flex: 1, minWidth: 0, border: 'none', background: 'none', color: '#fff',
               cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', padding: 0,
             }}>
@@ -203,6 +151,20 @@ function ContactList({ contacts, selected, onSelect, onProfileClick, loading }) 
                 <div style={{ color: '#64748B', fontSize: 10, marginTop: 2 }}>{contact.kelas || 'Guru'}</div>
               </div>
             </button>
+            <button
+              onClick={event => {
+                event.stopPropagation()
+                onSelect(contact)
+              }}
+              aria-label={`Buka chat dengan ${contact.name}`}
+              title="Buka chat"
+              style={{
+                width: 28, height: 28, flexShrink: 0, borderRadius: 9,
+                border: '1px solid rgba(103,232,249,0.2)',
+                background: 'rgba(103,232,249,0.1)', color: '#67E8F9',
+                cursor: 'pointer', fontSize: 13,
+              }}
+            >✉</button>
           </div>
         )
       })}
@@ -396,7 +358,7 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
             >
               {tab === 'forum'
                 ? <div style={{ fontSize: 19 }}>💬</div>
-                : <ProfileAvatar profile={selectedContact} size={31} />}
+                : <UserAvatar user={selectedContact} size={31} />}
             </button>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: '#fff', fontSize: 13, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeTitle}</div>
@@ -432,7 +394,7 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
           {error}
         </div>
       )}
-      <ProfileModal
+      <PublicProfileModal
         profile={viewedProfile}
         loading={profileLoading}
         error={profileError}

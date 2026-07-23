@@ -11,7 +11,9 @@ import { TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import ProfileScreen from './ProfileScreen'
 import CommunicationScreen from './CommunicationScreen'
-import { MessageNotificationBell } from '../components/shared'
+import {
+  MessageNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile,
+} from '../components/shared'
 
 async function apiCall(path, options = {}) {
   const res = await fetch(path, {
@@ -244,7 +246,7 @@ function TugasTab({ kelasDiampu }) {
   )
 }
 
-function NilaiTab() {
+function NilaiTab({ onProfileClick }) {
   const [nilaiList, setNilaiList] = useState([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
@@ -360,11 +362,21 @@ function NilaiTab() {
                             display: 'flex', alignItems: 'center', gap: 10,
                             background: 'rgba(255,255,255,0.035)', borderRadius: 10, padding: '9px 10px',
                           }}>
+                             <UserAvatar
+                               user={{ id: n.student_id, role: 'siswa', name: n.student_name, photoUrl: n.student_photo_url, equippedBingkai: n.student_equipped_bingkai }}
+                               size={34}
+                               onClick={() => onProfileClick({ id: n.student_id, role: 'siswa', name: n.student_name })}
+                             />
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>
+                               <button onClick={() => onProfileClick({ id: n.student_id, role: 'siswa', name: n.student_name })} style={{
+                                 border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+                                 color: '#fff', fontFamily: 'inherit', textAlign: 'left',
+                                 fontSize: 12, fontWeight: 700, maxWidth: '100%',
+                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                               }}>
                                 {n.student_name}
                                 <span style={{ color: '#64748B', fontWeight: 400, marginLeft: 5 }}>({n.student_username})</span>
-                              </div>
+                               </button>
                               <div style={{ fontSize: 10, color: '#64748B', marginTop: 3 }}>
                                 {n.correct_count}/{n.total_questions} soal
                               </div>
@@ -385,7 +397,7 @@ function NilaiTab() {
   )
 }
 
-function SiswaTab() {
+function SiswaTab({ onProfileClick }) {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   useEffect(() => {
@@ -402,9 +414,19 @@ function SiswaTab() {
           <div style={{ fontSize: 12, fontWeight: 800, color: '#67E8F9', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>{kelas} ({list.length} siswa)</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {list.map(s => (
-              <Section key={s.id} style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{s.name}</div>
-                <div style={{ fontSize: 12, color: '#64748B' }}>{s.username}</div>
+              <Section key={s.id} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <UserAvatar
+                  user={{ ...s, role: 'siswa' }}
+                  size={38}
+                  onClick={() => onProfileClick({ id: s.id, role: 'siswa', name: s.name })}
+                />
+                <button onClick={() => onProfileClick({ id: s.id, role: 'siswa', name: s.name })} style={{
+                  flex: 1, minWidth: 0, border: 'none', background: 'none', padding: 0,
+                  color: '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                }}>
+                  <div style={{ fontSize: 13, color: '#fff', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
+                  <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{s.username}</div>
+                </button>
               </Section>
             ))}
           </div>
@@ -482,7 +504,7 @@ function Sparkline({ values }) {
   )
 }
 
-function InsightTab() {
+function InsightTab({ onProfileClick }) {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -503,11 +525,20 @@ function InsightTab() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {list.map(s => (
               <Section key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <UserAvatar
+                  user={{ ...s, role: 'siswa' }}
+                  size={38}
+                  onClick={() => onProfileClick({ id: s.id, role: 'siswa', name: s.name })}
+                />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {s.name}
+                  <button onClick={() => onProfileClick({ id: s.id, role: 'siswa', name: s.name })} style={{
+                    border: 'none', background: 'none', padding: 0, color: '#fff',
+                    cursor: 'pointer', fontFamily: 'inherit', display: 'flex',
+                    alignItems: 'center', gap: 6, textAlign: 'left',
+                  }}>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>{s.name}</span>
                     {s.activeToday && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34D399', display: 'inline-block', boxShadow: '0 0 6px rgba(52,211,153,0.8)' }} />}
-                  </div>
+                  </button>
                   <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
                     ⭐ Lv {s.level} · 📚 {s.exp} EXP · 🪙 {s.coins} · 🏅 {s.badgeCount} · 🔥 {s.bestSurvivalStreak}
                   </div>
@@ -526,6 +557,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('tugas')
   const [view, setView] = useState('dashboard')
+  const publicProfile = usePublicProfile()
   const kelasDiampu = user?.kelas || []
   const grades = [...new Set(kelasDiampu.map(kelasToGrade).filter(Boolean))].sort()
 
@@ -604,12 +636,18 @@ export default function GuruDashboardScreen({ onPlayGames }) {
         <div style={{ padding: 16 }}>
           {tab === 'tugas'   && <TugasTab kelasDiampu={kelasDiampu} />}
           {tab === 'hafalan' && <GuruHafalanScreen />}
-          {tab === 'nilai'   && <NilaiTab />}
+          {tab === 'nilai'   && <NilaiTab onProfileClick={publicProfile.openProfile} />}
           {tab === 'komunikasi' && <CommunicationScreen embedded />}
-          {tab === 'siswa'   && <SiswaTab />}
+          {tab === 'siswa'   && <SiswaTab onProfileClick={publicProfile.openProfile} />}
           {tab === 'kunci'   && <KunciTab grades={grades} />}
-          {tab === 'insight' && <InsightTab />}
+          {tab === 'insight' && <InsightTab onProfileClick={publicProfile.openProfile} />}
         </div>
+        <PublicProfileModal
+          profile={publicProfile.profile}
+          loading={publicProfile.loading}
+          error={publicProfile.error}
+          onClose={publicProfile.closeProfile}
+        />
       </div>
     </div>
   )

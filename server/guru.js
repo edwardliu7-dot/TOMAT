@@ -17,7 +17,7 @@ router.get('/students', async (req, res) => {
     const kelasDiampu = await getMyKelasDiampu(req)
     if (kelasDiampu.length === 0) return res.json({ students: [] })
     const { rows } = await pool.query(
-      `select id, username, name, kelas, email, whatsapp from students where kelas = any($1) order by kelas, name`,
+       `select id, username, name, kelas, photo_url, equipped_bingkai from students where kelas = any($1) order by kelas, name`,
       [kelasDiampu]
     )
     res.json({ students: rows })
@@ -95,7 +95,9 @@ router.patch('/tugas/:id', async (req, res) => {
 router.get('/nilai', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `select n.*, t.game_name, t.game_emoji, t.type, t.kelas, t.due_at, s.name as student_name, s.username as student_username
+       `select n.*, t.game_name, t.game_emoji, t.type, t.kelas, t.due_at,
+          s.name as student_name, s.username as student_username,
+          s.photo_url as student_photo_url, s.equipped_bingkai as student_equipped_bingkai
        from nilai n
        join tugas t on t.id = n.tugas_id
        join students s on s.id = n.student_id

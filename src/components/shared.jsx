@@ -19,6 +19,114 @@ export function TopBar({ title, onBack, accentColor = '#67E8F9', rightElement })
   )
 }
 
+// WhatsApp-style public user identity: photo/initial inside the equipped frame.
+// Accepts both API snake_case fields and the AuthContext camelCase fields.
+export function UserAvatar({ user, size = 40, onClick, title }) {
+  const photoUrl = user?.photoUrl ?? user?.photo_url
+  const bingkaiId = user?.equippedBingkai ?? user?.equipped_bingkai
+  const bingkai = bingkaiId ? BINGKAI_VISUALS[bingkaiId] : null
+  const initial = (user?.name || '?')[0]?.toUpperCase()
+  const content = (
+    <div style={{
+      width: size, height: size, borderRadius: size * 0.3, flexShrink: 0,
+      background: photoUrl
+        ? `url(${photoUrl}) center/cover no-repeat`
+        : user?.role === 'guru'
+          ? 'linear-gradient(135deg, #8B5CF6, #6366F1)'
+          : 'linear-gradient(135deg, #0891B2, #2563EB)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: size * 0.38, fontWeight: 900, color: '#fff',
+      border: bingkai
+        ? `${Math.max(2, Math.round(size / 16))}px ${bingkai.style} ${bingkai.border}`
+        : `${Math.max(2, Math.round(size / 20))}px solid rgba(255,255,255,0.16)`,
+      boxSizing: 'border-box',
+      boxShadow: bingkai?.glow ? `0 0 ${Math.max(8, Math.round(size / 3))}px ${bingkai.border}88` : 'none',
+    }}>
+      {!photoUrl && initial}
+    </div>
+  )
+  if (!onClick) return content
+  return (
+    <button onClick={onClick} title={title || 'Lihat profil'} aria-label={title || `Lihat profil ${user?.name || ''}`} style={{
+      border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+      display: 'flex', flexShrink: 0,
+    }}>
+      {content}
+    </button>
+  )
+}
+
+export function PublicProfileModal({ profile, loading, error, onClose }) {
+  if (!profile && !loading && !error) return null
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.72)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18,
+    }} onClick={onClose}>
+      <div style={{
+        width: '100%', maxWidth: 360, background: '#111827',
+        border: '1px solid rgba(103,232,249,0.25)', borderRadius: 20,
+        boxShadow: '0 20px 55px rgba(0,0,0,0.55)', overflow: 'hidden',
+      }} onClick={event => event.stopPropagation()}>
+        <div style={{ height: 3, background: 'linear-gradient(90deg,#06B6D4,#8B5CF6)' }} />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '10px 12px 0' }}>
+          <button onClick={onClose} aria-label="Tutup profil" style={{
+            width: 30, height: 30, borderRadius: 9, border: 'none',
+            background: 'rgba(255,255,255,0.08)', color: '#94A3B8',
+            cursor: 'pointer', fontSize: 16,
+          }}>×</button>
+        </div>
+        {loading ? (
+          <div style={{ color: '#64748B', textAlign: 'center', padding: '34px 20px 42px', fontSize: 12 }}>Memuat profil…</div>
+        ) : error ? (
+          <div style={{ color: '#FCA5A5', textAlign: 'center', padding: '25px 20px 42px', fontSize: 12 }}>{error}</div>
+        ) : (
+          <div style={{ padding: '4px 22px 26px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <UserAvatar user={profile} size={82} />
+            </div>
+            <div style={{ color: '#fff', fontSize: 18, fontWeight: 900 }}>{profile.name}</div>
+            <div style={{
+              display: 'inline-block', marginTop: 7, padding: '5px 12px', borderRadius: 99,
+              background: profile.role === 'guru' ? 'rgba(167,139,250,0.14)' : 'rgba(103,232,249,0.12)',
+              color: profile.role === 'guru' ? '#C4B5FD' : '#67E8F9',
+              fontSize: 11, fontWeight: 800,
+            }}>{profile.role === 'guru' ? '🎓 Guru' : '🧑‍🎓 Siswa'}</div>
+            <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 14 }}>
+              {Array.isArray(profile.kelas) ? profile.kelas.join(' · ') : profile.kelas}
+            </div>
+            <div style={{
+              marginTop: 16, padding: '13px 14px', borderRadius: 13, textAlign: 'left',
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+              color: profile.bio ? '#CBD5E1' : '#64748B', fontSize: 12, lineHeight: 1.6,
+            }}>{profile.bio || 'Belum ada bio.'}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function usePublicProfile() {
+  const [profileState, setProfileState] = React.useState({ profile: null, loading: false, error: '' })
+  const openProfile = React.useCallback(async target => {
+    if (!target?.id || !target?.role) return
+    setProfileState({ profile: null, loading: true, error: '' })
+    try {
+      const res = await fetch(`/api/komunikasi/profile/${target.role}/${encodeURIComponent(target.id)}`, { credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Gagal memuat profil.')
+      setProfileState({ profile: data.profile, loading: false, error: '' })
+    } catch (err) {
+      setProfileState({ profile: null, loading: false, error: err.message })
+    }
+  }, [])
+  const closeProfile = React.useCallback(() => {
+    setProfileState({ profile: null, loading: false, error: '' })
+  }, [])
+  return { ...profileState, openProfile, closeProfile }
+}
+
 // Small pill showing the active difficulty tier (or "Survival" streak) next to a TopBar title.
 export function DifficultyBadge({ difficulty, survival, streak }) {
   if (survival) {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { PublicProfileModal, UserAvatar, usePublicProfile } from '../components/shared'
 
 async function apiCall(path, options = {}) {
   const res = await fetch(path, {
@@ -26,7 +27,7 @@ function HafalanDots({ count, total = 10, color }) {
   )
 }
 
-function StudentList({ students, loading, error, onSelect }) {
+function StudentList({ students, loading, error, onSelect, onProfileClick }) {
   if (loading) return <div style={{ padding: 24, color: '#94A3B8', textAlign: 'center' }}>Memuat…</div>
   if (error) return <div style={{ padding: 16, color: '#F87171', fontSize: 13 }}>{error}</div>
   if (students.length === 0) return (
@@ -49,19 +50,31 @@ function StudentList({ students, loading, error, onSelect }) {
             {list.map(s => {
               const total = s.hafalanPerkalian + s.hafalanPembagian
               return (
-                <button key={s.id} onClick={() => onSelect(s)} style={{
+                <div key={s.id} onClick={() => onSelect(s)} role="button" tabIndex={0}
+                  onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onSelect(s) }}
+                  style={{
                   display: 'flex', alignItems: 'center', gap: 12,
                   background: '#1A1D27', border: '1px solid rgba(255,255,255,0.07)',
                   borderRadius: 14, padding: '12px 14px', cursor: 'pointer', textAlign: 'left', width: '100%',
-                }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                    background: 'linear-gradient(135deg,#6366F1,#A855F7)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 16, fontWeight: 800, color: '#fff',
-                  }}>{s.name[0]?.toUpperCase()}</div>
+                 }}>
+                  <UserAvatar
+                    user={{ ...s, role: 'siswa' }}
+                    size={40}
+                    onClick={event => {
+                      event.stopPropagation()
+                      onProfileClick?.({ ...s, role: 'siswa' })
+                    }}
+                  />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
+                    <button onClick={event => {
+                      event.stopPropagation()
+                      onProfileClick?.({ ...s, role: 'siswa' })
+                    }} style={{
+                      border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+                      color: '#fff', fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      maxWidth: '100%', display: 'block',
+                    }}>{s.name}</button>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 5 }}>
                       <HafalanDots count={s.hafalanPerkalian} color="#34D399" />
                       <HafalanDots count={s.hafalanPembagian} color="#60A5FA" />
@@ -76,7 +89,7 @@ function StudentList({ students, loading, error, onSelect }) {
                     }}>🧮 {total}/20</div>
                     <div style={{ fontSize: 10, color: '#6B7280', marginTop: 4 }}>→</div>
                   </div>
-                </button>
+                </div>
               )
             })}
           </div>
@@ -95,7 +108,7 @@ function formatTime(iso) {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 }
 
-function AssessView({ student, onBack }) {
+function AssessView({ student, onBack, onProfileClick }) {
   const [jenis, setJenis] = useState('perkalian')
   const [selectedAngka, setSelectedAngka] = useState(null)
   const [status, setStatus] = useState(null)      // per-table latest status map
@@ -152,14 +165,16 @@ function AssessView({ student, onBack }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {/* Student header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{
-          width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
-          background: 'linear-gradient(135deg,#6366F1,#A855F7)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 20, fontWeight: 800, color: '#fff',
-        }}>{student.name[0]?.toUpperCase()}</div>
+        <UserAvatar
+          user={{ ...student, role: 'siswa' }}
+          size={48}
+          onClick={() => onProfileClick?.({ ...student, role: 'siswa' })}
+        />
         <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{student.name}</div>
+          <button onClick={() => onProfileClick?.({ ...student, role: 'siswa' })} style={{
+            border: 'none', background: 'none', padding: 0, color: '#fff',
+            cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 800,
+          }}>{student.name}</button>
           <div style={{ fontSize: 11, color: '#94A3B8' }}>{student.kelas}</div>
         </div>
       </div>
@@ -275,6 +290,7 @@ export default function GuruHafalanScreen() {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const publicProfile = usePublicProfile()
 
   const loadStudents = useCallback(async () => {
     setLoading(true)
@@ -312,7 +328,11 @@ export default function GuruHafalanScreen() {
               borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
             }}>← Kembali</button>
           </div>
-          <AssessView student={selectedStudent} onBack={handleBack} />
+          <AssessView
+            student={selectedStudent}
+            onBack={handleBack}
+            onProfileClick={publicProfile.openProfile}
+          />
         </>
       ) : (
         <>
@@ -324,9 +344,21 @@ export default function GuruHafalanScreen() {
               <div style={{ fontSize: 10, color: '#60A5FA', fontWeight: 700 }}>Pembagian (÷1–÷10)</div>
             </div>
           </div>
-          <StudentList students={students} loading={loading} error={error} onSelect={handleSelect} />
+          <StudentList
+            students={students}
+            loading={loading}
+            error={error}
+            onSelect={handleSelect}
+            onProfileClick={publicProfile.openProfile}
+          />
         </>
       )}
+      <PublicProfileModal
+        profile={publicProfile.profile}
+        loading={publicProfile.loading}
+        error={publicProfile.error}
+        onClose={publicProfile.closeProfile}
+      />
     </div>
   )
 }

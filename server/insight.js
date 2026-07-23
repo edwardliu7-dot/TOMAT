@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
     if (kelasDiampu.length === 0) return res.json({ students: [] })
 
     const { rows: students } = await pool.query(
-      `select id, name, username, kelas, level, exp, coins, best_survival_streak
+       `select id, name, username, kelas, level, exp, coins, best_survival_streak, photo_url, equipped_bingkai
        from students where kelas = any($1) order by kelas, level desc, exp desc`,
       [kelasDiampu]
     )
@@ -63,6 +63,8 @@ router.get('/', async (req, res) => {
         name: s.name,
         username: s.username,
         kelas: s.kelas,
+         photoUrl: s.photo_url || null,
+         equippedBingkai: s.equipped_bingkai || null,
         level: s.level,
         exp: s.exp,
         coins: s.coins,

@@ -35,7 +35,7 @@ router.get('/students', async (req, res) => {
     if (kelasDiampu.length === 0) return res.json({ students: [] })
 
     const { rows: students } = await pool.query(
-      `select id, name, kelas from students where kelas = any($1) order by kelas, name`,
+       `select id, name, kelas, photo_url, equipped_bingkai from students where kelas = any($1) order by kelas, name`,
       [kelasDiampu]
     )
 
@@ -78,7 +78,7 @@ router.get('/student/:id', async (req, res) => {
     const kelasDiampu = await getMyKelasDiampu(req)
     // Verify student is in teacher's class
     const { rows: stuRows } = await pool.query(
-      `select id, name, kelas from students where id = $1 and kelas = any($2)`,
+       `select id, name, kelas, photo_url, equipped_bingkai from students where id = $1 and kelas = any($2)`,
       [req.params.id, kelasDiampu]
     )
     if (stuRows.length === 0) return res.status(403).json({ error: 'Siswa tidak ditemukan di kelas Anda.' })
