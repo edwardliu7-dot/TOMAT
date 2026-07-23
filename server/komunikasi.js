@@ -1,6 +1,7 @@
 import express from 'express'
 import { pool } from './db.js'
 import { requireAuth } from './auth.js'
+import { notifyUser, notifyClassMembers } from './notifications.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -357,6 +358,16 @@ router.post('/private/:otherRole/:otherId/messages', async (req, res) => {
        returning id, sender_id, sender_role, recipient_id, recipient_role, body, created_at`,
       [user.id, user.role, otherId, otherRole, body]
     )
+    const senderName = user.name || user.id
+    await notifyUser({
+      userId: otherId,
+      role: otherRole,
+      type: 'pesan_pribadi',
+      title: `Pesan baru dari ${senderName}`,
+      body,
+      url: '/komunikasi',
+      metadata: { conversationType: 'private', senderId: user.id, senderRole: user.role },
+    })
     res.status(201).json({ message: rows[0] })
   } catch (err) {
     console.error('komunikasi/private post error', err)
@@ -415,6 +426,14 @@ router.post('/forum/:kelas/messages', async (req, res) => {
        returning id, kelas, sender_id, sender_role, body, created_at`,
       [kelas, user.id, user.role, body]
     )
+    const senderName = user.name || user.id
+    await notifyClassMembers(kelas, user, {
+      type: 'pesan_forum',
+      title: `Pesan baru di forum ${kelas}`,
+      body: `${senderName}: ${body}`,
+      url: '/komunikasi',
+      metadata: { conversationType: 'forum', kelas },
+    })
     res.status(201).json({ message: rows[0] })
   } catch (err) {
     console.error('komunikasi/forum post error', err)

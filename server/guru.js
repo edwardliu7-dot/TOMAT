@@ -2,6 +2,7 @@ import express from 'express'
 import { pool } from './db.js'
 import { requireAuth, requireRole } from './auth.js'
 import { getGuruGrades } from './kelas.js'
+import { notifyClassStudents } from './notifications.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('guru'))
@@ -65,6 +66,13 @@ router.post('/tugas', async (req, res) => {
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning *`,
       [req.session.user.id, kelas, gameKey, gameName, gameEmoji || null, bab || null, type, totalQ, dueAt || null, difficultyValue]
     )
+    await notifyClassStudents(kelas, {
+      type: 'tugas_baru',
+      title: 'Tugas baru dari guru',
+      body: `${gameEmoji || '📝'} ${gameName} · ${totalQ} soal`,
+      url: '/',
+      metadata: { tugasId: rows[0].id, gameKey, kelas },
+    })
     res.json({ tugas: rows[0] })
   } catch (err) {
     console.error('guru/tugas create error', err)

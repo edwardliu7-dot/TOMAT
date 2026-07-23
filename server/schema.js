@@ -122,6 +122,36 @@ export async function ensureSchema() {
     create index if not exists komunikasi_dibaca_reader_idx
       on komunikasi_dibaca (reader_id, reader_role, conversation_type);
   `)
+  await pool.query(`
+    create table if not exists push_subscriptions (
+      endpoint text primary key,
+      user_id text not null,
+      user_role text not null check (user_role in ('guru','siswa')),
+      p256dh text not null,
+      auth text not null,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+    create index if not exists push_subscriptions_user_idx
+      on push_subscriptions (user_id, user_role);
+
+    create table if not exists notifications (
+      id serial primary key,
+      recipient_id text not null,
+      recipient_role text not null check (recipient_role in ('guru','siswa')),
+      type text not null default 'general',
+      title text not null,
+      body text not null,
+      url text not null default '/',
+      metadata jsonb not null default '{}',
+      read_at timestamptz,
+      created_at timestamptz not null default now()
+    );
+    create index if not exists notifications_recipient_idx
+      on notifications (recipient_id, recipient_role, created_at desc);
+    create index if not exists notifications_unread_idx
+      on notifications (recipient_id, recipient_role) where read_at is null;
+  `)
   // Add check constraints idempotently in case the table was created before they existed.
   await pool.query(`
     do $do$

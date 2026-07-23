@@ -10,3 +10,4 @@
 - [TOMAT communication access](tomat-communication-access.md) — private chat and class forums are restricted server-side to exact guru/student class relationships.
 - [TOMAT message notifications](tomat-message-notifications.md) — unread markers use server-derived message IDs, avoiding timestamp precision errors.
 - [TOMAT public profiles](tomat-public-profiles.md) — users can view limited profiles only within their permitted class circle.
+- [TOMAT push notifications](tomat-push-notifications.md) — in-app notifications are the baseline; Web Push requires VAPID secrets and per-device permission.

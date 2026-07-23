@@ -3,6 +3,7 @@ import { pool } from './db.js'
 import { requireAuth, requireRole } from './auth.js'
 import { getAccessibleGrades } from './kelas.js'
 import { checkAndAwardBadges } from './gamify.js'
+import { notifyUser } from './notifications.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
@@ -71,6 +72,15 @@ router.post('/nilai', async (req, res) => {
     // A finished task can unlock "nilai_sempurna", "rajin_berlatih" or "penjelajah_lengkap" —
     // check right after the insert so the badge shows up as soon as the student finishes.
     const newBadges = await checkAndAwardBadges(req.session.user.id)
+    await notifyUser({
+      userId: tugas.guru_id,
+      role: 'guru',
+      type: 'nilai_baru',
+      title: 'Nilai tugas baru',
+      body: `${req.session.user.id} mengumpulkan ${tugas.game_name} dengan nilai ${score}.`,
+      url: '/',
+      metadata: { tugasId: tId, studentId: req.session.user.id, nilaiId: rows[0].id, score },
+    })
     res.json({ nilai: rows[0], newBadges })
   } catch (err) {
     if (err.code === '23505') {

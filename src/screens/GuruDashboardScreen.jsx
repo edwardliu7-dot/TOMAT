@@ -12,7 +12,7 @@ import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../diff
 import ProfileScreen from './ProfileScreen'
 import CommunicationScreen from './CommunicationScreen'
 import {
-  MessageNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile,
+  MessageNotificationBell, AppNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile,
 } from '../components/shared'
 
 async function apiCall(path, options = {}) {
@@ -597,7 +597,8 @@ export default function GuruDashboardScreen({ onPlayGames }) {
             </div>
           </div>
 
-           <MessageNotificationBell onClick={() => setTab('komunikasi')} />
+            <MessageNotificationBell onClick={() => setTab('komunikasi')} />
+            <AppNotificationBell onCommunicationClick={() => setTab('komunikasi')} />
 
            <button onClick={onPlayGames} style={{
             background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)',

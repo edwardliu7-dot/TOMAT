@@ -1,6 +1,7 @@
 import express from 'express'
 import { pool } from './db.js'
 import { requireAuth, requireRole } from './auth.js'
+import { notifyUser } from './notifications.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('guru'))
@@ -130,6 +131,15 @@ router.post('/', async (req, res) => {
         [studentId, badgeId]
       )
     }
+    await notifyUser({
+      userId: studentId,
+      role: 'siswa',
+      type: 'hafalan',
+      title: status === 'lulus' ? 'Hafalan lulus' : 'Hafalan perlu diulang',
+      body: `${jenis === 'perkalian' ? 'Perkalian' : 'Pembagian'} ${angka}: ${status === 'lulus' ? 'lulus' : 'perlu diulang'}.`,
+      url: '/',
+      metadata: { jenis, angka, status },
+    })
 
     // Return updated status for the student
     const updatedStatus = await getStudentHafalanStatus(studentId)

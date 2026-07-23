@@ -4,6 +4,7 @@ import { useAuth } from '../AuthContext'
 import { useTask, TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import { BINGKAI_VISUALS } from '../shopVisuals'
+import { useAppNotifications, usePushNotifications } from '../notifications'
 
 export function TopBar({ title, onBack, accentColor = '#67E8F9', rightElement }) {
   return (
@@ -265,6 +266,127 @@ export function MessageNotificationBell({ onClick }) {
   )
 }
 
+function notificationLabel(notification) {
+  if (notification.type === 'pesan_pribadi') return '💬 Pesan pribadi'
+  if (notification.type === 'pesan_forum') return '💬 Forum kelas'
+  if (notification.type === 'tugas_baru') return '📝 Tugas baru'
+  if (notification.type === 'nilai_baru') return '⭐ Nilai baru'
+  if (notification.type === 'hafalan') return '🧮 Hafalan'
+  return '🔔 Informasi TOMAT'
+}
+
+export function AppNotificationBell({ onCommunicationClick }) {
+  const appNotifications = useAppNotifications(true)
+  const push = usePushNotifications(true)
+  const [open, setOpen] = React.useState(false)
+
+  const openNotification = async notification => {
+    await appNotifications.markRead(notification.id)
+    setOpen(false)
+    if (notification.url === '/komunikasi' || notification.type.startsWith('pesan_')) {
+      onCommunicationClick?.()
+      if (!onCommunicationClick) window.dispatchEvent(new CustomEvent('tomat:open-komunikasi'))
+    }
+  }
+
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        onClick={() => setOpen(value => !value)}
+        title="Pusat notifikasi"
+        aria-label={`Pusat notifikasi${appNotifications.unreadCount ? `, ${appNotifications.unreadCount} belum dibaca` : ''}`}
+        aria-expanded={open}
+        style={{
+          position: 'relative', width: 36, height: 36, borderRadius: 10,
+          background: open ? 'rgba(167,139,250,0.16)' : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${open ? 'rgba(167,139,250,0.45)' : 'rgba(255,255,255,0.08)'}`,
+          color: '#C4B5FD', cursor: 'pointer', fontSize: 17,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        📣
+        {appNotifications.unreadCount > 0 && (
+          <span style={{
+            position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18,
+            padding: '0 4px', borderRadius: 99, background: '#EF4444', color: '#fff',
+            fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px solid #0A0B14',
+          }}>{appNotifications.unreadCount > 99 ? '99+' : appNotifications.unreadCount}</span>
+        )}
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 46, right: 0, width: 310, maxWidth: 'calc(100vw - 32px)',
+          background: '#151923', border: '1px solid rgba(167,139,250,0.3)',
+          borderRadius: 16, boxShadow: '0 14px 34px rgba(0,0,0,0.45)', overflow: 'hidden', zIndex: 70,
+        }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+          }}>
+            <span style={{ flex: 1, color: '#fff', fontSize: 13, fontWeight: 800 }}>📣 Pusat Notifikasi</span>
+            {appNotifications.unreadCount > 0 && (
+              <button onClick={() => appNotifications.markAllRead()} style={{
+                border: 'none', background: 'none', color: '#A78BFA', cursor: 'pointer',
+                fontSize: 10, fontFamily: 'inherit', fontWeight: 700,
+              }}>Tandai semua</button>
+            )}
+          </div>
+          {push.supported && (
+            <div style={{
+              padding: '10px 14px', background: 'rgba(103,232,249,0.05)',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              {push.subscribed ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 13 }}>✅</span>
+                  <span style={{ flex: 1, color: '#CBD5E1', fontSize: 11 }}>Notifikasi HP aktif</span>
+                  <button onClick={push.disable} style={{ border: 'none', background: 'none', color: '#64748B', cursor: 'pointer', fontSize: 10, fontFamily: 'inherit' }}>Matikan</button>
+                </div>
+              ) : push.configured ? (
+                <button onClick={push.enable} disabled={push.loading} style={{
+                  width: '100%', border: '1px solid rgba(103,232,249,0.25)', borderRadius: 10,
+                  background: 'rgba(103,232,249,0.08)', color: '#67E8F9', padding: '8px 10px',
+                  cursor: push.loading ? 'default' : 'pointer', fontSize: 11, fontWeight: 800, fontFamily: 'inherit',
+                }}>🔔 {push.loading ? 'Menyiapkan…' : 'Aktifkan notifikasi HP/browser'}</button>
+              ) : (
+                <div style={{ color: '#64748B', fontSize: 10, lineHeight: 1.5 }}>
+                  Notifikasi perangkat belum dikonfigurasi. Pusat notifikasi aplikasi tetap aktif.
+                </div>
+              )}
+              {push.error && <div style={{ color: '#FCA5A5', fontSize: 10, marginTop: 5 }}>{push.error}</div>}
+            </div>
+          )}
+          {appNotifications.loading ? (
+            <div style={{ padding: '18px 14px', color: '#64748B', fontSize: 12, textAlign: 'center' }}>Memuat…</div>
+          ) : appNotifications.notifications.length === 0 ? (
+            <div style={{ padding: '18px 14px', color: '#64748B', fontSize: 12, textAlign: 'center' }}>Belum ada notifikasi.</div>
+          ) : (
+            <div style={{ maxHeight: 330, overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {appNotifications.notifications.map(notification => (
+                <button key={notification.id} onClick={() => openNotification(notification)} style={{
+                  width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                  background: notification.read_at ? 'rgba(255,255,255,0.025)' : 'rgba(167,139,250,0.1)',
+                  border: `1px solid ${notification.read_at ? 'rgba(255,255,255,0.06)' : 'rgba(167,139,250,0.25)'}`,
+                  borderRadius: 11, padding: '9px 10px', color: '#fff',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ flex: 1, color: notification.read_at ? '#CBD5E1' : '#C4B5FD', fontSize: 11, fontWeight: 800 }}>{notificationLabel(notification)}</span>
+                    {!notification.read_at && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#A78BFA' }} />}
+                  </div>
+                  <div style={{ color: '#E2E8F0', fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>{notification.title}</div>
+                  <div style={{ color: '#94A3B8', fontSize: 10, marginTop: 3, lineHeight: 1.4 }}>{notification.body}</div>
+                  <div style={{ color: '#64748B', fontSize: 9, marginTop: 5 }}>{new Date(notification.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommunicationClick }) {
   const { player } = usePlayer()
   const { logout, user } = useAuth()
@@ -272,6 +394,8 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
   const [notificationsOpen, setNotificationsOpen] = React.useState(false)
   const activeTasks = onNotificationTaskClick ? tasks.filter(task => task.status === 'active') : []
   const messageNotifications = useMessageNotifications(true)
+  const appNotifications = useAppNotifications(true)
+  const push = usePushNotifications(true)
   const expPct = Math.min(100, Math.round((player.exp / player.maxExp) * 100))
   const bingkai = user?.equippedBingkai ? BINGKAI_VISUALS[user.equippedBingkai] : null
   return (
@@ -311,7 +435,7 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
           <button
             onClick={() => setNotificationsOpen(open => !open)}
             title="Notifikasi"
-            aria-label={`Notifikasi${activeTasks.length || messageNotifications.total ? `, ${activeTasks.length + messageNotifications.total} item baru` : ''}`}
+            aria-label={`Notifikasi${activeTasks.length || messageNotifications.total || appNotifications.unreadCount ? `, ${Math.max(activeTasks.length + messageNotifications.total, appNotifications.unreadCount)} item baru` : ''}`}
             aria-expanded={notificationsOpen}
             style={{
               position: 'relative', width: 36, height: 36, borderRadius: 10,
@@ -322,13 +446,13 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
             }}
           >
             🔔
-            {(activeTasks.length + messageNotifications.total) > 0 && (
+            {Math.max(activeTasks.length + messageNotifications.total, appNotifications.unreadCount) > 0 && (
               <span style={{
                 position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18,
                 padding: '0 4px', borderRadius: 99, background: '#EF4444', color: '#fff',
                 fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: '2px solid #0A0B14',
-              }}>{activeTasks.length + messageNotifications.total > 99 ? '99+' : activeTasks.length + messageNotifications.total}</span>
+              }}>{Math.max(activeTasks.length + messageNotifications.total, appNotifications.unreadCount) > 99 ? '99+' : Math.max(activeTasks.length + messageNotifications.total, appNotifications.unreadCount)}</span>
             )}
           </button>
           {notificationsOpen && (
@@ -343,12 +467,55 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
               }}>
                  🔔 Notifikasi
               </div>
-               {activeTasks.length === 0 && messageNotifications.total === 0 ? (
+               {push.supported && (
+                 <div style={{
+                   padding: '10px 14px', background: 'rgba(103,232,249,0.05)',
+                   borderBottom: '1px solid rgba(255,255,255,0.06)',
+                 }}>
+                   {push.subscribed ? (
+                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                       <span style={{ fontSize: 13 }}>✅</span>
+                       <span style={{ flex: 1, color: '#CBD5E1', fontSize: 11 }}>Notifikasi HP aktif</span>
+                       <button onClick={push.disable} style={{ border: 'none', background: 'none', color: '#64748B', cursor: 'pointer', fontSize: 10, fontFamily: 'inherit' }}>Matikan</button>
+                     </div>
+                   ) : push.configured ? (
+                     <button onClick={push.enable} disabled={push.loading} style={{
+                       width: '100%', border: '1px solid rgba(103,232,249,0.25)', borderRadius: 10,
+                       background: 'rgba(103,232,249,0.08)', color: '#67E8F9', padding: '8px 10px',
+                       cursor: push.loading ? 'default' : 'pointer', fontSize: 11, fontWeight: 800, fontFamily: 'inherit',
+                     }}>🔔 {push.loading ? 'Menyiapkan…' : 'Aktifkan notifikasi HP/browser'}</button>
+                   ) : (
+                     <div style={{ color: '#64748B', fontSize: 10, lineHeight: 1.5 }}>
+                       Pusat notifikasi aplikasi aktif. Notifikasi HP menunggu konfigurasi server.
+                     </div>
+                   )}
+                   {push.error && <div style={{ color: '#FCA5A5', fontSize: 10, marginTop: 5 }}>{push.error}</div>}
+                 </div>
+               )}
+               {activeTasks.length === 0 && messageNotifications.total === 0 && appNotifications.notifications.length === 0 ? (
                 <div style={{ padding: '18px 14px', color: '#64748B', fontSize: 12, textAlign: 'center' }}>
                    Tidak ada notifikasi baru.
                 </div>
               ) : (
-                <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                 <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {appNotifications.notifications.slice(0, 5).map(notification => (
+                      <button key={`app-${notification.id}`} onClick={() => {
+                        appNotifications.markRead(notification.id)
+                        setNotificationsOpen(false)
+                        if (notification.url === '/komunikasi' || notification.type.startsWith('pesan_')) {
+                          onCommunicationClick?.()
+                          if (!onCommunicationClick) window.dispatchEvent(new CustomEvent('tomat:open-komunikasi'))
+                        }
+                      }} style={{
+                        width: '100%', textAlign: 'left', cursor: 'pointer',
+                        background: notification.read_at ? 'rgba(255,255,255,0.025)' : 'rgba(167,139,250,0.1)',
+                        border: '1px solid rgba(167,139,250,0.2)', borderRadius: 12, padding: '10px 11px', color: '#fff', fontFamily: 'inherit',
+                      }}>
+                        <div style={{ fontSize: 11, color: '#C4B5FD', fontWeight: 800 }}>{notificationLabel(notification)}</div>
+                        <div style={{ fontSize: 11, color: '#E2E8F0', marginTop: 4 }}>{notification.title}</div>
+                        <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 3 }}>{notification.body}</div>
+                      </button>
+                    ))}
                    {messageNotifications.total > 0 && (
                      <button
                        onClick={() => {
