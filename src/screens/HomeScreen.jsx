@@ -44,7 +44,14 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode }) {
   const { tasks, grades } = useTask()
   const { user } = useAuth()
   const accessibleGrades = getAccessibleGradesForUser(user)
-  const pendingTaskCount = tasks.filter(t => t.status === 'active').length
+  const pendingTasks = tasks.filter(t => t.status === 'active')
+  const pendingTaskCount = pendingTasks.length
+
+  const openTask = (task) => {
+    // The task id lets the router skip the mode picker and open this game's
+    // assigned-task session directly.
+    navigate(task.gameKey, { taskId: task.id })
+  }
 
   const zones = ZONE_DEFS.map(z => {
     const accessible = accessibleGrades.includes(z.grade)
@@ -76,7 +83,10 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode }) {
           </div>
         )}
 
-        <PlayerHeader onAvatarClick={() => navigate('profile')} />
+        <PlayerHeader
+          onAvatarClick={() => navigate('profile')}
+          onNotificationTaskClick={openTask}
+        />
 
         {/* Hero Banner */}
         <div style={{ margin: '16px 16px 0', borderRadius: 22, overflow: 'hidden', position: 'relative' }}>

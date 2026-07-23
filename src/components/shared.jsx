@@ -1,6 +1,7 @@
 import React from 'react'
 import { usePlayer } from '../PlayerContext'
 import { useAuth } from '../AuthContext'
+import { useTask, TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import { BINGKAI_VISUALS } from '../shopVisuals'
 
@@ -66,16 +67,19 @@ export function SurvivalOverScreen({ streak, onRetry, goBack, accentColor = '#F8
   )
 }
 
-export function PlayerHeader({ onAvatarClick }) {
+export function PlayerHeader({ onAvatarClick, onNotificationTaskClick }) {
   const { player } = usePlayer()
   const { logout, user } = useAuth()
+  const { tasks = [] } = useTask() || {}
+  const [notificationsOpen, setNotificationsOpen] = React.useState(false)
+  const activeTasks = tasks.filter(task => task.status === 'active')
   const expPct = Math.min(100, Math.round((player.exp / player.maxExp) * 100))
   const bingkai = user?.equippedBingkai ? BINGKAI_VISUALS[user.equippedBingkai] : null
   return (
     <div style={{
       padding: '14px 16px 10px', display: 'flex', alignItems: 'center', gap: 12,
       background: 'rgba(10,11,20,0.85)', backdropFilter: 'blur(20px)',
-      borderBottom: '1px solid rgba(255,255,255,0.07)',
+      borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'relative', zIndex: 20,
     }}>
       <button onClick={onAvatarClick} disabled={!onAvatarClick} style={{
         width: 48, height: 48, borderRadius: 14, flexShrink: 0, padding: 0,
@@ -103,6 +107,85 @@ export function PlayerHeader({ onAvatarClick }) {
           border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 4,
         }}>🪙 {player.coins}</div>
       </div>
+      {onNotificationTaskClick && (
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => setNotificationsOpen(open => !open)}
+            title="Notifikasi tugas"
+            aria-label={`Notifikasi tugas${activeTasks.length ? `, ${activeTasks.length} tugas aktif` : ''}`}
+            aria-expanded={notificationsOpen}
+            style={{
+              position: 'relative', width: 36, height: 36, borderRadius: 10,
+              background: notificationsOpen ? 'rgba(103,232,249,0.16)' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${notificationsOpen ? 'rgba(103,232,249,0.45)' : 'rgba(255,255,255,0.08)'}`,
+              color: '#67E8F9', cursor: 'pointer', fontSize: 17,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            🔔
+            {activeTasks.length > 0 && (
+              <span style={{
+                position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18,
+                padding: '0 4px', borderRadius: 99, background: '#EF4444', color: '#fff',
+                fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '2px solid #0A0B14',
+              }}>{activeTasks.length}</span>
+            )}
+          </button>
+          {notificationsOpen && (
+            <div style={{
+              position: 'absolute', top: 46, right: 0, width: 290, maxWidth: 'calc(100vw - 32px)',
+              background: '#151923', border: '1px solid rgba(103,232,249,0.25)',
+              borderRadius: 16, boxShadow: '0 14px 34px rgba(0,0,0,0.45)', overflow: 'hidden',
+            }}>
+              <div style={{
+                padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)',
+                color: '#fff', fontSize: 13, fontWeight: 800,
+              }}>
+                🔔 Tugas Baru
+              </div>
+              {activeTasks.length === 0 ? (
+                <div style={{ padding: '18px 14px', color: '#64748B', fontSize: 12, textAlign: 'center' }}>
+                  Tidak ada tugas aktif saat ini.
+                </div>
+              ) : (
+                <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {activeTasks.map(task => {
+                    const color = TYPE_COLORS[task.type] || '#67E8F9'
+                    return (
+                      <button
+                        key={task.id}
+                        onClick={() => {
+                          setNotificationsOpen(false)
+                          onNotificationTaskClick(task)
+                        }}
+                        style={{
+                          width: '100%', textAlign: 'left', cursor: 'pointer',
+                          background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}33`,
+                          borderRadius: 12, padding: '10px 11px', color: '#fff', fontFamily: 'inherit',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 21 }}>{task.gameEmoji || '🎮'}</span>
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ display: 'block', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {task.gameName}
+                            </span>
+                            <span style={{ display: 'block', marginTop: 3, color, fontSize: 10, fontWeight: 700 }}>
+                              {TYPE_ICONS[task.type] || '📝'} {TYPE_LABELS[task.type] || 'Tugas'} · {task.totalQuestions} soal
+                            </span>
+                          </span>
+                          <span style={{ color: '#67E8F9', fontSize: 15 }}>▶</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       <button onClick={logout} title="Keluar" style={{
         background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
         color: '#64748B', width: 34, height: 34, borderRadius: 10, cursor: 'pointer', fontSize: 15, flexShrink: 0,

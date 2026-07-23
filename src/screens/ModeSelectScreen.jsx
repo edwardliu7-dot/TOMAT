@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { TopBar, PlayerHeader } from '../components/shared'
 import { useTask, TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
@@ -123,9 +123,19 @@ function EmptyTaskState() {
   )
 }
 
-export default function ModeSelectScreen({ navigate, goBack, pendingGame, onModeSelected }) {
-  const { getTaskForGame, startTaskSession } = useTask()
-  const task = pendingGame ? getTaskForGame(pendingGame.key) : null
+export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId, onModeSelected }) {
+  const { tasks, getTaskForGame, startTaskSession } = useTask()
+  const task = taskId
+    ? tasks.find(candidate => candidate.id === taskId && candidate.status === 'active') || null
+    : (pendingGame ? getTaskForGame(pendingGame.key) : null)
+  const directTaskStarted = useRef(false)
+
+  useEffect(() => {
+    if (!taskId || !task || directTaskStarted.current) return
+    directTaskStarted.current = true
+    startTaskSession(task.id)
+    onModeSelected('task', task.id, { difficulty: task.difficulty || 'medium' })
+  }, [taskId, task, startTaskSession, onModeSelected])
 
   const selectFreePlay = (config) => {
     onModeSelected('freeplay', null, config)

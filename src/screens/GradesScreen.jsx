@@ -49,7 +49,7 @@ function SectionHeader({ icon, label, color, count }) {
   )
 }
 
-function PendingTaskCard({ task }) {
+function PendingTaskCard({ task, onClick }) {
   const color = TYPE_COLORS[task.type]
   const label = TYPE_LABELS[task.type]
   const icon = TYPE_ICONS[task.type]
@@ -59,8 +59,13 @@ function PendingTaskCard({ task }) {
       background: '#1A1D27', borderRadius: 16,
       border: `1px dashed ${color}55`, padding: 14,
       display: 'flex', alignItems: 'center', gap: 12,
-      opacity: 0.75,
+      opacity: 0.9, cursor: 'pointer',
     }}>
+      <button onClick={onClick} aria-label={`Buka tugas ${task.gameName}`} style={{
+        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+        padding: 0, background: 'none', border: 'none', color: 'inherit',
+        textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+      }}>
       <div style={{ fontSize: 26 }}>{task.gameEmoji}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{task.gameName}</div>
@@ -78,11 +83,13 @@ function PendingTaskCard({ task }) {
         <div style={{ fontSize: 10, color: '#F59E0B', fontWeight: 700 }}>⏳ BELUM</div>
         <div style={{ fontSize: 10, color: '#F59E0B' }}>DIKERJAKAN</div>
       </div>
+      <div style={{ color: '#67E8F9', fontSize: 16 }}>▶</div>
+      </button>
     </div>
   )
 }
 
-export default function GradesScreen({ goBack }) {
+export default function GradesScreen({ goBack, navigate }) {
   const { grades, tasks } = useTask()
 
   const pendingTasks = tasks.filter(t => t.status === 'active')
@@ -136,7 +143,13 @@ export default function GradesScreen({ goBack }) {
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {pendingTasks.map(t => <PendingTaskCard key={t.id} task={t} />)}
+              {pendingTasks.map(t => (
+                <PendingTaskCard
+                  key={t.id}
+                  task={t}
+                  onClick={() => navigate?.(t.gameKey, { taskId: t.id })}
+                />
+              ))}
             </div>
           </>
         )}

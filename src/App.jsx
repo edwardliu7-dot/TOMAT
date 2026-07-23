@@ -136,18 +136,21 @@ const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grad
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [history, setHistory] = useState(['home'])
   const [pendingGame, setPendingGame] = useState(null) // { key, name, emoji }
+  const [pendingTaskId, setPendingTaskId] = useState(null)
   const [lastGrade, setLastGrade] = useState(null)
   const [gameConfig, setGameConfig] = useState(null) // { difficulty } or { survival: true }
 
   const current = history[history.length - 1]
 
   // Push a new route onto the stack
-  const navigate = useCallback((route) => {
+  const navigate = useCallback((route, options = {}) => {
     if (GAME_ROUTES[route]) {
       // Intercept: show mode select before any game
       setPendingGame({ key: route, ...GAME_ROUTES[route] })
+      setPendingTaskId(options.taskId || null)
       setHistory(h => [...h, 'modeselect'])
     } else {
+      setPendingTaskId(null)
       setHistory(h => [...h, route])
     }
   }, [])
@@ -165,6 +168,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   // startTaskSession is called inside ModeSelectScreen (within TaskProvider tree) before this.
   const handleModeSelected = useCallback((_mode, _taskId, config) => {
     setGameConfig(config || null)
+    setPendingTaskId(null)
     replaceTop(pendingGame.key)
   }, [pendingGame, replaceTop])
 
@@ -191,6 +195,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           navigate={navigate}
           goBack={goBack}
           pendingGame={pendingGame}
+            taskId={pendingTaskId}
           onModeSelected={handleModeSelected}
         />
       )
