@@ -69,34 +69,44 @@ export function SurvivalOverScreen({ streak, onRetry, goBack, accentColor = '#F8
 export function PlayerHeader({ onAvatarClick }) {
   const { player } = usePlayer()
   const { logout, user } = useAuth()
-  const expPct = Math.round((player.exp / player.maxExp) * 100)
+  const expPct = Math.min(100, Math.round((player.exp / player.maxExp) * 100))
   const bingkai = user?.equippedBingkai ? BINGKAI_VISUALS[user.equippedBingkai] : null
   return (
-    <div style={{ padding: '16px 20px 8px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+    <div style={{
+      padding: '14px 16px 10px', display: 'flex', alignItems: 'center', gap: 12,
+      background: 'rgba(10,11,20,0.85)', backdropFilter: 'blur(20px)',
+      borderBottom: '1px solid rgba(255,255,255,0.07)',
+    }}>
       <button onClick={onAvatarClick} disabled={!onAvatarClick} style={{
         width: 48, height: 48, borderRadius: 14, flexShrink: 0, padding: 0,
         cursor: onAvatarClick ? 'pointer' : 'default',
-        background: user?.photoUrl ? `url(${user.photoUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #6366F1, #A855F7)',
+        background: user?.photoUrl ? `url(${user.photoUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #10B981, #06B6D4)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 20, fontWeight: 800, color: '#fff',
-        border: bingkai ? `3px ${bingkai.style} ${bingkai.border}` : '2px solid rgba(255,255,255,0.15)',
-        boxShadow: bingkai?.glow ? `0 0 12px ${bingkai.border}88` : 'none',
+        border: bingkai ? `3px ${bingkai.style} ${bingkai.border}` : '2px solid rgba(16,185,129,0.4)',
+        boxShadow: bingkai?.glow ? `0 0 14px ${bingkai.border}88` : '0 0 12px rgba(16,185,129,0.2)',
       }}>{!user?.photoUrl && player.name[0].toUpperCase()}</button>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>Elite Explorer</div>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#E2E2E6' }}>{player.name}</div>
-        <div style={{ marginTop: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
-          <div style={{ width: `${expPct}%`, height: '100%', background: 'linear-gradient(90deg,#6366F1,#A855F7)', borderRadius: 4, transition: 'width 0.5s' }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 10, color: '#34D399', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+          ⭐ Level {player.level}
         </div>
-        <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>EXP {player.exp}/{player.maxExp}</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginTop: 1 }}>{player.name}</div>
+        <div style={{ marginTop: 5, background: 'rgba(255,255,255,0.08)', borderRadius: 99, height: 5, overflow: 'hidden', position: 'relative' }}>
+          <div style={{ width: `${expPct}%`, height: '100%', background: 'linear-gradient(90deg, #10B981, #06B6D4)', borderRadius: 99, transition: 'width 0.6s ease', boxShadow: '0 0 8px rgba(16,185,129,0.5)' }} />
+        </div>
+        <div style={{ fontSize: 10, color: '#64748B', marginTop: 2 }}>{player.exp} / {player.maxExp} EXP</div>
       </div>
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: '#EAB308' }}>🪙 {player.coins}</div>
-        <div style={{ fontSize: 12, color: '#94A3B8' }}>Lv {player.level}</div>
+        <div style={{
+          fontSize: 16, fontWeight: 900, color: '#FBBF24',
+          background: 'rgba(251,191,36,0.1)', padding: '4px 10px', borderRadius: 20,
+          border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 4,
+        }}>🪙 {player.coins}</div>
       </div>
       <button onClick={logout} title="Keluar" style={{
-        background: 'rgba(255,255,255,0.06)', border: 'none', color: '#94A3B8',
-        width: 32, height: 32, borderRadius: 8, cursor: 'pointer', fontSize: 14, flexShrink: 0,
+        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+        color: '#64748B', width: 34, height: 34, borderRadius: 10, cursor: 'pointer', fontSize: 15, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>⏻</button>
     </div>
   )

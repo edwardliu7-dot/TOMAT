@@ -4,24 +4,21 @@ import logo from '../assets/logo.png'
 
 export default function LoginScreen() {
   const { login } = useAuth()
-  const [role, setRole] = useState('siswa')
+  const [chosen, setChosen] = useState(null) // 'siswa' | 'guru' | null
   const [form, setForm] = useState({ username: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPw, setShowPw] = useState(false)
 
-  const update = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }))
-
-  const selectRole = (r) => {
-    setRole(r)
-    setError('')
-  }
+  const decide = (r) => { setChosen(r); setError('') }
+  const goBack  = () => { setChosen(null); setError('') }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      await login({ role, username: form.username, password: form.password })
+      await login({ role: chosen, username: form.username, password: form.password })
     } catch (err) {
       setError(err.message || 'Terjadi kesalahan.')
     } finally {
@@ -29,97 +26,273 @@ export default function LoginScreen() {
     }
   }
 
+  const siswaActive = chosen === 'siswa'
+  const guruActive  = chosen === 'guru'
+  const decided     = chosen !== null
+
   return (
     <div style={{
-      minHeight: '100vh', background: '#0F1115', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', padding: 20,
+      position: 'relative', minHeight: '100vh', height: '100%', maxWidth: 430,
+      width: '100%', margin: '0 auto', overflow: 'hidden',
+      fontFamily: 'inherit', color: '#fff', display: 'flex', flexDirection: 'column',
     }}>
-      <div style={{
-        width: '100%', maxWidth: 400, background: '#151821', borderRadius: 24,
-        border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden',
-      }}>
-        {/* Header */}
-        <div style={{
-          background: 'linear-gradient(135deg, #1a1a3e, #2d1b69)',
-          padding: '32px 24px', textAlign: 'center',
-          borderBottom: '1px solid rgba(99,102,241,0.3)',
-        }}>
+      {/* ── Two world panels ── */}
+      <div style={{ display: 'flex', flex: 1, minHeight: '100%', position: 'relative' }}>
+
+        {/* SISWA WORLD */}
+        <div
+          onClick={() => !decided && decide('siswa')}
+          style={{
+            position: 'relative', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'flex-start', overflow: 'hidden',
+            cursor: decided ? 'default' : 'pointer',
+            width: decided ? (siswaActive ? '100%' : '0%') : '50%',
+            transition: 'width 0.65s cubic-bezier(0.77,0,0.175,1)',
+            flexShrink: 0,
+            background: 'linear-gradient(160deg, #022c22 0%, #064e3b 35%, #0a1220 100%)',
+          }}
+        >
+          {/* Glow orbs */}
+          <div style={{ position: 'absolute', top: -60, left: -60, width: 280, height: 280, borderRadius: '50%', background: 'rgba(16,185,129,0.25)', filter: 'blur(80px)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', bottom: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(52,211,153,0.15)', filter: 'blur(60px)', pointerEvents: 'none' }} />
+          {/* Grid */}
           <div style={{
-            width: 64, height: 64, borderRadius: 18, margin: '0 auto 14px',
-            overflow: 'hidden',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'absolute', inset: 0, opacity: 0.07, pointerEvents: 'none',
+            backgroundImage: 'linear-gradient(rgba(16,185,129,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,0.8) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+          }} />
+
+          <div style={{
+            position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', paddingTop: siswaActive ? 56 : 88,
+            opacity: decided && !siswaActive ? 0 : 1, transition: 'opacity 0.4s',
+            width: '100%',
           }}>
-            <img src={logo} alt="TOMAT" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#fff', fontStyle: 'italic', letterSpacing: -0.5 }}>TOMAT</div>
-          <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>Tantangan Otak MATematika · SMP TISA Islamic School</div>
-        </div>
+            {siswaActive && (
+              <button onClick={e => { e.stopPropagation(); goBack() }} style={{
+                position: 'absolute', top: 16, left: 16, width: 36, height: 36,
+                borderRadius: '50%', border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 18,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              }}>←</button>
+            )}
+            <div style={{ fontSize: 52, filter: 'drop-shadow(0 0 20px rgba(16,185,129,0.7))' }}>⚔️</div>
+            <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '0.2em', color: '#34D399', textTransform: 'uppercase', marginTop: 10 }}>Siswa</div>
+            <div style={{ fontSize: 10, color: '#059669', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 2 }}>Pejuang Angka</div>
 
-        <div style={{ padding: 24 }}>
-          {/* Role tabs */}
-          <div style={{ display: 'flex', background: '#0F1115', borderRadius: 12, padding: 4, marginBottom: 18 }}>
-            {[{ id: 'siswa', label: 'Siswa' }, { id: 'guru', label: 'Guru' }].map(r => (
-              <button key={r.id} onClick={() => selectRole(r.id)} style={{
-                flex: 1, padding: '10px 0', borderRadius: 9, border: 'none', cursor: 'pointer',
-                fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
-                background: role === r.id ? '#1E2128' : 'transparent',
-                color: role === r.id ? '#34D399' : '#94A3B8',
-              }}>{r.label}</button>
-            ))}
-          </div>
-
-          {/* Pendaftaran akun (siswa maupun guru) hanya dilakukan lewat aplikasi BLP,
-              agar tidak terjadi akun ganda antara kedua aplikasi. */}
-          <div style={{ marginBottom: 20, fontSize: 12, color: '#6B7280', lineHeight: 1.5 }}>
-            {role === 'guru'
-              ? 'Akun guru dibuat oleh admin sekolah melalui aplikasi BLP. Masuk menggunakan akun yang sudah terdaftar.'
-              : 'Akun siswa didaftarkan melalui aplikasi BLP. Masuk menggunakan akun yang sudah terdaftar.'}
-          </div>
-
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <Field label="Username">
-              <input required value={form.username} onChange={update('username')} placeholder="username" autoCapitalize="none"
-                style={inputStyle} />
-            </Field>
-
-            <Field label="Password">
-              <input required type="password" value={form.password} onChange={update('password')} placeholder="••••••••"
-                style={inputStyle} />
-            </Field>
-
-            {error && (
-              <div style={{ color: '#f87171', fontSize: 13, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 10, padding: '10px 12px' }}>
-                {error}
+            {!decided && (
+              <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                {['Quest Harian', 'Koin & XP', 'Level Up'].map(t => (
+                  <div key={t} style={{
+                    fontSize: 10, fontWeight: 700, padding: '5px 14px', borderRadius: 20,
+                    background: 'rgba(16,185,129,0.15)', color: '#34D399',
+                    border: '1px solid rgba(16,185,129,0.3)', letterSpacing: '0.1em',
+                  }}>{t}</div>
+                ))}
+                <div style={{ marginTop: 16, width: 32, height: 2, background: 'rgba(52,211,153,0.5)', borderRadius: 2 }} />
+                <div style={{ fontSize: 9, color: '#059669', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase' }}>TAP MASUK</div>
               </div>
             )}
 
-            <button type="submit" disabled={loading} style={{
-              marginTop: 6, background: loading ? '#166534' : 'linear-gradient(135deg,#22C55E,#16A34A)',
-              color: '#fff', border: 'none', borderRadius: 14, padding: '14px 0',
-              fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
-              fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}>
-              {loading ? 'Memproses…' : 'Masuk →'}
-            </button>
-          </form>
+            {siswaActive && (
+              <div style={{ width: '100%', padding: '0 24px', marginTop: 28, boxSizing: 'border-box' }}>
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                  <div style={{ fontSize: 9, color: '#059669', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Masuk sebagai</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: '#34D399', letterSpacing: '0.15em' }}>SISWA</div>
+                  <div style={{ fontSize: 11, color: 'rgba(52,211,153,0.7)', marginTop: 6, lineHeight: 1.5 }}>
+                    Akun siswa didaftarkan melalui aplikasi BLP.
+                  </div>
+                </div>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <input
+                    required value={form.username}
+                    onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+                    placeholder="NISN atau Username" autoCapitalize="none"
+                    style={siswaInputStyle}
+                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      required type={showPw ? 'text' : 'password'}
+                      value={form.password}
+                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                      placeholder="••••••••"
+                      style={{ ...siswaInputStyle, paddingRight: 44 }}
+                    />
+                    <button type="button" onClick={() => setShowPw(v => !v)} style={{
+                      position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', color: 'rgba(52,211,153,0.6)',
+                      cursor: 'pointer', fontSize: 16, padding: 4,
+                    }}>{showPw ? '🙈' : '👁️'}</button>
+                  </div>
+                  {error && (
+                    <div style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.4)', borderRadius: 10, padding: '10px 12px', color: '#fca5a5', fontSize: 12 }}>
+                      {error}
+                    </div>
+                  )}
+                  <button type="submit" disabled={loading} style={{
+                    marginTop: 4, background: loading ? '#065f46' : 'linear-gradient(135deg, #10B981, #059669)',
+                    color: '#fff', border: 'none', borderRadius: 14, padding: '14px 0',
+                    fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
+                    fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    boxShadow: '0 0 24px rgba(16,185,129,0.35)',
+                  }}>
+                    {loading ? 'Memproses…' : 'MASUK →'}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
 
+          {!decided && (
+            <div style={{ position: 'absolute', top: 0, right: 0, width: 1, height: '100%', background: 'linear-gradient(to bottom, transparent, rgba(16,185,129,0.35), transparent)' }} />
+          )}
+        </div>
+
+        {/* GURU WORLD */}
+        <div
+          onClick={() => !decided && decide('guru')}
+          style={{
+            position: 'relative', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'flex-start', overflow: 'hidden',
+            cursor: decided ? 'default' : 'pointer',
+            width: decided ? (guruActive ? '100%' : '0%') : '50%',
+            transition: 'width 0.65s cubic-bezier(0.77,0,0.175,1)',
+            flexShrink: 0,
+            background: 'linear-gradient(160deg, #1e1b4b 0%, #2e1065 35%, #0a0a1a 100%)',
+          }}
+        >
+          <div style={{ position: 'absolute', top: -60, right: -60, width: 280, height: 280, borderRadius: '50%', background: 'rgba(139,92,246,0.25)', filter: 'blur(80px)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', bottom: -40, left: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(167,139,250,0.15)', filter: 'blur(60px)', pointerEvents: 'none' }} />
+          <div style={{
+            position: 'absolute', inset: 0, opacity: 0.07, pointerEvents: 'none',
+            backgroundImage: 'linear-gradient(rgba(167,139,250,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(167,139,250,0.8) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+          }} />
+
+          <div style={{
+            position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', paddingTop: guruActive ? 56 : 88,
+            opacity: decided && !guruActive ? 0 : 1, transition: 'opacity 0.4s',
+            width: '100%',
+          }}>
+            {guruActive && (
+              <button onClick={e => { e.stopPropagation(); goBack() }} style={{
+                position: 'absolute', top: 16, left: 16, width: 36, height: 36,
+                borderRadius: '50%', border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 18,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              }}>←</button>
+            )}
+            <div style={{ fontSize: 52, filter: 'drop-shadow(0 0 20px rgba(167,139,250,0.7))' }}>🔮</div>
+            <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '0.2em', color: '#A78BFA', textTransform: 'uppercase', marginTop: 10 }}>Guru</div>
+            <div style={{ fontSize: 10, color: '#7C3AED', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 2 }}>Arsitek Ilmu</div>
+
+            {!decided && (
+              <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                {['Buat Tugas', 'Pantau Kelas', 'Lihat Nilai'].map(t => (
+                  <div key={t} style={{
+                    fontSize: 10, fontWeight: 700, padding: '5px 14px', borderRadius: 20,
+                    background: 'rgba(139,92,246,0.15)', color: '#A78BFA',
+                    border: '1px solid rgba(139,92,246,0.3)', letterSpacing: '0.1em',
+                  }}>{t}</div>
+                ))}
+                <div style={{ marginTop: 16, width: 32, height: 2, background: 'rgba(167,139,250,0.5)', borderRadius: 2 }} />
+                <div style={{ fontSize: 9, color: '#7C3AED', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase' }}>TAP MASUK</div>
+              </div>
+            )}
+
+            {guruActive && (
+              <div style={{ width: '100%', padding: '0 24px', marginTop: 28, boxSizing: 'border-box' }}>
+                <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                  <div style={{ fontSize: 9, color: '#7C3AED', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>Masuk sebagai</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: '#A78BFA', letterSpacing: '0.15em' }}>GURU</div>
+                  <div style={{ fontSize: 11, color: 'rgba(167,139,250,0.7)', marginTop: 6, lineHeight: 1.5 }}>
+                    Akun guru dibuat oleh admin sekolah melalui BLP.
+                  </div>
+                </div>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <input
+                    required value={form.username}
+                    onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+                    placeholder="Email atau Username" autoCapitalize="none"
+                    style={guruInputStyle}
+                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      required type={showPw ? 'text' : 'password'}
+                      value={form.password}
+                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                      placeholder="••••••••"
+                      style={{ ...guruInputStyle, paddingRight: 44 }}
+                    />
+                    <button type="button" onClick={() => setShowPw(v => !v)} style={{
+                      position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', color: 'rgba(167,139,250,0.6)',
+                      cursor: 'pointer', fontSize: 16, padding: 4,
+                    }}>{showPw ? '🙈' : '👁️'}</button>
+                  </div>
+                  {error && (
+                    <div style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.4)', borderRadius: 10, padding: '10px 12px', color: '#fca5a5', fontSize: 12 }}>
+                      {error}
+                    </div>
+                  )}
+                  <button type="submit" disabled={loading} style={{
+                    marginTop: 4, background: loading ? '#2e1065' : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+                    color: '#fff', border: 'none', borderRadius: 14, padding: '14px 0',
+                    fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
+                    fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    boxShadow: '0 0 24px rgba(139,92,246,0.35)',
+                  }}>
+                    {loading ? 'Memproses…' : 'MASUK →'}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Brand strip — hidden when decided */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        pointerEvents: 'none',
+        opacity: decided ? 0 : 1, transition: 'opacity 0.35s',
+      }}>
+        <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img src={logo} alt="TOMAT" style={{ width: 44, height: 44, borderRadius: 12, objectFit: 'cover', marginBottom: 6 }} />
+          <div style={{ fontSize: 24, fontWeight: 900, fontStyle: 'italic', letterSpacing: '0.05em', color: '#fff' }}>TOMAT</div>
+          <div style={{ fontSize: 9, color: '#67E8F9', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase' }}>Tantangan Otak MATematika</div>
+        </div>
+        <div style={{ marginTop: 12, width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
+        <div style={{ fontSize: 9, color: '#475569', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 4 }}>Pilih Duniamu</div>
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        position: 'absolute', bottom: 16, left: 0, right: 0, textAlign: 'center',
+        zIndex: 20, pointerEvents: 'none',
+      }}>
+        <div style={{ fontSize: 9, color: '#374151', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+          SMP TISA Islamic School · v2.0
         </div>
       </div>
     </div>
   )
 }
 
-function Field({ label, children }) {
-  return (
-    <div>
-      <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
-      {children}
-    </div>
-  )
+const baseInputStyle = {
+  width: '100%', borderRadius: 12, padding: '12px 14px',
+  color: '#fff', fontSize: 14, fontFamily: 'inherit',
+  outline: 'none', boxSizing: 'border-box', border: 'none',
 }
-
-const inputStyle = {
-  width: '100%', background: '#0F1115', border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 10, padding: '12px 14px', color: '#fff', fontSize: 14,
-  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+const siswaInputStyle = {
+  ...baseInputStyle,
+  background: 'rgba(0,0,0,0.45)',
+  border: '1px solid rgba(16,185,129,0.25)',
+}
+const guruInputStyle = {
+  ...baseInputStyle,
+  background: 'rgba(0,0,0,0.45)',
+  border: '1px solid rgba(139,92,246,0.25)',
 }
