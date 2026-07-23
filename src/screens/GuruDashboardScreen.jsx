@@ -249,29 +249,135 @@ function NilaiTab() {
   }, [])
   if (loading) return <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
   if (nilaiList.length === 0) return <div style={{ color: '#374151', fontSize: 13 }}>Belum ada nilai yang terkumpul.</div>
+
   const avg = Math.round(nilaiList.reduce((s, n) => s + n.score, 0) / nilaiList.length)
   const avgColor = avg >= 90 ? '#34D399' : avg >= 75 ? '#67E8F9' : avg >= 60 ? '#FBBF24' : '#F87171'
+
+  // Keep each assignment separate by its database id. A teacher may assign
+  // the same game more than once, so grouping only by game name would merge
+  // different assignments together.
+  const kelasGroups = new Map()
+  for (const nilai of nilaiList) {
+    if (!kelasGroups.has(nilai.kelas)) kelasGroups.set(nilai.kelas, new Map())
+    const tugasGroups = kelasGroups.get(nilai.kelas)
+    if (!tugasGroups.has(nilai.tugas_id)) {
+      tugasGroups.set(nilai.tugas_id, {
+        id: nilai.tugas_id,
+        gameName: nilai.game_name,
+        gameEmoji: nilai.game_emoji,
+        type: nilai.type,
+        dueAt: nilai.due_at,
+        nilai: [],
+      })
+    }
+    tugasGroups.get(nilai.tugas_id).nilai.push(nilai)
+  }
+
+  const scoreColor = score => score >= 90 ? '#34D399' : score >= 75 ? '#67E8F9' : score >= 60 ? '#FBBF24' : '#F87171'
+  const formatDate = value => value
+    ? new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+    : null
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ background: '#111827', borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', padding: '20px', textAlign: 'center' }}>
         <div style={{ fontSize: 40, fontWeight: 900, color: avgColor, lineHeight: 1 }}>{avg}</div>
         <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>Rata-rata dari {nilaiList.length} nilai terkumpul</div>
       </div>
-      {nilaiList.map(n => {
-        const scoreColor = n.score >= 90 ? '#34D399' : n.score >= 75 ? '#67E8F9' : n.score >= 60 ? '#FBBF24' : '#F87171'
-        return (
-          <Section key={n.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontSize: 22 }}>{n.game_emoji}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{n.student_name} <span style={{ color: '#64748B', fontWeight: 400 }}>({n.student_username})</span></div>
-              <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                {n.game_name} · {n.kelas} · {TYPE_ICONS[n.type]} {TYPE_LABELS[n.type]} · {n.correct_count}/{n.total_questions} soal
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {[...kelasGroups.entries()].map(([kelas, tugasGroups]) => {
+          const kelasNilai = [...tugasGroups.values()].flatMap(tugas => tugas.nilai)
+          const kelasAverage = Math.round(kelasNilai.reduce((sum, nilai) => sum + nilai.score, 0) / kelasNilai.length)
+          return (
+            <div key={kelas} style={{
+              background: 'rgba(15,23,42,0.68)', border: '1px solid rgba(103,232,249,0.18)',
+              borderRadius: 18, padding: 12,
+            }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '4px 4px 12px',
+                borderBottom: '1px solid rgba(255,255,255,0.07)',
+              }}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: 11, background: 'rgba(103,232,249,0.14)',
+                  color: '#67E8F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17,
+                }}>🏫</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>Kelas {kelas}</div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                    {kelasNilai.length} nilai · {tugasGroups.size} tugas
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: scoreColor(kelasAverage) }}>{kelasAverage}</div>
+                  <div style={{ fontSize: 9, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.6 }}>Rata-rata</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                {[...tugasGroups.values()].map(tugas => {
+                  const tugasAverage = Math.round(tugas.nilai.reduce((sum, nilai) => sum + nilai.score, 0) / tugas.nilai.length)
+                  return (
+                    <div key={tugas.id} style={{
+                      background: '#111827', borderRadius: 14,
+                      border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '12px 13px',
+                        background: 'rgba(255,255,255,0.025)',
+                      }}>
+                        <div style={{ fontSize: 24, flexShrink: 0 }}>{tugas.gameEmoji}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{tugas.gameName}</div>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                            <span style={{
+                              background: `${TYPE_COLORS[tugas.type]}18`, color: TYPE_COLORS[tugas.type],
+                              fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
+                            }}>
+                              {TYPE_ICONS[tugas.type]} {TYPE_LABELS[tugas.type]}
+                            </span>
+                            <span style={{ color: '#64748B', fontSize: 10 }}>
+                              {tugas.nilai.length} siswa mengumpulkan
+                            </span>
+                            {tugas.dueAt && (
+                              <span style={{ color: '#64748B', fontSize: 10 }}>
+                                Tenggat {formatDate(tugas.dueAt)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: 20, fontWeight: 900, color: scoreColor(tugasAverage) }}>{tugasAverage}</div>
+                          <div style={{ fontSize: 9, color: '#64748B' }}>RATA-RATA</div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px 10px' }}>
+                        {tugas.nilai.map(n => (
+                          <div key={n.id} style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            background: 'rgba(255,255,255,0.035)', borderRadius: 10, padding: '9px 10px',
+                          }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>
+                                {n.student_name}
+                                <span style={{ color: '#64748B', fontWeight: 400, marginLeft: 5 }}>({n.student_username})</span>
+                              </div>
+                              <div style={{ fontSize: 10, color: '#64748B', marginTop: 3 }}>
+                                {n.correct_count}/{n.total_questions} soal
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 20, fontWeight: 900, color: scoreColor(n.score) }}>{n.score}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: scoreColor }}>{n.score}</div>
-          </Section>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }
