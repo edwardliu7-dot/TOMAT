@@ -29,7 +29,7 @@ function toFracStr(n, d) {
 }
 
 export default function KokiPizzaGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -124,7 +124,7 @@ export default function KokiPizzaGame({ goBack, difficulty = 'medium', survival 
               message={feedback ? `✅ Monster puas! Jawaban: ${q.answer}` : `❌ Monster marah! Seharusnya ${q.colored} potong = ${q.answer}`}
               isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#0e7490">Pizza Berikutnya ▶</Btn>
+            <Btn onClick={() => { if (feedback === false) recordWrongAnswer(); newQ() }} color="#0e7490">Pizza Berikutnya ▶</Btn>
           </>
         )}
       </div>

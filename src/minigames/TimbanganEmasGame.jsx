@@ -21,7 +21,7 @@ function genQ(difficulty = 'medium') {
 }
 
 export default function TimbanganEmasGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -90,7 +90,7 @@ export default function TimbanganEmasGame({ goBack, difficulty = 'medium', survi
               message={feedback ? `✅ Timbangan akurat!` : `❌ Tidak presisi! Jawaban: ${q.answer}`}
               isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#0e7490">Pengukuran Berikutnya ▶</Btn>
+            <Btn onClick={() => { if (feedback === false) recordWrongAnswer(); newQ() }} color="#0e7490">Pengukuran Berikutnya ▶</Btn>
           </>
         )}
       </div>

@@ -18,7 +18,7 @@ function genQ(difficulty = 'medium') {
 }
 
 export default function KasirSihirGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -135,7 +135,7 @@ export default function KasirSihirGame({ goBack, difficulty = 'medium', survival
               message={feedback ? `✅ Transaksi sukses! Harga = 🪙${q.answer}` : `❌ Harga salah! Seharusnya 🪙${q.answer}`}
               isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#0e7490">Pelanggan Berikutnya ▶</Btn>
+            <Btn onClick={() => { if (feedback === false) recordWrongAnswer(); newQ() }} color="#0e7490">Pelanggan Berikutnya ▶</Btn>
           </>
         )}
       </div>

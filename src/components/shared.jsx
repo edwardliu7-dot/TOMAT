@@ -984,7 +984,12 @@ export function OptionGrid({ options, onSelect, correct = null, disabled = false
 // FeedbackBanner supports two call patterns:
 //   New (G7 games): <FeedbackBanner message="..." isCorrect={bool} extras="..." />
 //   Legacy (G8/G9): <FeedbackBanner correct={bool} answer={val} onNext={fn} />
+//
+// In task (tugas) mode, when onNext is provided and the answer was WRONG, this
+// component automatically calls recordWrongAnswer() before advancing so that the
+// task session counts the question as answered (preventing infinite retries).
 export function FeedbackBanner({ message, isCorrect, extras, correct, answer, onNext }) {
+  const { recordWrongAnswer } = usePlayer()
   // Resolve which pattern is being used
   const resolvedIsCorrect = isCorrect !== undefined ? isCorrect : correct
   const resolvedMessage = message !== undefined
@@ -993,6 +998,12 @@ export function FeedbackBanner({ message, isCorrect, extras, correct, answer, on
       ? `✅ Benar! Jawaban: ${answer}`
       : `❌ Salah! Jawaban yang benar: ${answer}`
   if (resolvedMessage === null || resolvedMessage === undefined || resolvedMessage === '') return null
+
+  const handleNext = () => {
+    if (!resolvedIsCorrect) recordWrongAnswer?.()
+    onNext()
+  }
+
   return (
     <>
       <div style={{
@@ -1006,7 +1017,7 @@ export function FeedbackBanner({ message, isCorrect, extras, correct, answer, on
         {resolvedIsCorrect && !extras && onNext && <div style={{ fontSize: 14, color: '#EAB308', marginTop: 4 }}>+50 Koin | +100 EXP</div>}
       </div>
       {onNext && (
-        <Btn onClick={onNext} color="#0e7490" style={{ marginTop: 8 }}>Misi Berikutnya ▶</Btn>
+        <Btn onClick={handleNext} color="#0e7490" style={{ marginTop: 8 }}>Misi Berikutnya ▶</Btn>
       )}
     </>
   )

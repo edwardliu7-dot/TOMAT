@@ -24,7 +24,7 @@ function formatExp(e) {
 }
 
 export default function FokusTeleskopGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -100,7 +100,7 @@ export default function FokusTeleskopGame({ goBack, difficulty = 'medium', survi
               message={feedback ? `✅ Teleskop terfokus! ${q.number} = ${q.answer}` : `❌ Fokus meleset! Jawaban: ${q.answer}`}
               isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#0e7490">Bintang Berikutnya ▶</Btn>
+            <Btn onClick={() => { if (feedback === false) recordWrongAnswer(); newQ() }} color="#0e7490">Bintang Berikutnya ▶</Btn>
           </>
         )}
       </div>

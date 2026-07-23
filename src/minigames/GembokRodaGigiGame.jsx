@@ -18,7 +18,7 @@ function genQ(difficulty = 'medium') {
 }
 
 export default function GembokRodaGigiGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -89,7 +89,7 @@ export default function GembokRodaGigiGame({ goBack, difficulty = 'medium', surv
               message={feedback ? `✅ Pintu terbuka! FPB(${q.a}, ${q.b}) = ${q.answer}` : `❌ Salah kunci! FPB yang benar = ${q.answer}`}
               isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#0e7490">Gembok Berikutnya ▶</Btn>
+            <Btn onClick={() => { if (feedback === false) recordWrongAnswer(); newQ() }} color="#0e7490">Gembok Berikutnya ▶</Btn>
           </>
         )}
       </div>

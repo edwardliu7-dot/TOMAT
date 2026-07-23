@@ -17,7 +17,7 @@ function genQ(difficulty = 'medium') {
 }
 
 export default function RamuanJusGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -105,7 +105,7 @@ export default function RamuanJusGame({ goBack, difficulty = 'medium', survival 
               message={feedback ? `✅ Jus sempurna! ${q.f1}: ${q.a1}, ${q.f2}: ${q.a2}` : `❌ Rasanya aneh! Benar: ${q.f1} ${q.a1}, ${q.f2} ${q.a2}`}
               isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#0e7490">Ramuan Berikutnya ▶</Btn>
+            <Btn onClick={() => { if (feedback === false) recordWrongAnswer(); newQ() }} color="#0e7490">Ramuan Berikutnya ▶</Btn>
           </>
         )}
       </div>

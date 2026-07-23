@@ -73,6 +73,7 @@ export function TaskProvider({ children, onTaskComplete }) {
   const [tasks, setTasks] = useState([])
   const [grades, setGrades] = useState([])
   // activeSession: { taskId, correctAnswers, totalQuestions, task } | null
+  // activeSession: { taskId, correctAnswers, wrongAnswers, totalQuestions, task } | null
   const [activeSession, setActiveSession] = useState(null)
 
   const onTaskCompleteRef = useRef(onTaskComplete)
@@ -104,45 +105,66 @@ export function TaskProvider({ children, onTaskComplete }) {
   const startTaskSession = useCallback((taskId) => {
     const task = tasks.find(t => t.id === taskId)
     if (!task) return
-    setActiveSession({ taskId, correctAnswers: 0, totalQuestions: task.totalQuestions, task })
+    setActiveSession({ taskId, correctAnswers: 0, wrongAnswers: 0, totalQuestions: task.totalQuestions, task })
   }, [tasks])
 
   const endTaskSession = useCallback(() => {
     setActiveSession(null)
   }, [])
 
+  // Shared helper: submit grade when all questions have been answered (correct or wrong).
+  const submitGrade = useCallback((session, newCorrect, newWrong) => {
+    const totalAnswered = newCorrect + newWrong
+    if (totalAnswered < session.totalQuestions) return false
+    setActiveSession(null)
+    apiCall('/api/siswa/nilai', {
+      method: 'POST',
+      body: { tugasId: session.taskId, correctCount: newCorrect },
+    }).then(({ nilai }) => {
+      const gradeRecord = { ...mapNilai({ ...nilai, game_name: session.task.gameName, game_emoji: session.task.gameEmoji, type: session.task.type }) }
+      setTasks(ts => ts.map(t => t.id === session.taskId ? { ...t, status: 'completed' } : t))
+      setGrades(gs => [...gs, gradeRecord])
+      onTaskCompleteRef.current?.(gradeRecord)
+    }).catch(err => {
+      console.error('Failed to submit grade', err)
+    })
+    return true
+  }, [])
+
   // Override addCoins: game files use the legacy 50 marker, while the actual
   // normalized economy reward is 15 coins per correct answer.
-  // When all questions are answered, submit the grade to the server and fire onTaskComplete.
+  // A correct answer advances correctAnswers; when correct+wrong >= totalQuestions the session ends.
   const addCoins = useCallback((amount) => {
     playerCtx.addCoins(amount)
     const session = activeSessionRef.current
     if (!session || amount !== 50) return // legacy marker = one correct game answer
 
     const newCorrect = session.correctAnswers + 1
-    if (newCorrect >= session.totalQuestions) {
-      setActiveSession(null)
-      apiCall('/api/siswa/nilai', {
-        method: 'POST',
-        body: { tugasId: session.taskId, correctCount: newCorrect },
-      }).then(({ nilai }) => {
-        const gradeRecord = { ...mapNilai({ ...nilai, game_name: session.task.gameName, game_emoji: session.task.gameEmoji, type: session.task.type }) }
-        setTasks(ts => ts.map(t => t.id === session.taskId ? { ...t, status: 'completed' } : t))
-        setGrades(gs => [...gs, gradeRecord])
-        onTaskCompleteRef.current?.(gradeRecord)
-      }).catch(err => {
-        console.error('Failed to submit grade', err)
-      })
-    } else {
+    const newWrong = session.wrongAnswers ?? 0
+    if (!submitGrade(session, newCorrect, newWrong)) {
       setActiveSession(s => s ? { ...s, correctAnswers: newCorrect } : null)
     }
-  }, [playerCtx.addCoins])
+  }, [playerCtx.addCoins, submitGrade])
 
-  // Re-provide PlayerContext with the intercepted addCoins only during a task session.
-  // All game components call usePlayer() which reads PlayerContext — so they automatically
-  // report progress to TaskContext without any modification.
+  // Override recordWrongAnswer: called by games (via FeedbackBanner or the standalone
+  // Next button) when a wrong answer is confirmed and the student moves on.
+  // This prevents infinite retries that would guarantee a perfect score.
+  const recordWrongAnswer = useCallback(() => {
+    playerCtx.recordWrongAnswer()
+    const session = activeSessionRef.current
+    if (!session) return
+    const newWrong = (session.wrongAnswers ?? 0) + 1
+    const newCorrect = session.correctAnswers
+    if (!submitGrade(session, newCorrect, newWrong)) {
+      setActiveSession(s => s ? { ...s, wrongAnswers: newWrong } : null)
+    }
+  }, [playerCtx.recordWrongAnswer, submitGrade])
+
+  // Re-provide PlayerContext with intercepted addCoins + recordWrongAnswer only during
+  // a task session. All game components call usePlayer() which reads PlayerContext —
+  // so they automatically report progress to TaskContext without any modification.
   const playerValue = activeSession
-    ? { ...playerCtx, addCoins }
+    ? { ...playerCtx, addCoins, recordWrongAnswer }
     : playerCtx
 
   const taskValue = {

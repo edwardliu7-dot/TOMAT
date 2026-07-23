@@ -87,6 +87,11 @@ export function PlayerProvider({ children }) {
     }
   }, [isSiswa])
 
+  // Called by games when a wrong answer is confirmed. In free-play this is a
+  // no-op; TaskContext overrides it to advance the task session counter so that
+  // a wrong answer counts as one question answered (preventing infinite retries).
+  const recordWrongAnswer = useCallback(() => {}, [])
+
   const reportSurvivalStreak = useCallback((streak) => {
     if (!isSiswa || streak <= 0) return
     fetch('/api/siswa/player/survival', {
@@ -104,7 +109,7 @@ export function PlayerProvider({ children }) {
   }, [])
 
   return (
-    <PlayerContext.Provider value={{ player, addCoins, addExp, reportSurvivalStreak, newBadges, dismissBadge }}>
+    <PlayerContext.Provider value={{ player, addCoins, addExp, recordWrongAnswer, reportSurvivalStreak, newBadges, dismissBadge }}>
       {children}
     </PlayerContext.Provider>
   )

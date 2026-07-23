@@ -24,7 +24,7 @@ function genQ(difficulty = 'medium') {
 // 2. Divide: student sees a×b ÷ c = ?, inputs x
 
 export default function BrankasSandiGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -203,7 +203,7 @@ export default function BrankasSandiGame({ goBack, difficulty = 'medium', surviv
               message={feedback ? `✅ Brankas terbuka! x = ${q.answer}` : `❌ Kode salah! Nilai x yang benar = ${q.answer}`}
               isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#0e7490">Brankas Berikutnya ▶</Btn>
+            <Btn onClick={() => { if (feedback === false) recordWrongAnswer(); newQ() }} color="#0e7490">Brankas Berikutnya ▶</Btn>
           </>
         )}
       </div>

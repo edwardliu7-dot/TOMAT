@@ -27,7 +27,7 @@ function genQ(difficulty = 'medium') {
 }
 
 export default function BorTambangGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -101,7 +101,7 @@ export default function BorTambangGame({ goBack, difficulty = 'medium', survival
               message={feedback ? `✅ Mineral ditemukan! Kedalaman: ${q.answer} m` : `❌ Salah jalur! Kedalaman benar: ${q.answer} m`}
               isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#0e7490">Pengeboran Berikutnya ▶</Btn>
+            <Btn onClick={() => { if (feedback === false) recordWrongAnswer(); newQ() }} color="#0e7490">Pengeboran Berikutnya ▶</Btn>
           </>
         )}
       </div>

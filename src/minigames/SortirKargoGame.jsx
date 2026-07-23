@@ -28,7 +28,7 @@ function genQ(difficulty = 'medium') {
 }
 
 export default function ScannerPermatGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -115,7 +115,7 @@ export default function ScannerPermatGame({ goBack, difficulty = 'medium', survi
                 : `❌ Ada yang salah! Prima yang benar: ${primesInSet.join(', ')}`}
               isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#0e7490">Konveyor Berikutnya ▶</Btn>
+            <Btn onClick={() => { if (feedback === false) recordWrongAnswer(); newQ() }} color="#0e7490">Konveyor Berikutnya ▶</Btn>
           </>
         )}
       </div>

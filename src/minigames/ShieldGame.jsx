@@ -23,7 +23,7 @@ function genQ(difficulty = 'medium') {
 }
 
 export default function BateraiGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -119,7 +119,7 @@ export default function BateraiGame({ goBack, difficulty = 'medium', survival = 
               message={feedback ? `✅ Pesawat siap! ${q.pct}% × ${q.base} = ${q.answer} unit` : `❌ Energi salah! Seharusnya ${q.answer} unit (${q.pct}% × ${q.base})`}
               isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newQ} color="#0e7490">Misi Berikutnya ▶</Btn>
+            <Btn onClick={() => { if (feedback === false) recordWrongAnswer(); newQ() }} color="#0e7490">Misi Berikutnya ▶</Btn>
           </>
         )}
       </div>

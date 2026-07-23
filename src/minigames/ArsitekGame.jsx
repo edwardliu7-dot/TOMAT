@@ -19,7 +19,7 @@ function genBlueprint(difficulty = 'medium') {
 }
 
 export default function NakhodaGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [bp, setBp] = useState(() => genBlueprint(effectiveDifficulty))
@@ -82,7 +82,7 @@ export default function NakhodaGame({ goBack, difficulty = 'medium', survival = 
               message={feedback ? `✅ Kapal sampai di Pulau Harta!` : `❌ Kapal tersesat! Jarak: ${bp.correct} m`}
               isCorrect={feedback} extras="+50 Koin | +100 EXP"
             />
-            <Btn onClick={newBp} color="#0e7490">Rute Berikutnya ▶</Btn>
+            <Btn onClick={() => { if (feedback === false) recordWrongAnswer(); newBp() }} color="#0e7490">Rute Berikutnya ▶</Btn>
           </>
         )}
       </div>
