@@ -21,11 +21,44 @@ export const SPANDUK_VISUALS = {
 }
 
 export const KATEGORI_LABELS = {
-  bingkai: 'Bingkai',
-  spanduk: 'Spanduk',
-  tema: 'Tema',
-  stiker: 'Stiker',
+  bingkai:  'Bingkai',
+  spanduk:  'Spanduk',
+  tema:     'Tema',
+  stiker:   'Stiker',
+  pet_skin: '🐹 Tomi',
 }
+
+// Pet skin metadata — mirrors shop_items seed in server/schema.js
+export const PET_SKIN_INFO = {
+  golden: {
+    nama: 'Golden Marmut', tier: 'STANDAR', tierColor: '#F5A623',
+    desc: 'Skin bawaan Tomi. Bulu emas mengkilap, rosette khas marmut.',
+    free: true,
+  },
+  pet_skin_silver: {
+    nama: 'Silver Fluff', tier: 'PREMIUM', tierColor: '#C0C8D8',
+    desc: 'Bulu perak berkilau. Menunjukkan siswa aktif dan rajin mengumpulkan koin.',
+    glow: 'rgba(192,200,216,0.35)',
+  },
+  pet_skin_cosmic: {
+    nama: 'Cosmic Fluff', tier: 'EKSKLUSIF', tierColor: '#A78BFA',
+    desc: 'Bulu ungu-biru galaksi dengan bintang berkelip di rosette. Mengesankan.',
+    glow: 'rgba(167,139,250,0.45)',
+  },
+  pet_skin_void: {
+    nama: 'Void Emperor', tier: 'LEGENDARIS', tierColor: '#F59E0B',
+    desc: 'Bulu hitam pekat berpendar emas, mahkota emas. Dominasi leaderboard.',
+    glow: 'rgba(245,158,11,0.55)',
+  },
+}
+
+// Hardcoded food catalog for shop display (matches server/pet.js PET_FOODS)
+export const PET_FOOD_CATALOG = [
+  { id: 'wortel_kecil',  nama: 'Wortel Kecil',  emoji: '🥕', harga: 30,  dur: '2 jam',  color: '#F5A623' },
+  { id: 'sayuran_segar', nama: 'Sayuran Segar', emoji: '🥦', harga: 80,  dur: '6 jam',  color: '#34D399' },
+  { id: 'buah_premium',  nama: 'Buah Premium',  emoji: '🍓', harga: 200, dur: '16 jam', color: '#F472B6' },
+  { id: 'pesta_mewah',   nama: 'Pesta Mewah',   emoji: '🫐', harga: 500, dur: '3 hari', color: '#A78BFA' },
+]
 
 // Static catalog of stiker visuals — mirrors shop_items seed in server/schema.js.
 // Used by ShopScreen item previews and profile banner sticker rendering.

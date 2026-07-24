@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { TopBar, PlayerHeader } from '../components/shared'
 import { useAuth } from '../AuthContext'
-import { KATEGORI_LABELS } from '../shopVisuals'
+import { usePet } from '../PetContext'
+import { usePlayer } from '../PlayerContext'
+import { KATEGORI_LABELS, PET_SKIN_INFO, PET_FOOD_CATALOG } from '../shopVisuals'
+import TomiSVG, { PET_CSS, STATE_ANIMS } from '../components/TomiSVG'
 
 async function apiCall(path, options = {}) {
   const res = await fetch(path, {
@@ -15,7 +18,7 @@ async function apiCall(path, options = {}) {
   return data
 }
 
-const TABS = ['bingkai', 'spanduk', 'tema', 'stiker']
+const TABS = ['bingkai', 'spanduk', 'tema', 'stiker', 'pet_skin']
 
 function ItemVisual({ item }) {
   const luxury = item.visual?.luxury
@@ -127,6 +130,211 @@ function ItemVisual({ item }) {
   return <div style={{ width: 76, height: 76, borderRadius: 12, background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>❔</div>
 }
 
+// ── Pet Tab — skin shop + food shop ──────────────────────────────────────────
+function PetTokoTab({ data, onRefresh, setError }) {
+  const { pet, feedPet, refreshPet } = usePet()
+  const { player, addCoins } = usePlayer()
+  const { refreshMe } = useAuth()
+  const [busyId, setBusyId] = useState(null)
+  const [localError, setLocalError] = useState('')
+  const [feedSuccess, setFeedSuccess] = useState('')
+
+  // Skin IDs that are purchasable (golden is free/built-in, not in shop_items)
+  const skinOrder = ['golden', 'pet_skin_silver', 'pet_skin_cosmic', 'pet_skin_void']
+  const equippedSkin = data.equipped.pet_skin || 'golden'
+
+  const buyEquipSkin = async (skinId) => {
+    if (skinId === 'golden') return // always free, can't buy
+    const item = data.items.find(it => it.id === skinId)
+    if (!item) return
+    const owned = data.ownedItemIds.includes(skinId)
+    setBusyId(skinId)
+    setLocalError('')
+    try {
+      if (!owned) {
+        await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } })
+      }
+      await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: skinId } })
+      await onRefresh()
+      await refreshMe()
+      refreshPet()
+    } catch (err) {
+      setLocalError(err.message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const buyFood = async (foodId) => {
+    setBusyId(foodId)
+    setLocalError('')
+    setFeedSuccess('')
+    const result = await feedPet(foodId)
+    if (result.ok) {
+      setFeedSuccess('🐹 Tomi sudah makan!')
+      // sync player coins locally (server already deducted)
+      await onRefresh()
+      await refreshMe()
+      setTimeout(() => setFeedSuccess(''), 3000)
+    } else {
+      setLocalError(result.error)
+    }
+    setBusyId(null)
+  }
+
+  // Food catalog (matches server/pet.js PET_FOODS)
+  const hungerColor = pet.isDead ? '#EF4444' : pet.hunger < 30 ? '#F59E0B' : '#F5A623'
+  const hungerLabel = pet.isDead ? '💀 Mati' : pet.isStarving ? '😩 Lapar sekali' : pet.hunger < 50 ? '😕 Agak lapar' : '😊 Kenyang'
+
+  return (
+    <div style={{ paddingBottom: 40 }}>
+      <style>{PET_CSS}</style>
+
+      {/* Tomi preview card */}
+      <div style={{
+        margin: '0 16px 20px',
+        background: 'linear-gradient(160deg,#0d1b2a,#1a0d2e)',
+        border: '1px solid rgba(245,166,35,0.2)',
+        borderRadius: 20, padding: 20,
+        display: 'flex', alignItems: 'flex-end', gap: 16,
+      }}>
+        <div style={{ animation: STATE_ANIMS[pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'], transformOrigin: 'center bottom' }}>
+          <TomiSVG state={pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'} skinId={equippedSkin} size={96}/>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: '#F7C55E', marginBottom: 4 }}>Tomi</div>
+          <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 10 }}>{hungerLabel}</div>
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ fontSize: 10, color: '#64748B' }}>🌾 Kenyang</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: hungerColor }}>{pet.hunger}%</span>
+            </div>
+            <div style={{ height: 7, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+              <div style={{
+                width: `${pet.hunger}%`, height: '100%', borderRadius: 99,
+                background: pet.hunger > 50
+                  ? 'linear-gradient(90deg,#F5A623,#F7C55E)'
+                  : pet.hunger > 25
+                    ? 'linear-gradient(90deg,#F59E0B,#EF4444)'
+                    : '#EF4444',
+                transition: 'width 0.6s ease',
+              }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {(localError || feedSuccess) && (
+        <div style={{
+          margin: '0 16px 14px', padding: '10px 14px', borderRadius: 12, fontSize: 13,
+          background: feedSuccess ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+          border: `1px solid ${feedSuccess ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+          color: feedSuccess ? '#34D399' : '#F87171',
+        }}>
+          {feedSuccess || localError}
+        </div>
+      )}
+
+      {/* Skin shop */}
+      <div style={{ padding: '0 16px 4px' }}>
+        <div style={{ fontSize: 11, color: '#F5A623', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>
+          🎨 Koleksi Skin
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: 28 }}>
+          {skinOrder.map(skinId => {
+            const info = PET_SKIN_INFO[skinId]
+            if (!info) return null
+            const owned = skinId === 'golden' || data.ownedItemIds.includes(skinId)
+            const equipped = equippedSkin === skinId
+            const shopItem = data.items.find(it => it.id === skinId)
+            const affordable = skinId === 'golden' || (shopItem && data.coins >= shopItem.harga)
+            const busy = busyId === skinId
+            return (
+              <div key={skinId} style={{
+                background: info.glow
+                  ? `radial-gradient(ellipse at 50% 0%,${info.glow},transparent 65%),#1A1D27`
+                  : '#1A1D27',
+                border: `1.5px solid ${equipped ? info.tierColor : 'rgba(255,255,255,0.07)'}`,
+                borderRadius: 18, padding: '16px 12px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                position: 'relative',
+                boxShadow: equipped ? `0 0 20px ${info.glow || 'rgba(245,166,35,0.2)'}` : 'none',
+              }}>
+                {equipped && (
+                  <div style={{ position: 'absolute', top: 0, right: 0, background: info.tierColor, color: info.tierColor === '#F59E0B' ? '#000' : '#fff', fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: '0 16px 0 10px' }}>DIPAKAI</div>
+                )}
+                <div style={{ animation: STATE_ANIMS.idle, transformOrigin: 'center bottom' }}>
+                  <TomiSVG state="idle" skinId={skinId} size={80}/>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: info.tierColor, letterSpacing: '0.15em', marginBottom: 2 }}>{info.tier}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{info.nama}</div>
+                  <div style={{ fontSize: 10, color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>{info.desc}</div>
+                </div>
+                {equipped ? (
+                  <div style={{ width: '100%', padding: '8px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: '#94A3B8', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>✓ Terpasang</div>
+                ) : owned ? (
+                  <button onClick={() => buyEquipSkin(skinId)} disabled={busy} style={{ width: '100%', padding: '8px', borderRadius: 10, background: '#334155', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {busy ? '…' : 'Pakai'}
+                  </button>
+                ) : (
+                  <button onClick={() => buyEquipSkin(skinId)} disabled={!affordable || busy} style={{
+                    width: '100%', padding: '8px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700,
+                    cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+                    background: affordable ? '#6366F1' : 'rgba(248,113,113,0.15)',
+                    color: affordable ? '#fff' : '#F87171',
+                  }}>
+                    {busy ? '…' : affordable ? `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Food shop */}
+        <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>
+          🌾 Toko Makanan Marmut
+        </div>
+        <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14 }}>
+          Semakin mahal makanannya, semakin lama Tomi kenyang. Memberi makan langsung meningkatkan stamina Tomi.
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+          {PET_FOOD_CATALOG.map(food => {
+            const affordable = data.coins >= food.harga
+            const busy = busyId === food.id
+            return (
+              <div key={food.id} style={{
+                background: '#1A1D27', border: `1px solid ${food.color}22`,
+                borderRadius: 16, padding: '14px 12px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+              }}>
+                <div style={{ fontSize: 38 }}>{food.emoji}</div>
+                <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', textAlign: 'center' }}>{food.nama}</div>
+                <div style={{ fontSize: 11, color: '#64748B' }}>Kenyang {food.dur}</div>
+                <div style={{ fontWeight: 900, fontSize: 14, color: food.color }}>🪙 {food.harga}</div>
+                <button
+                  onClick={() => buyFood(food.id)}
+                  disabled={!affordable || busy}
+                  style={{
+                    width: '100%', padding: '8px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700,
+                    cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+                    background: affordable ? `${food.color}22` : 'rgba(248,113,113,0.1)',
+                    color: affordable ? food.color : '#F87171',
+                    outline: `1px solid ${affordable ? food.color + '44' : 'rgba(248,113,113,0.2)'}`,
+                  }}
+                >
+                  {busy ? '…' : affordable ? 'Beri Makan' : '🔒 Koin kurang'}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ShopScreen({ goBack }) {
   const { refreshMe } = useAuth()
   const [tab, setTab] = useState('bingkai')
@@ -208,8 +416,10 @@ export default function ShopScreen({ goBack }) {
 
       {error && <div style={{ margin: '0 16px 12px', color: '#F87171', fontSize: 13 }}>{error}</div>}
 
-      <div style={{ padding: '0 16px 32px' }}>
-        {items.length === 0 ? (
+      <div style={{ padding: tab === 'pet_skin' ? 0 : '0 16px 32px' }}>
+        {tab === 'pet_skin' ? (
+          <PetTokoTab data={data} onRefresh={refresh} setError={setError} />
+        ) : items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 16px', color: '#6B7280' }}>
             <div style={{ fontSize: 32, marginBottom: 10 }}>✨</div>
             <div style={{ fontWeight: 700, color: '#94A3B8' }}>Segera Hadir</div>

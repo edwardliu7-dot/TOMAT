@@ -190,6 +190,17 @@ export async function ensureSchema() {
     );
   `)
 
+  // --- Pet system: Tomi the guinea pig (marmut) ---
+  await pool.query(`
+    alter table students add column if not exists pet_hunger_until timestamptz;
+    alter table students add column if not exists equipped_pet_skin text not null default 'golden';
+  `)
+  // Initialise hunger for any existing students who never had a pet yet
+  await pool.query(`
+    update students set pet_hunger_until = now() + interval '24 hours'
+    where pet_hunger_until is null;
+  `)
+
   // --- Gamifikasi: coins/level/exp persistence, toko kosmetik, lencana pencapaian ---
   // Previously coins/level/exp only lived in client-side React state (never saved), so every
   // reload reset progress. These columns make them real, server-authoritative student data.
@@ -206,10 +217,26 @@ export async function ensureSchema() {
     alter table students add column if not exists stiker_layout jsonb not null default '[]';
   `)
 
+  // Widen the kategori check constraint to include pet_skin (idempotent)
+  await pool.query(`
+    do $$ begin
+      if exists (select 1 from pg_constraint where conname = 'shop_items_kategori_check') then
+        alter table shop_items drop constraint shop_items_kategori_check;
+      end if;
+      if not exists (
+        select 1 from pg_constraint
+        where conname = 'shop_items_kategori_check2'
+      ) then
+        alter table shop_items add constraint shop_items_kategori_check2
+          check (kategori in ('bingkai','spanduk','tema','stiker','pet_skin'));
+      end if;
+    end $$;
+  `)
+
   await pool.query(`
     create table if not exists shop_items (
       id text primary key,
-      kategori text not null check (kategori in ('bingkai','spanduk','tema','stiker')),
+      kategori text not null,
       nama text not null,
       harga int not null default 0,
       visual jsonb not null default '{}',
@@ -271,6 +298,10 @@ export async function ensureSchema() {
       gradient: 'linear-gradient(115deg,#17120c,#45351b 48%,#d4af37)', limited: true, edition: '02 / 20',
       description: 'Dekrit mahaguru bagi penakluk anatomi angka.', luxury: 'royal'
     }, 5],
+    // Pet skins — purchasable once, stored in student_inventory
+    ['pet_skin_silver', 'pet_skin', 'Silver Fluff',   800,  { tier: 'premium',   desc: 'Bulu perak berkilau. Menunjukkan siswa aktif dan rajin mengumpulkan koin.' }, 1],
+    ['pet_skin_cosmic', 'pet_skin', 'Cosmic Fluff',  2000,  { tier: 'eksklusif', desc: 'Bulu ungu-biru galaksi dengan bintang berkelip di rosette.' }, 2],
+    ['pet_skin_void',   'pet_skin', 'Void Emperor',  5000,  { tier: 'legendaris',desc: 'Bulu hitam pekat berpendar emas, mahkota emas. Dominasi leaderboard.' }, 3],
     // Stiker — placed freely on banner canvas
     ['stiker_roket',   'stiker', 'Roket Belajar',  200,  { emoji: '🚀', tier: 'common' }, 1],
     ['stiker_api',     'stiker', 'Api Semangat',   200,  { emoji: '🔥', tier: 'common' }, 2],
@@ -320,7 +351,8 @@ export async function ensureSchema() {
     update students
     set coins = 999999,
         equipped_bingkai = 'bingkai_aurum_sovereign',
-        equipped_spanduk = 'spanduk_celestia_relic'
+        equipped_spanduk = 'spanduk_celestia_relic',
+        equipped_pet_skin = 'pet_skin_void'
     where id = 'tomat-demo'
   `)
 

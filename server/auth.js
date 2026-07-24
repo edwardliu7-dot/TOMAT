@@ -28,7 +28,8 @@ function sanitizeUser(row, role) {
     equippedSpanduk: row.equipped_spanduk,
     equippedTema: row.equipped_tema,
     equippedStiker: row.equipped_stiker,
-    stikerLayout: row.stiker_layout || [],
+    stikerLayout:    row.stiker_layout || [],
+    equippedPetSkin: row.equipped_pet_skin || 'golden',
   }
 }
 

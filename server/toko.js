@@ -6,10 +6,11 @@ const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
 
 const EQUIP_COLUMN = {
-  bingkai: 'equipped_bingkai',
-  spanduk: 'equipped_spanduk',
-  tema: 'equipped_tema',
-  stiker: 'equipped_stiker',
+  bingkai:   'equipped_bingkai',
+  spanduk:   'equipped_spanduk',
+  tema:      'equipped_tema',
+  stiker:    'equipped_stiker',
+  pet_skin:  'equipped_pet_skin',
 }
 
 // GET /api/siswa/toko — catalog grouped by kategori, plus this student's coin balance,
@@ -20,7 +21,7 @@ router.get('/', async (req, res) => {
       pool.query('select * from shop_items order by kategori, sort_order'),
       pool.query('select item_id from student_inventory where student_id = $1', [req.session.user.id]),
       pool.query(
-        `select coins, equipped_bingkai, equipped_spanduk, equipped_tema, equipped_stiker
+        `select coins, equipped_bingkai, equipped_spanduk, equipped_tema, equipped_stiker, equipped_pet_skin
          from students where id = $1`,
         [req.session.user.id]
       ),
@@ -32,10 +33,11 @@ router.get('/', async (req, res) => {
       ownedItemIds: ownedRes.rows.map(r => r.item_id),
       coins: student.coins,
       equipped: {
-        bingkai: student.equipped_bingkai,
-        spanduk: student.equipped_spanduk,
-        tema: student.equipped_tema,
-        stiker: student.equipped_stiker,
+        bingkai:   student.equipped_bingkai,
+        spanduk:   student.equipped_spanduk,
+        tema:      student.equipped_tema,
+        stiker:    student.equipped_stiker,
+        pet_skin:  student.equipped_pet_skin,
       },
     })
   } catch (err) {

@@ -13,6 +13,7 @@ import hafalanGuruRouter from './hafalan-guru.js'
 import hafalanSiswaRouter from './hafalan-siswa.js'
 import komunikasiRouter from './komunikasi.js'
 import notifikasiRouter from './notifikasi.js'
+import petRouter from './pet.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
 
@@ -64,6 +65,7 @@ async function createServer() {
   app.use('/api/siswa/hafalan', hafalanSiswaRouter)
   app.use('/api/komunikasi', komunikasiRouter)
   app.use('/api/notifikasi', notifikasiRouter)
+  app.use('/api/siswa/pet', petRouter)
 
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite')

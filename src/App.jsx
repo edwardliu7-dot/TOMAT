@@ -1,4 +1,6 @@
 import React, { useState, useCallback, Component, Suspense, useEffect } from 'react'
+import { PetProvider } from './PetContext'
+import FloatingPet from './components/FloatingPet'
 import { PlayerProvider } from './PlayerContext'
 import { TaskProvider } from './TaskContext'
 import { BabLockProvider } from './BabLockContext'
@@ -265,17 +267,21 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
   return (
     <PlayerProvider>
-      <TaskProvider onTaskComplete={handleTaskComplete}>
-        <BabLockProvider>
-          <div style={{ maxWidth: 'var(--shell-max)', margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
-            <ErrorBoundary key={current} onReset={goBack}>
-              {renderScreen()}
-            </ErrorBoundary>
-            {/* Floating task progress strip — shown during any task session */}
-            <TaskOverlay />
-          </div>
-        </BabLockProvider>
-      </TaskProvider>
+      <PetProvider>
+        <TaskProvider onTaskComplete={handleTaskComplete}>
+          <BabLockProvider>
+            <div style={{ maxWidth: 'var(--shell-max)', margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
+              <ErrorBoundary key={current} onReset={goBack}>
+                {renderScreen()}
+              </ErrorBoundary>
+              {/* Floating task progress strip — shown during any task session */}
+              <TaskOverlay />
+              {/* Tomi the guinea pig — walks across screen for students */}
+              <FloatingPet />
+            </div>
+          </BabLockProvider>
+        </TaskProvider>
+      </PetProvider>
     </PlayerProvider>
   )
 }

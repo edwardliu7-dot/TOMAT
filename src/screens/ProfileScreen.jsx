@@ -4,6 +4,8 @@ import { TopBar, Btn, Card, ProfileBanner, UserAvatar, LuxuryAvatarFrame, Celest
 import { BINGKAI_VISUALS, SPANDUK_VISUALS } from '../shopVisuals'
 import { useAuth } from '../AuthContext'
 import { usePlayer } from '../PlayerContext'
+import { usePet } from '../PetContext'
+import TomiSVG, { PET_CSS, STATE_ANIMS } from '../components/TomiSVG'
 import { readFileAsDataUrl, getCroppedImage, compressDataUrlToLimit } from '../utils/imageUtils'
 
 async function apiGet(path) {
@@ -85,6 +87,7 @@ function PhotoCropModal({ imageSrc, onCancel, onConfirm }) {
 
 function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
   const { refreshMe } = useAuth()
+  const { pet } = usePet()
   const spandukId = user?.equippedSpanduk ?? user?.equipped_spanduk
   const spanduk   = spandukId ? SPANDUK_VISUALS[spandukId] : null
   const bingkaiId = user?.equippedBingkai ?? user?.equipped_bingkai
@@ -93,7 +96,23 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
   const isRoyal       = spanduk?.luxury === 'royal'
   const isLuxuryFrame = bingkai?.luxury === 'aurum' || bingkai?.luxury === 'void'
 
-  React.useEffect(() => { ensureLuxuryStyles() }, [])
+  React.useEffect(() => {
+    ensureLuxuryStyles()
+    // Inject Tomi animations if not already present
+    if (!document.getElementById('tomi-profile-css')) {
+      const s = document.createElement('style')
+      s.id = 'tomi-profile-css'
+      s.textContent = `
+        ${PET_CSS}
+        @keyframes tomi-heart-pop {
+          0%   { transform: scale(0.6); opacity: 0; }
+          50%  { transform: scale(1.3); opacity: 1; }
+          100% { transform: scale(1);   opacity: 0.8; }
+        }
+      `
+      document.head.appendChild(s)
+    }
+  }, [])
 
   // ── Stiker canvas state ──
   const [stikerLayout, setStikerLayout] = useState(user?.stikerLayout || [])
@@ -310,8 +329,8 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
         </button>
       </div>
 
-      {/* Avatar — overlapping banner */}
-      <div style={{ marginTop: -56, position: 'relative', zIndex: 2 }}>
+      {/* Avatar + Tomi — overlapping banner */}
+      <div style={{ marginTop: -56, position: 'relative', zIndex: 2, display: 'flex', alignItems: 'flex-end', gap: 4 }}>
         <div style={{ position: 'relative' }}>
           {isLuxuryFrame ? (
             <LuxuryAvatarFrame user={previewUser} size={112} bingkai={bingkai} bingkaiId={bingkaiId} />
@@ -327,6 +346,23 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
             zIndex: 3,
           }}>📷</button>
         </div>
+        {/* Tomi seated beside avatar */}
+        {pet && (
+          <div style={{ position: 'relative', marginBottom: -8 }}>
+            {/* floating heart */}
+            <div style={{
+              position: 'absolute', right: -2, top: -12, fontSize: 13,
+              color: '#FF6B9D', animation: 'tomi-heart-pop 1.8s ease-in-out infinite',
+            }}>♥</div>
+            <div style={{ animation: 'tomi-idle 2.4s ease-in-out infinite', transformOrigin: 'center bottom' }}>
+              <TomiSVG
+                state={pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'happy'}
+                skinId={pet.skin}
+                size={80}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Name & class */}
