@@ -35,6 +35,29 @@ function formatTime(value) {
   })
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    const handler = e => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  return isMobile
+}
+
+function UnreadBadge({ count }) {
+  if (!count) return null
+  return (
+    <span style={{
+      minWidth: 18, height: 18, padding: '0 4px', borderRadius: 99,
+      background: '#EF4444', color: '#fff', fontSize: 10, fontWeight: 900,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, border: '2px solid #111827',
+    }}>{count > 99 ? '99+' : count}</span>
+  )
+}
+
 function MessageStatus({ message }) {
   if (message.sender_role === undefined) return null
   const read = Boolean(message.read_at)
@@ -125,7 +148,7 @@ function MessageList({ messages, user, forum, onProfileClick }) {
   )
 }
 
-function ContactList({ contacts, selected, onSelect, onProfileClick, loading }) {
+function ContactList({ contacts, selected, onSelect, onProfileClick, loading, unreadCounts }) {
   if (loading) return <div style={{ color: '#64748B', fontSize: 12, padding: 12 }}>Memuat kontak…</div>
   if (contacts.length === 0) {
     return <div style={{ color: '#64748B', fontSize: 12, lineHeight: 1.5, padding: 12 }}>Belum ada kontak yang dapat dihubungi.</div>
@@ -138,55 +161,35 @@ function ContactList({ contacts, selected, onSelect, onProfileClick, loading }) 
     }}>
       {contacts.map(contact => {
         const active = selected?.id === contact.id && selected?.role === contact.role
+        const unread = unreadCounts?.[`${contact.role}:${contact.id}`] || 0
         return (
           <div
             key={`${contact.role}-${contact.id}`}
-            onClick={() => onProfileClick?.(contact)}
+            onClick={() => onSelect(contact)}
             role="button"
             tabIndex={0}
             onKeyDown={event => {
-              if (event.key === 'Enter' || event.key === ' ') onProfileClick?.(contact)
+              if (event.key === 'Enter' || event.key === ' ') onSelect(contact)
             }}
-            title={`Lihat profil ${contact.name}`}
+            title={contact.name}
             style={{
-            border: `1px solid ${active ? 'rgba(103,232,249,0.45)' : 'rgba(255,255,255,0.07)'}`,
-            background: active ? 'rgba(103,232,249,0.12)' : 'rgba(255,255,255,0.035)',
-            borderRadius: 12, padding: '7px 8px', display: 'flex', alignItems: 'center', gap: 8,
-            cursor: 'pointer',
-          }}>
-            <button onClick={() => onProfileClick?.(contact)} aria-label={`Lihat profil ${contact.name}`} style={{
-              border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+              border: `1px solid ${active ? 'rgba(103,232,249,0.45)' : unread ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.07)'}`,
+              background: active ? 'rgba(103,232,249,0.12)' : unread ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.035)',
+              borderRadius: 12, padding: '7px 8px', display: 'flex', alignItems: 'center', gap: 8,
+              cursor: 'pointer',
+            }}>
+            <button onClick={e => { e.stopPropagation(); onProfileClick?.(contact) }} aria-label={`Lihat profil ${contact.name}`} style={{
+              border: 'none', background: 'none', padding: 0, cursor: 'pointer', flexShrink: 0,
             }}>
               <UserAvatar user={contact} size={31} />
             </button>
-            <button onClick={event => {
-              event.stopPropagation()
-              onProfileClick?.(contact)
-            }} style={{
-              flex: 1, minWidth: 0, border: 'none', background: 'none', color: '#fff',
-              cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', padding: 0,
-            }}>
-              <div style={{ minWidth: 0 }}>
-                 <div style={{ fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                   {contact.name}{contact.is_test_account && <span style={{ color: '#FBBF24', fontSize: 9, marginLeft: 5 }}>DEMO</span>}
-                 </div>
-                <div style={{ color: '#64748B', fontSize: 10, marginTop: 2 }}>{contact.kelas || 'Guru'}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff' }}>
+                {contact.name}{contact.is_test_account && <span style={{ color: '#FBBF24', fontSize: 9, marginLeft: 5 }}>DEMO</span>}
               </div>
-            </button>
-            <button
-              onClick={event => {
-                event.stopPropagation()
-                onSelect(contact)
-              }}
-              aria-label={`Buka chat dengan ${contact.name}`}
-              title="Buka chat"
-              style={{
-                width: 28, height: 28, flexShrink: 0, borderRadius: 9,
-                border: '1px solid rgba(103,232,249,0.2)',
-                background: 'rgba(103,232,249,0.1)', color: '#67E8F9',
-                cursor: 'pointer', fontSize: 13,
-              }}
-            >✉</button>
+              <div style={{ color: '#64748B', fontSize: 10, marginTop: 2 }}>{contact.kelas || 'Guru'}</div>
+            </div>
+            <UnreadBadge count={unread} />
           </div>
         )
       })}
@@ -194,8 +197,9 @@ function ContactList({ contacts, selected, onSelect, onProfileClick, loading }) 
   )
 }
 
-export default function CommunicationScreen({ goBack, embedded = false }) {
+export default function CommunicationScreen({ goBack, embedded = false, initialTarget = null }) {
   const { user } = useAuth()
+  const isMobile = useIsMobile()
   const [tab, setTab] = useState('private')
   const [contacts, setContacts] = useState([])
   const [classes, setClasses] = useState([])
@@ -210,9 +214,12 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
   const [viewedProfile, setViewedProfile] = useState(null)
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState('')
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [unreadDetail, setUnreadDetail] = useState({ perContact: {}, perForum: {} })
   const messageScrollRef = useRef(null)
   const shouldScrollToBottomRef = useRef(true)
   const previousLatestMessageIdRef = useRef(null)
+  const initialTargetAppliedRef = useRef(false)
 
   const isNearBottom = useCallback(() => {
     const element = messageScrollRef.current
@@ -225,6 +232,22 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
     if (!element) return
     element.scrollTo({ top: element.scrollHeight, behavior })
   }, [])
+
+  // Poll per-contact unread counts
+  const loadUnreadDetail = useCallback(async () => {
+    try {
+      const data = await apiCall('/api/komunikasi/unread-detail')
+      setUnreadDetail({ perContact: data.perContact || {}, perForum: data.perForum || {} })
+    } catch {
+      // non-critical
+    }
+  }, [])
+
+  useEffect(() => {
+    loadUnreadDetail()
+    const timer = window.setInterval(loadUnreadDetail, 6000)
+    return () => window.clearInterval(timer)
+  }, [loadUnreadDetail])
 
   const loadOptions = useCallback(async () => {
     setLoadingContacts(true)
@@ -245,6 +268,34 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
   }, [])
 
   useEffect(() => { loadOptions() }, [loadOptions])
+
+  // Apply initialTarget once contacts/classes are loaded
+  useEffect(() => {
+    if (initialTargetAppliedRef.current || !initialTarget || loadingContacts) return
+    const { conversationType, senderId, senderRole, kelas } = initialTarget
+    if (conversationType === 'private' && senderId && senderRole) {
+      const contact = contacts.find(c => c.id === senderId && c.role === senderRole)
+      if (contact) {
+        initialTargetAppliedRef.current = true
+        setTab('private')
+        setSelectedContact(contact)
+        setMessages([])
+        previousLatestMessageIdRef.current = null
+        shouldScrollToBottomRef.current = true
+        setError('')
+        if (isMobile) setSidebarOpen(false)
+      }
+    } else if (conversationType === 'forum' && kelas) {
+      initialTargetAppliedRef.current = true
+      setTab('forum')
+      setSelectedClass(kelas)
+      setMessages([])
+      previousLatestMessageIdRef.current = null
+      shouldScrollToBottomRef.current = true
+      setError('')
+      if (isMobile) setSidebarOpen(false)
+    }
+  }, [initialTarget, contacts, classes, loadingContacts, isMobile])
 
   const openProfile = useCallback(async target => {
     if (!target?.id || !target?.role) return
@@ -289,13 +340,15 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
       previousLatestMessageIdRef.current = latestMessageId
       setMessages(nextMessages)
       markConversationRead({ tab, selectedContact, selectedClass, messages: data.messages }).catch(() => {})
+      // Refresh unread detail whenever we load messages (clears read badges)
+      loadUnreadDetail()
       setError('')
     } catch (err) {
       setError(err.message)
     } finally {
       setLoadingMessages(false)
     }
-  }, [tab, selectedContact, selectedClass])
+  }, [tab, selectedContact, selectedClass, loadUnreadDetail])
 
   useEffect(() => {
     loadMessages()
@@ -344,6 +397,8 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
     previousLatestMessageIdRef.current = null
     shouldScrollToBottomRef.current = true
     setError('')
+    // On mobile, switching tabs shows the sidebar
+    if (isMobile) setSidebarOpen(true)
   }
 
   const selectContact = contact => {
@@ -352,6 +407,8 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
     previousLatestMessageIdRef.current = null
     shouldScrollToBottomRef.current = true
     setError('')
+    // On mobile, selecting a contact hides the sidebar so chat takes full width
+    if (isMobile) setSidebarOpen(false)
   }
 
   const selectClass = kelas => {
@@ -360,6 +417,7 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
     previousLatestMessageIdRef.current = null
     shouldScrollToBottomRef.current = true
     setError('')
+    if (isMobile) setSidebarOpen(false)
   }
 
   const content = (
@@ -382,12 +440,16 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
       </div>
 
       <div style={{
-        display: 'grid', gridTemplateColumns: 'minmax(145px, 0.75fr) minmax(0, 1.6fr)',
-        gap: 10, height: 'min(430px, calc(100vh - 230px))', minHeight: 360,
+        display: 'grid',
+        gridTemplateColumns: sidebarOpen ? 'minmax(145px, 0.75fr) minmax(0, 1.6fr)' : '0 1fr',
+        gap: sidebarOpen ? 10 : 0,
+        height: 'min(430px, calc(100vh - 230px))', minHeight: 360,
+        transition: 'grid-template-columns 0.2s ease',
       }}>
+        {/* Sidebar */}
         <div style={{
-          background: '#111827', border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 16, padding: 10, minWidth: 0, minHeight: 0,
+          background: '#111827', border: sidebarOpen ? '1px solid rgba(255,255,255,0.08)' : 'none',
+          borderRadius: 16, padding: sidebarOpen ? 10 : 0, minWidth: 0, minHeight: 0,
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}>
           <div style={{ color: '#64748B', fontSize: 10, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase', padding: '3px 2px 9px' }}>
@@ -400,33 +462,55 @@ export default function CommunicationScreen({ goBack, embedded = false }) {
               onSelect={selectContact}
               onProfileClick={openProfile}
               loading={loadingContacts}
+              unreadCounts={unreadDetail.perContact}
             />
           ) : (
             classes.length === 0
               ? <div style={{ color: '#64748B', fontSize: 12, padding: 12 }}>Belum ada kelas yang tersedia.</div>
               : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 3, scrollbarWidth: 'thin' }}>
-                {classes.map(kelas => (
-                  <button key={kelas} onClick={() => selectClass(kelas)} style={{
-                    border: `1px solid ${selectedClass === kelas ? 'rgba(103,232,249,0.45)' : 'rgba(255,255,255,0.07)'}`,
-                    background: selectedClass === kelas ? 'rgba(103,232,249,0.12)' : 'rgba(255,255,255,0.035)',
-                    borderRadius: 12, padding: '11px 10px', color: selectedClass === kelas ? '#67E8F9' : '#CBD5E1',
-                    cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: 11, fontWeight: 800,
-                  }}>🏫 {kelas}</button>
-                ))}
+                {classes.map(kelas => {
+                  const forumUnread = unreadDetail.perForum?.[kelas] || 0
+                  return (
+                    <button key={kelas} onClick={() => selectClass(kelas)} style={{
+                      border: `1px solid ${selectedClass === kelas ? 'rgba(103,232,249,0.45)' : forumUnread ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.07)'}`,
+                      background: selectedClass === kelas ? 'rgba(103,232,249,0.12)' : forumUnread ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.035)',
+                      borderRadius: 12, padding: '11px 10px', color: selectedClass === kelas ? '#67E8F9' : '#CBD5E1',
+                      cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: 11, fontWeight: 800,
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
+                    }}>
+                      <span>🏫 {kelas}</span>
+                      <UnreadBadge count={forumUnread} />
+                    </button>
+                  )
+                })}
               </div>
           )}
         </div>
 
+        {/* Chat panel */}
         <div style={{
           background: '#111827', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 16, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}>
-          <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Back-to-list button on mobile when sidebar is hidden */}
+            {isMobile && !sidebarOpen && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                title="Kembali ke daftar"
+                aria-label="Kembali ke daftar"
+                style={{
+                  border: 'none', background: 'rgba(255,255,255,0.07)', borderRadius: 8,
+                  color: '#94A3B8', cursor: 'pointer', fontSize: 13, padding: '4px 8px',
+                  fontFamily: 'inherit', fontWeight: 700, flexShrink: 0,
+                }}
+              >← Daftar</button>
+            )}
             <button
               onClick={() => tab === 'private' && openProfile(selectedContact)}
               disabled={tab !== 'private' || !selectedContact}
               aria-label="Lihat profil"
-              style={{ border: 'none', background: 'none', padding: 0, cursor: tab === 'private' ? 'pointer' : 'default' }}
+              style={{ border: 'none', background: 'none', padding: 0, cursor: tab === 'private' ? 'pointer' : 'default', flexShrink: 0 }}
             >
               {tab === 'forum'
                 ? <div style={{ fontSize: 19 }}>💬</div>

@@ -145,8 +145,11 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
   const current = history[history.length - 1]
 
+  const [komunikasiTarget, setKomunikasiTarget] = useState(null)
+
   useEffect(() => {
-    const openCommunication = () => {
+    const openCommunication = e => {
+      setKomunikasiTarget(e?.detail || null)
       setHistory(h => h.includes('komunikasi') ? h : [...h, 'komunikasi'])
     }
     window.addEventListener('tomat:open-komunikasi', openCommunication)
@@ -243,7 +246,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'komunikasi') {
-      return <CommunicationScreen goBack={goBack} />
+      return <CommunicationScreen goBack={goBack} initialTarget={komunikasiTarget} />
     }
 
     if (GAME_ROUTES[current]) {

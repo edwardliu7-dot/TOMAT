@@ -277,6 +277,65 @@ router.get('/unread', async (req, res) => {
   }
 })
 
+// GET /api/komunikasi/unread-detail — per-contact and per-forum unread counts.
+router.get('/unread-detail', async (req, res) => {
+  try {
+    const user = currentUser(req)
+
+    // Per-sender private unread (grouped by sender)
+    const { rows: privateRows } = await pool.query(
+      `select p.sender_id, p.sender_role, count(*)::int as cnt
+       from pesan_pribadi p
+       where p.recipient_id = $1 and p.recipient_role = $2
+         and p.id > coalesce((
+           select d.last_read_message_id from komunikasi_dibaca d
+           where d.reader_id = $1 and d.reader_role = $2
+             and d.conversation_type = 'private'
+             and d.conversation_key = p.sender_role || ':' || p.sender_id
+         ), 0)
+       group by p.sender_id, p.sender_role`,
+      [user.id, user.role]
+    )
+
+    const perContact = {}
+    for (const row of privateRows) {
+      perContact[`${row.sender_role}:${row.sender_id}`] = row.cnt
+    }
+
+    // Per-kelas forum unread (grouped by kelas)
+    const classes = user.role === 'guru'
+      ? await getGuruClasses(user.id)
+      : [await getStudentClass(user.id)]
+    const validClasses = classes.filter(Boolean)
+
+    const perForum = {}
+    if (validClasses.length > 0) {
+      const { rows: forumRows } = await pool.query(
+        `select p.kelas, count(*)::int as cnt
+         from pesan_forum_kelas p
+         where p.kelas = any($3::text[])
+           and not (p.sender_id = $1 and p.sender_role = $2)
+           and p.id > coalesce((
+             select d.last_read_message_id from komunikasi_dibaca d
+             where d.reader_id = $1 and d.reader_role = $2
+               and d.conversation_type = 'forum'
+               and d.conversation_key = p.kelas
+           ), 0)
+         group by p.kelas`,
+        [user.id, user.role, validClasses]
+      )
+      for (const row of forumRows) {
+        perForum[row.kelas] = row.cnt
+      }
+    }
+
+    res.json({ perContact, perForum })
+  } catch (err) {
+    console.error('komunikasi/unread-detail error', err)
+    res.status(500).json({ error: 'Gagal memuat detail notifikasi pesan.' })
+  }
+})
+
 // POST /api/komunikasi/read — record the newest message visible in a conversation.
 router.post('/read', async (req, res) => {
   try {

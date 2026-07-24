@@ -651,8 +651,9 @@ export function AppNotificationBell({ onCommunicationClick }) {
     await appNotifications.markRead(notification.id)
     setOpen(false)
     if (notification.url === '/komunikasi' || notification.type.startsWith('pesan_')) {
-      onCommunicationClick?.()
-      if (!onCommunicationClick) window.dispatchEvent(new CustomEvent('tomat:open-komunikasi'))
+      const target = notification.metadata || {}
+      onCommunicationClick?.(target)
+      if (!onCommunicationClick) window.dispatchEvent(new CustomEvent('tomat:open-komunikasi', { detail: target }))
     }
   }
 
@@ -870,8 +871,9 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
                         appNotifications.markRead(notification.id)
                         setNotificationsOpen(false)
                         if (notification.url === '/komunikasi' || notification.type.startsWith('pesan_')) {
-                          onCommunicationClick?.()
-                          if (!onCommunicationClick) window.dispatchEvent(new CustomEvent('tomat:open-komunikasi'))
+                          const target = notification.metadata || {}
+                          onCommunicationClick?.(target)
+                          if (!onCommunicationClick) window.dispatchEvent(new CustomEvent('tomat:open-komunikasi', { detail: target }))
                         }
                       }} style={{
                         width: '100%', textAlign: 'left', cursor: 'pointer',
@@ -887,8 +889,9 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
                      <button
                        onClick={() => {
                          setNotificationsOpen(false)
-                         onCommunicationClick?.()
-                         if (!onCommunicationClick) window.dispatchEvent(new CustomEvent('tomat:open-komunikasi'))
+                         const tabTarget = messageNotifications.privateCount > 0 ? { conversationType: 'private' } : { conversationType: 'forum' }
+                         onCommunicationClick?.(tabTarget)
+                         if (!onCommunicationClick) window.dispatchEvent(new CustomEvent('tomat:open-komunikasi', { detail: tabTarget }))
                        }}
                        style={{
                          width: '100%', textAlign: 'left', cursor: 'pointer',
