@@ -55,6 +55,18 @@ export default function G8PerisaiGame({ goBack, difficulty = 'medium', survival 
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ textAlign: 'center', marginBottom: 8 }}>
             <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 10 }}>Perisai berbentuk belah ketupat retak. Cari panjang diagonal yang hilang!</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <line x1="110" y1="12" x2="193" y2="75" stroke="#67E8F9" strokeWidth="2.5" />
+              <line x1="193" y1="75" x2="110" y2="138" stroke="#67E8F9" strokeWidth="2.5" />
+              <line x1="110" y1="138" x2="27" y2="75" stroke="#67E8F9" strokeWidth="2.5" />
+              <line x1="27" y1="75" x2="110" y2="12" stroke="#67E8F9" strokeWidth="2.5" />
+              <line x1="27" y1="75" x2="193" y2="75" stroke="#67E8F9" strokeWidth="1.5" strokeDasharray="6,4" />
+              <line x1="110" y1="12" x2="110" y2="138" stroke="#F472B6" strokeWidth="1.5" strokeDasharray="6,4" />
+              <rect x="110" y="75" width="9" height="9" fill="none" stroke="rgba(103,232,249,0.5)" strokeWidth="1" />
+              <text x="152" y="38" fill="#67E8F9" fontSize="12" fontWeight="700">s</text>
+              <text x="138" y="71" fill="#67E8F9" fontSize="10">d1</text>
+              <text x="114" y="50" fill="#F472B6" fontSize="10" fontWeight="700">d2=?</text>
+            </svg>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 10 }}>
               <div style={{ textAlign: 'center', background: 'rgba(103,232,249,0.08)', border: '1px solid rgba(103,232,249,0.2)', borderRadius: 10, padding: '10px 16px' }}>
                 <div style={{ fontSize: 11, color: '#94A3B8' }}>Sisi (s)</div>

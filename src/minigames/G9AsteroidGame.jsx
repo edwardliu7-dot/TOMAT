@@ -53,6 +53,16 @@ export default function G9AsteroidGame({ goBack, difficulty='medium', survival=f
         <Card border="rgba(244,114,182,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Tali busur memotong lingkaran asteroid. Hitung jarak dari pusat ke tali busur!</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <circle cx="110" cy="78" r="55" stroke="rgba(249,115,22,0.3)" strokeWidth="2" fill="rgba(249,115,22,0.05)" />
+              <path d="M 68,36 A 55,55 0 0,1 152,36" stroke="#F97316" strokeWidth="5" fill="none" strokeLinecap="round" />
+              <line x1="110" y1="78" x2="68" y2="36" stroke="#F97316" strokeWidth="1.5" />
+              <line x1="110" y1="78" x2="152" y2="36" stroke="#F97316" strokeWidth="1.5" />
+              <circle cx="110" cy="78" r="4" fill="#F97316" />
+              <text x="110" y="24" textAnchor="middle" fill="#F97316" fontSize="10" fontWeight="700">busur=?</text>
+              <text x="128" y="68" fill="#F97316" fontSize="12">θ</text>
+              <text x="82" y="60" fill="#F97316" fontSize="11">r</text>
+            </svg>
             <div style={{ display:'flex', justifyContent:'center', gap:14, marginBottom:10 }}>
               <div style={{ background:'rgba(244,114,182,0.08)', border:'1px solid rgba(244,114,182,0.2)', borderRadius:10, padding:'8px 14px', textAlign:'center' }}>
                 <div style={{ fontSize:11, color:'#94A3B8' }}>Jari-jari (r)</div>

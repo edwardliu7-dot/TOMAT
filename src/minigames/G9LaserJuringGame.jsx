@@ -58,6 +58,15 @@ export default function G9LaserJuringGame({ goBack, difficulty='medium', surviva
         <Card border="rgba(192,132,252,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Laser hanya menembak dalam juring tertentu. Hitung luas area tembakan! (π = 22/7)</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <circle cx="110" cy="80" r="58" stroke="#C084FC" strokeWidth="2" fill="rgba(192,132,252,0.05)" />
+              <path d="M110,80 L168,80 A58,58 0 0,0 110,22 Z" fill="rgba(192,132,252,0.4)" stroke="#C084FC" strokeWidth="1.5" />
+              <line x1="110" y1="80" x2="168" y2="80" stroke="#C084FC" strokeWidth="1.5" />
+              <line x1="110" y1="80" x2="110" y2="22" stroke="#C084FC" strokeWidth="1.5" />
+              <path d="M130,80 A20,20 0 0,0 110,60" stroke="#C084FC" strokeWidth="1.5" fill="none" />
+              <text x="140" y="66" fill="#C084FC" fontSize="12" fontWeight="700">θ={q.label}</text>
+              <text x="140" y="85" fill="#C084FC" fontSize="11">r={q.r}</text>
+            </svg>
             <div style={{ display:'flex', justifyContent:'center', gap:16, marginBottom:10 }}>
               <div style={{ background:'rgba(192,132,252,0.08)', border:'1px solid rgba(192,132,252,0.2)', borderRadius:10, padding:'8px 16px', textAlign:'center' }}>
                 <div style={{ fontSize:11, color:'#94A3B8' }}>Sudut (θ)</div>

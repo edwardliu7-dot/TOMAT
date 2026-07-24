@@ -49,6 +49,28 @@ export default function G9PlotRuteGame({ goBack, difficulty='medium', survival=f
         <Card border="rgba(129,140,248,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:8 }}>Layar navigasi menampilkan rute linear. Temukan koordinat y kapal pada titik x!</div>
+            <svg width={220} height={155} viewBox="0 0 220 155" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              {/* Vertical grid lines */}
+              {[30,60,90,120,150,180].map(x => (
+                <line key={x} x1={x} y1={10} x2={x} y2={145} stroke="rgba(52,211,153,0.1)" strokeWidth={1} />
+              ))}
+              {/* Horizontal grid lines */}
+              {[30,55,80,105,130].map(y => (
+                <line key={y} x1={10} y1={y} x2={210} y2={y} stroke="rgba(52,211,153,0.1)" strokeWidth={1} />
+              ))}
+              {/* X-axis */}
+              <line x1={10} y1={80} x2={207} y2={80} stroke="#34D399" strokeWidth={1.5} />
+              <polygon points="210,80 203,76 203,84" fill="#34D399" />
+              {/* Y-axis */}
+              <line x1={110} y1={150} x2={110} y2={13} stroke="#34D399" strokeWidth={1.5} />
+              <polygon points="110,10 106,17 114,17" fill="#34D399" />
+              {/* Sample line */}
+              <line x1={20} y1={115} x2={200} y2={45} stroke="#34D399" strokeWidth={2.5} />
+              {/* Line label */}
+              <text x={185} y={42} textAnchor="end" fill="#34D399" fontSize={9}>y={q.m}x{q.b >= 0 ? `+${q.b}` : `${q.b}`}</text>
+              {/* Origin label */}
+              <text x={115} y={88} fill="rgba(52,211,153,0.5)" fontSize={10}>O</text>
+            </svg>
             <div style={{ fontSize:24, fontWeight:900, color:'#818CF8', marginBottom:8 }}>y = {q.m}x {bStr}</div>
             <div style={{ fontSize:16, fontWeight:700, color:'#fff' }}>Jika x = {q.x}, y = ?</div>
             <div style={{ fontSize:12, color:'#6B7280', marginTop:4 }}>y = {q.m}×{q.x} {bStr}</div>

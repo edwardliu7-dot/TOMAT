@@ -55,6 +55,21 @@ export default function BentengPertahananGame({ goBack, difficulty = 'medium', s
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 14 }}>
             Benteng harus selesai tepat waktu! Atur hari agar seimbang:
           </div>
+          <svg width="220" height="150" style={{ display: 'block', margin: '8px auto 4px', overflow: 'visible' }}>
+            {/* Isometric 3D box */}
+            {/* Front face */}
+            <polygon points="60,90 140,90 140,130 60,130" fill="rgba(103,232,249,0.12)" stroke="#67E8F9" strokeWidth="2" />
+            {/* Top face */}
+            <polygon points="60,90 100,65 180,65 140,90" fill="rgba(103,232,249,0.18)" stroke="#67E8F9" strokeWidth="2" />
+            {/* Right face */}
+            <polygon points="140,90 180,65 180,105 140,130" fill="rgba(103,232,249,0.08)" stroke="#67E8F9" strokeWidth="2" />
+            {/* W1 label */}
+            <text x="100" y="115" textAnchor="middle" fill="#67E8F9" fontSize="12" fontWeight="700">{q.w1}×{q.d1}</text>
+            {/* W2 label */}
+            <text x="160" y="88" textAnchor="middle" fill="#67E8F9" fontSize="11" fontWeight="700">{q.w2}</text>
+            {/* Divider hint */}
+            <line x1="60" y1="110" x2="140" y2="110" stroke="rgba(103,232,249,0.3)" strokeWidth="1" strokeDasharray="4,3" />
+          </svg>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', marginBottom: 16 }}>
             <div style={{ flex: 1, background: 'rgba(103,232,249,0.08)', border: '1px solid rgba(103,232,249,0.2)', borderRadius: 12, padding: '14px', textAlign: 'center' }}>

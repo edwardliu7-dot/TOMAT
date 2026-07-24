@@ -42,6 +42,14 @@ export default function G9BoksBateraiGame({ goBack, difficulty='medium', surviva
         <Card border="rgba(52,211,153,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Hitung volume kompartemen balok untuk memastikan semua sel baterai muat!</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <polygon points="60,130 160,130 160,72 60,72" fill="rgba(52,211,153,0.1)" stroke="#34D399" strokeWidth={2} />
+              <polygon points="60,72 160,72 190,42 90,42" fill="rgba(52,211,153,0.18)" stroke="#34D399" strokeWidth={2} />
+              <polygon points="160,130 190,100 190,42 160,72" fill="rgba(52,211,153,0.07)" stroke="#34D399" strokeWidth={2} />
+              <text x="125" y="50" textAnchor="middle" fill="#34D399" fontSize={11} fontWeight={700}>P={q.l}</text>
+              <text x="195" y="80" fill="#34D399" fontSize={11} fontWeight={700}>L={q.w}</text>
+              <text x="45" y="108" fill="#34D399" fontSize={11} fontWeight={700}>T={q.h}</text>
+            </svg>
             <div style={{ display:'flex', justifyContent:'center', gap:8, marginBottom:10, flexWrap:'wrap' }}>
               {[['P',q.l],['L',q.w],['T',q.h]].map(([lbl,v]) => (
                 <div key={lbl} style={{ textAlign:'center', background:'rgba(52,211,153,0.08)', border:'1px solid rgba(52,211,153,0.2)', borderRadius:10, padding:'8px 14px' }}>

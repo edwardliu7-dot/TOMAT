@@ -64,6 +64,24 @@ export default function BorTambangGame({ goBack, difficulty = 'medium', survival
             {q.scenario}<br />
             <strong style={{ color: '#67E8F9', fontFamily: 'monospace' }}>{q.expr} = ?</strong>
           </div>
+          <svg width="220" height="140" style={{ display: 'block', margin: '8px auto 4px', overflow: 'visible' }}>
+            {/* Ground surface */}
+            <rect x="0" y="0" width="220" height="22" fill="rgba(163,119,69,0.25)" />
+            <text x="35" y="15" fill="#94A3B8" fontSize="10">permukaan (0)</text>
+            {/* Vertical depth line */}
+            <line x1="110" y1="22" x2="110" y2="132" stroke="#f59e0b" strokeWidth="2.5" />
+            {/* Down-pointing arrowhead */}
+            <polygon points="110,138 104,126 116,126" fill="#f59e0b" />
+            {/* Depth ticks */}
+            <line x1="90" y1="58" x2="130" y2="58" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="3,2" />
+            <line x1="90" y1="95" x2="130" y2="95" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="3,2" />
+            {/* Labels */}
+            <text x="135" y="62" fill="#f59e0b" fontSize="10">-5m</text>
+            <text x="135" y="99" fill="#f59e0b" fontSize="10">-10m</text>
+            <text x="135" y="130" fill="#f59e0b" fontSize="12" fontWeight="700">?</text>
+            {/* Drill bit diamond */}
+            <polygon points="110,138 104,132 110,144 116,132" fill="#f59e0b" />
+          </svg>
 
           <div style={{ display: 'flex', gap: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
             <div style={{ position: 'relative', width: 40, height: 200, background: 'rgba(139,92,46,0.2)', border: '2px solid rgba(139,92,46,0.4)', borderRadius: 4 }}>

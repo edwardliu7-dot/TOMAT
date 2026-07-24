@@ -54,6 +54,12 @@ export default function G8KristalGame({ goBack, difficulty = 'medium', survival 
         <Card border="rgba(196,181,253,0.3)">
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 8 }}>Kristal besar dipecah menjadi pecahan daya yang stabil. Hitung akar berikut:</div>
+            <svg width="220" height="100" viewBox="0 0 220 100" style={{ display: 'block', margin: '8px auto 4px', overflow: 'visible' }}>
+              <path d="M30,75 L50,90 L72,18 L190,18 L190,22 L76,22 L54,90 Z" fill="#A78BFA" />
+              <text x="130" y="58" fill="#fff" fontSize="26" fontWeight="900" textAnchor="middle">{q.val}</text>
+              <text x="52" y="35" fill="#A78BFA" fontSize="14" fontWeight="700">{q.r !== undefined ? q.r : q.n}</text>
+              <polygon points="196,45 206,55 196,65 186,55" fill="rgba(167,139,250,0.35)" stroke="#A78BFA" strokeWidth="1" />
+            </svg>
             <div style={{ fontSize: 30, fontWeight: 900, color: '#C4B5FD' }}>
               {rootSymbol(q.n)}{q.val} = ?
             </div>

@@ -48,6 +48,18 @@ export default function G8TaliGantungGame({ goBack, difficulty='medium', surviva
       <div style={{ padding:'0 16px 32px', display:'flex', flexDirection:'column', gap:16 }}>
         <Card border="rgba(134,239,172,0.3)">
           <div style={{ marginBottom:8 }}>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <line x1="20" y1="130" x2="190" y2="130" stroke="#86EFAC" strokeWidth="2.5" />
+              <line x1="20" y1="20" x2="20" y2="130" stroke="#86EFAC" strokeWidth="2.5" />
+              <rect x="5" y="20" width="15" height="8" fill="rgba(134,239,172,0.15)" stroke="rgba(134,239,172,0.3)" strokeWidth="0.5" />
+              <rect x="5" y="36" width="15" height="8" fill="rgba(134,239,172,0.15)" stroke="rgba(134,239,172,0.3)" strokeWidth="0.5" />
+              <rect x="5" y="52" width="15" height="8" fill="rgba(134,239,172,0.15)" stroke="rgba(134,239,172,0.3)" strokeWidth="0.5" />
+              <line x1="20" y1="20" x2="190" y2="130" stroke="#F472B6" strokeWidth="2.5" strokeDasharray="6,3" />
+              <rect x="20" y="120" width="10" height="10" fill="none" stroke="rgba(134,239,172,0.5)" strokeWidth="1" />
+              <text x="5" y="78" fill="#86EFAC" fontSize="11" fontWeight="700">a</text>
+              <text x="105" y="144" textAnchor="middle" fill="#86EFAC" fontSize="11" fontWeight="700">b</text>
+              <text x="125" y="62" fill="#F472B6" fontSize="11" fontWeight="700" transform="rotate(33,125,62)">tali=?</text>
+            </svg>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>📜 Misi Penyelamatan:</div>
             <div style={{ fontSize:14, color:'#fff', lineHeight:1.7, background:'rgba(134,239,172,0.07)', borderRadius:10, padding:12 }}>
               Sebuah <strong style={{ color:'#86EFAC' }}>{q.ctx.story}</strong>.

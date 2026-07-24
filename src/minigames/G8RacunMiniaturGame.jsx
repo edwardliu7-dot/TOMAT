@@ -47,6 +47,15 @@ export default function G8RacunMiniaturGame({ goBack, difficulty = 'medium', sur
         <Card border="rgba(163,230,53,0.3)">
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 8 }}>Racun diminiaturkan menggunakan pangkat negatif. Ubah ke bentuk pecahan:</div>
+            <svg width="220" height="100" viewBox="0 0 220 100" style={{ display: 'block', margin: '8px auto 4px', overflow: 'visible' }}>
+              <circle cx="32" cy="55" r="16" fill="rgba(52,211,153,0.1)" stroke="rgba(52,211,153,0.4)" strokeWidth="1.5" />
+              <text x="32" y="60" fill="rgba(52,211,153,0.4)" fontSize="18" textAnchor="middle">☠</text>
+              <text x="110" y="40" fill="#34D399" fontSize="30" fontWeight="900" textAnchor="middle">1</text>
+              <line x1="65" y1="52" x2="155" y2="52" stroke="#34D399" strokeWidth="2.5" />
+              <text x="100" y="80" fill="#34D399" fontSize="22" fontWeight="800" textAnchor="middle">{q.b}</text>
+              <text x="122" y="67" fill="#34D399" fontSize="14" textAnchor="middle">{q.e}</text>
+              <text x="175" y="60" fill="#34D399" fontSize="20" fontWeight="700">= ?</text>
+            </svg>
             <div style={{ fontSize: 26, fontWeight: 900, color: '#A3E635' }}>{q.b}<sup>−{q.e}</sup> = 1 / ?</div>
             <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>Isi penyebut pecahan tersebut</div>
           </div>

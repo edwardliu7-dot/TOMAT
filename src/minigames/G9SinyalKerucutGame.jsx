@@ -51,6 +51,16 @@ export default function G9SinyalKerucutGame({ goBack, difficulty='medium', survi
         <Card border="rgba(34,211,238,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Antena memancarkan sinyal berbentuk kerucut. Hitung volume jangkauan pancaran! (π = 22/7)</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <line x1="110" y1="15" x2="55" y2="132" stroke="#FB923C" strokeWidth={2.5} />
+              <line x1="110" y1="15" x2="165" y2="132" stroke="#FB923C" strokeWidth={2.5} />
+              <ellipse cx="110" cy="132" rx="55" ry="13" fill="rgba(251,146,60,0.15)" stroke="#FB923C" strokeWidth={2} />
+              <line x1="110" y1="15" x2="110" y2="132" stroke="#FB923C" strokeWidth={1.5} strokeDasharray="5,4" />
+              <circle cx="110" cy="15" r="4" fill="#FB923C" />
+              <line x1="110" y1="138" x2="165" y2="138" stroke="#FB923C" strokeWidth={1.5} />
+              <text x="135" y="148" textAnchor="middle" fill="#FB923C" fontSize={11} fontWeight={700}>r</text>
+              <text x="118" y="75" fill="#FB923C" fontSize={11} fontWeight={700}>h</text>
+            </svg>
             <div style={{ display:'flex', justifyContent:'center', gap:14, marginBottom:10 }}>
               <div style={{ background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.2)', borderRadius:10, padding:'8px 14px', textAlign:'center' }}>
                 <div style={{ fontSize:11, color:'#94A3B8' }}>Jari-jari (r)</div>

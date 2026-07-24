@@ -45,6 +45,14 @@ export default function G9ShieldGayaGame({ goBack, difficulty='medium', survival
         <Card border="rgba(56,189,248,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Aktifkan perisai plasma lingkaran! Hitung luas area yang harus dilindungi. (π = 22/7)</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <circle cx="110" cy="75" r="64" stroke="rgba(74,222,128,0.15)" strokeWidth="4" fill="none" />
+              <circle cx="110" cy="75" r="58" stroke="#4ADE80" strokeWidth="2.5" fill="rgba(74,222,128,0.07)" />
+              <circle cx="110" cy="75" r="4" fill="#4ADE80" />
+              <line x1="110" y1="75" x2="168" y2="75" stroke="#4ADE80" strokeWidth="2.5" />
+              <polygon points="168,75 160,70 160,80" fill="#4ADE80" />
+              <text x="138" y="65" fill="#4ADE80" fontSize="14" fontWeight="800">r</text>
+            </svg>
             <div style={{ fontSize:24, fontWeight:900, color:'#38BDF8', marginBottom:8 }}>r = {q.r} m</div>
             <div style={{ fontSize:15, fontWeight:800, color:'#fff' }}>Luas = πr² = ?</div>
             <div style={{ fontSize:12, color:'#6B7280', marginTop:4 }}>= 22/7 × {q.r}²</div>

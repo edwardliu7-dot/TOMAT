@@ -45,6 +45,18 @@ export default function G8InspeksiSudutGame({ goBack, difficulty='medium', survi
         <Card border="rgba(125,211,252,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Periksa apakah menara berdiri tegak lurus (90°). Hitung jumlah kuadrat dua sisi pendeknya!</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <line x1="30" y1="130" x2="30" y2="20" stroke="#FB923C" strokeWidth="2.5" />
+              <line x1="30" y1="130" x2="185" y2="130" stroke="#FB923C" strokeWidth="2.5" />
+              <line x1="30" y1="20" x2="185" y2="130" stroke="#FB923C" strokeWidth="2.5" />
+              <rect x="30" y="120" width="10" height="10" fill="none" stroke="rgba(251,146,60,0.5)" strokeWidth="1" />
+              <circle cx="30" cy="20" r="5" fill="none" stroke="#FB923C" strokeWidth="1.5" />
+              <circle cx="185" cy="130" r="5" fill="none" stroke="#FB923C" strokeWidth="1.5" />
+              <circle cx="30" cy="130" r="5" fill="none" stroke="#FB923C" strokeWidth="1.5" />
+              <text x="8" y="78" fill="#FB923C" fontSize="13" fontWeight="700">a</text>
+              <text x="108" y="145" textAnchor="middle" fill="#FB923C" fontSize="13" fontWeight="700">b</text>
+              <text x="118" y="65" fill="#F472B6" fontSize="12" fontWeight="700" transform="rotate(-34,118,65)">c=?</text>
+            </svg>
             <div style={{ display:'flex', justifyContent:'center', gap:16, marginBottom:10 }}>
               <div style={{ background:'rgba(125,211,252,0.08)', border:'1px solid rgba(125,211,252,0.2)', borderRadius:10, padding:'8px 16px', textAlign:'center' }}>
                 <div style={{ fontSize:11, color:'#94A3B8' }}>Sisi a</div>

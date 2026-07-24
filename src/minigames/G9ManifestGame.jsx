@@ -60,6 +60,21 @@ export default function G9ManifestGame({ goBack, difficulty='medium', survival=f
         <Card border="rgba(103,232,249,0.3)">
           <div>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:8 }}>🛸 Deklarasi Bea Cukai Alien:</div>
+            <svg width={220} height={110} viewBox="0 0 220 110" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              {/* Cylinder left container */}
+              <ellipse cx={62} cy={48} rx={28} ry={8} fill="rgba(103,232,249,0.2)" stroke="#67E8F9" strokeWidth={2} />
+              <line x1={34} y1={48} x2={34} y2={90} stroke="#67E8F9" strokeWidth={2} />
+              <line x1={90} y1={48} x2={90} y2={90} stroke="#67E8F9" strokeWidth={2} />
+              <ellipse cx={62} cy={90} rx={28} ry={8} stroke="#67E8F9" strokeWidth={1.5} fill="rgba(103,232,249,0.1)" />
+              <text x={62} y={74} fill="#67E8F9" fontSize={14} fontWeight={800} textAnchor="middle">x ton</text>
+              {/* Box right container */}
+              <rect x={130} y={58} width={58} height={38} rx={4} fill="rgba(167,139,250,0.12)" stroke="#A78BFA" strokeWidth={2} />
+              <text x={159} y={82} fill="#A78BFA" fontSize={14} fontWeight={800} textAnchor="middle">y ton</text>
+              {/* Plus sign */}
+              <text x={107} y={78} fill="#fff" fontSize={20} textAnchor="middle">+</text>
+              {/* Sum label */}
+              <text x={110} y={108} fill="#67E8F9" fontSize={12} fontWeight={700} textAnchor="middle">= {q.sum} ton</text>
+            </svg>
             <div style={{ fontSize:14, color:'#fff', lineHeight:1.7, background:'rgba(103,232,249,0.07)', borderRadius:10, padding:12 }}>
               {q.prompt}
             </div>

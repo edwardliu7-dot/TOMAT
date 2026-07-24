@@ -51,6 +51,19 @@ export default function G9ReaktorBahanGame({ goBack, difficulty='medium', surviv
         <Card border="rgba(134,239,172,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Hitung volume cairan hidrogen dalam tangki tabung silinder agar muatan kapal tidak berlebih! (π = 22/7)</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <line x1="70" y1="30" x2="70" y2="128" stroke="#22D3EE" strokeWidth={2} />
+              <line x1="150" y1="30" x2="150" y2="128" stroke="#22D3EE" strokeWidth={2} />
+              <rect x="70" y="30" width="80" height="98" fill="rgba(34,211,238,0.07)" />
+              <ellipse cx="110" cy="128" rx="40" ry="11" fill="rgba(34,211,238,0.08)" stroke="#22D3EE" strokeWidth={1.5} />
+              <ellipse cx="110" cy="30" rx="40" ry="11" fill="rgba(34,211,238,0.2)" stroke="#22D3EE" strokeWidth={2} />
+              <line x1="110" y1="30" x2="150" y2="30" stroke="#22D3EE" strokeWidth={2} />
+              <line x1="162" y1="30" x2="162" y2="128" stroke="#22D3EE" strokeWidth={1.5} />
+              <polygon points="162,30 158,40 166,40" fill="#22D3EE" />
+              <polygon points="162,128 158,118 166,118" fill="#22D3EE" />
+              <text x="130" y="24" fill="#22D3EE" fontSize={11} fontWeight={700}>r</text>
+              <text x="170" y="84" fill="#22D3EE" fontSize={11} fontWeight={700}>t</text>
+            </svg>
             <div style={{ fontSize:24, fontWeight:900, color:'#86EFAC', marginBottom:8 }}>r = {q.r} m &nbsp;|&nbsp; t = {q.t} m</div>
             <div style={{ fontSize:15, fontWeight:800, color:'#fff' }}>Volume Tabung = πr²t = ?</div>
             <div style={{ fontSize:12, color:'#6B7280', marginTop:4 }}>= 22/7 × {q.r}² × {q.t}</div>

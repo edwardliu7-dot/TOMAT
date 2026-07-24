@@ -48,6 +48,16 @@ export default function G8HartaKarunGame({ goBack, difficulty='medium', survival
         <Card border="rgba(253,230,138,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Peti harta berbentuk balok. Hitung panjang diagonal ruangnya untuk menemukan slot kunci rahasia!</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <polygon points="65,130 155,130 155,72 65,72" fill="rgba(253,230,138,0.1)" stroke="#FDE68A" strokeWidth="2" />
+              <polygon points="65,72 155,72 185,45 95,45" fill="rgba(253,230,138,0.18)" stroke="#FDE68A" strokeWidth="2" />
+              <polygon points="155,130 185,103 185,45 155,72" fill="rgba(253,230,138,0.08)" stroke="#FDE68A" strokeWidth="2" />
+              <line x1="65" y1="130" x2="185" y2="45" stroke="#F472B6" strokeWidth="1.5" strokeDasharray="5,4" />
+              <text x="120" y="42" textAnchor="middle" fill="#FDE68A" fontSize="11" fontWeight="700">P</text>
+              <text x="190" y="78" fill="#FDE68A" fontSize="11" fontWeight="700">L</text>
+              <text x="50" y="107" fill="#FDE68A" fontSize="11" fontWeight="700">T</text>
+              <text x="128" y="82" fill="#F472B6" fontSize="10" fontWeight="700">d=?</text>
+            </svg>
             <div style={{ display:'flex', justifyContent:'center', gap:10, marginBottom:10, flexWrap:'wrap' }}>
               {[['P',q.l],['L',q.w],['T',q.h]].map(([lbl,v]) => (
                 <div key={lbl} style={{ textAlign:'center', background:'rgba(253,230,138,0.08)', border:'1px solid rgba(253,230,138,0.2)', borderRadius:10, padding:'8px 14px' }}>

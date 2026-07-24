@@ -44,6 +44,19 @@ export default function G9UpgradeKapalGame({ goBack, difficulty='medium', surviv
         <Card border="rgba(74,222,128,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Kontainer kargo diupgrade! Semua dimensinya dilipatkan {q.k}×. Berapa volume barunya?</div>
+            <svg width="220" height="140" viewBox="0 0 220 140" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <polygon points="15,125 60,125 60,90 15,90" fill="rgba(74,222,128,0.1)" stroke="#4ADE80" strokeWidth={1.8} />
+              <polygon points="15,90 60,90 73,77 28,77" fill="rgba(74,222,128,0.18)" stroke="#4ADE80" strokeWidth={1.8} />
+              <polygon points="60,125 73,112 73,77 60,90" fill="rgba(74,222,128,0.1)" stroke="#4ADE80" strokeWidth={1.8} />
+              <text x="37" y="140" textAnchor="middle" fill="#4ADE80" fontSize={9}>V0</text>
+              <line x1="80" y1="107" x2="130" y2="107" stroke="#FBBF24" strokeWidth={2} />
+              <polygon points="130,107 120,103 120,111" fill="#FBBF24" />
+              <text x="109" y="102" textAnchor="middle" fill="#FBBF24" fontSize={12} fontWeight={800}>x{q.k}³</text>
+              <polygon points="138,128 198,128 198,75 138,75" fill="rgba(74,222,128,0.15)" stroke="#4ADE80" strokeWidth={2.5} />
+              <polygon points="138,75 198,75 218,55 158,55" fill="rgba(74,222,128,0.22)" stroke="#4ADE80" strokeWidth={2.5} />
+              <polygon points="198,128 218,108 218,55 198,75" fill="rgba(74,222,128,0.15)" stroke="#4ADE80" strokeWidth={2.5} />
+              <text x="168" y="143" textAnchor="middle" fill="#4ADE80" fontSize={9}>V baru=?</text>
+            </svg>
             <div style={{ display:'flex', justifyContent:'center', gap:14, marginBottom:12 }}>
               <div style={{ background:'rgba(74,222,128,0.08)', border:'1px solid rgba(74,222,128,0.2)', borderRadius:10, padding:'10px 16px', textAlign:'center' }}>
                 <div style={{ fontSize:11, color:'#94A3B8' }}>Volume Awal</div>

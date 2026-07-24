@@ -58,6 +58,22 @@ export default function NakhodaGame({ goBack, difficulty = 'medium', survival = 
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 16 }}>
             Berapa meter jarak nyatanya?
           </div>
+          <svg width="220" height="128" style={{ display: 'block', margin: '8px auto 4px', overflow: 'visible' }}>
+            {/* Outer floor plan rect */}
+            <rect x="28" y="12" width="164" height="100" rx="3" fill="none" stroke="#67E8F9" strokeWidth="2" />
+            {/* Interior walls */}
+            <line x1="28" y1="62" x2="118" y2="62" stroke="#67E8F9" strokeWidth="1.5" />
+            <line x1="118" y1="12" x2="118" y2="62" stroke="#67E8F9" strokeWidth="1.5" />
+            {/* Bottom room divider */}
+            <line x1="28" y1="88" x2="192" y2="88" stroke="#67E8F9" strokeWidth="1" />
+            {/* Scale bar */}
+            <line x1="48" y1="120" x2="172" y2="120" stroke="#67E8F9" strokeWidth="3" />
+            <line x1="48" y1="115" x2="48" y2="125" stroke="#67E8F9" strokeWidth="2" />
+            <line x1="172" y1="115" x2="172" y2="125" stroke="#67E8F9" strokeWidth="2" />
+            <text x="110" y="128" textAnchor="middle" fill="#67E8F9" fontSize="8" fontWeight="700">Skala 1:{bp.scale}</text>
+            {/* Compass rose */}
+            <text x="182" y="28" fill="#67E8F9" fontSize="11" fontWeight="700">N↑</text>
+          </svg>
           <SliderInput
             value={selectedVal}
             min={bp.min}

@@ -45,6 +45,17 @@ export default function G9KalibrasiRadaGame({ goBack, difficulty='medium', survi
         <Card border="rgba(167,139,250,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Atur jari-jari lingkaran sensor pemindai dan hitung kelilingnya! (π = 22/7)</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <circle cx="110" cy="75" r="60" stroke="#A78BFA" strokeWidth="2" fill="none" />
+              <circle cx="110" cy="75" r="40" stroke="rgba(167,139,250,0.4)" strokeWidth="1" fill="none" />
+              <circle cx="110" cy="75" r="20" stroke="rgba(167,139,250,0.25)" strokeWidth="1" fill="none" />
+              <line x1="20" y1="75" x2="200" y2="75" stroke="rgba(167,139,250,0.3)" strokeWidth="1" />
+              <line x1="110" y1="10" x2="110" y2="140" stroke="rgba(167,139,250,0.3)" strokeWidth="1" />
+              <line x1="110" y1="75" x2="170" y2="75" stroke="#A78BFA" strokeWidth="2.5" />
+              <circle cx="110" cy="75" r="4" fill="#A78BFA" />
+              <path d="M110,75 L170,75 A60,60 0 0,0 152,32 Z" fill="rgba(167,139,250,0.12)" />
+              <text x="138" y="66" fill="#A78BFA" fontSize="14" fontWeight="800">r = {q.r}</text>
+            </svg>
             <div style={{ fontSize:24, fontWeight:900, color:'#A78BFA', marginBottom:8 }}>r = {q.r} satuan</div>
             <div style={{ fontSize:15, fontWeight:800, color:'#fff' }}>Keliling = 2πr = ?</div>
             <div style={{ fontSize:12, color:'#6B7280', marginTop:4 }}>= 2 × 22/7 × {q.r}</div>

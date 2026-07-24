@@ -49,6 +49,17 @@ export default function G9KuilAlienGame({ goBack, difficulty='medium', survival=
         <Card border="rgba(167,139,250,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Hitung volume udara dalam kuil berbentuk limas segi empat sebelum mengirim robot!</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <polygon points="50,130 165,130 188,112 73,112" fill="rgba(167,139,250,0.1)" stroke="#A78BFA" strokeWidth={2} />
+              <line x1="50" y1="130" x2="110" y2="25" stroke="#A78BFA" strokeWidth={2} />
+              <line x1="165" y1="130" x2="110" y2="25" stroke="#A78BFA" strokeWidth={2} />
+              <line x1="73" y1="112" x2="110" y2="25" stroke="#A78BFA" strokeWidth={1.5} strokeDasharray="4,3" />
+              <line x1="188" y1="112" x2="110" y2="25" stroke="#A78BFA" strokeWidth={1.5} strokeDasharray="4,3" />
+              <line x1="110" y1="25" x2="110" y2="121" stroke="#A78BFA" strokeWidth={1.5} strokeDasharray="4,3" />
+              <circle cx="110" cy="25" r="4" fill="#A78BFA" />
+              <text x="118" y="76" fill="#A78BFA" fontSize={10} fontWeight={700}>tinggi</text>
+              <text x="110" y="145" textAnchor="middle" fill="#A78BFA" fontSize={10} fontWeight={700}>alas</text>
+            </svg>
             <div style={{ display:'flex', justifyContent:'center', gap:14, marginBottom:10 }}>
               <div style={{ background:'rgba(167,139,250,0.08)', border:'1px solid rgba(167,139,250,0.2)', borderRadius:10, padding:'8px 14px', textAlign:'center' }}>
                 <div style={{ fontSize:11, color:'#94A3B8' }}>Sisi alas (s)</div>

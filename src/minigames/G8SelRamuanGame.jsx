@@ -47,6 +47,17 @@ export default function G8SelRamuanGame({ goBack, difficulty = 'medium', surviva
         <Card border="rgba(251,191,36,0.3)">
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 6 }}>Alkemis menetaskan sel ajaib. Sel berkembang {q.b}× setiap tahap selama {q.e} tahap.</div>
+            <svg width="220" height="100" viewBox="0 0 220 100" style={{ display: 'block', margin: '8px auto 4px', overflow: 'visible' }}>
+              <circle cx="110" cy="22" r="20" fill="rgba(251,191,36,0.15)" stroke="#FBBF24" strokeWidth="2" />
+              <text x="110" y="27" fill="#FBBF24" fontSize="13" fontWeight="800" textAnchor="middle">{q.b}^{q.e}</text>
+              <line x1="110" y1="42" x2="65" y2="68" stroke="#FBBF24" strokeWidth="1.5" />
+              <line x1="110" y1="42" x2="155" y2="68" stroke="#FBBF24" strokeWidth="1.5" />
+              <circle cx="65" cy="78" r="16" fill="rgba(251,191,36,0.1)" stroke="#FBBF24" strokeWidth="1.5" />
+              <circle cx="155" cy="78" r="16" fill="rgba(251,191,36,0.1)" stroke="#FBBF24" strokeWidth="1.5" />
+              <text x="65" y="83" fill="#FBBF24" fontSize="11" textAnchor="middle">x{q.b}</text>
+              <text x="155" y="83" fill="#FBBF24" fontSize="11" textAnchor="middle">x{q.b}</text>
+              <text x="110" y="83" fill="rgba(251,191,36,0.5)" fontSize="16" textAnchor="middle">...</text>
+            </svg>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#FBBF24', letterSpacing: 2 }}>{q.b}<sup>{q.e}</sup> = ?</div>
             <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>Berapa total sel ramuan yang dihasilkan?</div>
           </div>

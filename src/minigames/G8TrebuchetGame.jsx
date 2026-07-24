@@ -52,6 +52,15 @@ export default function G8TrebuchetGame({ goBack, difficulty = 'medium', surviva
         <Card border="rgba(147,197,253,0.3)">
           <div style={{ textAlign: 'center', marginBottom: 8 }}>
             <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 10 }}>Hitung panjang tali pelontar trebuchet (sisi miring) agar batu tepat sasaran!</div>
+            <svg width="220" height="150" viewBox="0 0 220 150" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              <line x1="30" y1="130" x2="30" y2="20" stroke="#93C5FD" strokeWidth="2.5" />
+              <line x1="30" y1="130" x2="185" y2="130" stroke="#93C5FD" strokeWidth="2.5" />
+              <line x1="30" y1="20" x2="185" y2="130" stroke="#93C5FD" strokeWidth="2.5" />
+              <rect x="30" y="120" width="10" height="10" fill="none" stroke="rgba(147,197,253,0.5)" strokeWidth="1" />
+              <text x="8" y="78" fill="#93C5FD" fontSize="13" fontWeight="700">a</text>
+              <text x="108" y="145" textAnchor="middle" fill="#93C5FD" fontSize="13" fontWeight="700">b</text>
+              <text x="118" y="65" fill="#F472B6" fontSize="12" fontWeight="700" transform="rotate(-34,118,65)">c=?</text>
+            </svg>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 10 }}>
               <div style={{ textAlign: 'center', background: 'rgba(147,197,253,0.08)', border: '1px solid rgba(147,197,253,0.2)', borderRadius: 10, padding: '10px 16px' }}>
                 <div style={{ fontSize: 11, color: '#94A3B8' }}>Tinggi (a)</div>

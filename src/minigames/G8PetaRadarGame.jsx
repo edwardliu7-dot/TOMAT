@@ -51,6 +51,22 @@ export default function G8PetaRadarGame({ goBack, difficulty='medium', survival=
         <Card border="rgba(56,189,248,0.3)">
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>Ksatria dan benteng musuh ada di koordinat berbeda. Hitung jarak lurus terpendek!</div>
+            <svg width="220" height="155" viewBox="0 0 220 155" style={{ display:'block', margin:'8px auto 4px', overflow:'visible' }}>
+              {[30,60,90,120,150,180].map(x => (
+                <line key={x} x1={x} y1="10" x2={x} y2="145" stroke="rgba(52,211,153,0.12)" strokeWidth="1" />
+              ))}
+              {[30,55,80,105,130].map(y => (
+                <line key={y} x1="10" y1={y} x2="210" y2={y} stroke="rgba(52,211,153,0.12)" strokeWidth="1" />
+              ))}
+              <line x1="10" y1="80" x2="210" y2="80" stroke="#34D399" strokeWidth="1.5" />
+              <line x1="110" y1="10" x2="110" y2="145" stroke="#34D399" strokeWidth="1.5" />
+              <line x1="75" y1="50" x2="155" y2="115" stroke="#F472B6" strokeWidth="2" strokeDasharray="5,4" />
+              <circle cx="75" cy="50" r="5" fill="#34D399" />
+              <circle cx="155" cy="115" r="5" fill="#34D399" />
+              <text x="55" y="45" fill="#34D399" fontSize="9">(x1,y1)</text>
+              <text x="158" y="112" fill="#34D399" fontSize="9">(x2,y2)</text>
+              <text x="122" y="78" fill="#F472B6" fontSize="10" fontWeight="700">d=?</text>
+            </svg>
             <div style={{ display:'flex', justifyContent:'center', gap:14, marginBottom:10 }}>
               <div style={{ background:'rgba(56,189,248,0.08)', border:'1px solid rgba(56,189,248,0.2)', borderRadius:10, padding:'8px 14px', textAlign:'center' }}>
                 <div style={{ fontSize:11, color:'#94A3B8' }}>Posisimu</div>
