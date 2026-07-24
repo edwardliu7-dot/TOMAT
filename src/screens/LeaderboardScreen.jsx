@@ -84,11 +84,11 @@ export default function LeaderboardScreen({ goBack }) {
             </div>
           </div>
 
-          {data.leaderboard.length === 0 ? (
+          {(data.leaderboard ?? []).length === 0 ? (
             <div style={{ textAlign: 'center', padding: 40, color: '#6B7280' }}>Belum ada siswa lain di kelasmu.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {data.leaderboard.map(s => {
+              {(data.leaderboard ?? []).map(s => {
                 const hafalanTotal = (s.hafalanPerkalian || 0) + (s.hafalanPembagian || 0)
                 return (
                   <div key={s.id} style={{
