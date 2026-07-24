@@ -57,7 +57,31 @@ export default function BateraiGame({ goBack, difficulty = 'medium', survival = 
       <TopBar title="🚀 Baterai Pesawat Luar Angkasa" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>PANEL ENERGI PESAWAT</div>
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>PANEL ENERGI PESAWAT</div>
+          <svg width="220" height="72" viewBox="0 0 220 72" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
+            {/* Space background */}
+            {[[8,10],[30,5],[50,18],[150,8],[175,15],[200,5],[215,22]].map(([x,y],i)=>(
+              <circle key={i} cx={x} cy={y} r={1.2} fill="#67E8F9" opacity={0.3+i*0.08} />
+            ))}
+            {/* Spaceship body */}
+            <ellipse cx="110" cy="40" rx="50" ry="18" fill="#001428" stroke="#67E8F9" strokeWidth="2" />
+            {/* Cockpit */}
+            <ellipse cx="110" cy="34" rx="20" ry="12" fill="#0a2035" stroke="rgba(103,232,249,0.5)" strokeWidth="1.5" />
+            <ellipse cx="108" cy="31" rx="10" ry="7" fill="rgba(103,232,249,0.12)" />
+            {/* Wings */}
+            <polygon points="60,42 30,65 75,52" fill="#001428" stroke="rgba(103,232,249,0.4)" strokeWidth="1.5" />
+            <polygon points="160,42 190,65 145,52" fill="#001428" stroke="rgba(103,232,249,0.4)" strokeWidth="1.5" />
+            {/* Engine glows */}
+            <ellipse cx="85" cy="58" rx="8" ry="4" fill="rgba(103,232,249,0.2)" />
+            <ellipse cx="135" cy="58" rx="8" ry="4" fill="rgba(103,232,249,0.2)" />
+            <ellipse cx="85" cy="60" rx="5" ry="3" fill="rgba(103,232,249,0.4)" />
+            <ellipse cx="135" cy="60" rx="5" ry="3" fill="rgba(103,232,249,0.4)" />
+            {/* Laser/energy beam */}
+            <line x1="110" y1="26" x2="110" y2="8" stroke="rgba(103,232,249,0.5)" strokeWidth="2" strokeDasharray="3,2" />
+            <polygon points="110,5 106,12 114,12" fill="#67E8F9" opacity="0.6" />
+            {/* Percentage label */}
+            <text x="110" y="69" textAnchor="middle" fill="rgba(103,232,249,0.5)" fontSize="9">{q.pct}% × {q.base} = ?</text>
+          </svg>
 
           <div style={{ display: 'flex', gap: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             {/* Battery visual */}

@@ -48,6 +48,31 @@ export default function G8KeretaKudaGame({ goBack, difficulty='medium', survival
       <div style={{ padding:'0 16px 32px', display:'flex', flexDirection:'column', gap:16 }}>
         <Card border="rgba(163,230,53,0.3)">
           <div>
+            <svg width="220" height="105" viewBox="0 0 220 105" style={{ display:'block', margin:'0 auto 10px', overflow:'visible' }}>
+              {/* Ground */}
+              <rect x="0" y="90" width="220" height="15" rx="3" fill="#0a1400" />
+              {/* Wheels */}
+              <circle cx="60" cy="88" r="14" fill="#0a1400" stroke="#A3E635" strokeWidth="2" />
+              <circle cx="60" cy="88" r="7" fill="#0a1400" stroke="rgba(163,230,53,0.4)" strokeWidth="1.5" />
+              <circle cx="155" cy="88" r="14" fill="#0a1400" stroke="#A3E635" strokeWidth="2" />
+              <circle cx="155" cy="88" r="7" fill="#0a1400" stroke="rgba(163,230,53,0.4)" strokeWidth="1.5" />
+              {/* Cart body */}
+              <rect x="40" y="55" width="130" height="36" rx="5" fill="#0d1e00" stroke="#A3E635" strokeWidth="2" />
+              {/* Cargo boxes inside */}
+              {[50,74,98,122].map((x,i)=>(
+                <rect key={i} x={x} y="62" width="18" height="22" rx="2" fill={i<3?"#142800":"#0a1400"} stroke={i<3?"rgba(163,230,53,0.6)":"rgba(163,230,53,0.2)"} strokeWidth="1.2" />
+              ))}
+              <text x="59" y="77" textAnchor="middle" fill="rgba(163,230,53,0.7)" fontSize="9">📦</text>
+              <text x="83" y="77" textAnchor="middle" fill="rgba(163,230,53,0.7)" fontSize="9">📦</text>
+              <text x="107" y="77" textAnchor="middle" fill="rgba(163,230,53,0.7)" fontSize="9">📦</text>
+              <text x="131" y="77" textAnchor="middle" fill="rgba(163,230,53,0.15)" fontSize="9">?</text>
+              {/* Shaft/tongue */}
+              <line x1="40" y1="72" x2="10" y2="68" stroke="rgba(163,230,53,0.5)" strokeWidth="2" />
+              {/* Horse */}
+              <text x="8" y="80" fontSize="22">🐴</text>
+              {/* Weight label */}
+              <text x="110" y="102" textAnchor="middle" fill="rgba(163,230,53,0.5)" fontSize="9">ax + b ≤ C</text>
+            </svg>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:8 }}>🛒 Logistik Kerajaan:</div>
             <div style={{ fontSize:14, color:'#fff', lineHeight:1.8, background:'rgba(163,230,53,0.07)', borderRadius:10, padding:12 }}>
               Kapasitas kereta <strong style={{ color:'#A3E635' }}>{q.C} kg</strong>.

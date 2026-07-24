@@ -55,6 +55,29 @@ export default function FokusTeleskopGame({ goBack, difficulty = 'medium', survi
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 12 }}>
             Ubah <strong style={{ color: '#fff' }}>{q.number}</strong> ke bentuk baku (a × 10ⁿ)
           </div>
+          <svg width="220" height="120" viewBox="0 0 220 120" style={{ display:'block', margin:'0 auto 12px', overflow:'visible' }}>
+            {/* Stars */}
+            {[[18,10],[38,6],[65,18],[95,4],[135,10],[162,6],[198,14],[210,28]].map(([x,y],i)=>(
+              <circle key={i} cx={x} cy={y} r={1.5} fill="#67E8F9" opacity={0.5+i*0.06} />
+            ))}
+            {/* Planet target */}
+            <circle cx="185" cy="28" r="10" fill="#0a1628" stroke="#f59e0b" strokeWidth="1.5" />
+            <circle cx="185" cy="28" r="5" fill="#f59e0b" opacity="0.5" />
+            <line x1="175" y1="22" x2="198" y2="34" stroke="#f59e0b" strokeWidth="1" opacity="0.4" />
+            {/* Telescope tube */}
+            <rect x="58" y="54" width="108" height="18" rx="7" fill="#0d2233" stroke="#67E8F9" strokeWidth="2" transform="rotate(-14,112,63)" />
+            <ellipse cx="156" cy="46" rx="13" ry="10" fill="#01111e" stroke="#67E8F9" strokeWidth="2" transform="rotate(-14,156,46)" />
+            <ellipse cx="156" cy="46" rx="8" ry="6" fill="#001428" stroke="rgba(103,232,249,0.35)" strokeWidth="1" transform="rotate(-14,156,46)" />
+            <rect x="48" y="57" width="20" height="12" rx="4" fill="#0d2233" stroke="#67E8F9" strokeWidth="1.5" transform="rotate(-14,58,63)" />
+            {/* Sight line */}
+            <line x1="158" y1="42" x2="178" y2="30" stroke="rgba(103,232,249,0.25)" strokeWidth="1" strokeDasharray="4,3" />
+            {/* Tripod */}
+            <line x1="88" y1="66" x2="72" y2="98" stroke="rgba(103,232,249,0.4)" strokeWidth="1.5" />
+            <line x1="108" y1="68" x2="108" y2="102" stroke="rgba(103,232,249,0.4)" strokeWidth="1.5" />
+            <line x1="128" y1="66" x2="144" y2="98" stroke="rgba(103,232,249,0.4)" strokeWidth="1.5" />
+            {/* Label */}
+            <text x="110" y="114" textAnchor="middle" fill="#67E8F9" fontSize="10" opacity="0.6">a × 10ⁿ</text>
+          </svg>
 
           <div style={{ padding: '12px', background: '#0a1628', borderRadius: 10, textAlign: 'center', marginBottom: 16, border: `2px solid ${feedback === null ? 'rgba(103,232,249,0.3)' : feedback ? '#34D399' : '#ef4444'}` }}>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', fontFamily: 'monospace' }}>

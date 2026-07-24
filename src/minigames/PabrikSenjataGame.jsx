@@ -50,11 +50,32 @@ export default function PabrikRobotGame({ goBack, difficulty = 'medium', surviva
       <TopBar title="🤖 Pabrik Pasukan Robot" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 14 }}>
-            {['🤖', '🤖', '🤖'].map((r, i) => (
-              <div key={i} style={{ fontSize: 32, opacity: 0.6 + i * 0.2 }}>{r}</div>
+          <svg width="220" height="90" viewBox="0 0 220 90" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
+            {/* Conveyor belt */}
+            <rect x="10" y="65" width="200" height="14" rx="5" fill="#0a1428" stroke="rgba(103,232,249,0.3)" strokeWidth="1.5" />
+            {[20,44,68,92,116,140,164,188].map((x,i)=>(
+              <circle key={i} cx={x} cy="72" r="5" fill="#001014" stroke="rgba(103,232,249,0.25)" strokeWidth="1" />
             ))}
-          </div>
+            {/* Factory wall */}
+            <rect x="0" y="0" width="220" height="62" rx="4" fill="#080e18" stroke="rgba(103,232,249,0.15)" strokeWidth="1" />
+            {/* Factory windows */}
+            {[18,70,122,172].map((x,i)=>(
+              <rect key={i} x={x} y="8" width="28" height="20" rx="3" fill="#001428" stroke="rgba(103,232,249,0.2)" strokeWidth="1" />
+            ))}
+            {/* Robots on conveyor */}
+            <text x="42" y="62" textAnchor="middle" fontSize="22" style={{filter:'drop-shadow(0 0 4px rgba(103,232,249,0.6))'}}>🤖</text>
+            <text x="110" y="62" textAnchor="middle" fontSize="22" style={{filter:'drop-shadow(0 0 4px rgba(103,232,249,0.4))'}}>🤖</text>
+            <text x="178" y="62" textAnchor="middle" fontSize="22" style={{filter:'drop-shadow(0 0 4px rgba(103,232,249,0.2))'}}>🤖</text>
+            {/* Number line indicator */}
+            <line x1="10" y1="50" x2="210" y2="50" stroke="rgba(103,232,249,0.15)" strokeWidth="1" />
+            <text x="18" y="48" fill="rgba(103,232,249,0.4)" fontSize="8">−</text>
+            <text x="105" y="48" fill="rgba(103,232,249,0.4)" fontSize="8">0</text>
+            <text x="200" y="48" fill="rgba(103,232,249,0.4)" fontSize="8">+</text>
+            {/* Sparks */}
+            {[[55,18],[100,12],[160,20]].map(([x,y],i)=>(
+              <text key={i} x={x} y={y} fill="rgba(103,232,249,0.5)" fontSize="8">✦</text>
+            ))}
+          </svg>
           <div style={{ padding: '14px', background: 'rgba(103,232,249,0.08)', borderRadius: 10, textAlign: 'center' }}>
             <div style={{ fontSize: 26, fontWeight: 900, color: '#67E8F9', fontFamily: 'monospace' }}>{q.expr} = ?</div>
           </div>

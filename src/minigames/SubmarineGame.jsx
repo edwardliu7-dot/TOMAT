@@ -49,6 +49,31 @@ export default function KatakGame({ goBack, difficulty = 'medium', survival = fa
       <TopBar title="🐸 Katak Pelompat Batu" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
+          <svg width="220" height="64" viewBox="0 0 220 64" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
+            {/* River/water */}
+            <rect x="0" y="42" width="220" height="22" rx="4" fill="rgba(14,116,144,0.15)" />
+            {/* Water ripples */}
+            {[20,55,90,130,165,200].map((x,i)=>(
+              <ellipse key={i} cx={x} cy="50" rx="12" ry="4" fill="none" stroke="rgba(103,232,249,0.15)" strokeWidth="1" />
+            ))}
+            {/* Stones in the water */}
+            {[15,45,75,105,135,165,195].map((x,i)=>(
+              <ellipse key={i} cx={x} cy="44" rx="14" ry="6" fill="#0a1f2e" stroke="rgba(103,232,249,0.3)" strokeWidth="1" />
+            ))}
+            {/* Frog on starting stone */}
+            <text x={15 + ((q.start+15)/30)*180} y="38" textAnchor="middle" fontSize="18">🐸</text>
+            {/* Jump arc indicator */}
+            {q.isForward ? (
+              <path d={`M ${15 + ((q.start+15)/30)*180} 36 Q ${15 + ((q.start+15)/30)*180 + 30} 14 ${15 + ((q.start+q.jump+15)/30)*180} 36`} fill="none" stroke="rgba(245,158,11,0.5)" strokeWidth="1.5" strokeDasharray="4,3" />
+            ) : (
+              <path d={`M ${15 + ((q.start+15)/30)*180} 36 Q ${15 + ((q.start+15)/30)*180 - 30} 14 ${15 + ((q.start-q.jump+15)/30)*180} 36`} fill="none" stroke="rgba(245,158,11,0.5)" strokeWidth="1.5" strokeDasharray="4,3" />
+            )}
+            {/* Number line */}
+            <line x1="10" y1="58" x2="210" y2="58" stroke="rgba(103,232,249,0.3)" strokeWidth="1" />
+            {[-15,-10,-5,0,5,10,15].map((n,i)=>(
+              <text key={i} x={15 + (n+15)/30*180} y="63" textAnchor="middle" fill="rgba(103,232,249,0.4)" fontSize="7">{n}</text>
+            ))}
+          </svg>
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 14 }}>
             Katak di batu <strong style={{ color: '#67E8F9' }}>{q.start}</strong>, melompat {q.isForward ? '⮕ maju' : '⬅ mundur'} <strong style={{ color: '#f59e0b' }}>{q.jump} batu</strong>. Geser katak ke tujuan!
           </div>

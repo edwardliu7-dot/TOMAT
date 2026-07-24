@@ -66,7 +66,30 @@ export default function KasirSihirGame({ goBack, difficulty = 'medium', survival
       <TopBar title="🏪 Kasir Toko Sihir" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(234,179,8,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>TOKO RAMUAN PENYIHIR</div>
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>TOKO RAMUAN PENYIHIR</div>
+          <svg width="220" height="72" viewBox="0 0 220 72" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
+            {/* Shop awning */}
+            <polygon points="10,28 210,28 198,8 22,8" fill="#1a1000" stroke="#EAB308" strokeWidth="1.5" />
+            {[22,50,78,106,134,162,190].map((x,i)=>(
+              <line key={i} x1={x} y1="8" x2={x} y2="28" stroke="rgba(234,179,8,0.3)" strokeWidth="1" />
+            ))}
+            {/* Shop front */}
+            <rect x="10" y="28" width="200" height="40" rx="3" fill="#0d0a00" stroke="rgba(234,179,8,0.35)" strokeWidth="1.5" />
+            {/* Window */}
+            <rect x="20" y="34" width="80" height="28" rx="3" fill="#0a0800" stroke="rgba(234,179,8,0.25)" strokeWidth="1" />
+            {/* Shelves */}
+            <line x1="22" y1="52" x2="98" y2="52" stroke="rgba(234,179,8,0.2)" strokeWidth="1" />
+            {/* Items on shelf */}
+            <text x="35" y="51" fontSize="12">🧪</text>
+            <text x="55" y="51" fontSize="12">📗</text>
+            <text x="75" y="51" fontSize="12">💎</text>
+            {/* Price tag */}
+            <rect x="112" y="34" width="90" height="28" rx="3" fill="#0a0800" stroke="#EAB308" strokeWidth="1" />
+            <text x="118" y="46" fill="#EAB308" fontSize="9" fontWeight="700">qty₁ → 🪙{q.price1}</text>
+            <text x="118" y="58" fill="rgba(234,179,8,0.6)" fontSize="9">qty₂ → 🪙 ?</text>
+            {/* Sign */}
+            <text x="110" y="22" textAnchor="middle" fill="#EAB308" fontSize="9" fontWeight="700">✦ TOKO SIHIR ✦</text>
+          </svg>
 
           {/* Price display */}
           <div style={{ background: '#1a1400', border: '2px dashed #EAB308', borderRadius: 14, padding: '12px', textAlign: 'center', marginBottom: 14 }}>

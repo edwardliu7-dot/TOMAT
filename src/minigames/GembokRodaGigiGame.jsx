@@ -50,9 +50,31 @@ export default function GembokRodaGigiGame({ goBack, difficulty = 'medium', surv
       <TopBar title="⚙️ Gembok Roda Gigi" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 10 }}>
             Cari faktor persekutuan terbesar (FPB) dari <strong style={{ color: '#67E8F9' }}>{q.a}</strong> dan <strong style={{ color: '#FDBA74' }}>{q.b}</strong>!
           </div>
+
+          <svg width="220" height="90" viewBox="0 0 220 90" style={{ display:'block', margin:'0 auto 10px', overflow:'visible' }}>
+            {/* Left large gear */}
+            {[0,30,60,90,120,150,180,210,240,270,300,330].map((deg,i)=>{
+              const r=deg*Math.PI/180, cx=72, cy=44, ro=30, ri=22
+              return <polygon key={i} points={`${cx+ri*Math.cos(r)},${cy+ri*Math.sin(r)} ${cx+ro*Math.cos(r-0.25)},${cy+ro*Math.sin(r-0.25)} ${cx+ro*Math.cos(r+0.25)},${cy+ro*Math.sin(r+0.25)}`} fill="#67E8F9" opacity="0.35" />
+            })}
+            <circle cx="72" cy="44" r="22" fill="#001a22" stroke="#67E8F9" strokeWidth="2" />
+            <circle cx="72" cy="44" r="6" fill="#001a22" stroke="rgba(103,232,249,0.5)" strokeWidth="1.5" />
+            <text x="72" y="49" textAnchor="middle" fill="#67E8F9" fontSize="13" fontWeight="800">{q.a}</text>
+            {/* Right medium gear */}
+            {[0,45,90,135,180,225,270,315].map((deg,i)=>{
+              const r=deg*Math.PI/180, cx=148, cy=44, ro=24, ri=17
+              return <polygon key={i} points={`${cx+ri*Math.cos(r)},${cy+ri*Math.sin(r)} ${cx+ro*Math.cos(r-0.28)},${cy+ro*Math.sin(r-0.28)} ${cx+ro*Math.cos(r+0.28)},${cy+ro*Math.sin(r+0.28)}`} fill="#FDBA74" opacity="0.35" />
+            })}
+            <circle cx="148" cy="44" r="17" fill="#1a0d00" stroke="#FDBA74" strokeWidth="2" />
+            <circle cx="148" cy="44" r="5" fill="#1a0d00" stroke="rgba(253,186,116,0.5)" strokeWidth="1.5" />
+            <text x="148" y="49" textAnchor="middle" fill="#FDBA74" fontSize="13" fontWeight="800">{q.b}</text>
+            {/* Connection point */}
+            <circle cx="108" cy="44" r="5" fill="#34D399" opacity="0.7" />
+            <text x="110" y="84" textAnchor="middle" fill="rgba(103,232,249,0.5)" fontSize="9">FPB = faktor terbesar yang sama</text>
+          </svg>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: 30, marginBottom: 20 }}>
             <div style={{ textAlign: 'center' }}>

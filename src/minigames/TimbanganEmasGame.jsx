@@ -51,6 +51,29 @@ export default function TimbanganEmasGame({ goBack, difficulty = 'medium', survi
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(234,179,8,0.3)">
           {/* Scale visual */}
+          <svg width="220" height="75" viewBox="0 0 220 75" style={{ display:'block', margin:'0 auto 10px', overflow:'visible' }}>
+            {/* Balance stand */}
+            <rect x="107" y="8" width="6" height="55" rx="2" fill="rgba(234,179,8,0.5)" />
+            <rect x="90" y="58" width="40" height="8" rx="3" fill="#1a1200" stroke="rgba(234,179,8,0.4)" strokeWidth="1.5" />
+            <rect x="82" y="66" width="56" height="6" rx="3" fill="#1a1200" stroke="rgba(234,179,8,0.3)" strokeWidth="1" />
+            {/* Beam */}
+            <line x1="38" y1="32" x2="182" y2="32" stroke="#EAB308" strokeWidth="3" strokeLinecap="round" />
+            {/* Chains */}
+            <line x1="58" y1="32" x2="58" y2="50" stroke="rgba(234,179,8,0.5)" strokeWidth="1.5" />
+            <line x1="162" y1="32" x2="162" y2="50" stroke="rgba(234,179,8,0.5)" strokeWidth="1.5" />
+            {/* Left pan with equation */}
+            <ellipse cx="58" cy="52" rx="28" ry="6" fill="#1a1200" stroke="#EAB308" strokeWidth="1.5" />
+            <text x="58" y="49" textAnchor="middle" fill="#EAB308" fontSize="11" fontWeight="700" fontFamily="monospace">{q.display}</text>
+            {/* Gold nuggets on left */}
+            {['💰','✨'].map((e,i)=>(<text key={i} x={48+i*16} y="63" fontSize="11">{e}</text>))}
+            {/* Right pan with slider value */}
+            <ellipse cx="162" cy="52" rx="28" ry="6" fill="#1a1200" stroke="#67E8F9" strokeWidth="1.5" />
+            <text x="162" y="49" textAnchor="middle" fill="#67E8F9" fontSize="11" fontWeight="700" fontFamily="monospace">{selectedVal.toFixed(2)}</text>
+            {/* Weight on right */}
+            <text x="154" y="63" fontSize="11">⚖️</text>
+            {/* Pivot */}
+            <circle cx="110" cy="8" r="5" fill="#EAB308" />
+          </svg>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16, position: 'relative', height: 100 }}>
             <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 6, height: 60, background: 'rgba(234,179,8,0.6)', borderRadius: 3, transformOrigin: 'top center' }} />
             <div style={{ position: 'absolute', top: 52, left: '15%', right: '15%', height: 4, background: '#EAB308', borderRadius: 2, transformOrigin: 'center center', transform: `rotate(${tilt}deg)`, transition: 'transform 0.3s' }}>

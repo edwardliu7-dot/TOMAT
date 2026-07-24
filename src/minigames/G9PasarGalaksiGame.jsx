@@ -48,6 +48,30 @@ export default function G9PasarGalaksiGame({ goBack, difficulty='medium', surviv
         <Card border="rgba(167,139,250,0.3)">
           <div>
             <div style={{ fontSize:13, color:'#94A3B8', marginBottom:10 }}>🛸 Harga satuan belum diketahui. Gunakan dua paket untuk menemukannya!</div>
+            <svg width="220" height="100" viewBox="0 0 220 100" style={{ display:'block', margin:'0 auto 10px', overflow:'visible' }}>
+              {/* Stars */}
+              {[[10,12],[28,6],[55,18],[100,5],[145,12],[185,6],[210,20]].map(([x,y],i)=>(
+                <circle key={i} cx={x} cy={y} r={1.2} fill="#A78BFA" opacity={0.4+i*0.07} />
+              ))}
+              {/* Market stall left */}
+              <rect x="12" y="42" width="72" height="46" rx="5" fill="#100028" stroke="rgba(167,139,250,0.4)" strokeWidth="1.5" />
+              <polygon points="8,42 88,42 80,22 16,22" fill="#140032" stroke="#A78BFA" strokeWidth="1.5" />
+              <rect x="20" y="26" width="56" height="6" rx="2" fill="#A78BFA" opacity="0.3" />
+              <text x="48" y="68" textAnchor="middle" fontSize="18">🚀</text>
+              <text x="48" y="84" textAnchor="middle" fill="#A78BFA" fontSize="9">Tiket Warp</text>
+              {/* Market stall right */}
+              <rect x="136" y="42" width="72" height="46" rx="5" fill="#100028" stroke="rgba(251,191,36,0.4)" strokeWidth="1.5" />
+              <polygon points="132,42 212,42 204,22 140,22" fill="#1a1200" stroke="#FBBF24" strokeWidth="1.5" />
+              <rect x="144" y="26" width="56" height="6" rx="2" fill="#FBBF24" opacity="0.3" />
+              <text x="172" y="68" textAnchor="middle" fontSize="18">🧪</text>
+              <text x="172" y="84" textAnchor="middle" fill="#FBBF24" fontSize="9">Botol Oksigen</text>
+              {/* Flying saucer */}
+              <ellipse cx="110" cy="38" rx="18" ry="8" fill="#100028" stroke="#A78BFA" strokeWidth="1.5" />
+              <ellipse cx="110" cy="34" rx="10" ry="6" fill="#1a0040" stroke="rgba(167,139,250,0.5)" strokeWidth="1" />
+              <ellipse cx="110" cy="42" rx="22" ry="4" fill="rgba(167,139,250,0.1)" stroke="rgba(167,139,250,0.2)" strokeWidth="1" />
+              {/* Price tags */}
+              <text x="110" y="97" textAnchor="middle" fill="rgba(167,139,250,0.5)" fontSize="9">x + y = kredit galaksi</text>
+            </svg>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               <div style={{ background:'rgba(167,139,250,0.08)', border:'1px solid rgba(167,139,250,0.2)', borderRadius:10, padding:12 }}>
                 <div style={{ fontSize:13, fontWeight:700, color:'#A78BFA' }}>Paket I:</div>

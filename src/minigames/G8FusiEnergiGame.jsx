@@ -70,6 +70,26 @@ export default function G8FusiEnergiGame({ goBack, difficulty = 'medium', surviv
         <Card border="rgba(251,146,60,0.3)">
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 8 }}>Hitung nilai pangkat pecahan berikut agar reaktor tidak meledak:</div>
+            <svg width="220" height="110" viewBox="0 0 220 110" style={{ display:'block', margin:'0 auto 10px', overflow:'visible' }}>
+              {/* Reactor core */}
+              <ellipse cx="110" cy="60" rx="38" ry="38" fill="#1a0d00" stroke="#FB923C" strokeWidth="2" />
+              <ellipse cx="110" cy="60" rx="26" ry="26" fill="#2d1500" stroke="rgba(251,146,60,0.5)" strokeWidth="1.5" />
+              <ellipse cx="110" cy="60" rx="14" ry="14" fill="#FB923C" opacity="0.25" />
+              {/* Energy beams */}
+              {[0,60,120,180,240,300].map((deg,i)=>{
+                const rad=deg*Math.PI/180
+                return <line key={i} x1={110+14*Math.cos(rad)} y1={60+14*Math.sin(rad)} x2={110+36*Math.cos(rad)} y2={60+36*Math.sin(rad)} stroke="#FB923C" strokeWidth="1.5" opacity="0.7" />
+              })}
+              {/* Pipes */}
+              <rect x="15" y="55" width="34" height="10" rx="4" fill="#1a0d00" stroke="rgba(251,146,60,0.5)" strokeWidth="1.5" />
+              <rect x="171" y="55" width="34" height="10" rx="4" fill="#1a0d00" stroke="rgba(251,146,60,0.5)" strokeWidth="1.5" />
+              <rect x="105" y="6" width="10" height="30" rx="4" fill="#1a0d00" stroke="rgba(251,146,60,0.5)" strokeWidth="1.5" />
+              <rect x="105" y="74" width="10" height="30" rx="4" fill="#1a0d00" stroke="rgba(251,146,60,0.5)" strokeWidth="1.5" />
+              {/* Power label */}
+              <text x="110" y="65" textAnchor="middle" fill="#FB923C" fontSize="11" fontWeight="700">⚡</text>
+              {/* Formula hint */}
+              <text x="110" y="105" textAnchor="middle" fill="rgba(251,146,60,0.6)" fontSize="9">bᵖ/ᵍ = (ᵍ√b)ᵖ</text>
+            </svg>
             <div style={{ fontSize: 28, fontWeight: 900, color: '#FB923C' }}>{q.label} = ?</div>
             <div style={{ fontSize: 12, color: '#6B7280', marginTop: 6 }}>💡 Petunjuk: hitung akarnya dulu, lalu pangkatkan</div>
           </div>

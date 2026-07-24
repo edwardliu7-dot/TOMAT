@@ -80,6 +80,29 @@ export default function G8MantraAkarGame({ goBack, difficulty = 'medium', surviv
         <Card border="rgba(232,121,249,0.3)">
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 8 }}>Mantra pertahanan kastil harus disederhanakan. Temukan koefisien yang tepat!</div>
+            <svg width="220" height="110" viewBox="0 0 220 110" style={{ display:'block', margin:'0 auto 10px', overflow:'visible' }}>
+              {/* Castle base */}
+              <rect x="40" y="60" width="140" height="44" rx="3" fill="#0a001a" stroke="rgba(232,121,249,0.35)" strokeWidth="1.5" />
+              {/* Castle towers */}
+              <rect x="36" y="32" width="34" height="60" rx="3" fill="#0a001a" stroke="rgba(232,121,249,0.45)" strokeWidth="1.5" />
+              <rect x="150" y="32" width="34" height="60" rx="3" fill="#0a001a" stroke="rgba(232,121,249,0.45)" strokeWidth="1.5" />
+              {/* Center tower */}
+              <rect x="83" y="18" width="54" height="72" rx="3" fill="#0d0020" stroke="#E879F9" strokeWidth="2" />
+              {/* Battlements */}
+              {[36,46,56,62].map((x,i)=>(<rect key={i} x={x} y="22" width="10" height="12" rx="2" fill="#0a001a" stroke="rgba(232,121,249,0.4)" strokeWidth="1" />))}
+              {[150,160,170,180].map((x,i)=>(<rect key={i} x={x} y="22" width="10" height="12" rx="2" fill="#0a001a" stroke="rgba(232,121,249,0.4)" strokeWidth="1" />))}
+              {[83,94,105,116,127].map((x,i)=>(<rect key={i} x={x} y="8" width="10" height="12" rx="2" fill="#0d0020" stroke="#E879F9" strokeWidth="1.2" />))}
+              {/* Magic symbol */}
+              <text x="110" y="52" textAnchor="middle" fill="#E879F9" fontSize="20">√</text>
+              {/* Stars/sparkles */}
+              {[[28,25],[192,28],[15,70],[205,68]].map(([x,y],i)=>(
+                <text key={i} x={x} y={y} fill="rgba(232,121,249,0.5)" fontSize="10">✦</text>
+              ))}
+              {/* Gate */}
+              <path d="M96,90 Q110,76 124,90 L124,104 L96,104 Z" fill="#0a001a" stroke="rgba(232,121,249,0.3)" strokeWidth="1" />
+              {/* Formula label */}
+              <text x="110" y="107" textAnchor="middle" fill="rgba(232,121,249,0.5)" fontSize="9">√n = a√b</text>
+            </svg>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#E879F9' }}>{question}</div>
             <div style={{ fontSize: 12, color: '#6B7280', marginTop: 6 }}>💡 Temukan koefisien (angka di depan √)</div>
           </div>

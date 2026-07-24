@@ -171,7 +171,35 @@ export default function KeretaTambangGame({ goBack, difficulty = 'medium', survi
 
         {/* KABATAKU rule */}
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>SISTEM TUAS REL (KABATAKU)</div>
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>SISTEM TUAS REL (KABATAKU)</div>
+          <svg width="220" height="70" viewBox="0 0 220 70" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
+            {/* Rails */}
+            <line x1="10" y1="56" x2="210" y2="56" stroke="rgba(103,232,249,0.5)" strokeWidth="2.5" />
+            <line x1="10" y1="62" x2="210" y2="62" stroke="rgba(103,232,249,0.5)" strokeWidth="2.5" />
+            {/* Sleepers */}
+            {[14,34,54,74,94,114,134,154,174,194].map((x,i)=>(
+              <rect key={i} x={x} y="53" width="12" height="12" rx="1" fill="#0a1428" stroke="rgba(103,232,249,0.25)" strokeWidth="1" />
+            ))}
+            {/* Train */}
+            <rect x="68" y="32" width="84" height="24" rx="5" fill="#001428" stroke="#67E8F9" strokeWidth="2" />
+            <rect x="74" y="36" width="20" height="14" rx="2" fill="#0a2035" stroke="rgba(103,232,249,0.3)" strokeWidth="1" />
+            <rect x="98" y="36" width="20" height="14" rx="2" fill="#0a2035" stroke="rgba(103,232,249,0.3)" strokeWidth="1" />
+            <rect x="122" y="36" width="24" height="14" rx="2" fill="#0a2035" stroke="rgba(103,232,249,0.3)" strokeWidth="1" />
+            {/* Train wheels */}
+            <circle cx="82" cy="58" r="7" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
+            <circle cx="138" cy="58" r="7" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
+            {/* Smoke */}
+            <circle cx="72" cy="24" r="5" fill="rgba(103,232,249,0.15)" />
+            <circle cx="80" cy="18" r="7" fill="rgba(103,232,249,0.10)" />
+            <circle cx="90" cy="13" r="5" fill="rgba(103,232,249,0.06)" />
+            {/* KABATAKU order labels */}
+            <rect x="10" y="4" width="36" height="14" rx="3" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.4)" strokeWidth="1" />
+            <text x="28" y="14" textAnchor="middle" fill="#f59e0b" fontSize="8" fontWeight="700">( )</text>
+            <rect x="52" y="4" width="44" height="14" rx="3" fill="rgba(99,102,241,0.15)" stroke="rgba(99,102,241,0.4)" strokeWidth="1" />
+            <text x="74" y="14" textAnchor="middle" fill="#6366F1" fontSize="8" fontWeight="700">× ÷</text>
+            <rect x="102" y="4" width="44" height="14" rx="3" fill="rgba(52,211,153,0.15)" stroke="rgba(52,211,153,0.4)" strokeWidth="1" />
+            <text x="124" y="14" textAnchor="middle" fill="#34D399" fontSize="8" fontWeight="700">+ −</text>
+          </svg>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
             {[{ label: 'Kurung', color: '#f59e0b' }, { label: 'Kali/Bagi', color: '#6366F1' }, { label: 'Tambah/Kurang', color: '#34D399' }].map(r => (
               <div key={r.label} style={{ background: `${r.color}22`, border: `1px solid ${r.color}55`, borderRadius: 8, padding: '4px 10px', fontSize: 12, color: r.color, fontWeight: 700 }}>{r.label}</div>

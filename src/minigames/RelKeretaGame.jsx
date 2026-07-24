@@ -47,6 +47,35 @@ export default function RelKeretaGame({ goBack, difficulty = 'medium', survival 
       <TopBar title="🚄 Menyusun Rel Kereta Cepat" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
+          <svg width="220" height="72" viewBox="0 0 220 72" style={{ display:'block', margin:'0 auto 10px', overflow:'visible' }}>
+            {/* Rails */}
+            <line x1="8" y1="52" x2="212" y2="52" stroke="rgba(245,158,11,0.5)" strokeWidth="2.5" />
+            <line x1="8" y1="58" x2="212" y2="58" stroke="rgba(245,158,11,0.5)" strokeWidth="2.5" />
+            {/* Sleepers */}
+            {[10,28,46,64,82,100,118,136,154,172,190].map((x,i)=>(
+              <rect key={i} x={x} y="49" width="10" height="12" rx="1" fill="#0a1428" stroke="rgba(245,158,11,0.2)" strokeWidth="1" />
+            ))}
+            {/* Train locomotive */}
+            <rect x="8" y="28" width="60" height="24" rx="5" fill="#001428" stroke="#f59e0b" strokeWidth="2" />
+            <rect x="14" y="32" width="20" height="14" rx="2" fill="#0a2035" stroke="rgba(245,158,11,0.3)" strokeWidth="1" />
+            <circle cx="20" cy="54" r="6" fill="#001428" stroke="#f59e0b" strokeWidth="1.5" />
+            <circle cx="52" cy="54" r="6" fill="#001428" stroke="#f59e0b" strokeWidth="1.5" />
+            {/* Smoke */}
+            <circle cx="14" cy="20" r="5" fill="rgba(245,158,11,0.12)" />
+            <circle cx="22" cy="13" r="7" fill="rgba(245,158,11,0.08)" />
+            {/* Train wagons */}
+            <rect x="72" y="34" width="42" height="18" rx="3" fill="#001428" stroke="rgba(245,158,11,0.4)" strokeWidth="1.5" />
+            <circle cx="82" cy="54" r="5" fill="#001428" stroke="rgba(245,158,11,0.4)" strokeWidth="1.2" />
+            <circle cx="106" cy="54" r="5" fill="#001428" stroke="rgba(245,158,11,0.4)" strokeWidth="1.2" />
+            <rect x="118" y="34" width="42" height="18" rx="3" fill="#001428" stroke="rgba(245,158,11,0.35)" strokeWidth="1.5" />
+            <circle cx="128" cy="54" r="5" fill="#001428" stroke="rgba(245,158,11,0.35)" strokeWidth="1.2" />
+            <circle cx="152" cy="54" r="5" fill="#001428" stroke="rgba(245,158,11,0.35)" strokeWidth="1.2" />
+            {/* Question wagon */}
+            <rect x="164" y="34" width="42" height="18" rx="3" fill="rgba(245,158,11,0.07)" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4,3" />
+            <text x="185" y="46" textAnchor="middle" fill="#f59e0b" fontSize="14" fontWeight="900">?</text>
+            <circle cx="174" cy="54" r="5" fill="#001428" stroke="#f59e0b" strokeWidth="1.2" />
+            <circle cx="198" cy="54" r="5" fill="#001428" stroke="#f59e0b" strokeWidth="1.2" />
+          </svg>
           <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(103,232,249,0.2)', marginBottom: 20 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', background: 'rgba(103,232,249,0.15)' }}>
               <div style={{ padding: '10px 14px', fontSize: 12, fontWeight: 700, color: '#67E8F9', borderRight: '1px solid rgba(103,232,249,0.15)' }}>{q.label1}</div>

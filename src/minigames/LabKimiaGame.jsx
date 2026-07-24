@@ -97,6 +97,31 @@ export default function PipaAirGame({ goBack, difficulty = 'medium', survival = 
       <TopBar title="🔧 Teknisi Pipa Air" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
+          <svg width="220" height="80" viewBox="0 0 220 80" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
+            {/* Wall mount left */}
+            <rect x="8" y="32" width="12" height="16" rx="3" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
+            {/* Main pipe horizontal */}
+            <rect x="20" y="36" width="60" height="8" rx="3" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
+            {/* Pipe segment 1 */}
+            <rect x="82" y="36" width="28" height="8" rx="3" fill="#0a2035" stroke="#67E8F9" strokeWidth="2" />
+            <text x="96" y="43" textAnchor="middle" fill="#67E8F9" fontSize="8" fontWeight="700">1/2</text>
+            {/* Gap */}
+            <line x1="112" y1="40" x2="122" y2="40" stroke="rgba(103,232,249,0.3)" strokeWidth="1.5" strokeDasharray="3,3" />
+            {/* Pipe segment 2 */}
+            <rect x="124" y="36" width="28" height="8" rx="3" fill="#0a2035" stroke="#f59e0b" strokeWidth="2" />
+            <text x="138" y="43" textAnchor="middle" fill="#f59e0b" fontSize="8" fontWeight="700">1/4</text>
+            {/* End tank */}
+            <rect x="156" y="24" width="30" height="32" rx="4" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
+            <rect x="160" y="28" width="22" height="20" rx="2" fill="rgba(103,232,249,0.12)" />
+            <text x="171" y="42" textAnchor="middle" fill="#67E8F9" fontSize="9" fontWeight="700">?m</text>
+            {/* Water flow arrows */}
+            {[30,50,70].map((x,i)=>(
+              <polygon key={i} points={`${x},37 ${x+8},40 ${x},43`} fill="rgba(103,232,249,0.4)" />
+            ))}
+            {/* Drip */}
+            <ellipse cx="171" cy="60" rx="4" ry="5" fill="rgba(103,232,249,0.3)" />
+            <text x="110" y="76" textAnchor="middle" fill="rgba(103,232,249,0.5)" fontSize="9">pecahan + pecahan = total</text>
+          </svg>
           <div style={{ textAlign: 'center', fontSize: 14, color: '#94A3B8', marginBottom: 4 }}>Sambungkan pipa hingga mencapai:</div>
           <div style={{ textAlign: 'center', fontSize: 24, fontWeight: 800, color: '#fff' }}>{q.label}</div>
         </Card>

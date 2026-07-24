@@ -51,6 +51,44 @@ export default function TermometerGame({ goBack, difficulty = 'medium', survival
       <TopBar title="🌡️ Termometer Penyelamat" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
+          <svg width="220" height="80" viewBox="0 0 220 80" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
+            {/* Sun or snowflake depending on rise/fall */}
+            {q.isRise ? (
+              <g>
+                <circle cx="175" cy="35" r="16" fill="rgba(239,68,68,0.12)" stroke="rgba(239,68,68,0.4)" strokeWidth="1.5" />
+                <circle cx="175" cy="35" r="9" fill="rgba(239,68,68,0.3)" />
+                {[0,45,90,135,180,225,270,315].map((deg,i)=>{
+                  const r=deg*Math.PI/180
+                  return <line key={i} x1={175+11*Math.cos(r)} y1={35+11*Math.sin(r)} x2={175+18*Math.cos(r)} y2={35+18*Math.sin(r)} stroke="rgba(239,68,68,0.5)" strokeWidth="1.5" />
+                })}
+                <text x="175" y="68" textAnchor="middle" fill="rgba(239,68,68,0.6)" fontSize="9">🔥 +{q.change}°C</text>
+              </g>
+            ) : (
+              <g>
+                <circle cx="175" cy="35" r="16" fill="rgba(103,232,249,0.08)" stroke="rgba(103,232,249,0.3)" strokeWidth="1.5" />
+                {[0,60,120,180,240,300].map((deg,i)=>{
+                  const r=deg*Math.PI/180
+                  return <line key={i} x1={175} y1={35} x2={175+15*Math.cos(r)} y2={35+15*Math.sin(r)} stroke="rgba(103,232,249,0.5)" strokeWidth="1.5" />
+                })}
+                <circle cx="175" cy="35" r="5" fill="rgba(103,232,249,0.3)" />
+                <text x="175" y="68" textAnchor="middle" fill="rgba(103,232,249,0.6)" fontSize="9">❄️ −{q.change}°C</text>
+              </g>
+            )}
+            {/* Thermometer tube */}
+            <rect x="50" y="8" width="18" height="60" rx="9" fill="#001428" stroke="#67E8F9" strokeWidth="2" />
+            {/* Bulb */}
+            <circle cx="59" cy="70" r="12" fill="#001428" stroke="#67E8F9" strokeWidth="2" />
+            {/* Mercury fill */}
+            <rect x="54" y={8 + (1 - (q.start - q.tempMin)/(q.tempMax - q.tempMin)) * 56} width="10" height={(q.start - q.tempMin)/(q.tempMax - q.tempMin) * 56} rx="3" fill="rgba(103,232,249,0.7)" />
+            <circle cx="59" cy="70" r="9" fill="rgba(103,232,249,0.6)" />
+            {/* Tick marks */}
+            {[0,0.25,0.5,0.75,1].map((p,i)=>(
+              <line key={i} x1="68" y1={8+p*56} x2="74" y2={8+p*56} stroke="rgba(103,232,249,0.3)" strokeWidth="1" />
+            ))}
+            {/* Start marker */}
+            <line x1="44" y1={8 + (1-(q.start-q.tempMin)/(q.tempMax-q.tempMin))*56} x2="68" y2={8 + (1-(q.start-q.tempMin)/(q.tempMax-q.tempMin))*56} stroke="#67E8F9" strokeWidth="1.5" strokeDasharray="3,2" />
+            <text x="42" y={10 + (1-(q.start-q.tempMin)/(q.tempMax-q.tempMin))*56} textAnchor="end" fill="#67E8F9" fontSize="9">{q.start}°</text>
+          </svg>
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 14 }}>
             Suhu awal: <strong style={{ color: '#fff' }}>{q.start}°C</strong>. {q.isRise ? '🔥 Naik' : '❄️ Turun'} <strong style={{ color: '#67E8F9' }}>{q.change}°C</strong>. Geser ke suhu akhir!
           </div>

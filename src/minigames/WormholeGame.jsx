@@ -49,11 +49,34 @@ export default function MercusaarGame({ goBack, difficulty = 'medium', survival 
       <TopBar title="🏮 Sinyal Mercusuar" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 14 }}>
+          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 10 }}>
             Mercusuar <strong style={{ color: '#FFD700' }}>A ({q.a}s)</strong> dan <strong style={{ color: '#67E8F9' }}>B ({q.b}s)</strong>.<br />
             Ketuk detik saat keduanya berkedip bersama!
           </div>
-
+          <svg width="220" height="80" viewBox="0 0 220 80" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
+            {/* Sea */}
+            <rect x="0" y="58" width="220" height="22" rx="3" fill="rgba(14,116,144,0.15)" />
+            {/* Wave */}
+            <path d="M0,62 Q22,56 44,62 Q66,68 88,62 Q110,56 132,62 Q154,68 176,62 Q198,56 220,62" fill="none" stroke="rgba(103,232,249,0.2)" strokeWidth="1.5" />
+            {/* Lighthouse A */}
+            <polygon points="50,58 58,58 56,14 52,14" fill="#1a1200" stroke="#FFD700" strokeWidth="1.5" />
+            <rect x="48" y="10" width="16" height="10" rx="2" fill="#1a1200" stroke="#FFD700" strokeWidth="1.5" />
+            <ellipse cx="56" cy="8" rx="10" ry="5" fill={blinkA ? "rgba(255,215,0,0.7)" : "rgba(255,215,0,0.12)"} stroke="#FFD700" strokeWidth="1" />
+            {blinkA && <line x1="56" y1="6" x2="30" y2="30" stroke="rgba(255,215,0,0.35)" strokeWidth="1.5" />}
+            {blinkA && <line x1="56" y1="6" x2="56" y2="35" stroke="rgba(255,215,0,0.35)" strokeWidth="1.5" />}
+            <text x="56" y="72" textAnchor="middle" fill="#FFD700" fontSize="8">A ({q.a}s)</text>
+            {/* Lighthouse B */}
+            <polygon points="162,58 170,58 168,14 164,14" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
+            <rect x="160" y="10" width="16" height="10" rx="2" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
+            <ellipse cx="168" cy="8" rx="10" ry="5" fill={blinkB ? "rgba(103,232,249,0.7)" : "rgba(103,232,249,0.1)"} stroke="#67E8F9" strokeWidth="1" />
+            {blinkB && <line x1="168" y1="6" x2="192" y2="30" stroke="rgba(103,232,249,0.35)" strokeWidth="1.5" />}
+            {blinkB && <line x1="168" y1="6" x2="168" y2="35" stroke="rgba(103,232,249,0.35)" strokeWidth="1.5" />}
+            <text x="168" y="72" textAnchor="middle" fill="#67E8F9" fontSize="8">B ({q.b}s)</text>
+            {/* Ship in middle */}
+            <text x="112" y="60" textAnchor="middle" fontSize="18">⛵</text>
+            {/* KPK label */}
+            <text x="112" y="78" textAnchor="middle" fill="rgba(103,232,249,0.4)" fontSize="8">KPK({q.a},{q.b}) = ?</text>
+          </svg>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 20 }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 40, opacity: blinkA ? 1 : 0.2, filter: blinkA ? 'drop-shadow(0 0 10px #FFD700)' : 'none', transition: 'all 0.1s' }}>🏮</div>

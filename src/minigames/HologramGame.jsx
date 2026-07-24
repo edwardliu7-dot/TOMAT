@@ -95,6 +95,28 @@ export default function BrankasSandiGame({ goBack, difficulty = 'medium', surviv
         {/* Vault + equation */}
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>SISTEM KEAMANAN ALJABAR</div>
+          <svg width="220" height="80" viewBox="0 0 220 80" style={{ display:'block', margin:'0 auto 10px', overflow:'visible' }}>
+            {/* Hologram projector base */}
+            <rect x="85" y="62" width="50" height="10" rx="4" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
+            <rect x="100" y="55" width="20" height="10" rx="3" fill="#001428" stroke="rgba(103,232,249,0.4)" strokeWidth="1" />
+            {/* Hologram beams */}
+            <polygon points="110,54 75,12 145,12" fill="rgba(103,232,249,0.04)" stroke="rgba(103,232,249,0.15)" strokeWidth="1" />
+            {/* Fraction display */}
+            <rect x="72" y="8" width="76" height="46" rx="5" fill="rgba(103,232,249,0.06)" stroke="rgba(103,232,249,0.3)" strokeWidth="1.5" />
+            {/* Scan lines */}
+            {[14,22,30,38,46].map((y,i)=>(<line key={i} x1="74" y1={y} x2="146" y2={y} stroke="rgba(103,232,249,0.07)" strokeWidth="1" />))}
+            {/* Fraction */}
+            <text x="90" y="28" fill="#67E8F9" fontSize="14" fontWeight="900" fontFamily="monospace">x</text>
+            <line x1="86" y1="32" x2="106" y2="32" stroke="#67E8F9" strokeWidth="1.5" />
+            <text x="90" y="44" fill="#67E8F9" fontSize="14" fontWeight="900" fontFamily="monospace">a</text>
+            <text x="110" y="36" fill="#94A3B8" fontSize="12">=</text>
+            <text x="122" y="28" fill="#f59e0b" fontSize="14" fontWeight="900" fontFamily="monospace">b</text>
+            <line x1="120" y1="32" x2="140" y2="32" stroke="#f59e0b" strokeWidth="1.5" />
+            <text x="122" y="44" fill="#f59e0b" fontSize="14" fontWeight="900" fontFamily="monospace">c</text>
+            {/* Glow dots */}
+            <circle cx="72" cy="8" r="3" fill="#67E8F9" opacity="0.6" />
+            <circle cx="148" cy="8" r="3" fill="#67E8F9" opacity="0.6" />
+          </svg>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
             <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#1a1a2e', border: `3px solid ${feedback === true ? '#34D399' : '#67E8F9'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>
               {feedback === true ? '🔓' : '🔐'}

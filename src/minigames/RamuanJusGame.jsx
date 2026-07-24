@@ -44,6 +44,30 @@ export default function RamuanJusGame({ goBack, difficulty = 'medium', survival 
       <TopBar title="🧃 Ramuan Jus Buah" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
+          <svg width="220" height="80" viewBox="0 0 220 80" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
+            {/* Blender jar */}
+            <polygon points="75,10 145,10 135,72 85,72" fill="#001428" stroke="#67E8F9" strokeWidth="2" />
+            <polygon points="79,14 141,14 132,68 88,68" fill="rgba(103,232,249,0.06)" />
+            {/* Liquid inside */}
+            <polygon points="88,40 132,40 130,66 90,66" fill="rgba(103,232,249,0.12)" />
+            <polygon points="88,40 132,40 131,50 89,50" fill="rgba(245,158,11,0.12)" />
+            {/* Blender lid */}
+            <rect x="72" y="5" width="76" height="8" rx="3" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
+            <rect x="100" y="0" width="20" height="8" rx="2" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
+            {/* Blender base */}
+            <rect x="80" y="72" width="60" height="8" rx="3" fill="#001428" stroke="rgba(103,232,249,0.4)" strokeWidth="1.5" />
+            {/* Fruit icons floating in */}
+            <text x="52" y="30" fontSize="18">{q.f1.split(' ')[1]}</text>
+            <text x="162" y="30" fontSize="18">{q.f2.split(' ')[1]}</text>
+            {/* Arrows into blender */}
+            <line x1="72" y1="25" x2="82" y2="32" stroke="rgba(103,232,249,0.4)" strokeWidth="1.5" markerEnd="url(#arr1)" />
+            <line x1="148" y1="25" x2="138" y2="32" stroke="rgba(103,232,249,0.4)" strokeWidth="1.5" markerEnd="url(#arr1)" />
+            <defs><marker id="arr1" markerWidth="5" markerHeight="5" refX="2" refY="2" orient="auto"><polygon points="0,0 5,2 0,4" fill="rgba(103,232,249,0.5)" /></marker></defs>
+            {/* Ratio labels */}
+            <text x="52" y="45" textAnchor="middle" fill="#67E8F9" fontSize="11" fontWeight="700">{q.r1}</text>
+            <text x="168" y="45" textAnchor="middle" fill="#f59e0b" fontSize="11" fontWeight="700">{q.r2}</text>
+            <text x="110" y="44" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="10">:</text>
+          </svg>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 14 }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 36 }}>{q.f1.split(' ')[1]}</div>

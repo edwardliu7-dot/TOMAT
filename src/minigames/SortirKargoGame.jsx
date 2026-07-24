@@ -66,7 +66,33 @@ export default function ScannerPermatGame({ goBack, difficulty = 'medium', survi
       <TopBar title="💎 Scanner Batu Permata" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>KONVEYOR BATU TAMBANG</div>
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>KONVEYOR BATU TAMBANG</div>
+          <svg width="220" height="62" viewBox="0 0 220 62" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
+            {/* Scanner frame */}
+            <rect x="78" y="2" width="64" height="38" rx="4" fill="rgba(103,232,249,0.06)" stroke="#67E8F9" strokeWidth="1.5" />
+            {/* Scan beam */}
+            <line x1="80" y1="20" x2="140" y2="20" stroke="rgba(103,232,249,0.6)" strokeWidth="2" strokeDasharray="6,3" />
+            <text x="90" y="16" fill="rgba(103,232,249,0.5)" fontSize="8">SCAN</text>
+            {/* Conveyor belt */}
+            <rect x="4" y="44" width="212" height="14" rx="6" fill="#0a1428" stroke="rgba(103,232,249,0.3)" strokeWidth="1.5" />
+            {[14,36,58,80,102,124,146,168,190].map((x,i)=>(
+              <circle key={i} cx={x} cy="51" r="5" fill="#001014" stroke="rgba(103,232,249,0.2)" strokeWidth="1" />
+            ))}
+            {/* Rocks on belt */}
+            <text x="30" y="46" fontSize="14">🪨</text>
+            <text x="55" y="46" fontSize="14">🪨</text>
+            <text x="160" y="46" fontSize="14">🪨</text>
+            <text x="185" y="46" fontSize="14">🪨</text>
+            {/* Highlighted prime rock in scanner */}
+            <text x="102" y="42" fontSize="16" style={{filter:'drop-shadow(0 0 6px #67E8F9)'}}>🪨</text>
+            {/* Check marks */}
+            <text x="24" y="36" fill="rgba(52,211,153,0.7)" fontSize="10">✓</text>
+            <text x="50" y="36" fill="rgba(239,68,68,0.7)" fontSize="10">✗</text>
+            {/* Arrow direction */}
+            <polygon points="210,50 202,46 202,54" fill="rgba(103,232,249,0.4)" />
+            {/* Label */}
+            <text x="110" y="60" textAnchor="middle" fill="rgba(103,232,249,0.4)" fontSize="8">ketuk batu bertanda prima</text>
+          </svg>
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 12, lineHeight: 1.6 }}>
             Gunakan pemindai! Pilih batu yang berisi <strong style={{ color: '#fff' }}>bilangan prima</strong> saja.
             <br /><span style={{ fontSize: 12 }}>Bilangan prima hanya bisa dibagi 1 dan dirinya sendiri.</span>

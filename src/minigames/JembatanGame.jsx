@@ -54,7 +54,33 @@ export default function SporaJamurGame({ goBack, difficulty = 'medium', survival
       <TopBar title="🍄 Serangan Spora Jamur" onBack={goBack} rightElement={<DifficultyBadge difficulty={effectiveDifficulty} survival={survival} streak={survivalState.streak} />} />
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
-          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>MONITOR PENYEBARAN JAMUR HAMA</div>
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>MONITOR PENYEBARAN JAMUR HAMA</div>
+          <svg width="220" height="80" viewBox="0 0 220 80" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
+            {/* Ground */}
+            <rect x="0" y="68" width="220" height="12" rx="3" fill="#0a1428" />
+            {/* Exponential mushroom growth columns */}
+            {[
+              { x:18, h:12, count:1 },
+              { x:56, h:24, count:2 },
+              { x:94, h:40, count:4 },
+              { x:132, h:56, count:8 },
+            ].map(({x, h, count}, i)=>(
+              <g key={i}>
+                <rect x={x} y={68-h} width={26} height={h} rx="3" fill="rgba(103,232,249,0.06)" stroke="rgba(103,232,249,0.15)" strokeWidth="1" />
+                {Array.from({length:Math.min(count,4)}).map((_,j)=>(
+                  <text key={j} x={x+13} y={68-j*12-6} textAnchor="middle" fontSize="12">🍄</text>
+                ))}
+                {count > 4 && <text x={x+13} y={68-4*12-6} textAnchor="middle" fill="#67E8F9" fontSize="8">+{count-4}</text>}
+                <text x={x+13} y="78" textAnchor="middle" fill="rgba(103,232,249,0.5)" fontSize="8">{count}</text>
+              </g>
+            ))}
+            {/* Arrow showing growth */}
+            <polyline points="30,56 68,44 106,28 144,12" fill="none" stroke="rgba(103,232,249,0.4)" strokeWidth="1.5" strokeDasharray="4,3" />
+            <polygon points="144,12 136,18 150,20" fill="rgba(103,232,249,0.5)" />
+            {/* Question mark box */}
+            <rect x="170" y="8" width="42" height="60" rx="4" fill="rgba(103,232,249,0.08)" stroke="#67E8F9" strokeWidth="1.5" strokeDasharray="4,3" />
+            <text x="191" y="42" textAnchor="middle" fill="#67E8F9" fontSize="22" fontWeight="900">?</text>
+          </svg>
           <div style={{ fontSize: 14, color: '#94A3B8', textAlign: 'center', marginBottom: 14 }}>
             Setiap detik, <strong style={{ color: '#fff' }}>1 jamur → {q.base} jamur</strong>. Berapa jamur pada detik ke-{q.exp}?
           </div>
