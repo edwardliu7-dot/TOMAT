@@ -774,13 +774,21 @@ function RaidTab({ kelasDiampu }) {
 // TURNAMEN TAB
 // ══════════════════════════════════════════════════════════════════════════════
 const TOURNAMENT_GAMES = [
-  { key: 'katak',       label: '🐸 Katak Pelompat',    desc: 'Bilangan bulat, garis bilangan' },
-  { key: 'termometer',  label: '🌡️ Termometer',        desc: 'Penjumlahan/pengurangan bilangan bulat' },
-  { key: 'pabrikrobot', label: '🤖 Pabrik Robot',      desc: 'Perkalian bilangan bulat' },
-  { key: 'gembok',      label: '⚙️ Gembok Roda Gigi',  desc: 'FPB' },
-  { key: 'mercusuar',   label: '🏮 Mercusuar',          desc: 'KPK' },
-  { key: 'sporajamur',  label: '🍄 Spora Jamur',        desc: 'Pangkat bilangan bulat' },
-  { key: 'scanner',     label: '💎 Scanner Permata',    desc: 'Bilangan prima (hitung prima dari daftar)' },
+  // ── Kelas 7 BAB I ───────────────────────────────────────────────────────────
+  { key: 'katak',          label: '🐸 Katak Pelompat',              desc: 'Bilangan bulat, garis bilangan' },
+  { key: 'termometer',     label: '🌡️ Termometer',                  desc: 'Penjumlahan/pengurangan bilangan bulat' },
+  { key: 'pabrikrobot',    label: '🤖 Pabrik Robot',                desc: 'Perkalian bilangan bulat' },
+  { key: 'gembok',         label: '⚙️ Gembok Roda Gigi',            desc: 'FPB' },
+  { key: 'mercusuar',      label: '🏮 Mercusuar',                    desc: 'KPK' },
+  { key: 'sporajamur',     label: '🍄 Spora Jamur',                  desc: 'Pangkat bilangan bulat positif' },
+  { key: 'scanner',        label: '💎 Scanner Permata',              desc: 'Hitung bilangan prima dari daftar' },
+  // ── Kelas 8 BAB I ───────────────────────────────────────────────────────────
+  { key: 'g8selramuan',    label: '🧪 Penggandaan Sel Ramuan',       desc: 'Pangkat bulat positif (b^e)' },
+  { key: 'g8racunminiatur',label: '☠️ Ekstraksi Racun Miniatur',     desc: 'Pertumbuhan eksponensial (p₀ × bⁿ)' },
+  { key: 'g8kristal',      label: '💎 Pemisahan Elemen Kristal',     desc: 'Akar kuadrat & akar pangkat tiga' },
+  { key: 'g8fusienergi',   label: '⚗️ Fusi Energi Alkemis',         desc: 'Pangkat pecahan (b^(p/q))' },
+  { key: 'g8mantraakar',   label: '✨ Penyederhanaan Mantra Akar',   desc: 'Menyederhanakan bentuk akar (√a + √b)' },
+  { key: 'g8geolog',       label: '⛏️ Ekspedisi Geolog Kerajaan',    desc: 'Pertumbuhan berlapis (p₀ × bⁿ)' },
 ]
 
 const MATCH_STATUS_BADGE = {

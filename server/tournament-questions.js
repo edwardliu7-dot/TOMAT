@@ -131,6 +131,127 @@ const generators = {
       gameLabel: 'Scanner Permata',
     }
   },
+
+  // ── GRADE 8 BAB I: Bilangan Berpangkat ─────────────────────────────────────
+
+  // Penggandaan Sel Ramuan — b^e (pangkat bulat positif)
+  g8selramuan: () => {
+    const bases = [2, 3, 4]
+    const exps  = [2, 3]
+    const b = bases[rand(0, bases.length - 1)]
+    const e = exps[rand(0, exps.length - 1)]
+    const answer = Math.pow(b, e)
+    return {
+      question: { text: `Sel berkembang ${b}× setiap tahap selama ${e} tahap. Nilai ${b}^${e} = ?` },
+      answer,
+      sliderMin: 1,
+      sliderMax: 70,
+      gameLabel: 'Penggandaan Sel Ramuan',
+    }
+  },
+
+  // Ekstraksi Racun Miniatur — p0 × b^n (pertumbuhan eksponensial berlapis)
+  g8racunminiatur: () => {
+    const p0 = rand(1, 2)
+    const b  = rand(2, 3)
+    const n  = rand(2, 3)
+    const answer = p0 * Math.pow(b, n)
+    return {
+      question: { text: `${p0} racun awal berkembang ${b}× setiap tahap, selama ${n} tahap. Berapa total racun? (${p0} × ${b}^${n})` },
+      answer,
+      sliderMin: 1,
+      sliderMax: 60,
+      gameLabel: 'Ekstraksi Racun Miniatur',
+    }
+  },
+
+  // Pemisahan Elemen Kristal — akar pangkat (√, ∛, ∜)
+  g8kristal: () => {
+    const ROOTS = [
+      // akar kuadrat
+      { n: 2, val: 4,   answer: 2 },
+      { n: 2, val: 9,   answer: 3 },
+      { n: 2, val: 16,  answer: 4 },
+      { n: 2, val: 25,  answer: 5 },
+      { n: 2, val: 36,  answer: 6 },
+      { n: 2, val: 49,  answer: 7 },
+      // akar pangkat tiga
+      { n: 3, val: 8,   answer: 2 },
+      { n: 3, val: 27,  answer: 3 },
+      { n: 3, val: 64,  answer: 4 },
+      { n: 3, val: 125, answer: 5 },
+    ]
+    const r = ROOTS[rand(0, ROOTS.length - 1)]
+    const sym = r.n === 2 ? '√' : r.n === 3 ? '∛' : '∜'
+    return {
+      question: { text: `Nilai dari ${sym}${r.val} = ?` },
+      answer: r.answer,
+      sliderMin: 1,
+      sliderMax: 12,
+      gameLabel: 'Pemisahan Elemen Kristal',
+    }
+  },
+
+  // Fusi Energi Alkemis — pangkat pecahan b^(p/q)
+  g8fusienergi: () => {
+    const POOL = [
+      { expr: '8^(1/3)',  answer: 2 },
+      { expr: '27^(1/3)', answer: 3 },
+      { expr: '4^(1/2)',  answer: 2 },
+      { expr: '9^(1/2)',  answer: 3 },
+      { expr: '64^(1/3)', answer: 4 },
+      { expr: '8^(2/3)',  answer: 4 },
+      { expr: '27^(2/3)', answer: 9 },
+      { expr: '16^(3/4)', answer: 8 },
+      { expr: '4^(3/2)',  answer: 8 },
+      { expr: '25^(1/2)', answer: 5 },
+      { expr: '16^(1/2)', answer: 4 },
+      { expr: '64^(2/3)', answer: 16 },
+    ]
+    const p = POOL[rand(0, POOL.length - 1)]
+    return {
+      question: { text: `Nilai dari ${p.expr} = ?` },
+      answer: p.answer,
+      sliderMin: 1,
+      sliderMax: 20,
+      gameLabel: 'Fusi Energi Alkemis',
+    }
+  },
+
+  // Penyederhanaan Mantra Akar — √a + √b = ?√c (koefisien surd)
+  g8mantraakar: () => {
+    const PAIRS = [
+      { na: 8,  nb: 18, base: 2, answer: 5 },   // 2√2 + 3√2
+      { na: 50, nb: 18, base: 2, answer: 8 },   // 5√2 + 3√2
+      { na: 32, nb: 8,  base: 2, answer: 6 },   // 4√2 + 2√2
+      { na: 12, nb: 27, base: 3, answer: 5 },   // 2√3 + 3√3
+      { na: 48, nb: 75, base: 3, answer: 9 },   // 4√3 + 5√3
+      { na: 20, nb: 45, base: 5, answer: 5 },   // 2√5 + 3√5
+    ]
+    const p = PAIRS[rand(0, PAIRS.length - 1)]
+    return {
+      question: { text: `√${p.na} + √${p.nb} = ?√${p.base}` },
+      answer: p.answer,
+      sliderMin: 1,
+      sliderMax: 12,
+      gameLabel: 'Penyederhanaan Mantra Akar',
+    }
+  },
+
+  // Ekspedisi Geolog Kerajaan — p0 × b^n (konteks mineral/lapisan)
+  g8geolog: () => {
+    const p0 = rand(1, 2)
+    const b  = rand(2, 3)
+    const n  = rand(2, 3)
+    const answer = p0 * Math.pow(b, n)
+    return {
+      question: { text: `Geolog menemukan ${p0} mineral. Setiap lapisan menggandakan ${b}× selama ${n} lapisan. Total mineral? (${p0} × ${b}^${n})` },
+      answer,
+      sliderMin: 1,
+      sliderMax: 60,
+      gameLabel: 'Ekspedisi Geolog Kerajaan',
+    }
+  },
 }
 
 export function genTournamentQ(gameKey) {
