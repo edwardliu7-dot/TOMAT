@@ -447,6 +447,27 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
               <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 12 }}>
                 {Array.isArray(profile.kelas) ? profile.kelas.join(' · ') : profile.kelas}
               </div>
+
+              {/* Stats — only for siswa */}
+              {profile.role === 'siswa' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, margin: '14px 0 0' }}>
+                  {[
+                    { label: 'Level', value: profile.level ?? '—', icon: '⭐' },
+                    { label: 'Koin',  value: profile.coins ?? '—', icon: '🪙' },
+                    { label: 'EXP',   value: profile.exp   ?? '—', icon: '⚡' },
+                  ].map(({ label, value, icon }) => (
+                    <div key={label} style={{
+                      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+                      borderRadius: 12, padding: '10px 4px',
+                    }}>
+                      <div style={{ fontSize: 16 }}>{icon}</div>
+                      <div style={{ fontSize: 14, fontWeight: 900, color: '#fff', marginTop: 3 }}>{value}</div>
+                      <div style={{ fontSize: 9, color: '#64748B', fontWeight: 600, marginTop: 1 }}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div style={{
                 marginTop: 14, padding: '13px 14px', borderRadius: 13, textAlign: 'left',
                 background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',

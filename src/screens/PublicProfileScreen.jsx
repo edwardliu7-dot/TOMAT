@@ -165,6 +165,46 @@ export default function PublicProfileScreen({ profile, goBack, onInviteDuel }) {
           </div>
         )}
 
+        {/* Hafalan badges — only for siswa */}
+        {profile.role === 'siswa' && Array.isArray(profile.badges) && (() => {
+          const kali = profile.badges.filter(b => b.id?.startsWith('hafalan_kali_'))
+          const bagi = profile.badges.filter(b => b.id?.startsWith('hafalan_bagi_'))
+          if (kali.length === 0 && bagi.length === 0) return null
+          return (
+            <div style={{ margin: '0 0 16px', textAlign: 'left' }}>
+              <div style={{ fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>🏅 Hafalan</div>
+              {kali.length > 0 && (
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 4 }}>Perkalian</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {kali.map(b => (
+                      <span key={b.id} style={{
+                        background: `${b.color}22`, border: `1px solid ${b.color}55`,
+                        color: b.color, borderRadius: 20, padding: '3px 9px',
+                        fontSize: 11, fontWeight: 700,
+                      }}>{b.icon} {b.name}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {bagi.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 4 }}>Pembagian</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {bagi.map(b => (
+                      <span key={b.id} style={{
+                        background: `${b.color}22`, border: `1px solid ${b.color}55`,
+                        color: b.color, borderRadius: 20, padding: '3px 9px',
+                        fontSize: 11, fontWeight: 700,
+                      }}>{b.icon} {b.name}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
         {/* Bio */}
         <div style={{
           padding: '13px 14px', borderRadius: 13, textAlign: 'left',

@@ -219,7 +219,7 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
   const messageScrollRef = useRef(null)
   const shouldScrollToBottomRef = useRef(true)
   const previousLatestMessageIdRef = useRef(null)
-  const initialTargetAppliedRef = useRef(false)
+  const initialTargetAppliedRef = useRef(null)
 
   const isNearBottom = useCallback(() => {
     const element = messageScrollRef.current
@@ -269,14 +269,14 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
 
   useEffect(() => { loadOptions() }, [loadOptions])
 
-  // Apply initialTarget once contacts/classes are loaded
+  // Apply initialTarget whenever it changes (re-runs on every new notification click)
   useEffect(() => {
-    if (initialTargetAppliedRef.current || !initialTarget || loadingContacts) return
+    if (initialTargetAppliedRef.current === initialTarget || !initialTarget || loadingContacts) return
     const { conversationType, senderId, senderRole, kelas } = initialTarget
     if (conversationType === 'private' && senderId && senderRole) {
       const contact = contacts.find(c => c.id === senderId && c.role === senderRole)
       if (contact) {
-        initialTargetAppliedRef.current = true
+        initialTargetAppliedRef.current = initialTarget
         setTab('private')
         setSelectedContact(contact)
         setMessages([])
@@ -286,7 +286,7 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
         if (isMobile) setSidebarOpen(false)
       }
     } else if (conversationType === 'forum' && kelas) {
-      initialTargetAppliedRef.current = true
+      initialTargetAppliedRef.current = initialTarget
       setTab('forum')
       setSelectedClass(kelas)
       setMessages([])

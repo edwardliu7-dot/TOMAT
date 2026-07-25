@@ -152,18 +152,41 @@ router.get('/profile/:otherRole/:otherId', async (req, res) => {
       return res.status(403).json({ error: 'Anda tidak memiliki akses ke profil ini.' })
     }
 
-    const table = otherRole === 'guru' ? 'gurus' : 'students'
-    const { rows } = await pool.query(
-       `select id, name, photo_url, bio, ${otherRole === 'guru'
-         ? 'null::text as equipped_bingkai, null::text as equipped_spanduk, null::text as equipped_pet_skin, kelas_diampu'
-         : 'equipped_bingkai, equipped_spanduk, equipped_pet_skin, kelas'} as kelas
-       from ${table}
-        where id = $1
-          ${otherRole === 'siswa' && user.role === 'siswa' && user.id !== otherId ? 'and not is_test_account' : ''}
-       limit 1`,
-      [otherId]
-    )
-    const profile = rows[0]
+    let profile
+    if (otherRole === 'guru') {
+      const { rows } = await pool.query(
+        `select id, name, photo_url, bio,
+                null::text as equipped_bingkai, null::text as equipped_spanduk,
+                null::text as equipped_pet_skin, kelas_diampu as kelas,
+                null::int as level, null::int as exp, null::int as coins,
+                null::jsonb as stiker_layout, '[]'::json as badges
+         from gurus where id = $1 limit 1`,
+        [otherId]
+      )
+      profile = rows[0]
+    } else {
+      const { rows } = await pool.query(
+        `select s.id, s.name, s.photo_url, s.bio,
+                s.equipped_bingkai, s.equipped_spanduk, s.equipped_pet_skin, s.kelas,
+                s.level, s.exp, s.coins, s.stiker_layout,
+                coalesce(
+                  json_agg(
+                    json_build_object('id', b.id, 'name', b.name, 'icon', b.icon, 'color', b.color)
+                    order by b.sort_order
+                  ) filter (where b.id is not null),
+                  '[]'
+                ) as badges
+         from students s
+         left join student_badges sb on sb.student_id = s.id
+         left join badges b on b.id = sb.badge_id
+         where s.id = $1
+           ${user.role === 'siswa' && user.id !== otherId ? 'and not s.is_test_account' : ''}
+         group by s.id
+         limit 1`,
+        [otherId]
+      )
+      profile = rows[0]
+    }
     if (!profile) return res.status(404).json({ error: 'Profil tidak ditemukan.' })
     res.json({
       profile: {
@@ -176,6 +199,11 @@ router.get('/profile/:otherRole/:otherId', async (req, res) => {
         equippedPetSkin: profile.equipped_pet_skin || null,
         bio: profile.bio || '',
         kelas: profile.kelas || [],
+        level: profile.level ?? null,
+        exp: profile.exp ?? null,
+        coins: profile.coins ?? null,
+        stikerLayout: profile.stiker_layout || [],
+        badges: profile.badges || [],
       },
     })
   } catch (err) {

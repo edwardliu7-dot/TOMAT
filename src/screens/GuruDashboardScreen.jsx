@@ -11,6 +11,7 @@ import GuruHafalanScreen from './GuruHafalanScreen'
 import { TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import ProfileScreen from './ProfileScreen'
+import PublicProfileScreen from './PublicProfileScreen'
 import CommunicationScreen from './CommunicationScreen'
 import {
   MessageNotificationBell, AppNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile,
@@ -1335,12 +1336,24 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   const [tab, setTab] = useState('tugas')
   const [view, setView] = useState('dashboard')
   const [komunikasiTarget, setKomunikasiTarget] = useState(null)
+  const [visitedProfile, setVisitedProfile] = useState(null)
   const publicProfile = usePublicProfile()
   const kelasDiampu = user?.kelas || []
   const grades = [...new Set(kelasDiampu.map(kelasToGrade).filter(Boolean))].sort()
 
+  // Listen for "Lihat Profil" from PublicProfileModal → open full PublicProfileScreen overlay
+  useEffect(() => {
+    const handler = (e) => setVisitedProfile(e.detail || null)
+    window.addEventListener('tomat:visit-profile', handler)
+    return () => window.removeEventListener('tomat:visit-profile', handler)
+  }, [])
+
   if (view === 'profile') {
     return <ProfileScreen goBack={() => setView('dashboard')} />
+  }
+
+  if (visitedProfile) {
+    return <PublicProfileScreen profile={visitedProfile} goBack={() => setVisitedProfile(null)} />
   }
 
   return (
