@@ -32,5 +32,10 @@ export const modules: ModuleMap = {
   "./components/mockups/tomat-screens/LoginVariantB.tsx": () => import("../components/mockups/tomat-screens/LoginVariantB.tsx"),
   "./components/mockups/tomat-screens/LoginVariantC.tsx": () => import("../components/mockups/tomat-screens/LoginVariantC.tsx"),
   "./components/mockups/tomat-screens/Profile.tsx": () => import("../components/mockups/tomat-screens/Profile.tsx"),
-  "./components/mockups/tomat-screens/SiswaHome.tsx": () => import("../components/mockups/tomat-screens/SiswaHome.tsx")
+  "./components/mockups/tomat-screens/SiswaHome.tsx": () => import("../components/mockups/tomat-screens/SiswaHome.tsx"),
+  "./components/mockups/turnamen/GuruTournamentTab.tsx": () => import("../components/mockups/turnamen/GuruTournamentTab.tsx"),
+  "./components/mockups/turnamen/ModeSelectDuel.tsx": () => import("../components/mockups/turnamen/ModeSelectDuel.tsx"),
+  "./components/mockups/turnamen/TournamentMatch.tsx": () => import("../components/mockups/turnamen/TournamentMatch.tsx"),
+  "./components/mockups/turnamen/TournamentNotifBanner.tsx": () => import("../components/mockups/turnamen/TournamentNotifBanner.tsx"),
+  "./components/mockups/turnamen/TournamentWait.tsx": () => import("../components/mockups/turnamen/TournamentWait.tsx")
 };
