@@ -20,6 +20,8 @@ import LeaderboardScreen from './screens/LeaderboardScreen'
 import BadgesScreen from './screens/BadgesScreen'
 import TaskOverlay from './components/TaskOverlay'
 import CommunicationScreen from './screens/CommunicationScreen'
+import LobbyScreen from './screens/LobbyScreen'
+import DuelKatakScreen from './screens/DuelKatakScreen'
 
 // All game components are lazy-loaded on first navigation to keep initial bundle small
 
@@ -146,6 +148,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const current = history[history.length - 1]
 
   const [komunikasiTarget, setKomunikasiTarget] = useState(null)
+  const [duelState, setDuelState] = useState(null) // { code, myIndex, question, round, maxRounds, scores }
 
   useEffect(() => {
     const openCommunication = e => {
@@ -247,6 +250,27 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (current === 'komunikasi') {
       return <CommunicationScreen goBack={goBack} initialTarget={komunikasiTarget} />
+    }
+
+    if (current === 'duel-lobby') {
+      return (
+        <LobbyScreen
+          goBack={goBack}
+          onStart={(data) => {
+            setDuelState(data)
+            replaceTop('duel-katak')
+          }}
+        />
+      )
+    }
+
+    if (current === 'duel-katak' && duelState) {
+      return (
+        <DuelKatakScreen
+          {...duelState}
+          goBack={goBack}
+        />
+      )
     }
 
     if (GAME_ROUTES[current]) {

@@ -66,7 +66,7 @@ function MissionBtn({ emoji, title, desc, onClick, accent, locked, task }) {
   )
 }
 
-export default function Grade7ZoneScreen({ navigate, goBack }) {
+export default function Grade7ZoneScreen({ navigate, goBack, onDuel }) {
   const accent = '#67E8F9'
   const { getTaskForGame } = useTask()
   const { isBabLocked } = useBabLock()
@@ -88,6 +88,22 @@ export default function Grade7ZoneScreen({ navigate, goBack }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <MissionBtn emoji="🌡️" title="Termometer Penyelamat" desc="Selamatkan hewan peliharaan dari cuaca ekstrem dengan memahami bilangan positif & negatif." onClick={() => navigate('termometer')} accent={accent} task={getTaskForGame('termometer')} locked={babILocked} />
           <MissionBtn emoji="🐸" title="Katak Pelompat Batu" desc="Katak menyeberangi sungai. Angka positif = lompat maju, negatif = lompat mundur." onClick={() => navigate('katak')} accent={accent} task={getTaskForGame('katak')} locked={babILocked} />
+          {!babILocked && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -4 }}>
+              <button
+                onClick={() => navigate('duel-lobby')}
+                style={{
+                  background: 'linear-gradient(135deg,rgba(245,158,11,0.15),rgba(239,68,68,0.15))',
+                  border: '1px solid rgba(245,158,11,0.4)',
+                  borderRadius: 20, padding: '5px 14px', fontSize: 11, fontWeight: 800,
+                  color: '#fbbf24', cursor: 'pointer', letterSpacing: 0.5,
+                  display: 'flex', alignItems: 'center', gap: 5,
+                }}
+              >
+                ⚔️ Mode Duel
+              </button>
+            </div>
+          )}
           <MissionBtn emoji="🤖" title="Pabrik Pasukan Robot" desc="Rakit dan bagi pasukan robot menggunakan perkalian & pembagian bilangan bulat." onClick={() => navigate('pabrikrobot')} accent={accent} task={getTaskForGame('pabrikrobot')} locked={babILocked} />
           <MissionBtn emoji="🍄" title="Serangan Spora Jamur" desc="Tembak jamur yang terus membelah! Tebak jumlah berdasarkan konsep bilangan berpangkat." onClick={() => navigate('sporajamur')} accent={accent} task={getTaskForGame('sporajamur')} locked={babILocked} />
           <MissionBtn emoji="💎" title="Scanner Batu Permata" desc="Gunakan pemindai untuk menghancurkan angka komposit, hanya sisakan bilangan prima." onClick={() => navigate('scanner')} accent={accent} task={getTaskForGame('scanner')} locked={babILocked} />

@@ -14,3 +14,4 @@
 - [TOMAT coin economy](tomat-coin-economy.md) — correct gameplay answers award 15 coins; premium cosmetics use limited-edition pricing and server-side reward caps.
 - [TOMAT message delivery status](tomat-message-delivery-status.md) — private messages progress from sent to delivered when recipient loads the chat, then read when the conversation is opened.
 - [TOMAT demo showcase account](tomat-demo-account.md) — a server-marked student account owns the full luxury catalog for teacher previews but is hidden from student-facing views.
+- [TOMAT multiplayer duel](tomat-multiplayer.md) — Socket.io on http.createServer; server-authoritative Katak questions; lobby rooms in-memory Map; stale-closure fix via refs in LobbyScreen.

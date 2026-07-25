@@ -1,4 +1,5 @@
 import express from 'express'
+import http from 'node:http'
 import session from 'express-session'
 import connectPgSimple from 'connect-pg-simple'
 import authRouter from './auth.js'
@@ -16,6 +17,7 @@ import notifikasiRouter from './notifikasi.js'
 import petRouter from './pet.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
+import { setupMultiplayer } from './multiplayer.js'
 
 const isProd = process.env.NODE_ENV === 'production'
 const PORT = process.env.PORT || 5000
@@ -30,7 +32,8 @@ async function createServer() {
   app.set('trust proxy', 1)
 
   const PgSession = connectPgSimple(session)
-  app.use(session({
+  // Keep a reference so Socket.io can share the same session middleware
+  const sessionMiddleware = session({
     store: new PgSession({
       pool,
       tableName: 'tomat_sessions',
@@ -51,7 +54,8 @@ async function createServer() {
       secure: 'auto',
       maxAge: 1000 * 60 * 60 * 24 * 7,
     },
-  }))
+  })
+  app.use(sessionMiddleware)
 
   app.use('/api/auth', authRouter)
   app.use('/api/guru', guruRouter)
@@ -83,11 +87,15 @@ async function createServer() {
     })
   }
 
+  // Attach Socket.io to the raw http.Server (required for WebSocket upgrade)
+  const httpServer = http.createServer(app)
+  setupMultiplayer(httpServer, sessionMiddleware)
+
   // Bind the port immediately so container healthchecks succeed right away,
   // even if the database connection is slow. Schema setup runs in the
   // background afterward; requests that hit the DB before it finishes will
   // simply wait on the pool/queries as usual.
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`TOMAT server running on port ${PORT}`)
   })
 
