@@ -30,7 +30,7 @@ export default function BadgesScreen({ goBack }) {
       {!data && !error && <div style={{ padding: 24, color: '#94A3B8', textAlign: 'center' }}>Memuat…</div>}
 
       {data && (
-        <div style={{ padding: '0 16px 32px' }}>
+        <div style={{ padding: '0 16px 32px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 14, background: '#1A1D27',
             border: '1px solid rgba(99,102,241,0.25)', borderRadius: 16, padding: 16, marginBottom: 18,

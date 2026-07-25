@@ -39,11 +39,13 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
   }, [tournamentId])
 
   const GAME_LABELS = {
-    katak: '🐸 Katak Pelompat',
-    termometer: '🌡️ Termometer',
+    katak:       '🐸 Katak Pelompat',
+    termometer:  '🌡️ Termometer',
     pabrikrobot: '🤖 Pabrik Robot',
-    gembok: '⚙️ Gembok Roda Gigi',
-    mercusuar: '🏮 Mercusuar',
+    gembok:      '⚙️ Gembok Roda Gigi',
+    mercusuar:   '🏮 Mercusuar',
+    sporajamur:  '🍄 Spora Jamur',
+    scanner:     '💎 Scanner Permata',
   }
 
   // Cari status saya di turnamen

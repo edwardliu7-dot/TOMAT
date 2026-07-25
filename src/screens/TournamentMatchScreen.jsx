@@ -5,6 +5,16 @@ import { connectSocket, getSocket } from '../socket'
 const NL_MIN = -20, NL_MAX = 20
 function toPercent(n) { return ((n - NL_MIN) / (NL_MAX - NL_MIN)) * 100 }
 
+const GAME_LABELS = {
+  katak:       '🐸 Katak Pelompat',
+  termometer:  '🌡️ Termometer',
+  pabrikrobot: '🤖 Pabrik Robot',
+  gembok:      '⚙️ Gembok Roda Gigi',
+  mercusuar:   '🏮 Mercusuar',
+  sporajamur:  '🍄 Spora Jamur',
+  scanner:     '💎 Scanner Permata',
+}
+
 // ─── Number line (katak) ───────────────────────────────────────────────────────
 function KatakNumberLine({ start, myPos, oppPos, myAnswered, oppAnswered, myCorrect, oppCorrect }) {
   return (
@@ -290,7 +300,7 @@ export default function TournamentMatchScreen({
         <button onClick={goBack} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 10px', color: '#94A3B8', fontSize: 12, cursor: 'pointer' }}>←</button>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#f59e0b' }}>🏆 Ronde {round} Turnamen</div>
-          <div style={{ fontSize: 11, color: '#94A3B8' }}>Katak Pelompat • vs {opponent?.name}</div>
+          <div style={{ fontSize: 11, color: '#94A3B8' }}>{GAME_LABELS[gameKey] || gameKey} • vs {opponent?.name}</div>
         </div>
         {/* Round dots */}
         <div style={{ display: 'flex', gap: 4 }}>
@@ -317,25 +327,33 @@ export default function TournamentMatchScreen({
           border: `1.5px solid ${phase === 'result' ? (myCorrect ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)') : 'rgba(103,232,249,0.25)'}`,
           borderRadius: 20, padding: 16,
         }}>
-          {/* Number line */}
-          <KatakNumberLine
-            start={start}
-            myPos={slider}
-            oppPos={oppDisplayPos}
-            myAnswered={myAnswered}
-            oppAnswered={oppAnswered}
-            myCorrect={myCorrect}
-            oppCorrect={oppCorrect}
-          />
+          {/* Number line — only for katak */}
+          {gameKey === 'katak' && (
+            <KatakNumberLine
+              start={start}
+              myPos={slider}
+              oppPos={oppDisplayPos}
+              myAnswered={myAnswered}
+              oppAnswered={oppAnswered}
+              myCorrect={myCorrect}
+              oppCorrect={oppCorrect}
+            />
+          )}
 
           {/* Question text */}
-          <div style={{ textAlign: 'center', marginTop: 8, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>
-              Katak di batu{' '}
-              <strong style={{ color: '#67E8F9' }}>{start}</strong>, melompat{' '}
-              {isForward ? '⮕ maju' : '⬅ mundur'}{' '}
-              <strong style={{ color: '#f59e0b' }}>{jump} batu</strong>. Geser katak ke posisi akhir!
-            </div>
+          <div style={{ textAlign: 'center', marginTop: gameKey === 'katak' ? 8 : 0, marginBottom: 16 }}>
+            {gameKey === 'katak' ? (
+              <div style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>
+                Katak di batu{' '}
+                <strong style={{ color: '#67E8F9' }}>{start}</strong>, melompat{' '}
+                {isForward ? '⮕ maju' : '⬅ mundur'}{' '}
+                <strong style={{ color: '#f59e0b' }}>{jump} batu</strong>. Geser katak ke posisi akhir!
+              </div>
+            ) : (
+              <div style={{ fontSize: 14, color: '#fff', lineHeight: 1.7, fontWeight: 700, padding: '8px 4px' }}>
+                {q.text || ''}
+              </div>
+            )}
           </div>
 
           {/* Slider */}

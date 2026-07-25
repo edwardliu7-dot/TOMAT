@@ -66,7 +66,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode }) {
         <div style={{ position: 'absolute', bottom: '10%', right: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(52,211,153,0.08)', filter: 'blur(100px)' }} />
       </div>
 
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 'var(--content-max)', margin: '0 auto' }}>
         {guruMode && (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',

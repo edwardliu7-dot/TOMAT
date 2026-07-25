@@ -159,7 +159,7 @@ export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId
       <PlayerHeader />
       <TopBar title="Pilih Mode Bermain" onBack={goBack} accentColor="#67E8F9" />
 
-      <div style={{ padding: '0 16px 40px' }}>
+      <div style={{ padding: '0 16px 40px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
         {/* Game header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',

@@ -107,7 +107,7 @@ export default function GradesScreen({ goBack, navigate }) {
       <PlayerHeader />
       <TopBar title="📊 Nilai Akademik Saya" onBack={goBack} accentColor="#A78BFA" />
 
-      <div style={{ padding: '0 16px 40px' }}>
+      <div style={{ padding: '0 16px 40px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
         {/* Summary card */}
         {hasAnyGrade && (
           <div style={{

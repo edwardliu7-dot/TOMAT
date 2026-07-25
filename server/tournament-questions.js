@@ -85,6 +85,52 @@ const generators = {
       gameLabel: 'Mercusuar',
     }
   },
+
+  // Spora Jamur — pangkat/eksponen bilangan bulat positif
+  sporajamur: () => {
+    const bases = [2, 3, 4, 5]
+    const exps  = [2, 3]
+    const base  = bases[rand(0, bases.length - 1)]
+    const exp   = exps[rand(0, exps.length - 1)]
+    const answer = Math.pow(base, exp)
+    return {
+      question: { text: `${base}^${exp} = ? (${base} dipangkatkan ${exp})`, base, exp },
+      answer,
+      sliderMin: 1,
+      sliderMax: 150,
+      gameLabel: 'Spora Jamur',
+    }
+  },
+
+  // Scanner Permata — hitung bilangan prima dari daftar angka
+  scanner: () => {
+    function isPrime(n) {
+      if (n < 2) return false
+      for (let i = 2; i <= Math.sqrt(n); i++) if (n % i === 0) return false
+      return true
+    }
+    function shuffleArr(arr) {
+      const a = [...arr]
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]]
+      }
+      return a
+    }
+    const pool = [2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]
+    const selected = shuffleArr(pool).slice(0, 6)
+    const primeCount = selected.filter(isPrime).length
+    return {
+      question: {
+        text: `Dari angka-angka: ${selected.join(', ')} — berapa banyak yang merupakan bilangan prima?`,
+        numbers: selected,
+      },
+      answer: primeCount,
+      sliderMin: 0,
+      sliderMax: 6,
+      gameLabel: 'Scanner Permata',
+    }
+  },
 }
 
 export function genTournamentQ(gameKey) {

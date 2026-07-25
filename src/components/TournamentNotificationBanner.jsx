@@ -6,6 +6,8 @@ const GAME_LABELS = {
   pabrikrobot: '🤖 Pabrik Robot',
   gembok:      '⚙️ Gembok Roda Gigi',
   mercusuar:   '🏮 Mercusuar',
+  sporajamur:  '🍄 Spora Jamur',
+  scanner:     '💎 Scanner Permata',
 }
 
 /**

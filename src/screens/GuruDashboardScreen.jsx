@@ -774,11 +774,13 @@ function RaidTab({ kelasDiampu }) {
 // TURNAMEN TAB
 // ══════════════════════════════════════════════════════════════════════════════
 const TOURNAMENT_GAMES = [
-  { key: 'katak',       label: '🐸 Katak Pelompat', desc: 'Bilangan bulat, garis bilangan' },
-  { key: 'termometer',  label: '🌡️ Termometer',     desc: 'Penjumlahan bilangan bulat' },
-  { key: 'pabrikrobot', label: '🤖 Pabrik Robot',   desc: 'Perkalian bilangan bulat' },
-  { key: 'gembok',      label: '⚙️ Gembok Roda Gigi',desc: 'FPB' },
-  { key: 'mercusuar',   label: '🏮 Mercusuar',       desc: 'KPK' },
+  { key: 'katak',       label: '🐸 Katak Pelompat',    desc: 'Bilangan bulat, garis bilangan' },
+  { key: 'termometer',  label: '🌡️ Termometer',        desc: 'Penjumlahan/pengurangan bilangan bulat' },
+  { key: 'pabrikrobot', label: '🤖 Pabrik Robot',      desc: 'Perkalian bilangan bulat' },
+  { key: 'gembok',      label: '⚙️ Gembok Roda Gigi',  desc: 'FPB' },
+  { key: 'mercusuar',   label: '🏮 Mercusuar',          desc: 'KPK' },
+  { key: 'sporajamur',  label: '🍄 Spora Jamur',        desc: 'Pangkat bilangan bulat' },
+  { key: 'scanner',     label: '💎 Scanner Permata',    desc: 'Bilangan prima (hitung prima dari daftar)' },
 ]
 
 const MATCH_STATUS_BADGE = {
@@ -1222,7 +1224,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           })}
         </div>
 
-        <div style={{ padding: 16 }}>
+        <div style={{ padding: 16, maxWidth: 'var(--content-max)', margin: '0 auto' }}>
           {tab === 'tugas'   && <TugasTab kelasDiampu={kelasDiampu} />}
           {tab === 'hafalan' && <GuruHafalanScreen />}
           {tab === 'nilai'   && <NilaiTab onProfileClick={publicProfile.openProfile} />}

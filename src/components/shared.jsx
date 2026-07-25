@@ -275,6 +275,7 @@ export function RoyalShimmer() {
 
 export function PublicProfileModal({ profile, loading, error, onClose }) {
   if (!profile && !loading && !error) return null
+  const { user: currentUser } = useAuth()
 
   const spandukId = profile?.equippedSpanduk ?? profile?.equipped_spanduk
   const spanduk    = spandukId ? SPANDUK_VISUALS[spandukId] : null
@@ -435,7 +436,7 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
             </div>
 
             {/* ── PROFILE INFO ── */}
-            <div style={{ padding: '0 22px 24px', textAlign: 'center' }}>
+            <div style={{ padding: '0 22px 10px', textAlign: 'center' }}>
               <div style={{ color: '#fff', fontSize: 18, fontWeight: 900 }}>{profile.name}</div>
               <div style={{
                 display: 'inline-block', marginTop: 7, padding: '5px 12px', borderRadius: 99,
@@ -451,6 +452,37 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
                 background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
                 color: profile.bio ? '#CBD5E1' : '#64748B', fontSize: 12, lineHeight: 1.6,
               }}>{profile.bio || 'Belum ada bio.'}</div>
+            </div>
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: 8, padding: '0 22px 18px', marginTop: 8 }}>
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('tomat:visit-profile', { detail: profile }))
+                  onClose()
+                }}
+                style={{
+                  flex: 1, padding: '10px 0', borderRadius: 12,
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'rgba(255,255,255,0.06)', color: '#E2E8F0',
+                  fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >👤 Lihat Profil</button>
+
+              {profile.role === 'siswa' && currentUser?.role === 'siswa' && profile.id !== currentUser?.id && (
+                <button
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('tomat:invite-duel', { detail: profile }))
+                    onClose()
+                  }}
+                  style={{
+                    flex: 1, padding: '10px 0', borderRadius: 12, border: 'none',
+                    background: 'linear-gradient(90deg,#6366F1,#8B5CF6)', color: '#fff',
+                    fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+                    boxShadow: '0 2px 12px rgba(99,102,241,0.35)',
+                  }}
+                >⚔️ Ajak Duel</button>
+              )}
             </div>
 
             {/* Celestia animated edge shimmer strip at very bottom */}

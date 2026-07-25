@@ -65,7 +65,7 @@ export default function LeaderboardScreen({ goBack }) {
       {!data && !error && <div style={{ padding: 24, color: '#94A3B8', textAlign: 'center' }}>Memuat…</div>}
 
       {data && (
-        <div style={{ padding: '0 16px 32px' }}>
+        <div style={{ padding: '0 16px 32px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
           {data.kelas && (
             <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 6, textAlign: 'center' }}>
               Peringkat siswa kelas <span style={{ color: '#A5B4FC', fontWeight: 700 }}>{data.kelas}</span>

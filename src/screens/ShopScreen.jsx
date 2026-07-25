@@ -416,7 +416,7 @@ export default function ShopScreen({ goBack }) {
 
       {error && <div style={{ margin: '0 16px 12px', color: '#F87171', fontSize: 13 }}>{error}</div>}
 
-      <div style={{ padding: tab === 'pet_skin' ? 0 : '0 16px 32px' }}>
+      <div style={{ padding: tab === 'pet_skin' ? 0 : '0 16px 32px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
         {tab === 'pet_skin' ? (
           <PetTokoTab data={data} onRefresh={refresh} setError={setError} />
         ) : items.length === 0 ? (

@@ -26,6 +26,8 @@ import BossRaidScreen from './screens/BossRaidScreen'
 import TournamentMatchScreen from './screens/TournamentMatchScreen'
 import TournamentWaitScreen from './screens/TournamentWaitScreen'
 import TournamentNotificationBanner from './components/TournamentNotificationBanner'
+import PublicProfileScreen from './screens/PublicProfileScreen'
+import DuelInviteBanner from './components/DuelInviteBanner'
 import { connectSocket } from './socket'
 
 // Auth-aware wrappers — need useAuth inside the PlayerProvider/AuthContext tree
@@ -187,6 +189,9 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [tournamentMatchData, setTournamentMatchData] = useState(null)  // from tournament:your-match
   const [tournamentBanner,    setTournamentBanner]    = useState(null)  // show notification banner
   const [activeTournamentId,  setActiveTournamentId]  = useState(null)  // when we are spectating bracket
+  const [publicProfileData, setPublicProfileData]   = useState(null)   // { ...profile }
+  const [duelInvite, setDuelInvite]                 = useState(null)   // { code, from: { userId, name } }
+  const [duelInviteCode, setDuelInviteCode]         = useState(null)   // auto-join code for LobbyScreen
 
   useEffect(() => {
     const openCommunication = e => {
@@ -196,6 +201,30 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     window.addEventListener('tomat:open-komunikasi', openCommunication)
     return () => window.removeEventListener('tomat:open-komunikasi', openCommunication)
   }, [])
+
+  useEffect(() => {
+    const onVisitProfile = e => {
+      setPublicProfileData(e.detail)
+      setHistory(h => [...h, 'public-profile'])
+    }
+    const onInviteDuel = e => {
+      const target = e.detail
+      if (!target?.id) return
+      const socket = connectSocket()
+      socket.emit('duel:invite', {
+        targetUserId: target.id,
+        targetRole: target.role || 'siswa',
+        avatar: null,
+      })
+      navigate('duel-lobby')
+    }
+    window.addEventListener('tomat:visit-profile', onVisitProfile)
+    window.addEventListener('tomat:invite-duel', onInviteDuel)
+    return () => {
+      window.removeEventListener('tomat:visit-profile', onVisitProfile)
+      window.removeEventListener('tomat:invite-duel', onInviteDuel)
+    }
+  }, [navigate])
 
   // Tournament: connect socket and listen for match notifications
   useEffect(() => {
@@ -224,11 +253,21 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       setTournamentMatchData(null)
     })
 
+    socket.on('duel:incoming-invite', (data) => {
+      setDuelInvite(data)  // { code, from: { userId, name } }
+    })
+
+    socket.on('duel:invite-expired', () => {
+      // Host: invite timed out — LobbyScreen handles its own state
+    })
+
     return () => {
       socket.off('tournament:your-match')
       socket.off('tournament:finished')
       socket.off('tournament:started')
       socket.off('tournament:cancelled')
+      socket.off('duel:incoming-invite')
+      socket.off('duel:invite-expired')
     }
   }, [guruMode])
 
@@ -279,6 +318,24 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
   // Render the current screen
   const renderScreen = () => {
+    if (current === 'public-profile' && publicProfileData) {
+      return (
+        <PublicProfileScreen
+          profile={publicProfileData}
+          goBack={goBack}
+          onInviteDuel={(profile) => {
+            const socket = connectSocket()
+            socket.emit('duel:invite', {
+              targetUserId: profile.id,
+              targetRole: profile.role || 'siswa',
+              avatar: null,
+            })
+            navigate('duel-lobby')
+          }}
+        />
+      )
+    }
+
     if (current === 'modeselect') {
       return (
         <ModeSelectScreen
@@ -327,10 +384,13 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'duel-lobby') {
+      const inviteCode = duelInviteCode
       return (
         <LobbyScreen
-          goBack={goBack}
+          goBack={() => { setDuelInviteCode(null); goBack() }}
+          initialCode={inviteCode}
           onStart={(data) => {
+            setDuelInviteCode(null)
             setDuelState(data)
             replaceTop('duel-katak')
           }}
@@ -397,7 +457,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       <PetProvider>
         <TaskProvider onTaskComplete={handleTaskComplete}>
           <BabLockProvider>
-            <div style={{ maxWidth: 'var(--shell-max)', margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
+            <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
               <ErrorBoundary key={current} onReset={goBack}>
                 {renderScreen()}
               </ErrorBoundary>
@@ -416,6 +476,22 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
                     navigate('tournament-match')
                   }}
                   onDismiss={() => setTournamentBanner(null)}
+                />
+              )}
+              {/* Duel invite banner */}
+              {duelInvite && current !== 'duel-lobby' && current !== 'duel-katak' && (
+                <DuelInviteBanner
+                  invite={duelInvite}
+                  onAccept={(inv) => {
+                    setDuelInvite(null)
+                    setDuelInviteCode(inv.code)
+                    navigate('duel-lobby')
+                  }}
+                  onDecline={() => {
+                    const socket = connectSocket()
+                    if (duelInvite?.code) socket.emit('duel:invite-decline', { code: duelInvite.code })
+                    setDuelInvite(null)
+                  }}
                 />
               )}
             </div>
@@ -449,7 +525,7 @@ export default function App() {
   if (user.role === 'guru') {
     if (guruPracticeMode) {
       return (
-        <div style={{ maxWidth: 'var(--shell-max)', margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
+        <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
           <ErrorBoundary onReset={() => setGuruPracticeMode(false)}>
             <PlayerExperience guruMode onExitGuruMode={() => setGuruPracticeMode(false)} />
           </ErrorBoundary>
@@ -457,7 +533,7 @@ export default function App() {
       )
     }
     return (
-      <div style={{ maxWidth: 'var(--shell-max-wide)', margin: '0 auto', minHeight: '100vh', position: 'relative' }}>
+      <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
         <ErrorBoundary onReset={() => {}}>
           <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
         </ErrorBoundary>
