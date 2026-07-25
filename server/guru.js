@@ -134,21 +134,68 @@ router.post('/tugas', async (req, res) => {
   }
 })
 
-// PATCH /api/guru/tugas/:id — close/reopen a task
+// PATCH /api/guru/tugas/:id — close/reopen or edit a task
 router.patch('/tugas/:id', async (req, res) => {
   try {
-    const { status } = req.body || {}
-    if (!['active', 'closed'].includes(status)) {
-      return res.status(400).json({ error: 'Status tidak valid.' })
+    const { status, type, totalQuestions, dueAt, difficulty } = req.body || {}
+
+    // Status-only update (close/reopen)
+    if (status !== undefined) {
+      if (!['active', 'closed'].includes(status)) {
+        return res.status(400).json({ error: 'Status tidak valid.' })
+      }
+      const { rows } = await pool.query(
+        `update tugas set status = $1 where id = $2 and guru_id = $3 returning *`,
+        [status, req.params.id, req.session.user.id]
+      )
+      if (rows.length === 0) return res.status(404).json({ error: 'Tugas tidak ditemukan.' })
+      return res.json({ tugas: rows[0] })
     }
-    const { rows } = await pool.query(
-      `update tugas set status = $1 where id = $2 and guru_id = $3 returning *`,
-      [status, req.params.id, req.session.user.id]
-    )
-    if (rows.length === 0) return res.status(404).json({ error: 'Tugas tidak ditemukan.' })
-    res.json({ tugas: rows[0] })
+
+    // Full edit update
+    if (type !== undefined || totalQuestions !== undefined || dueAt !== undefined || difficulty !== undefined) {
+      if (type && !['harian', 'formatif', 'sumatif'].includes(type)) {
+        return res.status(400).json({ error: 'Jenis tugas tidak valid.' })
+      }
+      const totalQ = totalQuestions !== undefined ? parseInt(totalQuestions, 10) : undefined
+      if (totalQ !== undefined && (!Number.isFinite(totalQ) || totalQ <= 0)) {
+        return res.status(400).json({ error: 'Jumlah soal tidak valid.' })
+      }
+      if (difficulty && !['easy', 'medium', 'hard'].includes(difficulty)) {
+        return res.status(400).json({ error: 'Tingkat kesulitan tidak valid.' })
+      }
+      const { rows } = await pool.query(
+        `update tugas
+         set type = coalesce($1, type),
+             total_questions = coalesce($2, total_questions),
+             due_at = $3,
+             difficulty = coalesce($4, difficulty)
+         where id = $5 and guru_id = $6
+         returning *`,
+        [type || null, totalQ || null, dueAt || null, difficulty || null, req.params.id, req.session.user.id]
+      )
+      if (rows.length === 0) return res.status(404).json({ error: 'Tugas tidak ditemukan.' })
+      return res.json({ tugas: rows[0] })
+    }
+
+    res.status(400).json({ error: 'Tidak ada perubahan yang dikirim.' })
   } catch (err) {
     console.error('guru/tugas update error', err)
+    res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  }
+})
+
+// DELETE /api/guru/tugas/:id — delete a task and its grades (cascade)
+router.delete('/tugas/:id', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `delete from tugas where id = $1 and guru_id = $2 returning id`,
+      [req.params.id, req.session.user.id]
+    )
+    if (rows.length === 0) return res.status(404).json({ error: 'Tugas tidak ditemukan.' })
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('guru/tugas delete error', err)
     res.status(500).json({ error: 'Terjadi kesalahan server.' })
   }
 })

@@ -49,6 +49,107 @@ function Section({ children, style = {} }) {
   )
 }
 
+function EditTugasModal({ tugas, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    type: tugas.type,
+    totalQuestions: tugas.total_questions,
+    dueAt: tugas.due_at ? tugas.due_at.slice(0, 10) : '',
+    difficulty: tugas.difficulty || 'medium',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const save = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const { tugas: updated } = await apiCall(`/api/guru/tugas/${tugas.id}`, {
+        method: 'PATCH',
+        body: {
+          type: form.type,
+          totalQuestions: form.totalQuestions,
+          dueAt: form.dueAt || null,
+          difficulty: form.difficulty,
+        },
+      })
+      onSaved(updated)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9999,
+      background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+    }} onClick={onClose}>
+      <div style={{
+        background: '#111827', borderRadius: 20, border: '1px solid rgba(255,255,255,0.12)',
+        width: '100%', maxWidth: 400, overflow: 'hidden',
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ height: 3, background: 'linear-gradient(90deg,#F59E0B,#EF4444)' }} />
+        <div style={{ padding: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <span style={{ fontSize: 22 }}>{tugas.game_emoji}</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{tugas.game_name}</div>
+              <div style={{ fontSize: 11, color: '#67E8F9' }}>{tugas.kelas}</div>
+            </div>
+            <button onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748B', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+          </div>
+          <form onSubmit={save} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <div style={labelStyle}>Penilaian</div>
+                <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} style={inputStyle}>
+                  <option value="harian">Harian</option>
+                  <option value="formatif">Formatif</option>
+                  <option value="sumatif">Sumatif</option>
+                </select>
+              </div>
+              <div>
+                <div style={labelStyle}>Jml Soal</div>
+                <input type="number" min={1} value={form.totalQuestions}
+                  onChange={e => setForm(f => ({ ...f, totalQuestions: e.target.value }))}
+                  style={inputStyle} />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <div style={labelStyle}>Kesulitan</div>
+                <select value={form.difficulty} onChange={e => setForm(f => ({ ...f, difficulty: e.target.value }))} style={inputStyle}>
+                  {DIFFICULTY_LEVELS.map(level => <option key={level} value={level}>{DIFFICULTY_LABELS[level]}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={labelStyle}>Tenggat</div>
+                <input type="date" value={form.dueAt} onChange={e => setForm(f => ({ ...f, dueAt: e.target.value }))} style={inputStyle} />
+              </div>
+            </div>
+            {error && <div style={{ color: '#fca5a5', fontSize: 12, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 10, padding: '8px 12px' }}>{error}</div>}
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button type="button" onClick={onClose} style={{
+                flex: 1, background: 'rgba(255,255,255,0.06)', color: '#94A3B8',
+                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 0',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}>Batal</button>
+              <button type="submit" disabled={saving} style={{
+                flex: 2, background: saving ? '#92400E' : 'linear-gradient(135deg,#F59E0B,#D97706)',
+                color: '#fff', border: 'none', borderRadius: 12, padding: '12px 0',
+                fontSize: 13, fontWeight: 800, cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit',
+              }}>✏️ {saving ? 'Menyimpan…' : 'Simpan Perubahan'}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TugasTab({ kelasDiampu }) {
   const [tugasList, setTugasList] = useState([])
   const [loading, setLoading] = useState(true)
@@ -58,6 +159,9 @@ function TugasTab({ kelasDiampu }) {
   const initialGames = GAMES_CATALOG.filter(g => initialGrade ? g.grade <= initialGrade : false)
   const [form, setForm] = useState({ kelas: initialKelas, gameKey: initialGames[0]?.key || '', type: 'harian', totalQuestions: 5, dueAt: '', difficulty: 'medium' })
   const [submitting, setSubmitting] = useState(false)
+  const [editingTugas, setEditingTugas] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   const classGrade = kelasToGrade(form.kelas)
   const availableGames = GAMES_CATALOG.filter(g => classGrade ? g.grade <= classGrade : false)
@@ -115,8 +219,73 @@ function TugasTab({ kelasDiampu }) {
     }
   }
 
+  const handleSaved = (updated) => {
+    setTugasList(list => list.map(t => t.id === updated.id ? updated : t))
+    setEditingTugas(null)
+  }
+
+  const handleDelete = async () => {
+    if (!confirmDeleteId) return
+    setDeleting(true)
+    try {
+      await apiCall(`/api/guru/tugas/${confirmDeleteId}`, { method: 'DELETE' })
+      setTugasList(list => list.filter(t => t.id !== confirmDeleteId))
+      setConfirmDeleteId(null)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const confirmTarget = tugasList.find(t => t.id === confirmDeleteId)
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Edit modal */}
+      {editingTugas && (
+        <EditTugasModal
+          tugas={editingTugas}
+          onClose={() => setEditingTugas(null)}
+          onSaved={handleSaved}
+        />
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmDeleteId && confirmTarget && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        }} onClick={() => !deleting && setConfirmDeleteId(null)}>
+          <div style={{
+            background: '#111827', borderRadius: 20, border: '1px solid rgba(239,68,68,0.3)',
+            width: '100%', maxWidth: 360, padding: 24,
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 12 }}>🗑️</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: 8 }}>Hapus Tugas?</div>
+            <div style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center', marginBottom: 4 }}>
+              {confirmTarget.game_emoji} <strong style={{ color: '#fff' }}>{confirmTarget.game_name}</strong> · {confirmTarget.kelas}
+            </div>
+            <div style={{ fontSize: 11, color: '#EF4444', textAlign: 'center', marginBottom: 20, background: 'rgba(239,68,68,0.1)', borderRadius: 10, padding: '8px 12px', marginTop: 8 }}>
+              Semua nilai siswa untuk tugas ini ikut terhapus dan tidak bisa dipulihkan.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setConfirmDeleteId(null)} disabled={deleting} style={{
+                flex: 1, background: 'rgba(255,255,255,0.06)', color: '#94A3B8',
+                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 0',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}>Batal</button>
+              <button onClick={handleDelete} disabled={deleting} style={{
+                flex: 2, background: deleting ? '#7F1D1D' : 'linear-gradient(135deg,#EF4444,#DC2626)',
+                color: '#fff', border: 'none', borderRadius: 12, padding: '12px 0',
+                fontSize: 13, fontWeight: 800, cursor: deleting ? 'default' : 'pointer', fontFamily: 'inherit',
+              }}>🗑️ {deleting ? 'Menghapus…' : 'Ya, Hapus'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* New task form */}
       <div style={{ background: '#111827', borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
         <div style={{ height: 2, background: 'linear-gradient(90deg, #06B6D4, #8B5CF6)' }} />
@@ -204,7 +373,6 @@ function TugasTab({ kelasDiampu }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {tugasList.map(t => {
               const isActive = t.status === 'active'
-              const color = TYPE_COLORS[t.type]
               return (
                 <div key={t.id} style={{
                   background: '#111827', borderRadius: 16, border: `1px solid ${isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)'}`,
@@ -229,14 +397,26 @@ function TugasTab({ kelasDiampu }) {
                         border: `1px solid ${isActive ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)'}`,
                         fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5,
                       }}>{isActive ? 'Aktif' : 'Ditutup'}</span>
-                      <button onClick={() => closeTugas(t.id, t.status === 'active' ? 'closed' : 'active')} style={{
-                        background: isActive ? 'rgba(244,63,94,0.12)' : 'rgba(16,185,129,0.12)',
-                        color: isActive ? '#F87171' : '#34D399',
-                        border: `1px solid ${isActive ? 'rgba(244,63,94,0.25)' : 'rgba(16,185,129,0.25)'}`,
-                        borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                      }}>
-                        {isActive ? 'Tutup' : 'Buka'}
-                      </button>
+                      <div style={{ display: 'flex', gap: 5 }}>
+                        <button onClick={() => closeTugas(t.id, t.status === 'active' ? 'closed' : 'active')} style={{
+                          background: isActive ? 'rgba(244,63,94,0.12)' : 'rgba(16,185,129,0.12)',
+                          color: isActive ? '#F87171' : '#34D399',
+                          border: `1px solid ${isActive ? 'rgba(244,63,94,0.25)' : 'rgba(16,185,129,0.25)'}`,
+                          borderRadius: 8, padding: '4px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                        }}>
+                          {isActive ? 'Tutup' : 'Buka'}
+                        </button>
+                        <button onClick={() => setEditingTugas(t)} title="Edit tugas" style={{
+                          background: 'rgba(245,158,11,0.12)', color: '#FBBF24',
+                          border: '1px solid rgba(245,158,11,0.25)',
+                          borderRadius: 8, padding: '4px 8px', fontSize: 13, cursor: 'pointer', lineHeight: 1,
+                        }}>✏️</button>
+                        <button onClick={() => setConfirmDeleteId(t.id)} title="Hapus tugas" style={{
+                          background: 'rgba(239,68,68,0.12)', color: '#F87171',
+                          border: '1px solid rgba(239,68,68,0.25)',
+                          borderRadius: 8, padding: '4px 8px', fontSize: 13, cursor: 'pointer', lineHeight: 1,
+                        }}>🗑️</button>
+                      </div>
                     </div>
                   </div>
                 </div>
