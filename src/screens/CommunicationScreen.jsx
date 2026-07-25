@@ -421,7 +421,7 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
   }
 
   const content = (
-    <div style={{ padding: embedded ? 0 : '0 16px 32px' }}>
+    <div style={{ padding: embedded ? 0 : '0 16px 32px', maxWidth: embedded ? undefined : 'var(--content-max)', margin: embedded ? undefined : '0 auto' }}>
       <div style={{
         display: 'flex', gap: 8, marginBottom: 12,
         background: 'rgba(255,255,255,0.035)', borderRadius: 14, padding: 4,

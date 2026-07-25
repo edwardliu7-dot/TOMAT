@@ -88,7 +88,7 @@ export default function Grade9ZoneScreen({ navigate, goBack }) {
         </div>
       )}
       <style>{`@keyframes bossGlow{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.3)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}`}</style>
-      <div style={{ padding: '0 16px 40px' }}>
+      <div style={{ padding: '0 16px 40px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
         <div style={{ fontSize: 12, color: accent, fontWeight: 600, marginBottom: 4, marginTop: checked && raid ? 12 : 0 }}>KELAS 9 · 17 MISI</div>
         <div style={{ fontSize: 13, color: '#94A3B8' }}>Pilih misi dan selesaikan tantangan matematika!</div>
 

@@ -1222,7 +1222,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           })}
         </div>
 
-        <div style={{ padding: 16 }}>
+        <div style={{ padding: 16, maxWidth: 'var(--content-max)', margin: '0 auto' }}>
           {tab === 'tugas'   && <TugasTab kelasDiampu={kelasDiampu} />}
           {tab === 'hafalan' && <GuruHafalanScreen />}
           {tab === 'nilai'   && <NilaiTab onProfileClick={publicProfile.openProfile} />}

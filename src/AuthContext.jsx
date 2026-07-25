@@ -3,17 +3,31 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 export const AuthContext = createContext(null)
 
 async function apiCall(path, options = {}) {
-  const res = await fetch(`/api/auth${path}`, {
-    method: options.method || 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    throw new Error(data.error || 'Terjadi kesalahan.')
+  const controller = new AbortController()
+  const timeoutMs = options.timeoutMs || 15000
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const res = await fetch(`/api/auth${path}`, {
+      method: options.method || 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal,
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(data.error || 'Terjadi kesalahan.')
+    }
+    return data
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Server terlalu lama merespons. Silakan coba lagi.')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
   }
-  return data
 }
 
 export function AuthProvider({ children }) {
@@ -21,10 +35,18 @@ export function AuthProvider({ children }) {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    apiCall('/me')
+    let mounted = true
+    // Never leave the app behind the splash screen forever when the database
+    // or the session store is temporarily unavailable.
+    apiCall('/me', { timeoutMs: 8000 })
       .then(data => setUser(data.user))
-      .catch(() => setUser(null))
-      .finally(() => setChecking(false))
+      .catch(() => {
+        if (mounted) setUser(null)
+      })
+      .finally(() => {
+        if (mounted) setChecking(false)
+      })
+    return () => { mounted = false }
   }, [])
 
   const login = useCallback(async ({ role, username, password }) => {

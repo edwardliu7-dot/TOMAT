@@ -61,7 +61,7 @@ function RoomCodeDisplay({ code }) {
 }
 
 // ─── Main Lobby Screen ────────────────────────────────────────────────────────
-export default function LobbyScreen({ goBack, onStart }) {
+export default function LobbyScreen({ goBack, onStart, initialCode }) {
   const { user } = useAuth()
 
   const [phase, setPhase]         = useState('menu')       // menu | creating | waiting | joining | ready | countdown
@@ -78,6 +78,15 @@ export default function LobbyScreen({ goBack, onStart }) {
 
   const setCode = (c) => { setRoomCode(c); roomCodeRef.current = c }
   const setIdx  = (i) => { setMyIndex(i);  myIndexRef.current  = i }
+
+  // ── Auto-join if invited directly ─────────────────────────────────────────
+  useEffect(() => {
+    if (!initialCode) return
+    const t = setTimeout(() => {
+      connectSocket().emit('duel:join', { code: initialCode, avatar: user?.profilePhoto || null })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [initialCode])
 
   // ── Socket setup (mounted once) ────────────────────────────────────────────
   useEffect(() => {

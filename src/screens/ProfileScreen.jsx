@@ -545,7 +545,7 @@ export default function ProfileScreen({ goBack }) {
         )}
 
         {/* Form */}
-        <div style={{ padding: '0 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ padding: '0 20px 32px', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 'var(--content-max)', margin: '0 auto' }}>
           <div style={{ background: '#111827', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
             <div style={{ height: 2, background: 'linear-gradient(90deg, #8B5CF6, #06B6D4)' }} />
             <div style={{ padding: 18 }}>

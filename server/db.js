@@ -12,4 +12,9 @@ const wantsSsl = /sslmode=require|ssl=true/i.test(connectionString || '')
 export const pool = new Pool({
   connectionString,
   ssl: wantsSsl ? { rejectUnauthorized: false } : false,
+  // Database outages must fail requests and allow the UI to recover instead
+  // of leaving session/auth requests pending indefinitely.
+  connectionTimeoutMillis: 10000,
+  query_timeout: 15000,
+  idleTimeoutMillis: 30000,
 })

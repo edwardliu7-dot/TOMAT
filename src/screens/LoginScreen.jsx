@@ -32,8 +32,8 @@ export default function LoginScreen() {
 
   return (
     <div style={{
-      position: 'relative', minHeight: '100vh', height: '100%', maxWidth: 430,
-      width: '100%', margin: '0 auto', overflow: 'hidden',
+      position: 'relative', minHeight: '100vh', height: '100%',
+      width: '100%', overflow: 'hidden',
       fontFamily: 'inherit', color: '#fff', display: 'flex', flexDirection: 'column',
     }}>
       {/* ── Two world panels ── */}
@@ -64,9 +64,9 @@ export default function LoginScreen() {
 
           <div style={{
             position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', paddingTop: siswaActive ? 56 : 88,
+            alignItems: 'center', paddingTop: siswaActive ? 'clamp(40px,5vh,72px)' : 'clamp(60px,8vh,100px)',
             opacity: decided && !siswaActive ? 0 : 1, transition: 'opacity 0.4s',
-            width: '100%',
+            width: '100%', maxWidth: siswaActive ? 440 : '100%', margin: '0 auto',
           }}>
             {siswaActive && (
               <button onClick={e => { e.stopPropagation(); goBack() }} style={{
@@ -76,21 +76,21 @@ export default function LoginScreen() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
               }}>←</button>
             )}
-            <div style={{ fontSize: 52, filter: 'drop-shadow(0 0 20px rgba(16,185,129,0.7))' }}>⚔️</div>
-            <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '0.2em', color: '#34D399', textTransform: 'uppercase', marginTop: 10 }}>Siswa</div>
-            <div style={{ fontSize: 10, color: '#059669', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 2 }}>Pejuang Angka</div>
+            <div style={{ fontSize: 'clamp(36px, 6vw, 64px)', filter: 'drop-shadow(0 0 20px rgba(16,185,129,0.7))' }}>⚔️</div>
+            <div style={{ fontSize: 'clamp(16px, 2.5vw, 26px)', fontWeight: 900, letterSpacing: '0.2em', color: '#34D399', textTransform: 'uppercase', marginTop: 10 }}>Siswa</div>
+            <div style={{ fontSize: 'clamp(9px, 1.2vw, 13px)', color: '#059669', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 2 }}>Pejuang Angka</div>
 
             {!decided && (
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                 {['Quest Harian', 'Koin & XP', 'Level Up'].map(t => (
                   <div key={t} style={{
-                    fontSize: 10, fontWeight: 700, padding: '5px 14px', borderRadius: 20,
+                    fontSize: 'clamp(9px, 1.3vw, 12px)', fontWeight: 700, padding: 'clamp(4px,0.8vw,7px) clamp(10px,1.8vw,18px)', borderRadius: 20,
                     background: 'rgba(16,185,129,0.15)', color: '#34D399',
                     border: '1px solid rgba(16,185,129,0.3)', letterSpacing: '0.1em',
                   }}>{t}</div>
                 ))}
                 <div style={{ marginTop: 16, width: 32, height: 2, background: 'rgba(52,211,153,0.5)', borderRadius: 2 }} />
-                <div style={{ fontSize: 9, color: '#059669', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase' }}>TAP MASUK</div>
+                <div style={{ fontSize: 'clamp(8px, 1.1vw, 11px)', color: '#059669', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase' }}>TAP MASUK</div>
               </div>
             )}
 
@@ -171,9 +171,9 @@ export default function LoginScreen() {
 
           <div style={{
             position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', paddingTop: guruActive ? 56 : 88,
+            alignItems: 'center', paddingTop: guruActive ? 'clamp(40px,5vh,72px)' : 'clamp(60px,8vh,100px)',
             opacity: decided && !guruActive ? 0 : 1, transition: 'opacity 0.4s',
-            width: '100%',
+            width: '100%', maxWidth: guruActive ? 440 : '100%', margin: '0 auto',
           }}>
             {guruActive && (
               <button onClick={e => { e.stopPropagation(); goBack() }} style={{
@@ -183,21 +183,21 @@ export default function LoginScreen() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
               }}>←</button>
             )}
-            <div style={{ fontSize: 52, filter: 'drop-shadow(0 0 20px rgba(167,139,250,0.7))' }}>🔮</div>
-            <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '0.2em', color: '#A78BFA', textTransform: 'uppercase', marginTop: 10 }}>Guru</div>
-            <div style={{ fontSize: 10, color: '#7C3AED', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 2 }}>Arsitek Ilmu</div>
+            <div style={{ fontSize: 'clamp(36px, 6vw, 64px)', filter: 'drop-shadow(0 0 20px rgba(167,139,250,0.7))' }}>🔮</div>
+            <div style={{ fontSize: 'clamp(16px, 2.5vw, 26px)', fontWeight: 900, letterSpacing: '0.2em', color: '#A78BFA', textTransform: 'uppercase', marginTop: 10 }}>Guru</div>
+            <div style={{ fontSize: 'clamp(9px, 1.2vw, 13px)', color: '#7C3AED', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 2 }}>Arsitek Ilmu</div>
 
             {!decided && (
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                 {['Buat Tugas', 'Pantau Kelas', 'Lihat Nilai'].map(t => (
                   <div key={t} style={{
-                    fontSize: 10, fontWeight: 700, padding: '5px 14px', borderRadius: 20,
+                    fontSize: 'clamp(9px, 1.3vw, 12px)', fontWeight: 700, padding: 'clamp(4px,0.8vw,7px) clamp(10px,1.8vw,18px)', borderRadius: 20,
                     background: 'rgba(139,92,246,0.15)', color: '#A78BFA',
                     border: '1px solid rgba(139,92,246,0.3)', letterSpacing: '0.1em',
                   }}>{t}</div>
                 ))}
                 <div style={{ marginTop: 16, width: 32, height: 2, background: 'rgba(167,139,250,0.5)', borderRadius: 2 }} />
-                <div style={{ fontSize: 9, color: '#7C3AED', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase' }}>TAP MASUK</div>
+                <div style={{ fontSize: 'clamp(8px, 1.1vw, 11px)', color: '#7C3AED', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase' }}>TAP MASUK</div>
               </div>
             )}
 
@@ -259,13 +259,13 @@ export default function LoginScreen() {
         pointerEvents: 'none',
         opacity: decided ? 0 : 1, transition: 'opacity 0.35s',
       }}>
-        <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src={logo} alt="TOMAT" style={{ width: 44, height: 44, borderRadius: 12, objectFit: 'cover', marginBottom: 6 }} />
-          <div style={{ fontSize: 24, fontWeight: 900, fontStyle: 'italic', letterSpacing: '0.05em', color: '#fff' }}>TOMAT</div>
-          <div style={{ fontSize: 9, color: '#67E8F9', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase' }}>Tantangan Otak MATematika</div>
+        <div style={{ marginTop: 'clamp(18px,3vh,36px)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img src={logo} alt="TOMAT" style={{ width: 'clamp(36px,5vw,52px)', height: 'clamp(36px,5vw,52px)', borderRadius: 12, objectFit: 'cover', marginBottom: 6 }} />
+          <div style={{ fontSize: 'clamp(18px,3vw,28px)', fontWeight: 900, fontStyle: 'italic', letterSpacing: '0.05em', color: '#fff' }}>TOMAT</div>
+          <div style={{ fontSize: 'clamp(8px,1.1vw,11px)', color: '#67E8F9', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase' }}>Tantangan Otak MATematika</div>
         </div>
         <div style={{ marginTop: 12, width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
-        <div style={{ fontSize: 9, color: '#475569', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 4 }}>Pilih Duniamu</div>
+        <div style={{ fontSize: 'clamp(8px,1vw,11px)', color: '#475569', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 4 }}>Pilih Duniamu</div>
       </div>
 
       {/* Footer */}

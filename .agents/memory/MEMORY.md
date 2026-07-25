@@ -16,3 +16,4 @@
 - [TOMAT demo showcase account](tomat-demo-account.md) — a server-marked student account owns the full luxury catalog for teacher previews but is hidden from student-facing views.
 - [TOMAT multiplayer duel](tomat-multiplayer.md) — Socket.io on http.createServer; server-authoritative Katak questions; lobby rooms in-memory Map; stale-closure fix via refs in LobbyScreen.
 - [TOMAT Boss Raid](tomat-boss-raid.md) — Co-op event: guru creates via REST, students attack via socket; boss-state.js shared module; setIo() wires socket to REST layer; 60s cooldown per student; 100 HP per correct answer.
+- [TOMAT auth bootstrap resilience](tomat-auth-bootstrap-resilience.md) — session checks must time out so database/session-store outages cannot keep the splash screen visible forever.

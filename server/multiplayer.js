@@ -6,6 +6,7 @@ import { Server } from 'socket.io'
 import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
 import { tournaments, tournamentToClient, getTournamentIo } from './tournament-state.js'
 import { startTournamentMatch, handleTournamentAnswer } from './tournament-engine.js'
+import { notifyUser } from './notifications.js'
 
 // ─── Question generation (server-authoritative, mirrors SubmarineGame.jsx) ───
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
@@ -97,6 +98,9 @@ setInterval(() => {
   }
 }, 5 * 60_000)
 
+// Track online users: userId → Set<socketId>
+const userSockets = new Map()
+
 // ─── Socket.io ───────────────────────────────────────────────────────────────
 export function setupMultiplayer(httpServer, sessionMiddleware) {
   const io = new Server(httpServer, {
@@ -116,6 +120,10 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       socket.disconnect(true)
       return
     }
+
+    // Register socket for direct messaging
+    if (!userSockets.has(user.id)) userSockets.set(user.id, new Set())
+    userSockets.get(user.id).add(socket.id)
 
     // Siswa join kelas room untuk menerima notifikasi turnamen
     if (user.role === 'siswa' && user.kelas) {
@@ -252,6 +260,79 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       leaveAllRooms(socket, io)
     })
 
+    // ── INVITE (kirim undangan duel langsung ke user lain) ───────────────────
+    socket.on('duel:invite', ({ targetUserId, targetRole, avatar } = {}) => {
+      if (user.role !== 'siswa' || targetRole !== 'siswa') {
+        socket.emit('duel:error', { message: 'Undangan duel hanya antar siswa.' })
+        return
+      }
+      if (!targetUserId || targetUserId === user.id) {
+        socket.emit('duel:error', { message: 'Target undangan tidak valid.' })
+        return
+      }
+
+      leaveAllRooms(socket, io)
+      const code = genCode()
+      const player = makePlayer(avatar)
+      const room = {
+        code,
+        players: [player],
+        status: 'waiting',
+        currentQ: null,
+        round: 0,
+        createdAt: Date.now(),
+        inviteTargetId: targetUserId,
+        cancelTimeout: null,
+      }
+      rooms.set(code, room)
+      socket.join(code)
+      socket.emit('duel:created', { code, player: safePlayer(player) })
+
+      const invitePayload = {
+        code,
+        from: { userId: user.id, name: player.name },
+      }
+
+      const targetSocks = userSockets.get(targetUserId)
+      if (targetSocks && targetSocks.size > 0) {
+        for (const sid of targetSocks) {
+          io.to(sid).emit('duel:incoming-invite', invitePayload)
+        }
+      } else {
+        notifyUser({
+          userId: targetUserId,
+          role: targetRole,
+          type: 'duel_invite',
+          title: `⚔️ Tantangan Duel dari ${player.name}!`,
+          body: `${player.name} mengajakmu duel Matematika. Buka TOMAT sekarang!`,
+          url: '/',
+          metadata: { code, fromUserId: user.id, fromName: player.name },
+        }).catch(() => {})
+      }
+
+      room.cancelTimeout = setTimeout(() => {
+        const r = rooms.get(code)
+        if (r && r.status === 'waiting' && r.players.length < 2) {
+          rooms.delete(code)
+          socket.emit('duel:invite-expired', { code })
+        }
+      }, 60_000)
+    })
+
+    socket.on('duel:invite-decline', ({ code } = {}) => {
+      const room = rooms.get(code)
+      if (!room) return
+      const host = room.players[0]
+      if (host) {
+        const hostSocks = userSockets.get(host.userId)
+        if (hostSocks) {
+          for (const sid of hostSocks) {
+            io.to(sid).emit('duel:invite-declined', { byUserId: user.id })
+          }
+        }
+      }
+    })
+
     // ════════════════════════════════════════════════════════════════════════
     // BOSS RAID — Co-op event: every student in the class chips away at a
     //             shared boss HP pool. Server-authoritative question flow
@@ -361,6 +442,11 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
 
     // ── DISCONNECT ───────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
+      const set = userSockets.get(user.id)
+      if (set) {
+        set.delete(socket.id)
+        if (set.size === 0) userSockets.delete(user.id)
+      }
       leaveAllRooms(socket, io)
     })
 

@@ -11,12 +11,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      :root { --shell-max: 480px; --shell-max-wide: 640px; }
-      @media (min-width: 640px) { :root { --shell-max: 600px; --shell-max-wide: 760px; } }
-      @media (min-width: 900px) { :root { --shell-max: 720px; --shell-max-wide: 920px; } }
-      @media (min-width: 1280px) { :root { --shell-max: 860px; --shell-max-wide: 1080px; } }
+      :root {
+        --shell-max: 480px; --shell-max-wide: 640px;
+        --content-max: 480px;
+        /* Fluid font scale: smaller on tiny screens, normal on mobile, slightly bigger on desktop */
+        --fs-scale: clamp(0.82, 2.8vw, 1);
+      }
+      @media (min-width: 540px)  { :root { --shell-max: 540px;  --shell-max-wide: 700px;  --content-max: 520px;  --fs-scale: clamp(0.88, 2.5vw, 1); } }
+      @media (min-width: 768px)  { :root { --shell-max: 100%;   --shell-max-wide: 100%;   --content-max: 640px;  --fs-scale: 1; } }
+      @media (min-width: 1024px) { :root { --content-max: 720px; } }
+      @media (min-width: 1280px) { :root { --content-max: 800px; } }
+      html { font-size: calc(16px * var(--fs-scale)); }
       body { font-family: 'Inter', sans-serif; background: #0F1115; color: #E2E2E6; min-height: 100vh; }
       #root { min-height: 100vh; }
+      /* Content centering helper — applied to game screen inner wrappers on wide screens */
+      @media (min-width: 768px) {
+        .tomat-content { max-width: var(--content-max); margin-left: auto; margin-right: auto; }
+      }
       ::-webkit-scrollbar { width: 6px; }
       ::-webkit-scrollbar-track { background: #1E2128; }
       ::-webkit-scrollbar-thumb { background: #6366F1; border-radius: 3px; }
@@ -27,9 +38,9 @@
       input[type=text] { background: #1E2128; border: 1px solid #374151; color: #E2E2E6; border-radius: 8px; padding: 10px 14px; font-size: 16px; width: 100%; outline: none; font-family: inherit; }
       input[type=text]:focus { border-color: #6366F1; }
     </style>
-    <script type="module" crossorigin src="/assets/index-BMSuX-l9.js"></script>
+    <script type="module" crossorigin src="/assets/index-s_Y2DKdC.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-BMML5I2x.js">
-    <link rel="modulepreload" crossorigin href="/assets/games-CiRUzg_V.js">
+    <link rel="modulepreload" crossorigin href="/assets/games-rFCjvVFC.js">
   </head>
   <style>
     #splash {

@@ -19,7 +19,7 @@ self.addEventListener('notificationclick', event => {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
       const existing = clients.find(client => new URL(client.url).origin === self.location.origin)
       if (existing) {
-        existing.postMessage({ type: 'tomat-open-route', route: data.url || '/' })
+        existing.postMessage({ type: 'tomat-open-route', route: event.notification.data?.url || '/' })
         return existing.focus()
       }
       return self.clients.openWindow(target)
