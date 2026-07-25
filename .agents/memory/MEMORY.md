@@ -13,7 +13,10 @@
 - [TOMAT push notifications](tomat-push-notifications.md) — in-app notifications are the baseline; Web Push requires VAPID secrets and per-device permission.
 - [TOMAT coin economy](tomat-coin-economy.md) — correct gameplay answers award 15 coins; premium cosmetics use limited-edition pricing and server-side reward caps.
 - [TOMAT message delivery status](tomat-message-delivery-status.md) — private messages progress from sent to delivered when recipient loads the chat, then read when the conversation is opened.
-- [TOMAT demo showcase account](tomat-demo-account.md) — a server-marked student account owns the full luxury catalog for teacher previews but is hidden from student-facing views.
+- [TOMAT demo showcase account](tomat-demo-account.md) — tomat_demo is kelas 'IX Al Khawarizmi' (Grade 9, updated in schema ON CONFLICT), owns full luxury catalog, hidden from student views.
+- [TOMAT pet revive mechanic](tomat-pet-revive.md) — when isDead=true, student cannot feed Tomi; must POST /api/siswa/pet/revive (300 coins) to adopt new pet; revivePet() in PetContext; ShopScreen PetTokoTab shows adopt card and hides food.
+- [TOMAT G8 Bab2 duel support](tomat-g8bab2-duel.md) — 6 Pythagoras games (g8trebuchet/perisai/hartakarun/inspeksisudut/petaradar/taligantung) added to DUEL_GAME_KEYS and tournament-questions.js generators.
+- [TOMAT multi-grade leaderboard](tomat-leaderboard-grades.md) — GET /api/siswa/papan-peringkat/kelas/:gradeNum returns all-grade ranking by prefix (VII/VIII/IX); LeaderboardScreen has 3 tabs: Kelasku/Kelas 8/Kelas 9.
 - [TOMAT multiplayer duel](tomat-multiplayer.md) — Socket.io on http.createServer; server-authoritative Katak questions; lobby rooms in-memory Map; stale-closure fix via refs in LobbyScreen.
 - [TOMAT Boss Raid](tomat-boss-raid.md) — Co-op event: guru creates via REST, students attack via socket; boss-state.js shared module; setIo() wires socket to REST layer; 60s cooldown per student; 100 HP per correct answer.
 - [TOMAT auth bootstrap resilience](tomat-auth-bootstrap-resilience.md) — session checks must time out so database/session-store outages cannot keep the splash screen visible forever.

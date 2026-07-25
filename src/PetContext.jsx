@@ -86,10 +86,29 @@ export function PetProvider({ children }) {
     }
   }, [])
 
+  const revivePet = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await apiCall('/api/siswa/pet/revive', { method: 'POST', body: {} })
+      setPet(prev => ({
+        ...prev,
+        hunger: data.hunger,
+        isDead: data.isDead,
+        isStarving: data.isStarving,
+        petHungerUntil: data.petHungerUntil,
+      }))
+      return { ok: true, newCoins: data.newCoins }
+    } catch (err) {
+      return { ok: false, error: err.message }
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const refreshPet = useCallback(() => fetchPet(), [fetchPet])
 
   return (
-    <PetContext.Provider value={{ pet, loading, feedPet, refreshPet }}>
+    <PetContext.Provider value={{ pet, loading, feedPet, revivePet, refreshPet }}>
       {children}
     </PetContext.Provider>
   )

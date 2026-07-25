@@ -47,28 +47,122 @@ function HafalanChip({ total }) {
   )
 }
 
+function LeaderboardList({ leaderboard, publicProfile }) {
+  if (!leaderboard || leaderboard.length === 0) {
+    return <div style={{ textAlign: 'center', padding: 40, color: '#6B7280' }}>Belum ada siswa.</div>
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {leaderboard.map(s => {
+        const hafalanTotal = (s.hafalanPerkalian || 0) + (s.hafalanPembagian || 0)
+        return (
+          <div key={s.id} style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14,
+            background: s.isMe ? 'rgba(99,102,241,0.15)' : '#1A1D27',
+            border: s.isMe ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.05)',
+          }}>
+            <div style={{ width: 28, textAlign: 'center', fontSize: s.rank <= 3 ? 20 : 13, fontWeight: 800, color: s.rank <= 3 ? '#fff' : '#6B7280', flexShrink: 0 }}>
+              {MEDALS[s.rank] || `#${s.rank}`}
+            </div>
+            <UserAvatar
+              user={{ ...s, role: 'siswa' }}
+              onClick={() => publicProfile.openProfile({ ...s, role: 'siswa' })}
+            />
+            <button onClick={() => publicProfile.openProfile({ ...s, role: 'siswa' })} style={{
+              flex: 1, minWidth: 0, border: 'none', background: 'none',
+              padding: 0, color: '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {s.name}{s.isMe && <span style={{ color: '#A5B4FC' }}> (Kamu)</span>}
+              </div>
+              <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
+                {s.kelas && <span style={{ color: '#64748B' }}>{s.kelas} · </span>}
+                Level {s.level} · {s.exp} EXP · {s.compositeScore} poin
+              </div>
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+              <HafalanChip total={hafalanTotal} />
+              <HafalanDots perkalian={s.hafalanPerkalian} pembagian={s.hafalanPembagian} />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Tab types: 'myclass' | '8' | '9'
+const GRADE_TABS = [
+  { id: 'myclass', label: '🏫 Kelasku' },
+  { id: '8',       label: '📗 Kelas 8' },
+  { id: '9',       label: '📘 Kelas 9' },
+]
+
 export default function LeaderboardScreen({ goBack }) {
-  const [data, setData] = useState(null)
-  const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState('myclass')
+  const [myClassData, setMyClassData]   = useState(null)
+  const [grade8Data, setGrade8Data]     = useState(null)
+  const [grade9Data, setGrade9Data]     = useState(null)
+  const [loadingTab, setLoadingTab]     = useState(false)
+  const [error, setError]               = useState('')
   const publicProfile = usePublicProfile()
 
+  // Always fetch my class on mount
   useEffect(() => {
-    apiCall('/api/siswa/papan-peringkat').then(setData).catch(err => setError(err.message))
+    apiCall('/api/siswa/papan-peringkat').then(setMyClassData).catch(err => setError(err.message))
   }, [])
+
+  // Fetch grade data on demand
+  useEffect(() => {
+    if (activeTab === 'myclass') return
+    const grade = activeTab
+    const already = grade === '8' ? grade8Data : grade9Data
+    if (already) return
+    setLoadingTab(true)
+    setError('')
+    apiCall(`/api/siswa/papan-peringkat/kelas/${grade}`)
+      .then(data => {
+        if (grade === '8') setGrade8Data(data)
+        else setGrade9Data(data)
+      })
+      .catch(err => setError(err.message))
+      .finally(() => setLoadingTab(false))
+  }, [activeTab, grade8Data, grade9Data])
+
+  const currentData = activeTab === 'myclass' ? myClassData : (activeTab === '8' ? grade8Data : grade9Data)
+  const isLoading   = activeTab === 'myclass' ? !myClassData && !error : loadingTab && !currentData
 
   return (
     <div style={{ minHeight: '100vh', background: '#0B0D14' }}>
       <PlayerHeader />
       <TopBar title="Papan Peringkat" onBack={goBack} accentColor="#818CF8" />
 
-      {error && <div style={{ margin: '0 16px', color: '#F87171', fontSize: 13 }}>{error}</div>}
-      {!data && !error && <div style={{ padding: 24, color: '#94A3B8', textAlign: 'center' }}>Memuat…</div>}
+      {/* Grade tabs */}
+      <div style={{ display: 'flex', gap: 8, padding: '0 16px 14px', overflowX: 'auto' }}>
+        {GRADE_TABS.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            flex: '0 0 auto', padding: '9px 16px', borderRadius: 12, border: 'none', cursor: 'pointer',
+            fontSize: 13, fontWeight: 700, fontFamily: 'inherit', whiteSpace: 'nowrap',
+            background: activeTab === t.id ? '#6366F1' : '#1A1D27',
+            color: activeTab === t.id ? '#fff' : '#94A3B8',
+            transition: 'background 0.15s, color 0.15s',
+          }}>{t.label}</button>
+        ))}
+      </div>
 
-      {data && (
+      {error && <div style={{ margin: '0 16px', color: '#F87171', fontSize: 13 }}>{error}</div>}
+      {isLoading && <div style={{ padding: 24, color: '#94A3B8', textAlign: 'center' }}>Memuat…</div>}
+
+      {currentData && (
         <div style={{ padding: '0 16px 32px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
-          {data.kelas && (
+          {activeTab === 'myclass' && currentData.kelas && (
             <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 6, textAlign: 'center' }}>
-              Peringkat siswa kelas <span style={{ color: '#A5B4FC', fontWeight: 700 }}>{data.kelas}</span>
+              Peringkat siswa kelas <span style={{ color: '#A5B4FC', fontWeight: 700 }}>{currentData.kelas}</span>
+            </div>
+          )}
+          {activeTab !== 'myclass' && (
+            <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 6, textAlign: 'center' }}>
+              Peringkat semua siswa <span style={{ color: '#A5B4FC', fontWeight: 700 }}>Kelas {activeTab}</span>
             </div>
           )}
 
@@ -84,45 +178,7 @@ export default function LeaderboardScreen({ goBack }) {
             </div>
           </div>
 
-          {(data.leaderboard ?? []).length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#6B7280' }}>Belum ada siswa lain di kelasmu.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {(data.leaderboard ?? []).map(s => {
-                const hafalanTotal = (s.hafalanPerkalian || 0) + (s.hafalanPembagian || 0)
-                return (
-                  <div key={s.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14,
-                    background: s.isMe ? 'rgba(99,102,241,0.15)' : '#1A1D27',
-                    border: s.isMe ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.05)',
-                  }}>
-                    <div style={{ width: 28, textAlign: 'center', fontSize: s.rank <= 3 ? 20 : 13, fontWeight: 800, color: s.rank <= 3 ? '#fff' : '#6B7280', flexShrink: 0 }}>
-                      {MEDALS[s.rank] || `#${s.rank}`}
-                    </div>
-                    <UserAvatar
-                      user={{ ...s, role: 'siswa' }}
-                      onClick={() => publicProfile.openProfile({ ...s, role: 'siswa' })}
-                    />
-                    <button onClick={() => publicProfile.openProfile({ ...s, role: 'siswa' })} style={{
-                      flex: 1, minWidth: 0, border: 'none', background: 'none',
-                      padding: 0, color: '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                    }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {s.name}{s.isMe && <span style={{ color: '#A5B4FC' }}> (Kamu)</span>}
-                      </div>
-                      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
-                        Level {s.level} · {s.exp} EXP · {s.compositeScore} poin
-                      </div>
-                    </button>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-                      <HafalanChip total={hafalanTotal} />
-                      <HafalanDots perkalian={s.hafalanPerkalian} pembagian={s.hafalanPembagian} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          <LeaderboardList leaderboard={currentData.leaderboard} publicProfile={publicProfile} />
 
           {/* Score breakdown legend */}
           <div style={{

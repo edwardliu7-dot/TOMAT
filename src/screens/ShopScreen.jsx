@@ -130,9 +130,11 @@ function ItemVisual({ item }) {
   return <div style={{ width: 76, height: 76, borderRadius: 12, background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>❔</div>
 }
 
+const REVIVE_COST = 300
+
 // ── Pet Tab — skin shop + food shop ──────────────────────────────────────────
 function PetTokoTab({ data, onRefresh, setError }) {
-  const { pet, feedPet, refreshPet } = usePet()
+  const { pet, feedPet, revivePet, refreshPet } = usePet()
   const { player, addCoins } = usePlayer()
   const { refreshMe } = useAuth()
   const [busyId, setBusyId] = useState(null)
@@ -172,10 +174,25 @@ function PetTokoTab({ data, onRefresh, setError }) {
     const result = await feedPet(foodId)
     if (result.ok) {
       setFeedSuccess('🐹 Tomi sudah makan!')
-      // sync player coins locally (server already deducted)
       await onRefresh()
       await refreshMe()
       setTimeout(() => setFeedSuccess(''), 3000)
+    } else {
+      setLocalError(result.error)
+    }
+    setBusyId(null)
+  }
+
+  const doRevive = async () => {
+    setBusyId('revive')
+    setLocalError('')
+    setFeedSuccess('')
+    const result = await revivePet()
+    if (result.ok) {
+      setFeedSuccess('🐹 Pet baru sudah diadopsi! Selamat datang kembali, Tomi!')
+      await onRefresh()
+      await refreshMe()
+      setTimeout(() => setFeedSuccess(''), 4000)
     } else {
       setLocalError(result.error)
     }
@@ -292,44 +309,96 @@ function PetTokoTab({ data, onRefresh, setError }) {
           })}
         </div>
 
+        {/* Buy New Pet — shown when Tomi is dead */}
+        {pet.isDead && (
+          <div style={{
+            marginBottom: 24, borderRadius: 18,
+            background: 'linear-gradient(145deg,#1a0000,#2d0a0a)',
+            border: '2px solid rgba(239,68,68,0.4)',
+            padding: '20px 16px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 52, marginBottom: 10 }}>💀</div>
+            <div style={{ fontSize: 17, fontWeight: 900, color: '#F87171', marginBottom: 6 }}>Tomi sudah mati!</div>
+            <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 16, lineHeight: 1.6 }}>
+              Tomi tidak bisa diberi makan lagi. Kamu perlu mengadopsi pet baru untuk melanjutkan perjalanan!
+            </div>
+            <div style={{ fontSize: 13, color: '#FCA5A5', marginBottom: 16 }}>
+              Biaya adopsi: <strong style={{ color: '#F87171', fontSize: 16 }}>🪙 {REVIVE_COST}</strong>
+              {data.coins < REVIVE_COST && (
+                <span style={{ color: '#6B7280', fontSize: 11, display: 'block', marginTop: 4 }}>
+                  (Kamu punya 🪙 {data.coins} — perlu {REVIVE_COST - data.coins} lagi)
+                </span>
+              )}
+            </div>
+            <button
+              onClick={doRevive}
+              disabled={data.coins < REVIVE_COST || busyId === 'revive'}
+              style={{
+                width: '100%', padding: '13px', borderRadius: 12, border: 'none', fontSize: 14, fontWeight: 900,
+                cursor: data.coins >= REVIVE_COST ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+                background: data.coins >= REVIVE_COST
+                  ? 'linear-gradient(135deg,#dc2626,#b91c1c)'
+                  : 'rgba(248,113,113,0.1)',
+                color: data.coins >= REVIVE_COST ? '#fff' : '#F87171',
+                outline: data.coins >= REVIVE_COST ? 'none' : '1px solid rgba(248,113,113,0.2)',
+              }}
+            >
+              {busyId === 'revive' ? '…' : data.coins >= REVIVE_COST ? '🐾 Adopsi Pet Baru' : '🔒 Koin tidak cukup'}
+            </button>
+          </div>
+        )}
+
         {/* Food shop */}
         <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>
           🌾 Toko Makanan Marmut
         </div>
-        <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14 }}>
-          Semakin mahal makanannya, semakin lama Tomi kenyang. Memberi makan langsung meningkatkan stamina Tomi.
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-          {PET_FOOD_CATALOG.map(food => {
-            const affordable = data.coins >= food.harga
-            const busy = busyId === food.id
-            return (
-              <div key={food.id} style={{
-                background: '#1A1D27', border: `1px solid ${food.color}22`,
-                borderRadius: 16, padding: '14px 12px',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-              }}>
-                <div style={{ fontSize: 38 }}>{food.emoji}</div>
-                <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', textAlign: 'center' }}>{food.nama}</div>
-                <div style={{ fontSize: 11, color: '#64748B' }}>Kenyang {food.dur}</div>
-                <div style={{ fontWeight: 900, fontSize: 14, color: food.color }}>🪙 {food.harga}</div>
-                <button
-                  onClick={() => buyFood(food.id)}
-                  disabled={!affordable || busy}
-                  style={{
-                    width: '100%', padding: '8px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700,
-                    cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
-                    background: affordable ? `${food.color}22` : 'rgba(248,113,113,0.1)',
-                    color: affordable ? food.color : '#F87171',
-                    outline: `1px solid ${affordable ? food.color + '44' : 'rgba(248,113,113,0.2)'}`,
-                  }}
-                >
-                  {busy ? '…' : affordable ? 'Beri Makan' : '🔒 Koin kurang'}
-                </button>
-              </div>
-            )
-          })}
-        </div>
+        {pet.isDead ? (
+          <div style={{
+            padding: '16px', borderRadius: 14, background: 'rgba(239,68,68,0.07)',
+            border: '1px dashed rgba(239,68,68,0.3)', textAlign: 'center',
+            fontSize: 13, color: '#6B7280', lineHeight: 1.6,
+          }}>
+            🚫 Makanan tidak bisa diberikan ke pet yang sudah mati.<br/>
+            Adopsi dulu pet baru di atas!
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14 }}>
+              Semakin mahal makanannya, semakin lama Tomi kenyang. Memberi makan langsung meningkatkan stamina Tomi.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+              {PET_FOOD_CATALOG.map(food => {
+                const affordable = data.coins >= food.harga
+                const busy = busyId === food.id
+                return (
+                  <div key={food.id} style={{
+                    background: '#1A1D27', border: `1px solid ${food.color}22`,
+                    borderRadius: 16, padding: '14px 12px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                  }}>
+                    <div style={{ fontSize: 38 }}>{food.emoji}</div>
+                    <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', textAlign: 'center' }}>{food.nama}</div>
+                    <div style={{ fontSize: 11, color: '#64748B' }}>Kenyang {food.dur}</div>
+                    <div style={{ fontWeight: 900, fontSize: 14, color: food.color }}>🪙 {food.harga}</div>
+                    <button
+                      onClick={() => buyFood(food.id)}
+                      disabled={!affordable || busy}
+                      style={{
+                        width: '100%', padding: '8px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700,
+                        cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+                        background: affordable ? `${food.color}22` : 'rgba(248,113,113,0.1)',
+                        color: affordable ? food.color : '#F87171',
+                        outline: `1px solid ${affordable ? food.color + '44' : 'rgba(248,113,113,0.2)'}`,
+                      }}
+                    >
+                      {busy ? '…' : affordable ? 'Beri Makan' : '🔒 Koin kurang'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

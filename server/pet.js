@@ -54,6 +54,48 @@ router.get('/', async (req, res) => {
   }
 })
 
+// POST /api/siswa/pet/revive — buy a new pet when Tomi is dead (costs 300 coins)
+const REVIVE_COST = 300
+router.post('/revive', async (req, res) => {
+  const client = await pool.connect()
+  try {
+    await client.query('begin')
+    const { rows } = await client.query(
+      'select coins, pet_hunger_until from students where id = $1 for update',
+      [req.session.user.id]
+    )
+    const student = rows[0]
+    if (!student) {
+      await client.query('rollback')
+      return res.status(404).json({ error: 'Siswa tidak ditemukan.' })
+    }
+    const { isDead } = computeHunger(student.pet_hunger_until)
+    if (!isDead) {
+      await client.query('rollback')
+      return res.status(400).json({ error: 'Tomi masih hidup, tidak perlu beli pet baru!' })
+    }
+    if (student.coins < REVIVE_COST) {
+      await client.query('rollback')
+      return res.status(402).json({ error: `Koin tidak cukup. Butuh ${REVIVE_COST} 🪙 untuk adopsi pet baru.` })
+    }
+    // Give Tomi 24 hours of hunger from now
+    const newUntil = new Date(Date.now() + 24 * 3600 * 1000)
+    await client.query(
+      'update students set coins = coins - $2, pet_hunger_until = $3 where id = $1',
+      [req.session.user.id, REVIVE_COST, newUntil]
+    )
+    await client.query('commit')
+    const { hunger, isDead: newDead, isStarving } = computeHunger(newUntil)
+    res.json({ ok: true, hunger, isDead: newDead, isStarving, newCoins: student.coins - REVIVE_COST, petHungerUntil: newUntil })
+  } catch (err) {
+    await client.query('rollback').catch(() => {})
+    console.error('pet revive error', err)
+    res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  } finally {
+    client.release()
+  }
+})
+
 // POST /api/siswa/pet/feed { foodId }
 // Deducts coins atomically and extends pet_hunger_until
 router.post('/feed', async (req, res) => {

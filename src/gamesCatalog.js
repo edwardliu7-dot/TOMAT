@@ -100,4 +100,6 @@ export function getGameInfo(key) {
 export const DUEL_GAME_KEYS = new Set([
   'katak', 'termometer', 'pabrikrobot', 'gembok', 'mercusuar', 'sporajamur', 'scanner',
   'g8selramuan', 'g8racunminiatur', 'g8kristal', 'g8fusienergi', 'g8mantraakar', 'g8geolog',
+  // Grade 8 Bab II — Teorema Pythagoras
+  'g8trebuchet', 'g8perisai', 'g8hartakarun', 'g8inspeksisudut', 'g8petaradar', 'g8taligantung',
 ])

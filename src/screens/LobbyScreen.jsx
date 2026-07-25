@@ -188,12 +188,42 @@ export default function LobbyScreen({ goBack, onStart, initialCode, gameKey = 'k
 
   // Countdown overlay
   if (phase === 'countdown') {
+    const me  = players[myIndex]
+    const opp = players[myIndex === 0 ? 1 : 0]
     return (
       <div style={{
         minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '0 24px',
       }}>
-        <div style={{ fontSize: 14, color: '#94A3B8', marginBottom: 24, fontWeight: 700, letterSpacing: 2 }}>DUEL DIMULAI DALAM</div>
+        {/* Player name banner */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 28, width: '100%', maxWidth: 360 }}>
+          <div style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>KAMU</div>
+            <div style={{
+              background: 'rgba(103,232,249,0.1)', border: '2px solid rgba(103,232,249,0.4)',
+              borderRadius: 14, padding: '10px 14px',
+            }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {me?.name || user?.nama || 'Kamu'}
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: '#f59e0b', flexShrink: 0 }}>VS</div>
+          <div style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>LAWAN</div>
+            <div style={{
+              background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.4)',
+              borderRadius: 14, padding: '10px 14px',
+            }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {opp?.name || '???'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 16, fontWeight: 700, letterSpacing: 2 }}>DUEL DIMULAI DALAM</div>
         <div style={{
           fontSize: 120, fontWeight: 900, color: '#67E8F9', lineHeight: 1,
           textShadow: '0 0 60px rgba(103,232,249,0.6)',

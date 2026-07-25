@@ -252,6 +252,102 @@ const generators = {
       gameLabel: 'Ekspedisi Geolog Kerajaan',
     }
   },
+
+  // ── GRADE 8 BAB II: Teorema Pythagoras ─────────────────────────────────────
+
+  // Bidikan Tepat Trebuchet — hypotenuse given two legs
+  g8trebuchet: () => {
+    const TRIPLES = [[3,4,5],[5,12,13],[8,15,17],[6,8,10],[9,12,15],[7,24,25],[9,40,41]]
+    const [a, b, c] = TRIPLES[rand(0, TRIPLES.length - 1)]
+    return {
+      question: { text: `Trebuchet membentuk segitiga siku-siku. Tinggi tiang (a) = ${a} m, jarak ke sasaran (b) = ${b} m. Berapa panjang tali pelontar (c)?`, a, b },
+      answer: c,
+      sliderMin: 1,
+      sliderMax: 50,
+      gameLabel: 'Bidikan Tepat Trebuchet',
+    }
+  },
+
+  // Restorasi Perisai Kerajaan — rhombus missing diagonal
+  g8perisai: () => {
+    const RHOMBUS = [
+      { s:5,  d1:6,  d2:8  },
+      { s:13, d1:10, d2:24 },
+      { s:17, d1:16, d2:30 },
+      { s:10, d1:12, d2:16 },
+      { s:5,  d1:8,  d2:6  },
+    ]
+    const r = RHOMBUS[rand(0, RHOMBUS.length - 1)]
+    return {
+      question: { text: `Perisai berbentuk belah ketupat. Sisi (s) = ${r.s} cm, diagonal d1 = ${r.d1} cm. Berapa diagonal d2? (d2 = 2 × √(s² − (d1/2)²))`, s: r.s, d1: r.d1 },
+      answer: r.d2,
+      sliderMin: 1,
+      sliderMax: 55,
+      gameLabel: 'Restorasi Perisai Kerajaan',
+    }
+  },
+
+  // Harta Karun di Sudut Ruangan — space diagonal of a box
+  g8hartakarun: () => {
+    const BOXES = [
+      {l:1,w:2,h:2,d:3}, {l:2,w:3,h:6,d:7}, {l:2,w:4,h:4,d:6},
+      {l:1,w:4,h:8,d:9}, {l:2,w:6,h:9,d:11},{l:6,w:6,h:7,d:11},
+      {l:3,w:4,h:12,d:13},{l:4,w:7,h:4,d:9},
+    ]
+    const b = BOXES[rand(0, BOXES.length - 1)]
+    return {
+      question: { text: `Peti harta berbentuk balok: P=${b.l} m, L=${b.w} m, T=${b.h} m. Berapa panjang diagonal ruangnya? (d = √(P²+L²+T²))`, l: b.l, w: b.w, h: b.h },
+      answer: b.d,
+      sliderMin: 1,
+      sliderMax: 18,
+      gameLabel: 'Harta Karun di Sudut Ruangan',
+    }
+  },
+
+  // Inspeksi Sudut Menara — find a² + b²
+  g8inspeksisudut: () => {
+    const TRIPLES = [[3,4,5],[5,12,13],[8,15,17],[6,8,10],[9,12,15],[7,24,25]]
+    const [a, b] = TRIPLES[rand(0, TRIPLES.length - 1)]
+    const answer = a * a + b * b
+    return {
+      question: { text: `Periksa menara: sisi a = ${a} m, sisi b = ${b} m. Berapa nilai a² + b²?`, a, b },
+      answer,
+      sliderMin: 1,
+      sliderMax: 650,
+      gameLabel: 'Inspeksi Sudut Menara',
+    }
+  },
+
+  // Peta Radar Pengintai — distance between two points
+  g8petaradar: () => {
+    const PAIRS = [
+      {x1:0,y1:0,x2:3,y2:4,d:5}, {x1:0,y1:0,x2:5,y2:12,d:13},
+      {x1:1,y1:1,x2:4,y2:5,d:5}, {x1:2,y1:3,x2:7,y2:15,d:13},
+      {x1:0,y1:0,x2:8,y2:15,d:17},{x1:0,y1:0,x2:6,y2:8,d:10},
+      {x1:3,y1:0,x2:3,y2:12,d:12},
+    ]
+    const p = PAIRS[rand(0, PAIRS.length - 1)]
+    return {
+      question: { text: `Ksatria di (${p.x1},${p.y1}), benteng musuh di (${p.x2},${p.y2}). Berapa jaraknya? (d = √(Δx²+Δy²))`, x1:p.x1, y1:p.y1, x2:p.x2, y2:p.y2 },
+      answer: p.d,
+      sliderMin: 1,
+      sliderMax: 25,
+      gameLabel: 'Peta Radar Pengintai',
+    }
+  },
+
+  // Misi Penyelamatan Tali Gantung — hypotenuse (context: rope/ladder)
+  g8taligantung: () => {
+    const TRIPLES = [[3,4,5],[5,12,13],[8,15,17],[6,8,10],[9,12,15],[9,40,41]]
+    const [a, b, c] = TRIPLES[rand(0, TRIPLES.length - 1)]
+    return {
+      question: { text: `Tali penyelamat melintangi jurang. Tinggi (a) = ${a} m, jarak horisontal (b) = ${b} m. Berapa panjang tali (c)?`, a, b },
+      answer: c,
+      sliderMin: 1,
+      sliderMax: 50,
+      gameLabel: 'Misi Penyelamatan Tali Gantung',
+    }
+  },
 }
 
 export function genTournamentQ(gameKey) {
