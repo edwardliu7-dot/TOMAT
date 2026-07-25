@@ -1,11 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react'
 
 const GAME_LABELS = {
-  katak:       '🐸 Katak Pelompat',
-  termometer:  '🌡️ Termometer',
-  pabrikrobot: '🤖 Pabrik Robot',
-  gembok:      '⚙️ Gembok Roda Gigi',
-  mercusuar:   '🏮 Mercusuar',
+  katak:           '🐸 Katak Pelompat',
+  termometer:      '🌡️ Termometer',
+  pabrikrobot:     '🤖 Pabrik Robot',
+  gembok:          '⚙️ Gembok Roda Gigi',
+  mercusuar:       '🏮 Mercusuar',
+  sporajamur:      '🍄 Spora Jamur',
+  scanner:         '💎 Scanner Permata',
+  // Grade 8 BAB I — Bilangan Berpangkat
+  g8selramuan:     '🧪 Penggandaan Sel Ramuan',
+  g8racunminiatur: '☠️ Ekstraksi Racun Miniatur',
+  g8kristal:       '💎 Pemisahan Elemen Kristal',
+  g8fusienergi:    '⚗️ Fusi Energi Alkemis',
+  g8mantraakar:    '✨ Penyederhanaan Mantra Akar',
+  g8geolog:        '⛏️ Ekspedisi Geolog Kerajaan',
 }
 
 /**

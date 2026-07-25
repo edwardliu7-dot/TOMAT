@@ -64,7 +64,7 @@ export default function LoginScreen() {
 
           <div style={{
             position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', paddingTop: siswaActive ? 'clamp(40px,5vh,72px)' : 'clamp(60px,8vh,100px)',
+            alignItems: 'center', paddingTop: siswaActive ? 'clamp(120px,18vh,160px)' : 'clamp(60px,8vh,100px)',
             opacity: decided && !siswaActive ? 0 : 1, transition: 'opacity 0.4s',
             width: '100%', maxWidth: siswaActive ? 440 : '100%', margin: '0 auto',
           }}>
@@ -76,9 +76,12 @@ export default function LoginScreen() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
               }}>←</button>
             )}
-            <div style={{ fontSize: 'clamp(36px, 6vw, 64px)', filter: 'drop-shadow(0 0 20px rgba(16,185,129,0.7))' }}>⚔️</div>
-            <div style={{ fontSize: 'clamp(16px, 2.5vw, 26px)', fontWeight: 900, letterSpacing: '0.2em', color: '#34D399', textTransform: 'uppercase', marginTop: 10 }}>Siswa</div>
-            <div style={{ fontSize: 'clamp(9px, 1.2vw, 13px)', color: '#059669', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 2 }}>Pejuang Angka</div>
+            {/* Role identity — fades out when the login form opens */}
+            <div style={{ opacity: siswaActive ? 0 : 1, transition: 'opacity 0.35s', pointerEvents: 'none' }}>
+              <div style={{ fontSize: 'clamp(36px, 6vw, 64px)', filter: 'drop-shadow(0 0 20px rgba(16,185,129,0.7))', textAlign: 'center' }}>⚔️</div>
+              <div style={{ fontSize: 'clamp(16px, 2.5vw, 26px)', fontWeight: 900, letterSpacing: '0.2em', color: '#34D399', textTransform: 'uppercase', marginTop: 10, textAlign: 'center' }}>Siswa</div>
+              <div style={{ fontSize: 'clamp(9px, 1.2vw, 13px)', color: '#059669', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 2, textAlign: 'center' }}>Pejuang Angka</div>
+            </div>
 
             {!decided && (
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
@@ -171,7 +174,7 @@ export default function LoginScreen() {
 
           <div style={{
             position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', paddingTop: guruActive ? 'clamp(40px,5vh,72px)' : 'clamp(60px,8vh,100px)',
+            alignItems: 'center', paddingTop: guruActive ? 'clamp(120px,18vh,160px)' : 'clamp(60px,8vh,100px)',
             opacity: decided && !guruActive ? 0 : 1, transition: 'opacity 0.4s',
             width: '100%', maxWidth: guruActive ? 440 : '100%', margin: '0 auto',
           }}>
@@ -183,9 +186,12 @@ export default function LoginScreen() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
               }}>←</button>
             )}
-            <div style={{ fontSize: 'clamp(36px, 6vw, 64px)', filter: 'drop-shadow(0 0 20px rgba(167,139,250,0.7))' }}>🔮</div>
-            <div style={{ fontSize: 'clamp(16px, 2.5vw, 26px)', fontWeight: 900, letterSpacing: '0.2em', color: '#A78BFA', textTransform: 'uppercase', marginTop: 10 }}>Guru</div>
-            <div style={{ fontSize: 'clamp(9px, 1.2vw, 13px)', color: '#7C3AED', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 2 }}>Arsitek Ilmu</div>
+            {/* Role identity — fades out when the login form opens */}
+            <div style={{ opacity: guruActive ? 0 : 1, transition: 'opacity 0.35s', pointerEvents: 'none' }}>
+              <div style={{ fontSize: 'clamp(36px, 6vw, 64px)', filter: 'drop-shadow(0 0 20px rgba(167,139,250,0.7))', textAlign: 'center' }}>🔮</div>
+              <div style={{ fontSize: 'clamp(16px, 2.5vw, 26px)', fontWeight: 900, letterSpacing: '0.2em', color: '#A78BFA', textTransform: 'uppercase', marginTop: 10, textAlign: 'center' }}>Guru</div>
+              <div style={{ fontSize: 'clamp(9px, 1.2vw, 13px)', color: '#7C3AED', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: 2, textAlign: 'center' }}>Arsitek Ilmu</div>
+            </div>
 
             {!decided && (
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
@@ -252,20 +258,19 @@ export default function LoginScreen() {
         </div>
       </div>
 
-      {/* Brand strip — hidden when decided */}
+      {/* Brand strip — always visible; only "Pilih Duniamu" fades when a role is chosen */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20,
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         pointerEvents: 'none',
-        opacity: decided ? 0 : 1, transition: 'opacity 0.35s',
       }}>
         <div style={{ marginTop: 'clamp(18px,3vh,36px)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <img src={logo} alt="TOMAT" style={{ width: 'clamp(36px,5vw,52px)', height: 'clamp(36px,5vw,52px)', borderRadius: 12, objectFit: 'cover', marginBottom: 6 }} />
           <div style={{ fontSize: 'clamp(18px,3vw,28px)', fontWeight: 900, fontStyle: 'italic', letterSpacing: '0.05em', color: '#fff' }}>TOMAT</div>
           <div style={{ fontSize: 'clamp(8px,1.1vw,11px)', color: '#67E8F9', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase' }}>Tantangan Otak MATematika</div>
         </div>
-        <div style={{ marginTop: 12, width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
-        <div style={{ fontSize: 'clamp(8px,1vw,11px)', color: '#475569', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 4 }}>Pilih Duniamu</div>
+        <div style={{ marginTop: 12, width: 1, height: 24, background: 'rgba(255,255,255,0.1)', opacity: decided ? 0 : 1, transition: 'opacity 0.35s' }} />
+        <div style={{ fontSize: 'clamp(8px,1vw,11px)', color: '#475569', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginTop: 4, opacity: decided ? 0 : 1, transition: 'opacity 0.35s' }}>Pilih Duniamu</div>
       </div>
 
       {/* Footer */}
