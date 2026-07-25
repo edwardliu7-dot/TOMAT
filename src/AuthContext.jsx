@@ -8,6 +8,7 @@ async function apiCall(path, options = {}) {
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: options.body ? JSON.stringify(options.body) : undefined,
+    signal: options.signal,
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
@@ -21,10 +22,15 @@ export function AuthProvider({ children }) {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    apiCall('/me')
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10_000) // 10s safety timeout
+
+    apiCall('/me', { signal: controller.signal })
       .then(data => setUser(data.user))
       .catch(() => setUser(null))
-      .finally(() => setChecking(false))
+      .finally(() => { clearTimeout(timeout); setChecking(false) })
+
+    return () => { clearTimeout(timeout); controller.abort() }
   }, [])
 
   const login = useCallback(async ({ role, username, password }) => {
