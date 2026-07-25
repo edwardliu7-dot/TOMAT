@@ -211,8 +211,8 @@ export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId
             />
           )}
 
-          {/* Mode Duel — hanya untuk katak */}
-          {pendingGame?.key === 'katak' && onDuel && (
+          {/* Mode Duel — tersedia untuk semua game turnamen */}
+          {onDuel && (
             <ModeCard
               icon="⚔️"
               title="Mode Duel"

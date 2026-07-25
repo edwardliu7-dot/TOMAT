@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { TopBar, Card, Btn } from '../components/shared'
 import { useAuth } from '../AuthContext'
 import { connectSocket } from '../socket'
+import { getGameInfo } from '../gamesCatalog'
 
 // ─── Avatar bubble ────────────────────────────────────────────────────────────
 function PlayerBubble({ player, isMe, pending = false }) {
@@ -61,7 +62,8 @@ function RoomCodeDisplay({ code }) {
 }
 
 // ─── Main Lobby Screen ────────────────────────────────────────────────────────
-export default function LobbyScreen({ goBack, onStart, initialCode }) {
+export default function LobbyScreen({ goBack, onStart, initialCode, gameKey = 'katak' }) {
+  const gameInfo = getGameInfo(gameKey)
   const { user } = useAuth()
 
   const [phase, setPhase]         = useState('menu')       // menu | creating | waiting | joining | ready | countdown
@@ -130,11 +132,12 @@ export default function LobbyScreen({ goBack, onStart, initialCode }) {
     })
 
     // Game starts — hand off to DuelKatakScreen via onStart callback
-    socket.on('duel:question', ({ question, round, maxRounds, scores }) => {
+    socket.on('duel:question', ({ question, round, maxRounds, scores, gameKey: gk }) => {
       onStart({
         code:    roomCodeRef.current,
         myIndex: myIndexRef.current,
         question, round, maxRounds, scores,
+        gameKey: gk || gameKey,
       })
     })
 
@@ -161,8 +164,8 @@ export default function LobbyScreen({ goBack, onStart, initialCode }) {
   // ── Actions ────────────────────────────────────────────────────────────────
   const createRoom = useCallback(() => {
     setError(null)
-    connectSocket().emit('duel:create', { avatar: user?.profilePhoto || null })
-  }, [user])
+    connectSocket().emit('duel:create', { avatar: user?.profilePhoto || null, gameKey })
+  }, [user, gameKey])
 
   const joinRoom = useCallback(() => {
     const trimmed = codeInput.trim().toUpperCase()
@@ -212,10 +215,10 @@ export default function LobbyScreen({ goBack, onStart, initialCode }) {
         {phase === 'menu' && (
           <>
             <div style={{ textAlign: 'center', padding: '24px 0 8px' }}>
-              <div style={{ fontSize: 56, marginBottom: 12 }}>🐸⚔️🐸</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 8 }}>Katak Duel</div>
+              <div style={{ fontSize: 56, marginBottom: 12 }}>{gameInfo?.emoji || '⚔️'}⚔️{gameInfo?.emoji || '⚔️'}</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 8 }}>{gameInfo?.name || 'Duel'}</div>
               <div style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>
-                Adu cepat menjawab soal Katak Pelompat!<br/>Siapa yang lebih banyak benar dari {7} soal?
+                Adu cepat menjawab soal {gameInfo?.name || 'game ini'}!<br/>Siapa yang lebih banyak benar dari 7 soal?
               </div>
             </div>
 

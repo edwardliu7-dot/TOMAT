@@ -1,13 +1,26 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { TopBar, Card, Btn } from '../components/shared'
 import { connectSocket, getSocket } from '../socket'
+import { getGameInfo } from '../gamesCatalog'
 
-// ─── Number line helpers (mirrors SubmarineGame.jsx) ─────────────────────────
+// ─── Number line helpers (katak) ─────────────────────────────────────────────
 const NL_MIN = -15, NL_MAX = 15
 function toPercent(n) { return ((n - NL_MIN) / (NL_MAX - NL_MIN)) * 100 }
 
+// ─── Initial slider value helper ─────────────────────────────────────────────
+function getInitSlider(q, gameKey) {
+  if (gameKey === 'katak') {
+    const inner = q?.question || q || {}
+    return inner.start ?? 0
+  }
+  const min = q?.sliderMin ?? -15
+  const max = q?.sliderMax ?? 15
+  return Math.round((min + max) / 2)
+}
+
 // ─── Slider (inline — no shared-component dependency) ────────────────────────
 function DuelSlider({ value, min = NL_MIN, max = NL_MAX, onChange, disabled }) {
+  const ticks = [min, Math.round((min + max) / 2), max]
   return (
     <div style={{ padding: '0 4px' }}>
       <input
@@ -21,7 +34,7 @@ function DuelSlider({ value, min = NL_MIN, max = NL_MAX, onChange, disabled }) {
         }}
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontSize: 10, marginTop: -4 }}>
-        {[-15, -10, -5, 0, 5, 10, 15].map(n => <span key={n}>{n}</span>)}
+        {ticks.map(n => <span key={n}>{n}</span>)}
       </div>
     </div>
   )
@@ -184,12 +197,13 @@ function GameOverScreen({ winner, scores, myIndex, onRematch, onLeave }) {
 }
 
 // ─── Main Duel Screen ─────────────────────────────────────────────────────────
-export default function DuelKatakScreen({ code, myIndex, question: initQ, round: initRound, maxRounds, scores: initScores, goBack }) {
+export default function DuelKatakScreen({ code, myIndex, question: initQ, round: initRound, maxRounds, scores: initScores, gameKey = 'katak', goBack }) {
+  const gameInfo = getGameInfo(gameKey)
   const [question, setQuestion] = useState(initQ)
   const [round, setRound]       = useState(initRound)
   const [scores, setScores]     = useState(initScores)
 
-  const [mySlider, setMySlider]         = useState(initQ.start)
+  const [mySlider, setMySlider]         = useState(() => getInitSlider(initQ, gameKey))
   const [oppSlider, setOppSlider]       = useState(null)
   const [myAnswered, setMyAnswered]     = useState(false)
   const [oppAnswered, setOppAnswered]   = useState(false)
@@ -253,11 +267,11 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
     })
 
     // Next question
-    socket.on('duel:question', ({ question: q, round: r, maxRounds: mr, scores: s }) => {
+    socket.on('duel:question', ({ question: q, round: r, maxRounds: mr, scores: s, gameKey: gk }) => {
       setQuestion(q)
       setRound(r)
       setScores(s)
-      setMySlider(q.start)
+      setMySlider(getInitSlider(q, gk || gameKey))
       setOppSlider(null)
       setMyAnswered(false)
       setOppAnswered(false)
@@ -331,16 +345,20 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   }
 
   // ── Game in progress ───────────────────────────────────────────────────────
-  const { start, jump, isForward } = question
-  const correctAns = isForward ? start + jump : start - jump
+  // Parse question — genTournamentQ wraps content in question.question
+  const q          = question?.question || question || {}
+  const { start = 0, jump = 0, isForward = true } = q
+  const sliderMin  = question?.sliderMin ?? NL_MIN
+  const sliderMax  = question?.sliderMax ?? NL_MAX
+  const isKatak    = gameKey === 'katak'
 
-  // What position to show for the opponent frog
+  // What position to show for the opponent (katak only — generic games ignore oppSlider for the number line)
   const oppDisplayPos = oppAnswered ? oppSlider : (oppSlider !== null ? oppSlider : start)
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)' }}>
       <TopBar
-        title="⚔️ Katak Duel"
+        title={`⚔️ ${gameInfo?.name || 'Duel'}`}
         onBack={() => { getSocket()?.emit('duel:leave'); goBack() }}
       />
 
@@ -352,30 +370,40 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
         {/* Game card */}
         <Card border={phase === 'result' ? (myCorrect ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)') : 'rgba(103,232,249,0.25)'}>
 
-          {/* Number line with both frogs */}
-          <NumberLine
-            question={question}
-            myPos={myAnswered ? mySlider : mySlider}
-            oppPos={oppDisplayPos}
-            myAnswered={myAnswered}
-            oppAnswered={oppAnswered}
-            myCorrect={myCorrect}
-            oppCorrect={oppCorrect}
-          />
+          {/* Number line — katak only */}
+          {isKatak && (
+            <NumberLine
+              question={q}
+              myPos={mySlider}
+              oppPos={oppDisplayPos}
+              myAnswered={myAnswered}
+              oppAnswered={oppAnswered}
+              myCorrect={myCorrect}
+              oppCorrect={oppCorrect}
+            />
+          )}
 
           {/* Question text */}
-          <div style={{ textAlign: 'center', marginTop: 8, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, color: '#94A3B8' }}>
-              Katak di batu{' '}
-              <strong style={{ color: '#67E8F9' }}>{start}</strong>, melompat{' '}
-              {isForward ? '⮕ maju' : '⬅ mundur'}{' '}
-              <strong style={{ color: '#f59e0b' }}>{jump} batu</strong>. Geser katak!
-            </div>
+          <div style={{ textAlign: 'center', marginTop: isKatak ? 8 : 0, marginBottom: 16 }}>
+            {isKatak ? (
+              <div style={{ fontSize: 13, color: '#94A3B8' }}>
+                Katak di batu{' '}
+                <strong style={{ color: '#67E8F9' }}>{start}</strong>, melompat{' '}
+                {isForward ? '⮕ maju' : '⬅ mundur'}{' '}
+                <strong style={{ color: '#f59e0b' }}>{jump} batu</strong>. Geser katak!
+              </div>
+            ) : (
+              <div style={{ fontSize: 14, color: '#fff', lineHeight: 1.7, fontWeight: 700, padding: '8px 4px' }}>
+                {q.text || ''}
+              </div>
+            )}
           </div>
 
           {/* My slider */}
           <DuelSlider
             value={mySlider}
+            min={sliderMin}
+            max={sliderMax}
             onChange={handleSlider}
             disabled={myAnswered}
           />
@@ -428,11 +456,13 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
           </div>
         )}
 
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: 20, justifyContent: 'center', fontSize: 11, color: '#475569' }}>
-          <span>🐸 Kamu</span>
-          <span>🔥 Lawan</span>
-        </div>
+        {/* Legend — only meaningful for katak (number line with frogs) */}
+        {isKatak && (
+          <div style={{ display: 'flex', gap: 20, justifyContent: 'center', fontSize: 11, color: '#475569' }}>
+            <span>🐸 Kamu</span>
+            <span>🔥 Lawan</span>
+          </div>
+        )}
       </div>
     </div>
   )

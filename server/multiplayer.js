@@ -6,11 +6,13 @@ import { Server } from 'socket.io'
 import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
 import { tournaments, tournamentToClient, getTournamentIo } from './tournament-state.js'
 import { startTournamentMatch, handleTournamentAnswer } from './tournament-engine.js'
+import { genTournamentQ } from './tournament-questions.js'
 import { notifyUser } from './notifications.js'
 
-// ─── Question generation (server-authoritative, mirrors SubmarineGame.jsx) ───
+// ─── Question generation (server-authoritative) ───────────────────────────────
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
 
+// Legacy katak-only generator kept for boss-raid (which is always katak)
 function genKatakQ() {
   const jump = rand(2, 7)
   const bound = 15 - jump
@@ -40,7 +42,7 @@ function safePlayer(p) {
 }
 
 function startRound(io, room) {
-  room.currentQ = genKatakQ()
+  room.currentQ = genTournamentQ(room.gameKey || 'katak')
   room.round++
   room.players.forEach(p => { p.answered = false; p.lastAnswer = null })
 
@@ -51,6 +53,7 @@ function startRound(io, room) {
     round: room.round,
     maxRounds: MAX_ROUNDS,
     scores: room.players.map(safePlayer),
+    gameKey: room.gameKey || 'katak',
   })
 }
 
@@ -141,12 +144,13 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // ── CREATE ROOM ──────────────────────────────────────────────────────────
-    socket.on('duel:create', ({ avatar } = {}) => {
+    socket.on('duel:create', ({ avatar, gameKey } = {}) => {
       leaveAllRooms(socket, io)
       const code = genCode()
       const player = makePlayer(avatar)
       rooms.set(code, {
         code,
+        gameKey:  gameKey || 'katak',
         players:  [player],
         status:   'waiting',
         currentQ: null,
@@ -154,7 +158,7 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
         createdAt: Date.now(),
       })
       socket.join(code)
-      socket.emit('duel:created', { code, player: safePlayer(player) })
+      socket.emit('duel:created', { code, player: safePlayer(player), gameKey: gameKey || 'katak' })
     })
 
     // ── JOIN ROOM ────────────────────────────────────────────────────────────
@@ -276,6 +280,7 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const player = makePlayer(avatar)
       const room = {
         code,
+        gameKey: 'katak',   // direct invites have no game context — default katak
         players: [player],
         status: 'waiting',
         currentQ: null,

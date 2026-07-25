@@ -94,3 +94,10 @@ export function getBabsForGrade(grade) {
 export function getGameInfo(key) {
   return GAMES_CATALOG.find(g => g.key === key) || null
 }
+
+// Game keys that support both Tournament and Duel mode.
+// Keep in sync with generators in server/tournament-questions.js.
+export const DUEL_GAME_KEYS = new Set([
+  'katak', 'termometer', 'pabrikrobot', 'gembok', 'mercusuar', 'sporajamur', 'scanner',
+  'g8selramuan', 'g8racunminiatur', 'g8kristal', 'g8fusienergi', 'g8mantraakar', 'g8geolog',
+])

@@ -29,6 +29,7 @@ import TournamentNotificationBanner from './components/TournamentNotificationBan
 import PublicProfileScreen from './screens/PublicProfileScreen'
 import DuelInviteBanner from './components/DuelInviteBanner'
 import { connectSocket } from './socket'
+import { DUEL_GAME_KEYS } from './gamesCatalog'
 
 // Auth-aware wrappers — need useAuth inside the PlayerProvider/AuthContext tree
 function TournamentMatchWithAuth({ matchData, goBack, onMatchOver }) {
@@ -346,7 +347,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           pendingGame={pendingGame}
           taskId={pendingTaskId}
           onModeSelected={handleModeSelected}
-          onDuel={pendingGame?.key === 'katak' ? () => replaceTop('duel-lobby') : undefined}
+          onDuel={DUEL_GAME_KEYS.has(pendingGame?.key) ? () => replaceTop('duel-lobby') : undefined}
         />
       )
     }
@@ -391,6 +392,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
         <LobbyScreen
           goBack={() => { setDuelInviteCode(null); goBack() }}
           initialCode={inviteCode}
+          gameKey={pendingGame?.key || 'katak'}
           onStart={(data) => {
             setDuelInviteCode(null)
             setDuelState(data)
