@@ -3,6 +3,8 @@
  * Socket.io server module (attached to the existing Express http server)
  */
 import { Server } from 'socket.io'
+import { pool } from './db.js'
+import { applyExp } from './gamify.js'
 import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
 import { tournaments, tournamentToClient, getTournamentIo } from './tournament-state.js'
 import { startTournamentMatch, handleTournamentAnswer } from './tournament-engine.js'
@@ -382,7 +384,7 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       socket.emit('boss:question', { question: qForClient })
     })
 
-    socket.on('boss:answer', ({ kelas, value } = {}) => {
+    socket.on('boss:answer', async ({ kelas, value } = {}) => {
       if (!kelas || user.kelas !== kelas) return
       const raid = getBossRaid(kelas)
       if (!raid || raid.status !== 'active') return
@@ -430,8 +432,48 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
 
       if (raid.hp <= 0) {
         raid.status = 'defeated'
+
+        // ── Distribute rewards to every participant ──────────────────────────
+        const rewardType   = raid.rewardType
+        const rewardAmount = raid.rewardAmount || 0
+        let rewardedCount  = 0
+        if (rewardType && rewardAmount > 0 && raid.participants.size > 0) {
+          const participantIds = Array.from(raid.participants.keys())
+          try {
+            if (rewardType === 'koin' || rewardType === 'koin_exp') {
+              await pool.query(
+                `update students
+                 set coins               = coins               + $1,
+                     total_coins_earned  = total_coins_earned  + $1
+                 where id = any($2::text[])`,
+                [rewardAmount, participantIds]
+              )
+            }
+            if (rewardType === 'exp' || rewardType === 'koin_exp') {
+              // Apply exp with level-up individually (level curve is non-linear)
+              const { rows: students } = await pool.query(
+                `select id, level, exp from students where id = any($1::text[])`,
+                [participantIds]
+              )
+              for (const s of students) {
+                const updated = applyExp(s.level, s.exp, rewardAmount)
+                await pool.query(
+                  `update students set level = $1, exp = $2 where id = $3`,
+                  [updated.level, updated.exp, s.id]
+                )
+              }
+            }
+            rewardedCount = participantIds.length
+          } catch (err) {
+            console.error('boss:reward distribution error', err)
+          }
+        }
+
         io.to(`boss:${kelas}`).emit('boss:defeated', {
-          participants: sortedParticipants,
+          participants:  sortedParticipants,
+          rewardType,
+          rewardAmount,
+          rewardedCount,
         })
         // Keep entry for 5 min so late-joiners see the victory screen
         setTimeout(() => bossRaids.delete(kelas), 5 * 60_000)

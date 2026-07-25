@@ -86,6 +86,7 @@ export default function BossRaidScreen({ goBack }) {
   const [attackResult, setAttackResult] = useState(null)
   const [cooldownSec, setCooldownSec] = useState(0)
   const [floatingDmg, setFloatingDmg] = useState([])
+  const [defeatReward, setDefeatReward] = useState(null)  // { rewardType, rewardAmount, rewardedCount }
 
   const cooldownRef = useRef(null)
   const dmgIdRef    = useRef(0)
@@ -145,9 +146,12 @@ export default function BossRaidScreen({ goBack }) {
       startCooldown(COOLDOWN_SEC)
     })
 
-    socket.on('boss:defeated', ({ participants }) => {
+    socket.on('boss:defeated', ({ participants, rewardType, rewardAmount, rewardedCount }) => {
       if (!mounted) return
       setRaid(prev => prev ? { ...prev, status: 'defeated', hp: 0, participants } : prev)
+      if (rewardType && rewardAmount > 0) {
+        setDefeatReward({ rewardType, rewardAmount, rewardedCount })
+      }
       setPhase('defeated')
     })
 
@@ -225,6 +229,13 @@ export default function BossRaidScreen({ goBack }) {
   // ── Boss Defeated celebration ─────────────────────────────────────────────────
   if (phase === 'defeated' || raid.status === 'defeated') {
     const topAttackers = [...(raid.participants || [])].sort((a, b) => b.damage - a.damage)
+    const rewardLabel = defeatReward
+      ? defeatReward.rewardType === 'koin'
+        ? `🪙 +${defeatReward.rewardAmount} Koin`
+        : defeatReward.rewardType === 'exp'
+          ? `⚡ +${defeatReward.rewardAmount} EXP`
+          : `🪙 +${defeatReward.rewardAmount} Koin  ⚡ +${defeatReward.rewardAmount} EXP`
+      : null
     return (
       <div style={{
         minHeight: '100vh', background: 'linear-gradient(180deg,#1a0800 0%,#2d1500 100%)',
@@ -238,6 +249,23 @@ export default function BossRaidScreen({ goBack }) {
         <div style={{ fontSize: 15, color: '#94A3B8', textAlign: 'center' }}>
           {raid.bossName} telah jatuh! Kerja bagus, tim!
         </div>
+
+        {/* Reward banner */}
+        {rewardLabel && (
+          <div style={{
+            background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.4)',
+            borderRadius: 16, padding: '16px 24px', textAlign: 'center',
+            width: '100%', maxWidth: 360,
+            boxShadow: '0 0 30px rgba(251,191,36,0.15)',
+          }}>
+            <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 700, letterSpacing: 1.5, marginBottom: 6 }}>🎁 HADIAH KEMENANGAN</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: '#fff' }}>{rewardLabel}</div>
+            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
+              sudah ditambahkan ke akun kamu!
+            </div>
+          </div>
+        )}
+
         {topAttackers.length > 0 && (
           <div style={{
             background: '#111827', borderRadius: 16,
@@ -399,6 +427,20 @@ export default function BossRaidScreen({ goBack }) {
         <div style={{ textAlign: 'center', marginTop: 14, fontSize: 12, color: '#374151', lineHeight: 1.5 }}>
           Setiap jawaban benar = -{DAMAGE_PER_HIT} HP Bos<br/>
           Cooldown {COOLDOWN_SEC}s per serangan
+          {raid.rewardType && raid.rewardAmount > 0 && (
+            <>
+              <br/>
+              <span style={{ color: '#fbbf24', fontWeight: 700 }}>
+                🎁 Hadiah kemenangan:{' '}
+                {raid.rewardType === 'koin'
+                  ? `🪙 ${raid.rewardAmount} koin`
+                  : raid.rewardType === 'exp'
+                    ? `⚡ ${raid.rewardAmount} EXP`
+                    : `🪙 ${raid.rewardAmount} koin + ⚡ ${raid.rewardAmount} EXP`
+                }{' '}per siswa
+              </span>
+            </>
+          )}
         </div>
       </div>
 

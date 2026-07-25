@@ -749,10 +749,12 @@ function RaidTab({ kelasDiampu }) {
   const [ending,    setEnding]    = useState(null)
   const [error,     setError]     = useState('')
   const [form, setForm] = useState({
-    kelas:     kelasDiampu[0] || '',
-    maxHp:     1000,
-    bossName:  'Boss Matematika',
-    bossEmoji: '👹',
+    kelas:        kelasDiampu[0] || '',
+    maxHp:        1000,
+    bossName:     'Boss Matematika',
+    bossEmoji:    '👹',
+    rewardType:   'koin',
+    rewardAmount: 100,
   })
 
   const refresh = useCallback(async () => {
@@ -781,7 +783,11 @@ function RaidTab({ kelasDiampu }) {
     try {
       await apiCall('/api/guru/boss-raid', {
         method: 'POST',
-        body: { kelas: form.kelas, maxHp: Number(form.maxHp), bossName: form.bossName, bossEmoji: form.bossEmoji },
+        body: {
+          kelas: form.kelas, maxHp: Number(form.maxHp),
+          bossName: form.bossName, bossEmoji: form.bossEmoji,
+          rewardType: form.rewardType, rewardAmount: Number(form.rewardAmount),
+        },
       })
       await refresh()
     } catch (e) {
@@ -826,6 +832,11 @@ function RaidTab({ kelasDiampu }) {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{r.bossName}</div>
                     <div style={{ fontSize: 11, color: '#64748B' }}>Kelas {r.kelas} · {r.participants?.length || 0} peserta aktif</div>
+                  {r.rewardType && r.rewardAmount > 0 && (
+                    <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 700, marginTop: 2 }}>
+                      🎁 {r.rewardType === 'koin' ? `🪙 ${r.rewardAmount} koin` : r.rewardType === 'exp' ? `⚡ ${r.rewardAmount} EXP` : `🪙+⚡ ${r.rewardAmount}`} per siswa jika menang
+                    </div>
+                  )}
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 900, color: hpClr, textAlign: 'right' }}>
                     {r.hp.toLocaleString()}<br/>
@@ -909,6 +920,38 @@ function RaidTab({ kelasDiampu }) {
                 <select value={form.bossEmoji} onChange={e => setForm(f => ({ ...f, bossEmoji: e.target.value }))} style={inputStyle}>
                   {BOSS_EMOJIS.map(em => <option key={em} value={em}>{em} {em}</option>)}
                 </select>
+              </div>
+            </div>
+
+            {/* Reward section */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12, marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>🎁 HADIAH JIKA BOSS DIKALAHKAN</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <div style={labelStyle}>Jenis Hadiah</div>
+                  <select value={form.rewardType} onChange={e => setForm(f => ({ ...f, rewardType: e.target.value }))} style={inputStyle}>
+                    <option value="koin">🪙 Koin</option>
+                    <option value="exp">⚡ EXP</option>
+                    <option value="koin_exp">🎁 Koin + EXP</option>
+                  </select>
+                </div>
+                <div>
+                  <div style={labelStyle}>Jumlah per Siswa</div>
+                  <select value={form.rewardAmount} onChange={e => setForm(f => ({ ...f, rewardAmount: e.target.value }))} style={inputStyle}>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value={150}>150</option>
+                    <option value={200}>200</option>
+                    <option value={300}>300</option>
+                    <option value={500}>500</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 8, lineHeight: 1.5 }}>
+                {form.rewardType === 'koin' && `Setiap peserta mendapat 🪙 ${form.rewardAmount} koin saat boss dikalahkan.`}
+                {form.rewardType === 'exp'  && `Setiap peserta mendapat ⚡ ${form.rewardAmount} EXP saat boss dikalahkan.`}
+                {form.rewardType === 'koin_exp' && `Setiap peserta mendapat 🪙 ${form.rewardAmount} koin + ⚡ ${form.rewardAmount} EXP saat boss dikalahkan.`}
               </div>
             </div>
 

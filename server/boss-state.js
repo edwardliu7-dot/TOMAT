@@ -12,7 +12,7 @@ export function getBossRaid(kelas) {
   return bossRaids.get(kelas) || null
 }
 
-export function createBossRaid({ kelas, guruId, guruName, maxHp = 1000, bossName = 'Boss Matematika', bossEmoji = '👹' }) {
+export function createBossRaid({ kelas, guruId, guruName, maxHp = 1000, bossName = 'Boss Matematika', bossEmoji = '👹', rewardType = null, rewardAmount = 0 }) {
   // Replace any existing raid for this kelas
   if (bossRaids.has(kelas)) {
     const existing = bossRaids.get(kelas)
@@ -29,6 +29,8 @@ export function createBossRaid({ kelas, guruId, guruName, maxHp = 1000, bossName
     hp: maxHp,
     status: 'active',             // active | defeated | ended
     participants: new Map(),       // userId → { userId, name, hits, damage, lastAttackAt }
+    rewardType:   rewardType || null,   // 'koin' | 'exp' | 'koin_exp' | null
+    rewardAmount: Math.max(0, Number(rewardAmount) || 0),
     createdAt: Date.now(),
   }
   bossRaids.set(kelas, raid)
@@ -49,15 +51,17 @@ export function endBossRaid(kelas, broadcast = true) {
 export function raidToClient(raid) {
   if (!raid) return null
   return {
-    kelas:       raid.kelas,
-    bossName:    raid.bossName,
-    bossEmoji:   raid.bossEmoji,
-    maxHp:       raid.maxHp,
-    hp:          raid.hp,
-    status:      raid.status,
+    kelas:        raid.kelas,
+    bossName:     raid.bossName,
+    bossEmoji:    raid.bossEmoji,
+    maxHp:        raid.maxHp,
+    hp:           raid.hp,
+    status:       raid.status,
     participants: Array.from(raid.participants.values())
       .sort((a, b) => b.damage - a.damage)
       .slice(0, 20),
-    createdAt:   raid.createdAt,
+    rewardType:   raid.rewardType   || null,
+    rewardAmount: raid.rewardAmount || 0,
+    createdAt:    raid.createdAt,
   }
 }

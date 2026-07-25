@@ -83,7 +83,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Username atau password salah.' })
     }
     
-    req.session.user = { id: user.id, role }
+    req.session.user = {
+      id: user.id,
+      role,
+      kelas: role === 'siswa' ? (user.kelas || null) : null,
+    }
     res.json({ user: sanitizeUser(user, role) })
   } catch (err) {
     console.error('login error', err)
@@ -108,6 +112,11 @@ router.get('/me', async (req, res) => {
     if (!user) {
       req.session.destroy(() => {})
       return res.status(401).json({ error: 'Sesi tidak valid.' })
+    }
+    // Backfill kelas into session in case it was missing (older sessions)
+    if (session.role === 'siswa' && session.kelas === undefined) {
+      session.kelas = user.kelas || null
+      req.session.save(() => {})
     }
     res.json({ user: sanitizeUser(user, session.role) })
   } catch (err) {

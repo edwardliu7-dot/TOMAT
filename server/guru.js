@@ -29,15 +29,23 @@ router.get('/boss-raid', async (req, res) => {
 router.post('/boss-raid', async (req, res) => {
   try {
     const kelasDiampu = await getMyKelasDiampu(req)
-    const { kelas, maxHp = 1000, bossName = 'Boss Matematika', bossEmoji = '👹' } = req.body || {}
+    const {
+      kelas, maxHp = 1000, bossName = 'Boss Matematika', bossEmoji = '👹',
+      rewardType = null, rewardAmount = 0,
+    } = req.body || {}
     if (!kelas) return res.status(400).json({ error: 'kelas wajib diisi.' })
     if (!kelasDiampu.includes(kelas)) return res.status(403).json({ error: 'Kamu tidak mengajar kelas ini.' })
+    const validRewardTypes = ['koin', 'exp', 'koin_exp']
+    const safeRewardType   = validRewardTypes.includes(rewardType) ? rewardType : null
+    const safeRewardAmount = Math.min(1000, Math.max(0, Number(rewardAmount) || 0))
     const raid = createBossRaid({
       kelas, guruId: req.session.user.id,
       guruName: req.session.user.nama || req.session.user.username,
       maxHp: Math.min(5000, Math.max(100, Number(maxHp) || 1000)),
       bossName: String(bossName).slice(0, 50),
       bossEmoji: String(bossEmoji).slice(0, 4),
+      rewardType: safeRewardType,
+      rewardAmount: safeRewardAmount,
     })
     res.json({ raid: raidToClient(raid) })
   } catch (err) {
