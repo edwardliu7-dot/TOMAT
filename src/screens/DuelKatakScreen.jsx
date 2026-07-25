@@ -215,28 +215,13 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   const [gameOver, setGameOver] = useState(null)
   const [leftMsg, setLeftMsg]   = useState('')
 
-  // Throttled slider emit
-  const sliderThrottle = useRef(null)
-
-  const emitSlider = useCallback((val) => {
-    if (sliderThrottle.current) return
-    sliderThrottle.current = setTimeout(() => { sliderThrottle.current = null }, 80)
-    getSocket()?.emit('duel:slider-move', { code, value: val })
-  }, [code])
-
   const handleSlider = useCallback((val) => {
     setMySlider(val)
-    emitSlider(val)
-  }, [emitSlider])
+  }, [])
 
   // ── Socket events ──────────────────────────────────────────────────────────
   useEffect(() => {
     const socket = connectSocket()
-
-    // Opponent slider moves
-    socket.on('duel:opponent-slider', ({ value }) => {
-      setOppSlider(value)
-    })
 
     // Opponent answered
     socket.on('duel:opponent-answered', ({ correct, opponentScore, opponentValue }) => {
@@ -295,7 +280,6 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
     })
 
     return () => {
-      socket.off('duel:opponent-slider')
       socket.off('duel:opponent-answered')
       socket.off('duel:answer-result')
       socket.off('duel:question')
@@ -352,8 +336,8 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   const sliderMax  = question?.sliderMax ?? NL_MAX
   const isKatak    = gameKey === 'katak'
 
-  // What position to show for the opponent (katak only — generic games ignore oppSlider for the number line)
-  const oppDisplayPos = oppAnswered ? oppSlider : (oppSlider !== null ? oppSlider : start)
+  // Only reveal opponent position after they've submitted — never during slider movement
+  const oppDisplayPos = oppAnswered ? oppSlider : null
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)' }}>
