@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 import { byDifficulty, useSurvival } from '../difficulty'
@@ -22,10 +22,13 @@ export default function SporaJamurGame({ goBack, difficulty = 'medium', survival
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [input, setInput] = useState('')
   const [feedback, setFeedback] = useState(null)
+  const [animStep, setAnimStep] = useState(null)   // null=idle, 0..exp: stages revealed so far
+  const [animDone, setAnimDone] = useState(false)
 
-  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setInput(''); setFeedback(null) }, [effectiveDifficulty])
-
-  const stages = Array.from({ length: q.exp + 1 }, (_, i) => Math.pow(q.base, i))
+  const newQ = useCallback(() => {
+    setQ(genQ(effectiveDifficulty)); setInput(''); setFeedback(null)
+    setAnimStep(null); setAnimDone(false)
+  }, [effectiveDifficulty])
 
   const pressKey = (k) => {
     if (feedback !== null) return
@@ -40,12 +43,25 @@ export default function SporaJamurGame({ goBack, difficulty = 'medium', survival
     setFeedback(correct)
     survivalState.recordResult(correct)
     if (correct) { addCoins(50); addExp(100) }
+    setAnimStep(0)   // start revealing from stage 0
   }
+
+  useEffect(() => {
+    if (animStep === null) return
+    if (animStep >= q.exp) {
+      const t = setTimeout(() => setAnimDone(true), 900)
+      return () => clearTimeout(t)
+    }
+    const t = setTimeout(() => setAnimStep(s => s + 1), 480)
+    return () => clearTimeout(t)
+  }, [animStep, q.exp])
 
   if (survival && survivalState.gameOver) {
     return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
+  const isAnimating = animStep !== null && !animDone
+  const stages = Array.from({ length: q.exp + 1 }, (_, i) => Math.pow(q.base, i))
   const numpadKeys = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '', '0', '⌫']
 
   return (
@@ -56,9 +72,7 @@ export default function SporaJamurGame({ goBack, difficulty = 'medium', survival
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>MONITOR PENYEBARAN JAMUR HAMA</div>
           <svg width="220" height="80" viewBox="0 0 220 80" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
-            {/* Ground */}
             <rect x="0" y="68" width="220" height="12" rx="3" fill="#0a1428" />
-            {/* Exponential mushroom growth columns */}
             {[
               { x:18, h:12, count:1 },
               { x:56, h:24, count:2 },
@@ -71,13 +85,10 @@ export default function SporaJamurGame({ goBack, difficulty = 'medium', survival
                   <text key={j} x={x+13} y={68-j*12-6} textAnchor="middle" fontSize="12">🍄</text>
                 ))}
                 {count > 4 && <text x={x+13} y={68-4*12-6} textAnchor="middle" fill="#67E8F9" fontSize="8">+{count-4}</text>}
-                <text x={x+13} y="78" textAnchor="middle" fill="rgba(103,232,249,0.5)" fontSize="8">{count}</text>
               </g>
             ))}
-            {/* Arrow showing growth */}
             <polyline points="30,56 68,44 106,28 144,12" fill="none" stroke="rgba(103,232,249,0.4)" strokeWidth="1.5" strokeDasharray="4,3" />
             <polygon points="144,12 136,18 150,20" fill="rgba(103,232,249,0.5)" />
-            {/* Question mark box */}
             <rect x="170" y="8" width="42" height="60" rx="4" fill="rgba(103,232,249,0.08)" stroke="#67E8F9" strokeWidth="1.5" strokeDasharray="4,3" />
             <text x="191" y="42" textAnchor="middle" fill="#67E8F9" fontSize="22" fontWeight="900">?</text>
           </svg>
@@ -85,36 +96,81 @@ export default function SporaJamurGame({ goBack, difficulty = 'medium', survival
             Setiap detik, <strong style={{ color: '#fff' }}>1 jamur → {q.base} jamur</strong>. Berapa jamur pada detik ke-{q.exp}?
           </div>
 
-          {/* Growth timeline — only show Detik 0 and Detik 1 to illustrate the pattern */}
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, marginBottom: 16 }}>
-            {/* Detik 0 */}
-            <div style={{ textAlign: 'center', minWidth: 60, flex: 1 }}>
-              <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 6 }}>Detik 0</div>
-              <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 4px', minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: 14, marginBottom: 2 }}>🍄</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>1</div>
+          {/* Growth timeline */}
+          {!isAnimating && feedback === null ? (
+            /* Before submit: show only Detik 0, Detik 1, then ??? */
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, marginBottom: 16 }}>
+              <div style={{ textAlign: 'center', minWidth: 56, flex: 1 }}>
+                <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 6 }}>Detik 0</div>
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 4px', minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ fontSize: 14, marginBottom: 2 }}>🍄</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>1</div>
+                </div>
               </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', paddingTop: 20, color: '#34D399', fontSize: 14 }}>→</div>
-            {/* Detik 1 */}
-            <div style={{ textAlign: 'center', minWidth: 60, flex: 1 }}>
-              <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 6 }}>Detik 1</div>
-              <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 4px', minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: 14, marginBottom: 2 }}>{'🍄'.repeat(Math.min(q.base, 4))}{q.base > 4 ? '…' : ''}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{q.base}</div>
+              <div style={{ display: 'flex', alignItems: 'center', paddingTop: 20, color: '#34D399', fontSize: 14 }}>→</div>
+              <div style={{ textAlign: 'center', minWidth: 56, flex: 1 }}>
+                <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 6 }}>Detik 1</div>
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 4px', minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ fontSize: 14, marginBottom: 2 }}>{'🍄'.repeat(Math.min(q.base, 4))}{q.base > 4 ? '…' : ''}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{q.base}</div>
+                </div>
               </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', paddingTop: 20, color: '#94A3B8', fontSize: 18 }}>···</div>
-            {/* Final question */}
-            <div style={{ textAlign: 'center', minWidth: 60, flex: 1 }}>
-              <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 6 }}>Detik {q.exp}</div>
-              <div style={{ background: 'rgba(103,232,249,0.12)', border: '2px solid rgba(103,232,249,0.4)', borderRadius: 10, padding: '10px 4px', minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ fontSize: feedback !== null ? 16 : 20, fontWeight: 900, color: feedback === true ? '#34D399' : feedback === false ? '#ef4444' : '#f59e0b' }}>
-                  {feedback !== null ? q.answer : '❓'}
+              <div style={{ display: 'flex', alignItems: 'center', paddingTop: 20, color: '#94A3B8', fontSize: 18 }}>···</div>
+              <div style={{ textAlign: 'center', minWidth: 56, flex: 1 }}>
+                <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 6 }}>Detik {q.exp}</div>
+                <div style={{ background: 'rgba(103,232,249,0.12)', border: '2px solid rgba(103,232,249,0.4)', borderRadius: 10, padding: '10px 4px', minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#f59e0b' }}>❓</div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            /* After submit: animate revealing stages one by one */
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, marginBottom: 16, overflowX: 'auto' }}>
+              {stages.map((count, i) => {
+                const isLast = i === q.exp
+                const revealed = animStep !== null ? i <= animStep : true
+                const isCurrentlyRevealing = animStep !== null && i === animStep
+                const borderColor = isLast
+                  ? (animDone ? (feedback ? '#34D399' : '#ef4444') : isCurrentlyRevealing ? '#34D399' : 'rgba(103,232,249,0.4)')
+                  : isCurrentlyRevealing ? 'rgba(52,211,153,0.5)' : 'rgba(255,255,255,0.1)'
+
+                return (
+                  <React.Fragment key={i}>
+                    <div style={{ textAlign: 'center', minWidth: 52, flex: 1 }}>
+                      <div style={{ fontSize: 9, color: isCurrentlyRevealing ? '#34D399' : '#94A3B8', marginBottom: 4, transition: 'color 0.2s' }}>Detik {i}</div>
+                      <div style={{
+                        background: isCurrentlyRevealing ? 'rgba(52,211,153,0.12)' : isLast ? 'rgba(103,232,249,0.12)' : 'rgba(255,255,255,0.03)',
+                        border: `2px solid ${borderColor}`,
+                        borderRadius: 10, padding: '8px 2px', minHeight: 52,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.25s',
+                        opacity: revealed ? 1 : 0.15,
+                        transform: isCurrentlyRevealing ? 'scale(1.06)' : 'scale(1)',
+                      }}>
+                        {revealed ? (
+                          isLast ? (
+                            <div style={{ fontSize: 15, fontWeight: 900, color: animDone ? (feedback ? '#34D399' : '#ef4444') : '#34D399' }}>
+                              {count}
+                            </div>
+                          ) : (
+                            <>
+                              <div style={{ fontSize: 12, marginBottom: 1 }}>{'🍄'.repeat(Math.min(count, 3))}{count > 3 ? '…' : ''}</div>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{count}</div>
+                            </>
+                          )
+                        ) : (
+                          <div style={{ fontSize: 16, color: '#334155' }}>?</div>
+                        )}
+                      </div>
+                    </div>
+                    {i < q.exp && (
+                      <div style={{ display: 'flex', alignItems: 'center', paddingTop: 18, color: revealed ? '#34D399' : '#334155', fontSize: 12, transition: 'color 0.25s' }}>→</div>
+                    )}
+                  </React.Fragment>
+                )
+              })}
+            </div>
+          )}
 
           <div style={{ padding: '10px 14px', background: 'rgba(103,232,249,0.08)', borderRadius: 10, textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 900, color: '#67E8F9', fontFamily: 'monospace' }}>
@@ -123,30 +179,38 @@ export default function SporaJamurGame({ goBack, difficulty = 'medium', survival
           </div>
         </Card>
 
-        {/* Numpad */}
-        <Card border="rgba(103,232,249,0.2)">
-          <div style={{ background: '#0a1628', borderRadius: 12, padding: '12px 20px', textAlign: 'right', marginBottom: 12, border: `2px solid ${feedback === null ? 'rgba(103,232,249,0.3)' : feedback ? '#34D399' : '#ef4444'}` }}>
-            <div style={{ fontSize: 34, fontWeight: 900, color: feedback === null ? '#fff' : feedback ? '#34D399' : '#ef4444', fontFamily: 'monospace', minHeight: 42 }}>
-              {input || '?'}
+        {/* Numpad — hide during animation */}
+        {feedback === null && (
+          <Card border="rgba(103,232,249,0.2)">
+            <div style={{ background: '#0a1628', borderRadius: 12, padding: '12px 20px', textAlign: 'right', marginBottom: 12, border: '2px solid rgba(103,232,249,0.3)' }}>
+              <div style={{ fontSize: 34, fontWeight: 900, color: '#fff', fontFamily: 'monospace', minHeight: 42 }}>{input || '?'}</div>
             </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {numpadKeys.map((k, idx) => (
-              k === '' ? <div key={`empty-${idx}`} /> :
-              <button key={`key-${idx}`} onClick={() => pressKey(k)} disabled={feedback !== null}
-                style={{ padding: '14px 8px', borderRadius: 12, border: `1px solid ${k === '⌫' ? 'rgba(239,68,68,0.3)' : 'rgba(103,232,249,0.2)'}`, background: k === '⌫' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.06)', color: k === '⌫' ? '#ef4444' : '#fff', fontSize: 20, fontWeight: 700, cursor: feedback !== null ? 'not-allowed' : 'pointer' }}>
-                {k}
-              </button>
-            ))}
-          </div>
-        </Card>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              {numpadKeys.map((k, idx) => (
+                k === '' ? <div key={`empty-${idx}`} /> :
+                <button key={`key-${idx}`} onClick={() => pressKey(k)}
+                  style={{ padding: '14px 8px', borderRadius: 12, border: `1px solid ${k === '⌫' ? 'rgba(239,68,68,0.3)' : 'rgba(103,232,249,0.2)'}`, background: k === '⌫' ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.06)', color: k === '⌫' ? '#ef4444' : '#fff', fontSize: 20, fontWeight: 700, cursor: 'pointer' }}>
+                  {k}
+                </button>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {feedback === null && (
           <Btn onClick={confirm} color={input !== '' ? '#0e7490' : '#334155'}>
             {input !== '' ? `✅ Tembak! ${q.base}^${q.exp} = ${input}` : 'Ketik jumlah jamur...'}
           </Btn>
         )}
-        {feedback !== null && (
+
+        {/* Loading indicator during animation */}
+        {isAnimating && (
+          <div style={{ textAlign: 'center', color: '#67E8F9', fontSize: 13, padding: '8px', opacity: 0.8 }}>
+            ⏳ Memverifikasi pertumbuhan…
+          </div>
+        )}
+
+        {animDone && (
           <>
             <FeedbackBanner
               message={feedback ? `✅ Tembakan tepat! ${q.base}^${q.exp} = ${q.answer} jamur.` : `❌ Meleset! ${q.base}^${q.exp} = ${q.answer}`}

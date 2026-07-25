@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 import { byDifficulty, useSurvival } from '../difficulty'
@@ -34,8 +34,13 @@ export default function ScannerPermatGame({ goBack, difficulty = 'medium', survi
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
   const [tapped, setTapped] = useState(new Set())
   const [feedback, setFeedback] = useState(null)
+  const [scanIdx, setScanIdx] = useState(null)   // null=idle, 0..8=current rock being scanned
+  const [animDone, setAnimDone] = useState(false)
 
-  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setTapped(new Set()); setFeedback(null) }, [effectiveDifficulty])
+  const newQ = useCallback(() => {
+    setQ(genQ(effectiveDifficulty)); setTapped(new Set()); setFeedback(null)
+    setScanIdx(null); setAnimDone(false)
+  }, [effectiveDifficulty])
 
   const tapRock = (n) => {
     if (feedback !== null) return
@@ -47,17 +52,30 @@ export default function ScannerPermatGame({ goBack, difficulty = 'medium', survi
   }
 
   const scan = () => {
+    if (tapped.size === 0) return
     const correctPrimes = new Set(q.rocks.filter(isPrime))
     const isCorrect = [...correctPrimes].every(n => tapped.has(n)) && [...tapped].every(n => correctPrimes.has(n))
     setFeedback(isCorrect)
     survivalState.recordResult(isCorrect)
     if (isCorrect) { addCoins(50); addExp(100) }
+    setScanIdx(0)   // start scanning animation
   }
+
+  useEffect(() => {
+    if (scanIdx === null) return
+    if (scanIdx >= q.rocks.length) {
+      const t = setTimeout(() => setAnimDone(true), 600)
+      return () => clearTimeout(t)
+    }
+    const t = setTimeout(() => setScanIdx(s => s + 1), 270)
+    return () => clearTimeout(t)
+  }, [scanIdx, q.rocks.length])
 
   if (survival && survivalState.gameOver) {
     return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
+  const isAnimating = scanIdx !== null && !animDone
   const primesInSet = q.rocks.filter(isPrime)
 
   return (
@@ -67,73 +85,94 @@ export default function ScannerPermatGame({ goBack, difficulty = 'medium', survi
       <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card border="rgba(103,232,249,0.3)">
           <div style={{ textAlign: 'center', fontSize: 12, color: '#67E8F9', fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>KONVEYOR BATU TAMBANG</div>
+
+          {/* Scanner beam SVG — animates across during scan */}
           <svg width="220" height="62" viewBox="0 0 220 62" style={{ display:'block', margin:'0 auto 8px', overflow:'visible' }}>
-            {/* Scanner frame */}
-            <rect x="78" y="2" width="64" height="38" rx="4" fill="rgba(103,232,249,0.06)" stroke="#67E8F9" strokeWidth="1.5" />
-            {/* Scan beam */}
-            <line x1="80" y1="20" x2="140" y2="20" stroke="rgba(103,232,249,0.6)" strokeWidth="2" strokeDasharray="6,3" />
-            <text x="90" y="16" fill="rgba(103,232,249,0.5)" fontSize="8">SCAN</text>
-            {/* Conveyor belt */}
+            <rect x="78" y="2" width="64" height="38" rx="4" fill="rgba(103,232,249,0.06)" stroke={isAnimating ? '#34D399' : '#67E8F9'} strokeWidth="1.5" style={{ transition: 'stroke 0.2s' }} />
+            <line x1="80" y1="20" x2="140" y2="20" stroke={isAnimating ? 'rgba(52,211,153,0.8)' : 'rgba(103,232,249,0.6)'} strokeWidth="2" strokeDasharray={isAnimating ? '0' : '6,3'} style={{ transition: 'all 0.2s' }} />
+            <text x="90" y="16" fill={isAnimating ? 'rgba(52,211,153,0.8)' : 'rgba(103,232,249,0.5)'} fontSize="8">{isAnimating ? 'SCANNING…' : 'SCAN'}</text>
             <rect x="4" y="44" width="212" height="14" rx="6" fill="#0a1428" stroke="rgba(103,232,249,0.3)" strokeWidth="1.5" />
             {[14,36,58,80,102,124,146,168,190].map((x,i)=>(
               <circle key={i} cx={x} cy="51" r="5" fill="#001014" stroke="rgba(103,232,249,0.2)" strokeWidth="1" />
             ))}
-            {/* Rocks on belt */}
             <text x="30" y="46" fontSize="14">🪨</text>
             <text x="55" y="46" fontSize="14">🪨</text>
             <text x="160" y="46" fontSize="14">🪨</text>
             <text x="185" y="46" fontSize="14">🪨</text>
-            {/* Highlighted prime rock in scanner */}
             <text x="102" y="42" fontSize="16" style={{filter:'drop-shadow(0 0 6px #67E8F9)'}}>🪨</text>
-            {/* Check marks */}
-            <text x="24" y="36" fill="rgba(52,211,153,0.7)" fontSize="10">✓</text>
-            <text x="50" y="36" fill="rgba(239,68,68,0.7)" fontSize="10">✗</text>
-            {/* Arrow direction */}
             <polygon points="210,50 202,46 202,54" fill="rgba(103,232,249,0.4)" />
-            {/* Label */}
             <text x="110" y="60" textAnchor="middle" fill="rgba(103,232,249,0.4)" fontSize="8">ketuk batu bertanda prima</text>
           </svg>
+
           <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', marginBottom: 12, lineHeight: 1.6 }}>
             Gunakan pemindai! Pilih batu yang berisi <strong style={{ color: '#fff' }}>bilangan prima</strong> saja.
             <br /><span style={{ fontSize: 12 }}>Bilangan prima hanya bisa dibagi 1 dan dirinya sendiri.</span>
           </div>
-          {/* Conveyor belt */}
+
+          {/* Rock grid */}
           <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: '6px 2px', border: '1px solid rgba(103,232,249,0.15)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, padding: '8px' }}>
               {q.rocks.map((n, i) => {
                 const isTapped = tapped.has(n)
-                const showResult = feedback !== null
                 const isCorrect = isPrime(n)
+                // Animation phases:
+                const isBeingScanned = isAnimating && scanIdx === i
+                const hasBeenScanned = scanIdx !== null && i < scanIdx
+                const showResult = hasBeenScanned || animDone
+
                 let bg = isTapped ? 'rgba(103,232,249,0.2)' : 'rgba(255,255,255,0.04)'
                 let border = isTapped ? '#67E8F9' : 'rgba(255,255,255,0.12)'
-                if (showResult) {
+                let glow = 'none'
+
+                if (isBeingScanned) {
+                  bg = 'rgba(103,232,249,0.15)'
+                  border = '#67E8F9'
+                  glow = '0 0 14px rgba(103,232,249,0.6)'
+                } else if (showResult) {
                   if (isCorrect) { bg = 'rgba(22,163,74,0.2)'; border = '#22c55e' }
                   else if (isTapped) { bg = 'rgba(220,38,38,0.2)'; border = '#ef4444' }
+                  else { bg = 'rgba(255,255,255,0.03)'; border = 'rgba(255,255,255,0.08)' }
                 }
+
                 return (
                   <button key={i} onClick={() => tapRock(n)} disabled={feedback !== null} style={{
-                    background: bg, border: `2px solid ${border}`, borderRadius: 12, padding: '14px 8px',
-                    cursor: feedback !== null ? 'default' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                    background: bg, border: `2px solid ${border}`, borderRadius: 12, padding: '12px 8px',
+                    cursor: feedback !== null ? 'default' : 'pointer', fontFamily: 'inherit',
+                    transition: 'all 0.18s', boxShadow: glow,
+                    transform: isBeingScanned ? 'scale(1.08)' : 'scale(1)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
                   }}>
-                    <div style={{ fontSize: 20 }}>🪨</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: isTapped ? '#67E8F9' : '#fff' }}>{n}</div>
-                    {showResult && <div style={{ fontSize: 11 }}>{isCorrect ? '✅' : '❌'}</div>}
+                    <div style={{ fontSize: isBeingScanned ? 22 : 18, transition: 'font-size 0.15s' }}>🪨</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: isTapped && !showResult ? '#67E8F9' : '#fff' }}>{n}</div>
+                    {showResult && (
+                      <div style={{ fontSize: 13 }}>{isCorrect ? '✅' : '❌'}</div>
+                    )}
+                    {isBeingScanned && !showResult && (
+                      <div style={{ fontSize: 10, color: '#67E8F9', fontWeight: 700 }}>SCAN…</div>
+                    )}
                   </button>
                 )
               })}
             </div>
           </div>
-          {feedback === null && (
+
+          {!feedback && !isAnimating && (
             <div style={{ marginTop: 8, fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>
               {tapped.size} batu dipilih · Ketuk untuk memilih/batal
             </div>
           )}
+          {isAnimating && (
+            <div style={{ marginTop: 8, fontSize: 12, color: '#67E8F9', textAlign: 'center' }}>
+              🔍 Memindai batu {(scanIdx || 0) + 1} dari {q.rocks.length}…
+            </div>
+          )}
         </Card>
 
-        {feedback === null ? (
+        {feedback === null && (
           <Btn onClick={scan} disabled={tapped.size === 0} color="#0e7490">🔍 Aktifkan Pemindai!</Btn>
-        ) : (
+        )}
+
+        {animDone && (
           <>
             <FeedbackBanner
               message={feedback
