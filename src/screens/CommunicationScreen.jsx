@@ -339,8 +339,8 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
       shouldScrollToBottomRef.current = shouldScrollToBottomRef.current || (keepAtBottom && latestChanged)
       previousLatestMessageIdRef.current = latestMessageId
       setMessages(nextMessages)
-      markConversationRead({ tab, selectedContact, selectedClass, messages: nextMessages }).catch(() => {})
-      // Refresh unread detail whenever we load messages (clears read badges)
+      // Await mark-as-read so the server has cleared the badge BEFORE we refresh the count
+      await markConversationRead({ tab, selectedContact, selectedClass, messages: nextMessages }).catch(() => {})
       loadUnreadDetail()
       setError('')
     } catch (err) {

@@ -2,65 +2,91 @@
  * TOMAT Tournament Engine
  * Fungsi-fungsi inti untuk menjalankan turnamen: start match, handle answer,
  * finish match, check round complete, start next round.
+ *
+ * Async flow: setiap pemain maju ke soal berikutnya secara independen
+ * tanpa menunggu lawan menjawab.
  */
 import { genTournamentQ } from './tournament-questions.js'
 import { tournaments, tournamentToClient, buildFirstRound, getTournamentIo } from './tournament-state.js'
 
 const TOURNAMENT_MAX_ROUNDS  = 7
 const WALKOVER_TIMEOUT_MS    = 60_000   // 60 detik jika tidak join
-const NEXT_Q_DELAY_MS        = 2500     // jeda sebelum soal berikutnya
+const NEXT_Q_DELAY_MS        = 1200     // jeda sebelum soal berikutnya (per-player, async)
 const NEXT_ROUND_DELAY_MS    = 5_000    // jeda sebelum ronde baru
 
-// ─── Start one match ──────────────────────────────────────────────────────────
-export function startTournamentMatch(io, tournament, match) {
-  match.status  = 'in-progress'
-  match.scores  = {}
-  match._round  = 0
-  match._answers = {}
-  if (match.player1) match.scores[match.player1.userId] = 0
-  if (match.player2) match.scores[match.player2.userId] = 0
+// ─── Send one question to a single player ────────────────────────────────────
+function startPlayerTournamentRound(io, tournament, match, userId) {
+  match._playerRounds  = match._playerRounds  || {}
+  match._playerCurrentQ = match._playerCurrentQ || {}
 
-  io.to(`tournament:${tournament.id}`).emit('tournament:state', tournamentToClient(tournament))
-  startTournamentRound(io, tournament, match)
-}
+  match._playerRounds[userId] = (match._playerRounds[userId] || 0) + 1
 
-// ─── Send one question to the match room ─────────────────────────────────────
-function startTournamentRound(io, tournament, match) {
-  match._round++
   const q = genTournamentQ(tournament.gameKey)
-  match._currentQ = q
-  match._answers  = {}  // reset jawaban untuk soal baru
-
-  // Kirim ke client TANPA answer
+  match._playerCurrentQ[userId] = q
   const { answer, ...safeQ } = q
-  io.to(match.roomCode).emit('tournament:question', {
+
+  const playerRound = match._playerRounds[userId]
+
+  // Find socket for this specific player
+  const playerInfo = [match.player1, match.player2].find(p => p?.userId === userId)
+  const playerSocket = io.sockets.sockets.get(playerInfo?.socketId)
+
+  playerSocket?.emit('tournament:question', {
     question:  safeQ,
-    round:     match._round,
+    round:     playerRound,
     maxRounds: TOURNAMENT_MAX_ROUNDS,
     scores:    match.scores,
   })
 
-  // Spectator guru juga terima soal (tanpa answer)
+  // Spectator guru (best-effort, sees latest question sent)
   io.to(`match-spectate:${match.id}`).emit('tournament:question', {
     question:  safeQ,
-    round:     match._round,
+    round:     playerRound,
     maxRounds: TOURNAMENT_MAX_ROUNDS,
     scores:    match.scores,
     matchId:   match.id,
   })
 }
 
+// ─── Start one match ──────────────────────────────────────────────────────────
+export function startTournamentMatch(io, tournament, match) {
+  match.status  = 'in-progress'
+  match.scores  = {}
+  match._playerRounds   = {}
+  match._playerFinished = {}
+  match._playerCurrentQ = {}
+  if (match.player1) match.scores[match.player1.userId] = 0
+  if (match.player2) match.scores[match.player2.userId] = 0
+
+  io.to(`tournament:${tournament.id}`).emit('tournament:state', tournamentToClient(tournament))
+
+  // Async flow: send each player their own first question independently
+  if (match.player1) startPlayerTournamentRound(io, tournament, match, match.player1.userId)
+  if (match.player2) startPlayerTournamentRound(io, tournament, match, match.player2.userId)
+}
+
 // ─── Handle a player's answer ─────────────────────────────────────────────────
 export function handleTournamentAnswer(io, tournament, match, userId, value, socket) {
-  if (match._answers[userId] !== undefined) return  // sudah jawab, abaikan
-  match._answers[userId] = value
+  match._playerRounds   = match._playerRounds   || {}
+  match._playerFinished = match._playerFinished || {}
+  match._playerCurrentQ = match._playerCurrentQ || {}
 
-  const correct = (value === match._currentQ.answer)
+  // Jika tidak ada soal aktif untuk player ini (sudah jawab / belum terima soal), abaikan
+  const currentQ = match._playerCurrentQ[userId]
+  if (!currentQ) return
+
+  const playerRound = match._playerRounds[userId] || 0
+
+  const correct = (value === currentQ.answer)
   if (correct) match.scores[userId] = (match.scores[userId] || 0) + 1
 
+  // Hapus soal aktif untuk mencegah double-submit
+  match._playerCurrentQ[userId] = null
+
+  // Kirim hasil ke player ini
   socket.emit('tournament:answer-result', {
     correct,
-    correctAnswer: match._currentQ.answer,
+    correctAnswer: currentQ.answer,
     yourValue:     value,
     scores:        match.scores,
   })
@@ -72,16 +98,37 @@ export function handleTournamentAnswer(io, tournament, match, userId, value, soc
     matchId: match.id,
   })
 
-  // Cek apakah kedua pemain sudah jawab
-  const playerIds = [match.player1?.userId, match.player2?.userId].filter(Boolean)
-  const allAnswered = playerIds.every(id => match._answers[id] !== undefined)
+  // Beritahu lawan: skor kita terbaru (realtime, lawan mungkin masih bermain atau di leaderboard)
+  const opponent = [match.player1, match.player2].find(p => p?.userId !== userId)
+  if (opponent?.socketId) {
+    const oppSocket = io.sockets.sockets.get(opponent.socketId)
+    oppSocket?.emit('tournament:score-update', {
+      opponentScore: match.scores[userId],
+      opponentRound: playerRound,
+    })
+  }
 
-  if (allAnswered) {
-    if (match._round >= TOURNAMENT_MAX_ROUNDS) {
-      setTimeout(() => finishTournamentMatch(io, tournament, match), NEXT_Q_DELAY_MS)
+  if (playerRound >= TOURNAMENT_MAX_ROUNDS) {
+    // Player ini sudah selesai semua soal
+    match._playerFinished[userId] = true
+
+    const opponentId = opponent?.userId
+    if (!opponentId || match._playerFinished[opponentId]) {
+      // Kedua pemain selesai → tentukan pemenang
+      finishTournamentMatch(io, tournament, match)
     } else {
-      setTimeout(() => startTournamentRound(io, tournament, match), NEXT_Q_DELAY_MS)
+      // Lawan masih bermain → masukkan player ini ke leaderboard, tunggu lawan
+      socket.emit('tournament:self-finished', {
+        scores: match.scores,
+      })
     }
+  } else {
+    // Langsung kirim soal berikutnya ke player ini setelah jeda singkat
+    setTimeout(() => {
+      if (match.status === 'in-progress') {
+        startPlayerTournamentRound(io, tournament, match, userId)
+      }
+    }, NEXT_Q_DELAY_MS)
   }
 }
 

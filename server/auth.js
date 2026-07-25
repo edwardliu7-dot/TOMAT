@@ -86,6 +86,7 @@ router.post('/login', async (req, res) => {
     req.session.user = {
       id: user.id,
       role,
+      name: user.name || user.username || null,
       kelas: role === 'siswa' ? (user.kelas || null) : null,
     }
     res.json({ user: sanitizeUser(user, role) })

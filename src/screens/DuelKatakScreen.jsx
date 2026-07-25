@@ -73,7 +73,7 @@ function ScoreBar({ scores, myIndex, round, maxRounds }) {
 }
 
 // ─── Number line visualisation ────────────────────────────────────────────────
-function NumberLine({ question, myPos, oppPos, myAnswered, oppAnswered, myCorrect, oppCorrect }) {
+function NumberLine({ question, myPos, oppPos, myAnswered, myCorrect }) {
   const { start, jump, isForward } = question
   const correctAns = isForward ? start + jump : start - jump
 
@@ -111,26 +111,18 @@ function NumberLine({ question, myPos, oppPos, myAnswered, oppAnswered, myCorrec
           const sx = 15 + toPercent(start) / 100 * 230
           const ex = 15 + toPercent(correctAns) / 100 * 230
           const mx = (sx + ex) / 2
-          const dir = isForward ? -18 : -18
-          return <path d={`M ${sx} 48 Q ${mx} ${48 + dir} ${ex} 48`}
+          return <path d={`M ${sx} 48 Q ${mx} ${30} ${ex} 48`}
             fill="none" stroke="rgba(245,158,11,0.4)" strokeWidth="1.5" strokeDasharray="4,3" />
         })()}
 
-        {/* Opponent ghost frog 👾 */}
+        {/* Opponent ghost frog 🔥 — shows last known slider position */}
         {oppPos !== null && (
           <text
             x={15 + toPercent(oppPos) / 100 * 230} y="43"
             textAnchor="middle" fontSize="16"
-            opacity={oppAnswered ? 1 : 0.5}
+            opacity={0.5}
             style={{ filter: 'saturate(0.4)', transition: 'x 0.15s' }}
           >🔥</text>
-        )}
-
-        {/* Result overlay for opponent */}
-        {oppAnswered && (
-          <text x={15 + toPercent(oppPos) / 100 * 230} y="32" textAnchor="middle" fontSize="12">
-            {oppCorrect ? '✅' : '❌'}
-          </text>
         )}
 
         {/* My frog 🐸 */}
@@ -151,8 +143,57 @@ function NumberLine({ question, myPos, oppPos, myAnswered, oppAnswered, myCorrec
   )
 }
 
+// ─── Leaderboard Wait Screen ──────────────────────────────────────────────────
+function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, onLeave }) {
+  return (
+    <div style={{
+      minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: 24, gap: 20, fontFamily: 'system-ui, sans-serif', color: '#fff',
+    }}>
+      <div style={{ fontSize: 56 }}>🏁</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: '#67E8F9', textAlign: 'center' }}>
+        Kamu Sudah Selesai!
+      </div>
+
+      {/* Score comparison */}
+      <div style={{
+        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 16, padding: '16px 28px', display: 'flex', gap: 28, alignItems: 'center',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700, marginBottom: 4 }}>KAMU</div>
+          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6 }}>{myName}</div>
+          <div style={{ fontSize: 40, fontWeight: 900, color: '#67E8F9' }}>{myScore}</div>
+          <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>soal benar</div>
+        </div>
+        <div style={{ fontSize: 20, color: '#f59e0b', fontWeight: 900 }}>VS</div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, marginBottom: 4 }}>LAWAN</div>
+          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6 }}>{oppName}</div>
+          <div style={{ fontSize: 40, fontWeight: 900, color: '#f59e0b' }}>{oppScore}</div>
+          <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>soal benar</div>
+        </div>
+      </div>
+
+      {/* Status */}
+      <div style={{
+        background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
+        borderRadius: 12, padding: '12px 20px', textAlign: 'center',
+        fontSize: 13, color: '#fbbf24', fontWeight: 600,
+      }}>
+        ⏳ Lawan masih mengerjakan soal…
+      </div>
+
+      <Btn onClick={onLeave} color="#1e293b" style={{ width: '100%', maxWidth: 300 }}>
+        ← Keluar
+      </Btn>
+    </div>
+  )
+}
+
 // ─── Game Over Screen ─────────────────────────────────────────────────────────
-function GameOverScreen({ winner, scores, myIndex, onRematch, onLeave }) {
+function GameOverScreen({ winner, scores, myIndex, onLeave }) {
   const me  = scores[myIndex]
   const opp = scores[myIndex === 0 ? 1 : 0]
   const iWon  = winner?.userId === me?.userId
@@ -206,14 +247,16 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   const [mySlider, setMySlider]         = useState(() => getInitSlider(initQ, gameKey))
   const [oppSlider, setOppSlider]       = useState(null)
   const [myAnswered, setMyAnswered]     = useState(false)
-  const [oppAnswered, setOppAnswered]   = useState(false)
   const [myCorrect, setMyCorrect]       = useState(null)
-  const [oppCorrect, setOppCorrect]     = useState(null)
   const [correctAnswer, setCorrectAnswer] = useState(null)
 
-  const [phase, setPhase]   = useState('playing') // playing | result | game-over | left
+  // phase: 'playing' | 'result' | 'leaderboard' | 'game-over' | 'left'
+  const [phase, setPhase]   = useState('playing')
   const [gameOver, setGameOver] = useState(null)
   const [leftMsg, setLeftMsg]   = useState('')
+
+  // Leaderboard state (while waiting for opponent to finish)
+  const [leaderboardData, setLeaderboardData] = useState(null)
 
   const handleSlider = useCallback((val) => {
     setMySlider(val)
@@ -223,21 +266,20 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   useEffect(() => {
     const socket = connectSocket()
 
-    // Opponent answered
-    socket.on('duel:opponent-answered', ({ correct, opponentScore, opponentValue }) => {
-      setOppSlider(opponentValue)
-      setOppAnswered(true)
-      setOppCorrect(correct)
+    // Opponent score updated (fires every time opponent answers any question)
+    socket.on('duel:score-update', ({ opponentScore, opponentRound }) => {
       setScores(prev => {
         const updated = [...prev]
         const oppIdx  = myIndex === 0 ? 1 : 0
         updated[oppIdx] = { ...updated[oppIdx], score: opponentScore }
         return updated
       })
+      // Update leaderboard opponent score in realtime if we're waiting
+      setLeaderboardData(prev => prev ? { ...prev, oppScore: opponentScore } : prev)
     })
 
-    // My answer result
-    socket.on('duel:answer-result', ({ correct, yourScore, opponentScore, correctAnswer: ans }) => {
+    // My answer result — brief feedback, next question comes automatically after ~1.2s
+    socket.on('duel:answer-result', ({ correct, yourScore, correctAnswer: ans }) => {
       setMyAnswered(true)
       setMyCorrect(correct)
       setCorrectAnswer(ans)
@@ -245,13 +287,11 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
       setScores(prev => {
         const updated = [...prev]
         updated[myIndex] = { ...updated[myIndex], score: yourScore }
-        const oppIdx = myIndex === 0 ? 1 : 0
-        updated[oppIdx] = { ...updated[oppIdx], score: opponentScore }
         return updated
       })
     })
 
-    // Next question
+    // Next question (sent by server to this player only)
     socket.on('duel:question', ({ question: q, round: r, maxRounds: mr, scores: s, gameKey: gk }) => {
       setQuestion(q)
       setRound(r)
@@ -259,34 +299,52 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
       setMySlider(getInitSlider(q, gk || gameKey))
       setOppSlider(null)
       setMyAnswered(false)
-      setOppAnswered(false)
       setMyCorrect(null)
-      setOppCorrect(null)
       setCorrectAnswer(null)
       setPhase('playing')
     })
 
-    // Game over
+    // I finished all questions — go to leaderboard while opponent still plays
+    socket.on('duel:self-finished', ({ yourScore, opponentScore, scores: finalScores }) => {
+      const oppIdx = myIndex === 0 ? 1 : 0
+      setLeaderboardData({
+        myScore:  yourScore,
+        myName:   finalScores[myIndex]?.name,
+        oppScore: opponentScore,
+        oppName:  finalScores[oppIdx]?.name,
+      })
+      setScores(finalScores)
+      setPhase('leaderboard')
+    })
+
+    // Game over — works from any phase (playing, result, leaderboard)
     socket.on('duel:game-over', ({ winner, scores: finalScores }) => {
       setScores(finalScores)
       setPhase('game-over')
       setGameOver({ winner, scores: finalScores })
     })
 
-    // Opponent left mid-game
+    // Opponent left mid-game (only fires if they hadn't finished yet)
     socket.on('duel:player-left', ({ name }) => {
       setLeftMsg(`${name} meninggalkan pertandingan.`)
       setPhase('left')
     })
 
+    // Opponent ghost slider (real-time position, shown on number line)
+    socket.on('duel:opponent-slider', ({ value }) => {
+      setOppSlider(value)
+    })
+
     return () => {
-      socket.off('duel:opponent-answered')
+      socket.off('duel:score-update')
       socket.off('duel:answer-result')
       socket.off('duel:question')
+      socket.off('duel:self-finished')
       socket.off('duel:game-over')
       socket.off('duel:player-left')
+      socket.off('duel:opponent-slider')
     }
-  }, [myIndex, code])
+  }, [myIndex, code, gameKey])
 
   // Emit leave on unmount if game not over
   useEffect(() => {
@@ -308,6 +366,19 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
         scores={gameOver.scores}
         myIndex={myIndex}
         onLeave={goBack}
+      />
+    )
+  }
+
+  // ── Leaderboard (I'm done, waiting for opponent) ───────────────────────────
+  if (phase === 'leaderboard' && leaderboardData) {
+    return (
+      <LeaderboardWaitScreen
+        myScore={leaderboardData.myScore}
+        myName={leaderboardData.myName}
+        oppScore={leaderboardData.oppScore}
+        oppName={leaderboardData.oppName}
+        onLeave={() => { getSocket()?.emit('duel:leave'); goBack() }}
       />
     )
   }
@@ -336,9 +407,6 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   const sliderMax  = question?.sliderMax ?? NL_MAX
   const isKatak    = gameKey === 'katak'
 
-  // Only reveal opponent position after they've submitted — never during slider movement
-  const oppDisplayPos = oppAnswered ? oppSlider : null
-
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)' }}>
       <TopBar
@@ -359,11 +427,9 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
             <NumberLine
               question={q}
               myPos={mySlider}
-              oppPos={oppDisplayPos}
+              oppPos={oppSlider}
               myAnswered={myAnswered}
-              oppAnswered={oppAnswered}
               myCorrect={myCorrect}
-              oppCorrect={oppCorrect}
             />
           )}
 
@@ -408,35 +474,19 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
           </Btn>
         )}
 
-        {/* Result banner */}
+        {/* Result banner — brief feedback after answering, next question arrives in ~1.2s */}
         {phase === 'result' && (
           <div style={{
             background: myCorrect ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
             border: `1px solid ${myCorrect ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
             borderRadius: 12, padding: '14px 16px', textAlign: 'center',
           }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: myCorrect ? '#10b981' : '#f87171', marginBottom: 4 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: myCorrect ? '#10b981' : '#f87171' }}>
               {myCorrect ? '✅ Benar!' : `❌ Salah! Jawaban: ${correctAnswer}`}
             </div>
-            {!oppAnswered && (
-              <div style={{ fontSize: 12, color: '#94A3B8' }}>Menunggu lawan menjawab…</div>
-            )}
-            {oppAnswered && (
-              <div style={{ fontSize: 12, color: '#94A3B8' }}>
-                Lawan {oppCorrect ? '✅ benar' : '❌ salah'}. Soal berikutnya sebentar lagi…
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Waiting banner when I haven't answered yet but opponent has */}
-        {oppAnswered && !myAnswered && (
-          <div style={{
-            background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
-            borderRadius: 12, padding: '10px 16px', textAlign: 'center',
-            fontSize: 12, color: '#fbbf24', fontWeight: 600,
-          }}>
-            🔥 Lawan sudah menjawab! Cepat!
+            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>
+              Soal berikutnya sebentar lagi…
+            </div>
           </div>
         )}
 

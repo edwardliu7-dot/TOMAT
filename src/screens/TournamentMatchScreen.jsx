@@ -23,7 +23,7 @@ const GAME_LABELS = {
 }
 
 // ─── Number line (katak) ───────────────────────────────────────────────────────
-function KatakNumberLine({ start, myPos, oppPos, myAnswered, oppAnswered, myCorrect, oppCorrect }) {
+function KatakNumberLine({ start, myPos, oppPos, myAnswered, myCorrect }) {
   return (
     <div style={{ padding: '0 4px' }}>
       <svg width="100%" viewBox="0 0 260 80" style={{ overflow: 'visible', display: 'block' }}>
@@ -42,17 +42,12 @@ function KatakNumberLine({ start, myPos, oppPos, myAnswered, oppAnswered, myCorr
         {/* Start marker */}
         <rect x={15 + toPercent(start) / 100 * 230 - 1.5} y="48" width="3" height="22"
           fill="#67E8F9" rx="1.5" opacity="0.5" />
-        {/* Opponent ghost */}
+        {/* Opponent ghost — last known slider position */}
         {oppPos !== null && (
           <text x={15 + toPercent(oppPos) / 100 * 230} y="43"
             textAnchor="middle" fontSize="16"
-            opacity={oppAnswered ? 1 : 0.5}
+            opacity={0.5}
             style={{ filter: 'saturate(0.4)', transition: 'x 0.15s' }}>🔥</text>
-        )}
-        {oppAnswered && (
-          <text x={15 + toPercent(oppPos) / 100 * 230} y="32" textAnchor="middle" fontSize="12">
-            {oppCorrect ? '✅' : '❌'}
-          </text>
         )}
         {/* My frog */}
         <text x={15 + toPercent(myPos) / 100 * 230} y="43"
@@ -95,9 +90,63 @@ function ScoreBar({ myName, oppName, myScore, oppScore, round, maxRounds }) {
   )
 }
 
+// ─── Leaderboard Wait Screen ──────────────────────────────────────────────────
+function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, onLeave }) {
+  return (
+    <div style={{
+      minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: 24, gap: 20, fontFamily: 'system-ui, sans-serif', color: '#fff',
+    }}>
+      <div style={{ fontSize: 56 }}>🏁</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: '#67E8F9', textAlign: 'center' }}>
+        Kamu Sudah Selesai!
+      </div>
+
+      {/* Score comparison */}
+      <div style={{
+        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 16, padding: '16px 28px', display: 'flex', gap: 28, alignItems: 'center',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700, marginBottom: 4 }}>KAMU</div>
+          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6 }}>{myName}</div>
+          <div style={{ fontSize: 40, fontWeight: 900, color: '#67E8F9' }}>{myScore}</div>
+          <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>soal benar</div>
+        </div>
+        <div style={{ fontSize: 20, color: '#f59e0b', fontWeight: 900 }}>VS</div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, marginBottom: 4 }}>LAWAN</div>
+          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6 }}>{oppName}</div>
+          <div style={{ fontSize: 40, fontWeight: 900, color: '#f59e0b' }}>{oppScore}</div>
+          <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>soal benar</div>
+        </div>
+      </div>
+
+      {/* Status */}
+      <div style={{
+        background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
+        borderRadius: 12, padding: '12px 20px', textAlign: 'center',
+        fontSize: 13, color: '#fbbf24', fontWeight: 600,
+      }}>
+        ⏳ Lawan masih mengerjakan soal…
+      </div>
+
+      <button onClick={onLeave} style={{
+        background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
+        padding: '14px 32px', color: '#94A3B8', fontSize: 14, fontWeight: 700,
+        cursor: 'pointer', fontFamily: 'inherit',
+      }}>← Keluar Turnamen</button>
+    </div>
+  )
+}
+
 // ─── Match Over Screen ─────────────────────────────────────────────────────────
-function MatchOverScreen({ winner, scores, myUserId, myName, oppName, onWait, onLeave }) {
+function MatchOverScreen({ winner, scores, myUserId, myName, oppName, onLeave }) {
   const iWon = winner?.userId === myUserId
+  const myScore  = scores[myUserId] ?? 0
+  const oppScore = Object.entries(scores).find(([id]) => id !== String(myUserId))?.[1] ?? 0
+
   return (
     <div style={{
       minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)',
@@ -115,15 +164,13 @@ function MatchOverScreen({ winner, scores, myUserId, myName, oppName, onWait, on
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700, marginBottom: 4 }}>KAMU</div>
           <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>{myName}</div>
-          <div style={{ fontSize: 36, fontWeight: 900, color: '#67E8F9' }}>{scores[myUserId] ?? 0}</div>
+          <div style={{ fontSize: 36, fontWeight: 900, color: '#67E8F9' }}>{myScore}</div>
         </div>
         <div style={{ fontSize: 20, color: '#f59e0b', fontWeight: 900 }}>VS</div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, marginBottom: 4 }}>LAWAN</div>
           <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>{oppName}</div>
-          <div style={{ fontSize: 36, fontWeight: 900, color: '#f59e0b' }}>
-            {Object.entries(scores).find(([id]) => id !== String(myUserId))?.[1] ?? 0}
-          </div>
+          <div style={{ fontSize: 36, fontWeight: 900, color: '#f59e0b' }}>{oppScore}</div>
         </div>
       </div>
       {iWon && (
@@ -153,12 +200,15 @@ export default function TournamentMatchScreen({
   const [slider,      setSlider]      = useState(0)
   const [oppSlider,   setOppSlider]   = useState(null)
   const [myAnswered,  setMyAnswered]  = useState(false)
-  const [oppAnswered, setOppAnswered] = useState(false)
   const [myCorrect,   setMyCorrect]   = useState(null)
-  const [oppCorrect,  setOppCorrect]  = useState(null)
   const [correctAnswer, setCorrectAnswer] = useState(null)
-  const [phase, setPhase] = useState('waiting') // waiting | playing | result | match-over
-  const [matchResult, setMatchResult] = useState(null) // { winner, scores }
+
+  // phase: 'waiting' | 'playing' | 'result' | 'leaderboard' | 'match-over'
+  const [phase, setPhase] = useState('waiting')
+  const [matchResult, setMatchResult] = useState(null)
+
+  // Leaderboard state (while waiting for opponent to finish)
+  const [leaderboardData, setLeaderboardData] = useState(null)
 
   const sliderThrottle = useRef(null)
   const matchIdRef     = useRef(matchId)
@@ -172,7 +222,7 @@ export default function TournamentMatchScreen({
       matchId:      matchIdRef.current,
     })
 
-    // Soal datang → mulai bermain
+    // Soal datang → mulai bermain (sent per-player, async)
     socket.on('tournament:question', ({ question: q, round: r, maxRounds: mr, scores: s }) => {
       setQuestion(q)
       setRound(r)
@@ -181,14 +231,12 @@ export default function TournamentMatchScreen({
       setSlider(q.question?.start ?? q.start ?? 0)
       setOppSlider(null)
       setMyAnswered(false)
-      setOppAnswered(false)
       setMyCorrect(null)
-      setOppCorrect(null)
       setCorrectAnswer(null)
       setPhase('playing')
     })
 
-    // Hasil jawabanku
+    // Hasil jawabanku — brief feedback, soal berikutnya datang otomatis ~1.2s
     socket.on('tournament:answer-result', ({ correct, correctAnswer: ans, yourValue, scores: s }) => {
       setMyAnswered(true)
       setMyCorrect(correct)
@@ -197,14 +245,36 @@ export default function TournamentMatchScreen({
       setPhase('result')
     })
 
-    // Lawan sudah jawab
-    socket.on('tournament:player-answered', ({ userId, correct, value, scores: s }) => {
-      if (userId !== myUserId) {
-        setOppSlider(value)
-        setOppAnswered(true)
-        setOppCorrect(correct)
-        setScores(s || {})
-      }
+    // Skor lawan diperbarui realtime (setiap kali lawan menjawab soalnya)
+    socket.on('tournament:score-update', ({ opponentScore, opponentRound }) => {
+      setScores(prev => {
+        const oppEntry = Object.entries(prev).find(([id]) => id !== String(myUserId))
+        if (!oppEntry) return prev
+        return { ...prev, [oppEntry[0]]: opponentScore }
+      })
+      // Update leaderboard opponent score in realtime
+      setLeaderboardData(prev => prev ? { ...prev, oppScore: opponentScore } : prev)
+    })
+
+    // Aku sudah selesai, lawan masih bermain → masuk leaderboard
+    socket.on('tournament:self-finished', ({ scores: finalScores }) => {
+      const myScore  = finalScores[myUserId] ?? 0
+      const oppEntry = Object.entries(finalScores).find(([id]) => id !== String(myUserId))
+      setLeaderboardData({
+        myScore,
+        myName,
+        oppScore: oppEntry?.[1] ?? 0,
+        oppName:  opponent?.name,
+      })
+      setScores(finalScores)
+      setPhase('leaderboard')
+    })
+
+    // Match selesai — works from any phase including leaderboard
+    socket.on('tournament:match-over', ({ winner, scores: s, matchId: mid }) => {
+      if (mid !== matchIdRef.current) return
+      setMatchResult({ winner, scores: s || {} })
+      setPhase('match-over')
     })
 
     // Spectator slider lawan
@@ -212,21 +282,15 @@ export default function TournamentMatchScreen({
       if (userId !== myUserId) setOppSlider(value)
     })
 
-    // Match selesai
-    socket.on('tournament:match-over', ({ winner, scores: s, matchId: mid }) => {
-      if (mid !== matchIdRef.current) return
-      setMatchResult({ winner, scores: s || {} })
-      setPhase('match-over')
-    })
-
     return () => {
       socket.off('tournament:question')
       socket.off('tournament:answer-result')
-      socket.off('tournament:player-answered')
-      socket.off('tournament:opponent-slider')
+      socket.off('tournament:score-update')
+      socket.off('tournament:self-finished')
       socket.off('tournament:match-over')
+      socket.off('tournament:opponent-slider')
     }
-  }, [myUserId])
+  }, [myUserId, myName])
 
   const emitSlider = useCallback((val) => {
     if (sliderThrottle.current) return
@@ -273,6 +337,19 @@ export default function TournamentMatchScreen({
     )
   }
 
+  // ── Leaderboard (I'm done, waiting for opponent) ───────────────────────────
+  if (phase === 'leaderboard' && leaderboardData) {
+    return (
+      <LeaderboardWaitScreen
+        myScore={leaderboardData.myScore}
+        myName={leaderboardData.myName}
+        oppScore={leaderboardData.oppScore}
+        oppName={leaderboardData.oppName}
+        onLeave={goBack}
+      />
+    )
+  }
+
   // ── Match over screen ──────────────────────────────────────────────────────
   if (phase === 'match-over' && matchResult) {
     return (
@@ -282,7 +359,6 @@ export default function TournamentMatchScreen({
         myUserId={myUserId}
         myName={myName}
         oppName={opponent?.name}
-        onWait={onMatchOver}
         onLeave={goBack}
       />
     )
@@ -296,9 +372,8 @@ export default function TournamentMatchScreen({
   const sliderMin = question?.sliderMin ?? NL_MIN
   const sliderMax = question?.sliderMax ?? NL_MAX
 
-  const oppDisplayPos = oppAnswered
-    ? (oppSlider ?? start)
-    : (oppSlider !== null ? oppSlider : start)
+  const myScore  = scores[myUserId] ?? 0
+  const oppScore = Object.entries(scores).find(([id]) => id !== String(myUserId))?.[1] ?? 0
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)', fontFamily: 'system-ui, sans-serif', color: '#fff' }}>
@@ -322,8 +397,8 @@ export default function TournamentMatchScreen({
         <ScoreBar
           myName={myName}
           oppName={opponent?.name}
-          myScore={scores[myUserId] ?? 0}
-          oppScore={Object.entries(scores).find(([id]) => id !== String(myUserId))?.[1] ?? 0}
+          myScore={myScore}
+          oppScore={oppScore}
           round={round}
           maxRounds={maxRounds}
         />
@@ -339,11 +414,9 @@ export default function TournamentMatchScreen({
             <KatakNumberLine
               start={start}
               myPos={slider}
-              oppPos={oppDisplayPos}
+              oppPos={oppSlider}
               myAnswered={myAnswered}
-              oppAnswered={oppAnswered}
               myCorrect={myCorrect}
-              oppCorrect={oppCorrect}
             />
           )}
 
@@ -395,25 +468,18 @@ export default function TournamentMatchScreen({
           </button>
         )}
 
-        {/* Lawan sudah jawab banner */}
-        {oppAnswered && !myAnswered && (
-          <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 12, padding: '10px 16px', textAlign: 'center', fontSize: 12, color: '#fbbf24', fontWeight: 600 }}>
-            🔥 Lawan sudah menjawab! Cepat!
-          </div>
-        )}
-
-        {/* Result banner */}
+        {/* Result banner — brief feedback, soal berikutnya datang otomatis ~1.2s */}
         {phase === 'result' && (
           <div style={{
             background: myCorrect ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
             border: `1px solid ${myCorrect ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
             borderRadius: 12, padding: '14px 16px', textAlign: 'center',
           }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: myCorrect ? '#10b981' : '#f87171', marginBottom: 4 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: myCorrect ? '#10b981' : '#f87171' }}>
               {myCorrect ? '✅ Benar!' : `❌ Salah! Jawaban: ${correctAnswer}`}
             </div>
-            <div style={{ fontSize: 12, color: '#94A3B8' }}>
-              {!oppAnswered ? 'Menunggu lawan menjawab…' : 'Soal berikutnya sebentar lagi…'}
+            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>
+              Soal berikutnya sebentar lagi…
             </div>
           </div>
         )}

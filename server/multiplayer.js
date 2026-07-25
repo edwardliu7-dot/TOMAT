@@ -27,7 +27,7 @@ function genKatakQ() {
 // ─── Room management ─────────────────────────────────────────────────────────
 const rooms = new Map()           // code → Room
 const MAX_ROUNDS  = 7             // 7 questions per duel
-const NEXT_Q_DELAY_MS = 2500      // pause after both answer before next question
+const NEXT_Q_DELAY_MS = 1200     // pause after answering before next question (async, per-player)
 const ROOM_TTL_MS = 30 * 60_000  // auto-delete after 30 min
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -43,16 +43,18 @@ function safePlayer(p) {
   return { userId: p.userId, name: p.name, avatar: p.avatar, score: p.score }
 }
 
-function startRound(io, room) {
-  room.currentQ = genTournamentQ(room.gameKey || 'katak')
-  room.round++
-  room.players.forEach(p => { p.answered = false; p.lastAnswer = null })
-
-  // Never send the answer to the client!
-  const { answer, ...qForClient } = room.currentQ
-  io.to(room.code).emit('duel:question', {
+// Send one question to a single player (async flow — each player progresses independently)
+function startPlayerRound(io, room, player) {
+  player.myRound++
+  player.answered = false
+  player.lastAnswer = null
+  const q = genTournamentQ(room.gameKey || 'katak')
+  player.currentQ = q
+  const { answer, ...qForClient } = q
+  const playerSocket = io.sockets.sockets.get(player.socketId)
+  playerSocket?.emit('duel:question', {
     question: qForClient,
-    round: room.round,
+    round: player.myRound,
     maxRounds: MAX_ROUNDS,
     scores: room.players.map(safePlayer),
     gameKey: room.gameKey || 'katak',
@@ -60,7 +62,8 @@ function startRound(io, room) {
 }
 
 function finishGame(io, room) {
-  if (room.status === 'finished') return
+  if (room._finishingGame) return
+  room._finishingGame = true
   room.status = 'finished'
   const [p0, p1] = room.players
   let winner = null
@@ -68,6 +71,9 @@ function finishGame(io, room) {
     if (p0.score > p1.score) winner = safePlayer(p0)
     else if (p1.score > p0.score) winner = safePlayer(p1)
     // winner === null → draw
+  } else if (p0) {
+    // Only one player left (other disconnected from leaderboard) — remaining wins
+    winner = safePlayer(p0)
   }
   io.to(room.code).emit('duel:game-over', {
     winner,
@@ -87,8 +93,15 @@ function leaveAllRooms(socket, io) {
     if (room.players.length === 0) {
       rooms.delete(code)
     } else if (room.status === 'in-progress') {
-      room.status = 'finished'
-      io.to(code).emit('duel:player-left', { name: leaving.name })
+      if (leaving.finished) {
+        // Player yang pergi sudah selesai semua soal → yang tersisa tetap bermain
+        // Tandai agar saat yang tersisa selesai, finishGame langsung dipanggil
+        room._opponentLeft = true
+      } else {
+        // Player yang pergi belum selesai → hentikan game untuk keduanya
+        room.status = 'finished'
+        io.to(code).emit('duel:player-left', { name: leaving.name })
+      }
     } else {
       io.to(code).emit('duel:player-left', { name: leaving.name })
     }
@@ -136,13 +149,16 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     }
 
     const makePlayer = (avatar) => ({
-      socketId: socket.id,
-      userId:   user.id,
-      name:     user.nama || user.username || 'Siswa',
-      avatar:   avatar || null,
-      score:    0,
-      answered: false,
+      socketId:   socket.id,
+      userId:     user.id,
+      name:       user.name || user.username || 'Siswa',
+      avatar:     avatar || null,
+      score:      0,
+      answered:   false,
       lastAnswer: null,
+      myRound:    0,       // soal ke-N yang sedang dikerjakan player ini
+      finished:   false,   // apakah sudah selesai semua soal
+      currentQ:   null,    // soal aktif player ini (server-authoritative)
     })
 
     // ── CREATE ROOM ──────────────────────────────────────────────────────────
@@ -155,8 +171,6 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
         gameKey:  gameKey || 'katak',
         players:  [player],
         status:   'waiting',
-        currentQ: null,
-        round:    0,
         createdAt: Date.now(),
       })
       socket.join(code)
@@ -209,7 +223,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
           io.to(code).emit('duel:countdown', { count })
         } else {
           clearInterval(tick)
-          startRound(io, room)
+          // Async flow: send each player their own first question independently
+          room.players.forEach(p => startPlayerRound(io, room, p))
         }
       }, 1000)
     })
@@ -228,36 +243,52 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const room = rooms.get(code)
       if (!room || room.status !== 'in-progress') return
       const player = room.players.find(p => p.userId === user.id)
-      if (!player || player.answered) return
+      if (!player || player.answered || !player.currentQ) return
 
       player.answered   = true
       player.lastAnswer = value
-      const correct = (value === room.currentQ.answer)
+      const correct = (value === player.currentQ.answer)
       if (correct) player.score++
 
       const opponent = room.players.find(p => p.userId !== user.id)
 
+      // Beritahu lawan: skor kita terbaru (realtime update saat lawan masih bermain / di leaderboard)
+      socket.to(code).emit('duel:score-update', {
+        opponentScore: player.score,
+        opponentRound: player.myRound,
+      })
+
+      // Kirim hasil jawaban ke player ini
       socket.emit('duel:answer-result', {
         correct,
-        yourScore:    player.score,
-        opponentScore: opponent?.score ?? 0,
-        correctAnswer: room.currentQ.answer,
-        yourValue:    value,
+        yourScore:     player.score,
+        correctAnswer: player.currentQ.answer,
+        yourValue:     value,
       })
 
-      socket.to(code).emit('duel:opponent-answered', {
-        correct,
-        opponentScore: player.score,
-        opponentValue: value,
-      })
+      if (player.myRound >= MAX_ROUNDS) {
+        // Player ini sudah selesai semua soal
+        player.finished = true
 
-      // Both answered — schedule next round or game-over
-      if (room.players.every(p => p.answered)) {
-        if (room.round >= MAX_ROUNDS) {
-          setTimeout(() => finishGame(io, room), NEXT_Q_DELAY_MS)
+        if (room._opponentLeft) {
+          // Lawan sudah pergi dari leaderboard → kita yang baru selesai → game over
+          finishGame(io, room)
+        } else if (!opponent || opponent.finished) {
+          // Kedua pemain selesai → tentukan pemenang
+          finishGame(io, room)
         } else {
-          setTimeout(() => startRound(io, room), NEXT_Q_DELAY_MS)
+          // Lawan masih bermain → masukkan player ini ke leaderboard, tunggu lawan selesai
+          socket.emit('duel:self-finished', {
+            yourScore:     player.score,
+            opponentScore: opponent?.score ?? 0,
+            scores:        room.players.map(safePlayer),
+          })
         }
+      } else {
+        // Langsung kirim soal berikutnya ke player ini setelah jeda singkat
+        setTimeout(() => {
+          if (room.status === 'in-progress') startPlayerRound(io, room, player)
+        }, NEXT_Q_DELAY_MS)
       }
     })
 
@@ -285,8 +316,6 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
         gameKey: 'katak',   // direct invites have no game context — default katak
         players: [player],
         status: 'waiting',
-        currentQ: null,
-        round: 0,
         createdAt: Date.now(),
         inviteTargetId: targetUserId,
         cancelTimeout: null,
@@ -403,7 +432,7 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       if (!raid.participants.has(user.id)) {
         raid.participants.set(user.id, {
           userId: user.id,
-          name:   user.nama || user.username || 'Siswa',
+          name:   user.name || user.username || 'Siswa',
           avatar: null,
           hits:   0,
           damage: 0,

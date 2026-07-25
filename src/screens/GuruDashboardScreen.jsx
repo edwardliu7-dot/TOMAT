@@ -937,15 +937,15 @@ function RaidTab({ kelasDiampu }) {
                 </div>
                 <div>
                   <div style={labelStyle}>Jumlah per Siswa</div>
-                  <select value={form.rewardAmount} onChange={e => setForm(f => ({ ...f, rewardAmount: e.target.value }))} style={inputStyle}>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                    <option value={150}>150</option>
-                    <option value={200}>200</option>
-                    <option value={300}>300</option>
-                    <option value={500}>500</option>
-                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    value={form.rewardAmount}
+                    onChange={e => setForm(f => ({ ...f, rewardAmount: e.target.value }))}
+                    style={{ ...inputStyle, MozAppearance: 'textfield' }}
+                    placeholder="Ketik jumlah..."
+                  />
                 </div>
               </div>
               <div style={{ fontSize: 11, color: '#64748B', marginTop: 8, lineHeight: 1.5 }}>
