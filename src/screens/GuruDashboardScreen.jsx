@@ -559,6 +559,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('tugas')
   const [view, setView] = useState('dashboard')
+  const [komunikasiTarget, setKomunikasiTarget] = useState(null)
   const publicProfile = usePublicProfile()
   const kelasDiampu = user?.kelas || []
   const grades = [...new Set(kelasDiampu.map(kelasToGrade).filter(Boolean))].sort()
@@ -599,8 +600,8 @@ export default function GuruDashboardScreen({ onPlayGames }) {
             </div>
           </div>
 
-            <MessageNotificationBell onClick={() => setTab('komunikasi')} />
-            <AppNotificationBell onCommunicationClick={() => setTab('komunikasi')} />
+            <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); setTab('komunikasi') }} />
+            <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); setTab('komunikasi') }} />
 
            <button onClick={onPlayGames} style={{
             background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)',
@@ -640,7 +641,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           {tab === 'tugas'   && <TugasTab kelasDiampu={kelasDiampu} />}
           {tab === 'hafalan' && <GuruHafalanScreen />}
           {tab === 'nilai'   && <NilaiTab onProfileClick={publicProfile.openProfile} />}
-          {tab === 'komunikasi' && <CommunicationScreen embedded />}
+          {tab === 'komunikasi' && <CommunicationScreen embedded initialTarget={komunikasiTarget} />}
           {tab === 'siswa'   && <SiswaTab onProfileClick={publicProfile.openProfile} />}
           {tab === 'kunci'   && <KunciTab grades={grades} />}
           {tab === 'insight' && <InsightTab onProfileClick={publicProfile.openProfile} />}
