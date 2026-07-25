@@ -4,6 +4,9 @@ import { requireAuth, requireRole } from './auth.js'
 import { getGuruGrades } from './kelas.js'
 import { notifyClassStudents } from './notifications.js'
 import { createBossRaid, endBossRaid, getBossRaid, bossRaids, raidToClient } from './boss-state.js'
+import { SUPPORTED_TOURNAMENT_GAMES, genTournamentQ } from './tournament-questions.js'
+import { tournaments, tournamentToClient, buildFirstRound, getTournamentIo } from './tournament-state.js'
+import { startTournamentRound_all } from './tournament-engine.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('guru'))
@@ -211,6 +214,110 @@ router.post('/bab-locks', async (req, res) => {
   } catch (err) {
     console.error('guru/bab-locks set error', err)
     res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  }
+})
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TOURNAMENT ENDPOINTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET /api/guru/tournament/games — list game yang didukung turnamen
+router.get('/tournament/games', (_req, res) => {
+  res.json({ games: SUPPORTED_TOURNAMENT_GAMES })
+})
+
+// GET /api/guru/tournament — turnamen aktif untuk kelas guru ini
+router.get('/tournament', async (req, res) => {
+  try {
+    const kelasDiampu = await getMyKelasDiampu(req)
+    const active = [...tournaments.values()]
+      .filter(t => kelasDiampu.includes(t.kelas))
+      .map(tournamentToClient)
+    res.json({ tournaments: active })
+  } catch (err) {
+    console.error('guru/tournament GET error', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/guru/tournament — mulai turnamen baru
+router.post('/tournament', async (req, res) => {
+  try {
+    const kelasDiampu = await getMyKelasDiampu(req)
+    const { kelas, gameKey } = req.body || {}
+
+    if (!kelas || !kelasDiampu.includes(kelas))
+      return res.status(403).json({ error: 'Kelas tidak valid.' })
+    if (!SUPPORTED_TOURNAMENT_GAMES.includes(gameKey))
+      return res.status(400).json({ error: `Game '${gameKey}' belum didukung untuk turnamen.` })
+
+    // Cek tidak ada turnamen aktif untuk kelas ini
+    const existing = [...tournaments.values()].find(
+      t => t.kelas === kelas && t.status !== 'finished'
+    )
+    if (existing) return res.status(409).json({ error: 'Turnamen masih aktif untuk kelas ini.' })
+
+    // Ambil semua siswa di kelas
+    const { rows } = await pool.query(
+      'SELECT id AS "userId", name FROM students WHERE kelas = $1',
+      [kelas]
+    )
+    if (rows.length < 2)
+      return res.status(400).json({ error: 'Minimal 2 siswa diperlukan untuk memulai turnamen.' })
+
+    const students    = rows.map(r => ({ ...r, socketId: null }))
+    const tournamentId = crypto.randomUUID()
+    const firstRound  = buildFirstRound(students)
+
+    const tournament = {
+      id:           tournamentId,
+      kelas,
+      guruId:       req.session.user.id,
+      gameKey,
+      status:       'in-progress',
+      currentRound: 1,
+      rounds:       [firstRound],
+      students,
+      champion:     null,
+      createdAt:    Date.now(),
+    }
+    tournaments.set(tournamentId, tournament)
+
+    // Notify semua siswa di kelas via socket
+    const io = getTournamentIo()
+    io?.to(`kelas:${kelas}`).emit('tournament:started', {
+      tournamentId,
+      gameKey,
+      state: tournamentToClient(tournament),
+    })
+
+    // Mulai ronde 1
+    startTournamentRound_all(io, tournament)
+
+    res.json({ tournament: tournamentToClient(tournament) })
+  } catch (err) {
+    console.error('guru/tournament POST error', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/guru/tournament/:id — batalkan turnamen
+router.delete('/tournament/:id', async (req, res) => {
+  try {
+    const t = tournaments.get(req.params.id)
+    if (!t) return res.status(404).json({ error: 'Turnamen tidak ditemukan.' })
+    const kelasDiampu = await getMyKelasDiampu(req)
+    if (!kelasDiampu.includes(t.kelas)) return res.status(403).json({ error: 'Akses ditolak.' })
+
+    t.status = 'finished'
+    const io = getTournamentIo()
+    io?.to(`tournament:${t.id}`).emit('tournament:cancelled')
+    io?.to(`kelas:${t.kelas}`).emit('tournament:cancelled')
+    tournaments.delete(req.params.id)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('guru/tournament DELETE error', err)
+    res.status(500).json({ error: err.message })
   }
 })
 

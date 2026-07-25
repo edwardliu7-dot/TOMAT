@@ -23,6 +23,40 @@ import CommunicationScreen from './screens/CommunicationScreen'
 import LobbyScreen from './screens/LobbyScreen'
 import DuelKatakScreen from './screens/DuelKatakScreen'
 import BossRaidScreen from './screens/BossRaidScreen'
+import TournamentMatchScreen from './screens/TournamentMatchScreen'
+import TournamentWaitScreen from './screens/TournamentWaitScreen'
+import TournamentNotificationBanner from './components/TournamentNotificationBanner'
+import { connectSocket } from './socket'
+
+// Auth-aware wrappers — need useAuth inside the PlayerProvider/AuthContext tree
+function TournamentMatchWithAuth({ matchData, goBack, onMatchOver }) {
+  const { user } = useAuth()
+  return (
+    <TournamentMatchScreen
+      tournamentId={matchData.tournamentId}
+      matchId={matchData.matchId}
+      opponent={matchData.opponent}
+      gameKey={matchData.gameKey}
+      round={matchData.round}
+      myUserId={user?.id}
+      myName={user?.name}
+      goBack={goBack}
+      onMatchOver={onMatchOver}
+    />
+  )
+}
+
+function TournamentWaitWithAuth({ tournamentId, goBack }) {
+  const { user } = useAuth()
+  return (
+    <TournamentWaitScreen
+      tournamentId={tournamentId}
+      myUserId={user?.id}
+      myName={user?.name}
+      goBack={goBack}
+    />
+  )
+}
 
 // All game components are lazy-loaded on first navigation to keep initial bundle small
 
@@ -148,8 +182,11 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
   const current = history[history.length - 1]
 
-  const [komunikasiTarget, setKomunikasiTarget] = useState(null)
-  const [duelState, setDuelState] = useState(null) // { code, myIndex, question, round, maxRounds, scores }
+  const [komunikasiTarget, setKomunikasiTarget]     = useState(null)
+  const [duelState, setDuelState]                   = useState(null) // { code, myIndex, question, round, maxRounds, scores }
+  const [tournamentMatchData, setTournamentMatchData] = useState(null)  // from tournament:your-match
+  const [tournamentBanner,    setTournamentBanner]    = useState(null)  // show notification banner
+  const [activeTournamentId,  setActiveTournamentId]  = useState(null)  // when we are spectating bracket
 
   useEffect(() => {
     const openCommunication = e => {
@@ -159,6 +196,41 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     window.addEventListener('tomat:open-komunikasi', openCommunication)
     return () => window.removeEventListener('tomat:open-komunikasi', openCommunication)
   }, [])
+
+  // Tournament: connect socket and listen for match notifications
+  useEffect(() => {
+    if (guruMode) return  // guru tidak perlu socket di mode practice
+    const socket = connectSocket()
+
+    // Server mengirim notifikasi match
+    socket.on('tournament:your-match', (data) => {
+      setTournamentMatchData(data)
+      setTournamentBanner(data)
+    })
+
+    // Turnamen selesai (broadcast ke kelas)
+    socket.on('tournament:finished', () => {
+      // Jika sedang di tournament-wait, setTournamentBanner cukup; bracket update via socket di screen
+    })
+
+    // Turnamen baru dimulai oleh guru
+    socket.on('tournament:started', ({ tournamentId }) => {
+      setActiveTournamentId(tournamentId)
+    })
+
+    socket.on('tournament:cancelled', () => {
+      setActiveTournamentId(null)
+      setTournamentBanner(null)
+      setTournamentMatchData(null)
+    })
+
+    return () => {
+      socket.off('tournament:your-match')
+      socket.off('tournament:finished')
+      socket.off('tournament:started')
+      socket.off('tournament:cancelled')
+    }
+  }, [guruMode])
 
   // Push a new route onto the stack
   const navigate = useCallback((route, options = {}) => {
@@ -213,8 +285,9 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           navigate={navigate}
           goBack={goBack}
           pendingGame={pendingGame}
-            taskId={pendingTaskId}
+          taskId={pendingTaskId}
           onModeSelected={handleModeSelected}
+          onDuel={pendingGame?.key === 'katak' ? () => replaceTop('duel-lobby') : undefined}
         />
       )
     }
@@ -278,6 +351,28 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       return <BossRaidScreen goBack={goBack} />
     }
 
+    if (current === 'tournament-match' && tournamentMatchData) {
+      return (
+        <TournamentMatchWithAuth
+          matchData={tournamentMatchData}
+          goBack={goBack}
+          onMatchOver={() => {
+            setActiveTournamentId(tournamentMatchData.tournamentId)
+            replaceTop('tournament-wait')
+          }}
+        />
+      )
+    }
+
+    if (current === 'tournament-wait') {
+      return (
+        <TournamentWaitWithAuth
+          tournamentId={activeTournamentId || tournamentMatchData?.tournamentId}
+          goBack={goBack}
+        />
+      )
+    }
+
     if (GAME_ROUTES[current]) {
       const { Component } = GAME_ROUTES[current]
       const difficulty = gameConfig?.difficulty || 'medium'
@@ -310,6 +405,19 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               <TaskOverlay />
               {/* Tomi the guinea pig — walks across screen for students */}
               <FloatingPet />
+              {/* Tournament match notification banner */}
+              {tournamentBanner && current !== 'tournament-match' && (
+                <TournamentNotificationBanner
+                  matchData={tournamentBanner}
+                  onAccept={(data) => {
+                    setTournamentMatchData(data)
+                    setActiveTournamentId(data.tournamentId)
+                    setTournamentBanner(null)
+                    navigate('tournament-match')
+                  }}
+                  onDismiss={() => setTournamentBanner(null)}
+                />
+              )}
             </div>
           </BabLockProvider>
         </TaskProvider>

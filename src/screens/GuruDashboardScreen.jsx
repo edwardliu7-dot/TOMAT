@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { connectSocket, getSocket } from '../socket'
 import { useAuth } from '../AuthContext'
 import { GAMES_CATALOG, GRADE_BAB_LABELS, getBabsForGrade } from '../gamesCatalog'
 
@@ -34,8 +35,9 @@ const TABS = [
   { id: 'komunikasi', label: '💬', text: 'Chat' },
   { id: 'siswa',   label: '👥', text: 'Siswa' },
   { id: 'kunci',   label: '🔒', text: 'Kunci Bab' },
-  { id: 'raid',    label: '⚔️', text: 'Boss Raid' },
-  { id: 'insight', label: '🎮', text: 'Insight' },
+  { id: 'raid',      label: '⚔️', text: 'Boss Raid' },
+  { id: 'turnamen',  label: '🏆', text: 'Turnamen' },
+  { id: 'insight',   label: '🎮', text: 'Insight' },
 ]
 
 function Section({ children, style = {} }) {
@@ -768,6 +770,376 @@ function RaidTab({ kelasDiampu }) {
   )
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// TURNAMEN TAB
+// ══════════════════════════════════════════════════════════════════════════════
+const TOURNAMENT_GAMES = [
+  { key: 'katak',       label: '🐸 Katak Pelompat', desc: 'Bilangan bulat, garis bilangan' },
+  { key: 'termometer',  label: '🌡️ Termometer',     desc: 'Penjumlahan bilangan bulat' },
+  { key: 'pabrikrobot', label: '🤖 Pabrik Robot',   desc: 'Perkalian bilangan bulat' },
+  { key: 'gembok',      label: '⚙️ Gembok Roda Gigi',desc: 'FPB' },
+  { key: 'mercusuar',   label: '🏮 Mercusuar',       desc: 'KPK' },
+]
+
+const MATCH_STATUS_BADGE = {
+  finished:       { bg: 'rgba(16,185,129,0.15)',  color: '#10b981', label: '✅ Selesai' },
+  'in-progress':  { bg: 'rgba(245,158,11,0.15)',  color: '#f59e0b', label: '⚡ Berlangsung' },
+  'waiting-join': { bg: 'rgba(103,232,249,0.12)', color: '#67E8F9', label: '⏳ Menunggu' },
+  walkover:       { bg: 'rgba(239,68,68,0.12)',   color: '#f87171', label: '⏩ Walkover' },
+  bye:            { bg: 'rgba(52,211,153,0.12)',  color: '#34D399', label: '🟢 BYE' },
+  pending:        { bg: 'rgba(255,255,255,0.06)', color: '#475569', label: '🔒 Menunggu' },
+}
+
+function TurnamenTab({ kelasDiampu }) {
+  const [tournament,   setTournament]   = useState(null)
+  const [loading,      setLoading]      = useState(true)
+  const [creating,     setCreating]     = useState(false)
+  const [error,        setError]        = useState('')
+  const [spectate,       setSpectate]       = useState(null)  // match being spectated
+  const [spectateSliders,setSpectateSliders] = useState({})    // { [userId]: number }
+  const [spectateQ,      setSpectateQ]       = useState(null)  // { round, maxRounds, text }
+  const [form,         setForm]         = useState({ kelas: kelasDiampu[0] || '', gameKey: 'katak' })
+  const socketJoined   = useRef(false)
+
+  // Fetch current tournament state via REST on mount
+  useEffect(() => {
+    apiCall('/api/guru/tournament').then(d => {
+      setTournament(d.tournaments?.[0] || null)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  // Connect socket for live updates (guru needs socket for real-time bracket)
+  useEffect(() => {
+    const socket = connectSocket()
+
+    socket.on('tournament:state', (state) => {
+      setTournament(state)
+    })
+    socket.on('tournament:round-start', ({ state }) => {
+      if (state) setTournament(state)
+    })
+    socket.on('tournament:finished', ({ state }) => {
+      if (state) setTournament(state)
+    })
+    socket.on('tournament:cancelled', () => {
+      setTournament(null)
+    })
+    socket.on('tournament:player-answered', (data) => {
+      if (spectate?.id === data.matchId) {
+        setSpectate(s => s ? { ...s, scores: data.scores } : s)
+      }
+    })
+
+    return () => {
+      socket.off('tournament:state')
+      socket.off('tournament:round-start')
+      socket.off('tournament:finished')
+      socket.off('tournament:cancelled')
+      socket.off('tournament:player-answered')
+    }
+  }, [spectate])
+
+  // When we have a tournament, join its socket room for live updates
+  useEffect(() => {
+    if (!tournament?.id || socketJoined.current === tournament.id) return
+    socketJoined.current = tournament.id
+    const socket = getSocket()
+    socket?.emit('tournament:spectate', { tournamentId: tournament.id })
+  }, [tournament?.id])
+
+  // Spectate-match socket events — sliders + question (resets when spectate changes)
+  useEffect(() => {
+    if (!spectate) {
+      setSpectateSliders({})
+      setSpectateQ(null)
+      return
+    }
+    const socket = getSocket()
+    if (!socket) return
+
+    const onSlider = ({ userId, value }) => {
+      setSpectateSliders(s => ({ ...s, [String(userId)]: value }))
+    }
+    const onQuestion = ({ question, round, maxRounds }) => {
+      const text = question?.question?.text || question?.text || ''
+      setSpectateQ({ round, maxRounds, text })
+      setSpectateSliders({})  // reset slider positions for new question
+    }
+
+    socket.on('tournament:opponent-slider', onSlider)
+    socket.on('tournament:question', onQuestion)
+
+    return () => {
+      socket.off('tournament:opponent-slider', onSlider)
+      socket.off('tournament:question', onQuestion)
+    }
+  }, [spectate?.id])
+
+  const handleCreate = async (e) => {
+    e.preventDefault()
+    if (!form.kelas || !form.gameKey) return
+    setCreating(true)
+    setError('')
+    try {
+      const data = await apiCall('/api/guru/tournament', { method: 'POST', body: form })
+      setTournament(data.tournament)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleEnd = async () => {
+    if (!tournament) return
+    try {
+      await apiCall(`/api/guru/tournament/${tournament.id}`, { method: 'DELETE' })
+      setTournament(null)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const openSpectate = (match) => {
+    if (!match?.id) return
+    setSpectate(match)
+    getSocket()?.emit('tournament:spectate-match', { matchId: match.id })
+  }
+
+  const inputS = {
+    width: '100%', background: '#0D1117', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 12, padding: '11px 12px', color: '#fff', fontSize: 13,
+    fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+  }
+  const labelS = { fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 5 }
+
+  if (loading) return (
+    <div style={{ textAlign: 'center', color: '#64748B', fontSize: 13, paddingTop: 16 }}>Memuat…</div>
+  )
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {!tournament ? (
+        // ── Setup Form ──────────────────────────────────────────────────────
+        <div style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', padding: 16 }}>
+          <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1.5, marginBottom: 12 }}>⚔️ MULAI TURNAMEN BARU</div>
+          <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Kelas */}
+            <div>
+              <div style={labelS}>Kelas</div>
+              <select value={form.kelas} onChange={e => setForm(f => ({ ...f, kelas: e.target.value }))} style={inputS}>
+                <option value="">Pilih kelas…</option>
+                {kelasDiampu.map(k => <option key={k} value={k}>{k}</option>)}
+              </select>
+            </div>
+            {/* Game */}
+            <div>
+              <div style={labelS}>Game Turnamen</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {TOURNAMENT_GAMES.map(g => (
+                  <label key={g.key} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                    background: form.gameKey === g.key ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.03)',
+                    border: `1.5px solid ${form.gameKey === g.key ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                    borderRadius: 12, cursor: 'pointer',
+                  }}>
+                    <input type="radio" name="gameKey" value={g.key} checked={form.gameKey === g.key}
+                      onChange={e => setForm(f => ({ ...f, gameKey: e.target.value }))}
+                      style={{ accentColor: '#f59e0b' }} />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{g.label}</div>
+                      <div style={{ fontSize: 11, color: '#94A3B8' }}>{g.desc}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {error && (
+              <div style={{ color: '#fca5a5', fontSize: 12, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 10, padding: '8px 12px' }}>{error}</div>
+            )}
+
+            <button type="submit" disabled={creating || !form.kelas} style={{
+              background: creating || !form.kelas ? 'rgba(245,158,11,0.1)' : 'linear-gradient(135deg,#f59e0b,#d97706)',
+              color: '#fff', border: 'none', borderRadius: 14, padding: '14px 0',
+              fontSize: 14, fontWeight: 800, cursor: creating || !form.kelas ? 'default' : 'pointer',
+              fontFamily: 'inherit', opacity: creating || !form.kelas ? 0.5 : 1,
+              boxShadow: !creating && form.kelas ? '0 0 20px rgba(245,158,11,0.25)' : 'none',
+            }}>
+              {creating ? '⏳ Memulai…' : `🏆 Mulai Turnamen untuk ${form.kelas || '…'}`}
+            </button>
+          </form>
+        </div>
+      ) : (
+        // ── Bracket View ─────────────────────────────────────────────────────
+        <>
+          {/* Tournament info */}
+          <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 16, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <div>
+                <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1.5 }}>🏆 TURNAMEN AKTIF</div>
+                <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', marginTop: 4 }}>
+                  {TOURNAMENT_GAMES.find(g => g.key === tournament.gameKey)?.label || tournament.gameKey}
+                </div>
+                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+                  {tournament.kelas} · Ronde {tournament.currentRound}
+                  {tournament.status === 'finished' && ' · SELESAI'}
+                </div>
+              </div>
+              {tournament.status !== 'finished' && (
+                <button onClick={handleEnd} style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '8px 14px', color: '#f87171', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  🛑 Akhiri
+                </button>
+              )}
+            </div>
+            {tournament.champion && (
+              <div style={{ marginTop: 12, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ fontSize: 24 }}>🏆</div>
+                <div>
+                  <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 800 }}>JUARA TURNAMEN</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>{tournament.champion.name}</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bracket rounds */}
+          {tournament.rounds?.map((round, ri) => (
+            <div key={ri} style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', padding: 16 }}>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
+                RONDE {ri + 1}{ri + 1 === tournament.currentRound && tournament.status !== 'finished' ? ' (BERLANGSUNG)' : ''}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {round.matches.map((m, mi) => {
+                  const badge = MATCH_STATUS_BADGE[m.status] || MATCH_STATUS_BADGE.pending
+                  return (
+                    <div key={mi} style={{
+                      background: '#0D1117', border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 12, padding: '12px 14px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ flex: 1 }}>
+                          {[m.player1, m.player2].filter(Boolean).map((p, pi) => (
+                            <div key={pi}>
+                              {pi === 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '5px 0' }} />}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <span style={{ fontSize: 13, fontWeight: m.winner?.userId === p.userId ? 800 : 500, color: m.winner && m.winner.userId !== p.userId ? '#475569' : '#94A3B8' }}>
+                                  {m.winner?.userId === p.userId ? '🏅 ' : ''}{p.name}
+                                </span>
+                                {m.scores?.[p.userId] !== undefined && (
+                                  <span style={{ fontSize: 12, fontWeight: 800, color: pi === 0 ? '#67E8F9' : '#f59e0b' }}>{m.scores[p.userId]}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                          <span style={{ background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20 }}>{badge.label}</span>
+                          {m.status === 'in-progress' && (
+                            <button onClick={() => openSpectate(m)} style={{
+                              background: 'rgba(103,232,249,0.08)', border: '1px solid rgba(103,232,249,0.2)',
+                              borderRadius: 8, padding: '4px 8px', color: '#67E8F9', fontSize: 10, fontWeight: 700,
+                              cursor: 'pointer', fontFamily: 'inherit',
+                            }}>👁 Pantau</button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* Spectator bottom sheet */}
+      {spectate && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9000,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'flex-end',
+        }} onClick={() => setSpectate(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '100%', maxWidth: 480, margin: '0 auto',
+            background: '#1A1D27', border: '1.5px solid rgba(103,232,249,0.3)',
+            borderRadius: '24px 24px 0 0', padding: '24px 20px 32px',
+          }}>
+            <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.15)', borderRadius: 4, margin: '0 auto 16px' }} />
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#67E8F9', marginBottom: 12 }}>
+              👁 Pantau Match
+            </div>
+            {/* Player cards side-by-side */}
+            {spectate.player1 && spectate.player2 && (
+              <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                {[
+                  { p: spectate.player1, color: '#67E8F9', emoji: '🐸' },
+                  { p: spectate.player2, color: '#f59e0b', emoji: '🔥' },
+                ].map(({ p, color, emoji }) => {
+                  const score = spectate.scores?.[p.userId] ?? 0
+                  const sliderVal = spectateSliders[String(p.userId)] ?? 0
+                  // slider range for katak is -20 to 20 (range of 40)
+                  const sliderPct = Math.max(0, Math.min(100, ((sliderVal + 20) / 40) * 100))
+                  return (
+                    <div key={p.userId} style={{
+                      flex: 1, background: 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${color}33`, borderRadius: 14, padding: '12px', textAlign: 'center',
+                    }}>
+                      <div style={{ fontSize: 11, color, fontWeight: 700, marginBottom: 4 }}>{emoji} {p.name}</div>
+                      <div style={{ fontSize: 32, fontWeight: 900, color }}>{score}</div>
+                      <div style={{ fontSize: 10, color: '#475569', marginBottom: 8 }}>soal benar</div>
+                      {/* Real-time slider */}
+                      <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '6px 10px' }}>
+                        <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 4 }}>Slider saat ini</div>
+                        <div style={{ fontSize: 18, fontWeight: 900, color }}>{sliderVal}</div>
+                        <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 4, marginTop: 6, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${sliderPct}%`, background: color, borderRadius: 4, transition: 'width 0.1s' }} />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Round indicator */}
+            {spectateQ ? (
+              <>
+                <div style={{
+                  background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '10px 14px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10,
+                }}>
+                  <span style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600 }}>Soal saat ini</span>
+                  <div style={{ display: 'flex', gap: 5 }}>
+                    {Array.from({ length: spectateQ.maxRounds }, (_, i) => (
+                      <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: i < spectateQ.round - 1 ? '#10b981' : i === spectateQ.round - 1 ? '#67E8F9' : 'rgba(255,255,255,0.12)' }} />
+                    ))}
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#67E8F9' }}>{spectateQ.round}/{spectateQ.maxRounds}</span>
+                </div>
+                {spectateQ.text && (
+                  <div style={{ padding: '8px 12px', background: 'rgba(103,232,249,0.06)', border: '1px solid rgba(103,232,249,0.15)', borderRadius: 10, marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700 }}>ℹ️ {spectateQ.text}</div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ fontSize: 12, color: '#475569', textAlign: 'center', marginBottom: 14 }}>
+                Skor & slider diperbarui real-time saat siswa bermain
+              </div>
+            )}
+
+            <button onClick={() => setSpectate(null)} style={{ width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px', color: '#94A3B8', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+              ✕ Tutup
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function GuruDashboardScreen({ onPlayGames }) {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('tugas')
@@ -857,8 +1229,9 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           {tab === 'komunikasi' && <CommunicationScreen embedded initialTarget={komunikasiTarget} />}
           {tab === 'siswa'   && <SiswaTab onProfileClick={publicProfile.openProfile} />}
           {tab === 'kunci'   && <KunciTab grades={grades} />}
-          {tab === 'raid'    && <RaidTab kelasDiampu={kelasDiampu} />}
-          {tab === 'insight' && <InsightTab onProfileClick={publicProfile.openProfile} />}
+          {tab === 'raid'     && <RaidTab kelasDiampu={kelasDiampu} />}
+          {tab === 'turnamen' && <TurnamenTab kelasDiampu={kelasDiampu} />}
+          {tab === 'insight'  && <InsightTab onProfileClick={publicProfile.openProfile} />}
         </div>
         <PublicProfileModal
           profile={publicProfile.profile}

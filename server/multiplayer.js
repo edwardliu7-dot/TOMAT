@@ -1,9 +1,11 @@
 /**
- * TOMAT Multiplayer — Duel & Co-op Boss Raid
+ * TOMAT Multiplayer — Duel, Co-op Boss Raid & Tournament
  * Socket.io server module (attached to the existing Express http server)
  */
 import { Server } from 'socket.io'
 import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
+import { tournaments, tournamentToClient, getTournamentIo } from './tournament-state.js'
+import { startTournamentMatch, handleTournamentAnswer } from './tournament-engine.js'
 
 // ─── Question generation (server-authoritative, mirrors SubmarineGame.jsx) ───
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
@@ -109,10 +111,15 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     const session = socket.request?.session
     const user    = session?.user
 
-    // Only logged-in students may play
-    if (!user || user.role !== 'siswa') {
+    // Allow siswa and guru — individual handlers validate roles themselves
+    if (!user || !['siswa', 'guru'].includes(user.role)) {
       socket.disconnect(true)
       return
+    }
+
+    // Siswa join kelas room untuk menerima notifikasi turnamen
+    if (user.role === 'siswa' && user.kelas) {
+      socket.join(`kelas:${user.kelas}`)
     }
 
     const makePlayer = (avatar) => ({
@@ -355,6 +362,77 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     // ── DISCONNECT ───────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
       leaveAllRooms(socket, io)
+    })
+
+    // ════════════════════════════════════════════════════════════════════════
+    // TOURNAMENT — spectator (guru) + player (siswa) events
+    // ════════════════════════════════════════════════════════════════════════
+
+    // Guru: join tournament room untuk melihat bracket live
+    socket.on('tournament:spectate', ({ tournamentId } = {}) => {
+      if (user.role !== 'guru') return
+      const t = tournaments.get(tournamentId)
+      if (!t) return
+      socket.join(`tournament:${tournamentId}`)
+      socket.emit('tournament:state', tournamentToClient(t))
+    })
+
+    // Guru: spectate satu match tertentu (real-time slider)
+    socket.on('tournament:spectate-match', ({ matchId } = {}) => {
+      if (user.role !== 'guru') return
+      socket.join(`match-spectate:${matchId}`)
+    })
+
+    // Siswa: siap bergabung ke match (dipanggil saat buka TournamentMatchScreen)
+    socket.on('tournament:player-ready', ({ tournamentId, matchId } = {}) => {
+      if (user.role !== 'siswa') return
+      const t = tournaments.get(tournamentId)
+      if (!t) return
+
+      const round = t.rounds[t.currentRound - 1]
+      const match = round?.matches.find(m => m.id === matchId)
+      if (!match || match.status === 'finished' || match.status === 'walkover') return
+
+      const isP1 = match.player1?.userId === user.id
+      const isP2 = match.player2?.userId === user.id
+      if (!isP1 && !isP2) return
+
+      // Update socketId
+      if (isP1) match.player1.socketId = socket.id
+      if (isP2) match.player2.socketId = socket.id
+
+      // Join duel room
+      socket.join(match.roomCode)
+
+      // Broadcast bracket ke guru
+      io.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(t))
+
+      // Cek apakah kedua player sudah join → mulai match
+      const p1Ready = !match.player1 || match.player1.socketId
+      const p2Ready = !match.player2 || match.player2.socketId
+      if (p1Ready && p2Ready && match.status === 'waiting-join') {
+        if (match.walkoverTimer) { clearTimeout(match.walkoverTimer); match.walkoverTimer = null }
+        startTournamentMatch(io, t, match)
+      }
+    })
+
+    // Siswa: submit jawaban turnamen
+    socket.on('tournament:answer', ({ tournamentId, matchId, value } = {}) => {
+      if (user.role !== 'siswa') return
+      const t = tournaments.get(tournamentId)
+      if (!t) return
+      const round = t.rounds[t.currentRound - 1]
+      const match = round?.matches.find(m => m.id === matchId)
+      if (!match) return
+      handleTournamentAnswer(io, t, match, user.id, value, socket)
+    })
+
+    // Siswa: kirim posisi slider ke guru spectator
+    socket.on('tournament:slider-move', ({ matchId, value } = {}) => {
+      if (user.role !== 'siswa') return
+      socket.to(`match-spectate:${matchId}`).emit('tournament:opponent-slider', {
+        userId: user.id, value, matchId,
+      })
     })
   })
 

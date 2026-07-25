@@ -27,7 +27,7 @@ function FreePlayPicker({ onPick }) {
   )
 }
 
-function ModeCard({ icon, title, subtitle, badge, badgeColor, description, ctaLabel, ctaColor, onClick, disabled, disabledReason }) {
+function ModeCard({ icon, title, subtitle, badge, badgeColor, description, ctaLabel, ctaColor, onClick, disabled, disabledReason, topRightBadge }) {
   return (
     <div
       onClick={disabled ? undefined : onClick}
@@ -45,9 +45,15 @@ function ModeCard({ icon, title, subtitle, badge, badgeColor, description, ctaLa
     >
       {/* Accent glow */}
       {!disabled && <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: '50%', background: ctaColor, opacity: 0.06, filter: 'blur(20px)' }} />}
+      {/* Top-right badge (e.g. "✨ BARU") */}
+      {topRightBadge && (
+        <div style={{ position: 'absolute', top: 12, right: 14, background: 'linear-gradient(90deg,#f59e0b,#ef4444)', color: '#fff', fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 20, letterSpacing: 1, zIndex: 1 }}>
+          {topRightBadge}
+        </div>
+      )}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
         <div style={{ fontSize: 36, lineHeight: 1, flexShrink: 0 }}>{icon}</div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, paddingRight: topRightBadge ? 52 : 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 17, fontWeight: 900, color: '#fff' }}>{title}</div>
             {badge && (
@@ -123,7 +129,7 @@ function EmptyTaskState() {
   )
 }
 
-export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId, onModeSelected }) {
+export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId, onModeSelected, onDuel }) {
   const { tasks, getTaskForGame, startTaskSession } = useTask()
   const task = taskId
     ? tasks.find(candidate => candidate.id === taskId && candidate.status === 'active') || null
@@ -202,6 +208,21 @@ export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId
               ctaLabel=""
               ctaColor="#4B5563"
               disabled
+            />
+          )}
+
+          {/* Mode Duel — hanya untuk katak */}
+          {pendingGame?.key === 'katak' && onDuel && (
+            <ModeCard
+              icon="⚔️"
+              title="Mode Duel"
+              subtitle="Tantang teman sekelasmu secara real-time! 7 soal, siapa lebih banyak benar?"
+              badge="MULTIPLAYER"
+              badgeColor="#f59e0b"
+              topRightBadge="✨ BARU"
+              ctaLabel="Masuk Lobby Duel ▶"
+              ctaColor="#f59e0b"
+              onClick={onDuel}
             />
           )}
         </div>

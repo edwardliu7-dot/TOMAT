@@ -19,6 +19,7 @@ import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
 import { setupMultiplayer } from './multiplayer.js'
 import { setIo } from './boss-state.js'
+import { setTournamentIo } from './tournament-state.js'
 
 const isProd = process.env.NODE_ENV === 'production'
 const PORT = process.env.PORT || 5000
@@ -91,7 +92,8 @@ async function createServer() {
   // Attach Socket.io to the raw http.Server (required for WebSocket upgrade)
   const httpServer = http.createServer(app)
   const io = setupMultiplayer(httpServer, sessionMiddleware)
-  setIo(io)  // share io with boss-state so guru REST endpoints can push socket events
+  setIo(io)             // share io with boss-state so guru REST endpoints can push socket events
+  setTournamentIo(io)   // share io with tournament-state
 
   // Bind the port immediately so container healthchecks succeed right away,
   // even if the database connection is slow. Schema setup runs in the
