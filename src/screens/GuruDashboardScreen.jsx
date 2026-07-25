@@ -1375,7 +1375,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
             </div>
           </div>
 
-            <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); setTab('komunikasi') }} />
+            <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); setTab('komunikasi') }} suppress={tab === 'komunikasi'} />
             <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); setTab('komunikasi') }} />
 
            <button onClick={onPlayGames} style={{

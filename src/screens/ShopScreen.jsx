@@ -335,9 +335,9 @@ function PetTokoTab({ data, onRefresh, setError }) {
   )
 }
 
-export default function ShopScreen({ goBack }) {
+export default function ShopScreen({ goBack, initialTab }) {
   const { refreshMe } = useAuth()
-  const [tab, setTab] = useState('bingkai')
+  const [tab, setTab] = useState(initialTab || 'bingkai')
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)

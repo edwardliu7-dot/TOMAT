@@ -604,9 +604,10 @@ export function useMessageNotifications(enabled = true) {
   return notifications
 }
 
-export function MessageNotificationBell({ onClick }) {
+export function MessageNotificationBell({ onClick, suppress }) {
   const notifications = useMessageNotifications(true)
   const [open, setOpen] = React.useState(false)
+  const total = suppress ? 0 : notifications.total
   const openCommunication = () => {
     setOpen(false)
     onClick?.()
@@ -616,7 +617,7 @@ export function MessageNotificationBell({ onClick }) {
       <button
         onClick={() => setOpen(value => !value)}
         title="Notifikasi pesan"
-        aria-label={`Notifikasi pesan${notifications.total ? `, ${notifications.total} pesan baru` : ''}`}
+        aria-label={`Notifikasi pesan${total ? `, ${total} pesan baru` : ''}`}
         aria-expanded={open}
         style={{
           position: 'relative', width: 36, height: 36, borderRadius: 10,
@@ -627,7 +628,7 @@ export function MessageNotificationBell({ onClick }) {
         }}
       >
         💬
-        {notifications.total > 0 && (
+        {total > 0 && (
           <span style={{
             position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18,
             padding: '0 4px', borderRadius: 99, background: '#EF4444', color: '#fff',
@@ -645,7 +646,7 @@ export function MessageNotificationBell({ onClick }) {
           <div style={{ padding: '12px 14px', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#fff', fontSize: 13, fontWeight: 800 }}>
             💬 Pesan Baru
           </div>
-          {notifications.total === 0 ? (
+          {total === 0 ? (
             <div style={{ padding: '18px 14px', color: '#64748B', fontSize: 12, textAlign: 'center' }}>Tidak ada pesan baru.</div>
           ) : (
             <button onClick={openCommunication} style={{

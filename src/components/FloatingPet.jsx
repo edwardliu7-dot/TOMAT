@@ -11,14 +11,14 @@ const ACCEL      = 0.0018  // acceleration toward target per tick
 const FRICTION   = 0.82    // velocity multiplied each tick when past target
 const COAST_FRIC = 0.96    // gentle friction when gliding (not near target)
 
-export default function FloatingPet() {
+export default function FloatingPet({ onHungryClick }) {
   const { user } = useAuth()
   const { pet }  = usePet()
   if (!user || user.role !== 'siswa') return null
-  return <PetWidget pet={pet} />
+  return <PetWidget pet={pet} onHungryClick={onHungryClick} />
 }
 
-function PetWidget({ pet }) {
+function PetWidget({ pet, onHungryClick }) {
   // ── position state (fraction of screen width, 0–1) ───────────────────────
   const [xFrac,   setXFrac]   = useState(0.15)
   const [dir,     setDir]     = useState(1)        // 1=right, -1=left
@@ -238,21 +238,24 @@ function PetWidget({ pet }) {
       >
         {/* Hunger / dead bubble */}
         {showBubble && (
-          <div style={{
-            position:   'absolute',
-            bottom:     PET_SIZE + 6,
-            left:       '50%',
-            transform:  'translateX(-50%)',
-            whiteSpace: 'nowrap',
-            background: pet.isDead ? 'rgba(239,68,68,0.92)' : 'rgba(251,191,36,0.92)',
-            color:      '#fff',
-            fontSize:   11,
-            fontWeight: 800,
-            padding:    '4px 10px',
-            borderRadius: 20,
-            boxShadow:  '0 2px 10px rgba(0,0,0,0.5)',
-            animation:  'tomi-bubble-pop 0.3s ease-out',
-          }}>
+          <div
+            onClick={onHungryClick ? (e) => { e.stopPropagation(); onHungryClick() } : undefined}
+            style={{
+              position:   'absolute',
+              bottom:     PET_SIZE + 6,
+              left:       '50%',
+              transform:  'translateX(-50%)',
+              whiteSpace: 'nowrap',
+              background: pet.isDead ? 'rgba(239,68,68,0.92)' : 'rgba(251,191,36,0.92)',
+              color:      '#fff',
+              fontSize:   11,
+              fontWeight: 800,
+              padding:    '4px 10px',
+              borderRadius: 20,
+              boxShadow:  '0 2px 10px rgba(0,0,0,0.5)',
+              animation:  'tomi-bubble-pop 0.3s ease-out',
+              cursor:     onHungryClick ? 'pointer' : 'default',
+            }}>
             {pet.isDead ? '💀 Tomi mati! Beri makan!' : '🍖 Tomi lapar!'}
           </div>
         )}

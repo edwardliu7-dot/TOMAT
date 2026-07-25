@@ -193,6 +193,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [publicProfileData, setPublicProfileData]   = useState(null)   // { ...profile }
   const [duelInvite, setDuelInvite]                 = useState(null)   // { code, from: { userId, name } }
   const [duelInviteCode, setDuelInviteCode]         = useState(null)   // auto-join code for LobbyScreen
+  const [tokoInitialTab, setTokoInitialTab]         = useState(null)   // pre-select shop tab on open
 
   // ── Navigation helpers — defined before any useEffect so they are never in
   //    the Temporal Dead Zone when referenced in dependency arrays. ──────────
@@ -371,7 +372,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'toko') {
-      return <ShopScreen goBack={goBack} />
+      return <ShopScreen goBack={() => { setTokoInitialTab(null); goBack() }} initialTab={tokoInitialTab} />
     }
 
     if (current === 'papanperingkat') {
@@ -468,7 +469,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               {/* Floating task progress strip — shown during any task session */}
               <TaskOverlay />
               {/* Tomi the guinea pig — walks across screen for students */}
-              <FloatingPet />
+              <FloatingPet onHungryClick={() => {
+                setTokoInitialTab('pet_skin')
+                navigate('toko')
+              }} />
               {/* Tournament match notification banner */}
               {tournamentBanner && current !== 'tournament-match' && (
                 <TournamentNotificationBanner
