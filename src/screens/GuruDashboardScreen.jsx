@@ -34,6 +34,7 @@ const TABS = [
   { id: 'komunikasi', label: '💬', text: 'Chat' },
   { id: 'siswa',   label: '👥', text: 'Siswa' },
   { id: 'kunci',   label: '🔒', text: 'Kunci Bab' },
+  { id: 'raid',    label: '⚔️', text: 'Boss Raid' },
   { id: 'insight', label: '🎮', text: 'Insight' },
 ]
 
@@ -555,6 +556,218 @@ function InsightTab({ onProfileClick }) {
   )
 }
 
+// ── Boss Raid Tab ─────────────────────────────────────────────────────────────
+const BOSS_EMOJIS = ['👹', '🐲', '👾', '🤖', '🦂', '👻', '💀', '🧟', '🐉', '🦖']
+
+function RaidTab({ kelasDiampu }) {
+  const [raids,     setRaids]     = useState([])
+  const [loading,   setLoading]   = useState(true)
+  const [creating,  setCreating]  = useState(false)
+  const [ending,    setEnding]    = useState(null)
+  const [error,     setError]     = useState('')
+  const [form, setForm] = useState({
+    kelas:     kelasDiampu[0] || '',
+    maxHp:     1000,
+    bossName:  'Boss Matematika',
+    bossEmoji: '👹',
+  })
+
+  const refresh = useCallback(async () => {
+    try {
+      const data = await apiCall('/api/guru/boss-raid')
+      setRaids(data.raids || [])
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  // Poll every 8s for live HP updates
+  useEffect(() => {
+    const t = setInterval(refresh, 8_000)
+    return () => clearInterval(t)
+  }, [refresh])
+
+  const create = async (e) => {
+    e.preventDefault()
+    setError('')
+    setCreating(true)
+    try {
+      await apiCall('/api/guru/boss-raid', {
+        method: 'POST',
+        body: { kelas: form.kelas, maxHp: Number(form.maxHp), bossName: form.bossName, bossEmoji: form.bossEmoji },
+      })
+      await refresh()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const end = async (kelas) => {
+    setEnding(kelas)
+    setError('')
+    try {
+      await apiCall(`/api/guru/boss-raid/${encodeURIComponent(kelas)}`, { method: 'DELETE' })
+      await refresh()
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setEnding(null)
+    }
+  }
+
+  const activeKelas = raids.map(r => r.kelas)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* Active raids */}
+      {raids.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 700, letterSpacing: 1.5, marginBottom: 10 }}>🔴 RAID SEDANG AKTIF</div>
+          {raids.map(r => {
+            const pct   = Math.round((r.hp / r.maxHp) * 100)
+            const hpClr = pct > 50 ? '#22c55e' : pct > 25 ? '#f59e0b' : '#ef4444'
+            return (
+              <div key={r.kelas} style={{
+                background: '#0D1117', borderRadius: 14, marginBottom: 10,
+                border: '1px solid rgba(239,68,68,0.3)', padding: '14px 16px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <div style={{ fontSize: 32 }}>{r.bossEmoji}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{r.bossName}</div>
+                    <div style={{ fontSize: 11, color: '#64748B' }}>Kelas {r.kelas} · {r.participants?.length || 0} peserta aktif</div>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: hpClr, textAlign: 'right' }}>
+                    {r.hp.toLocaleString()}<br/>
+                    <span style={{ fontSize: 10, color: '#475569', fontWeight: 400 }}>/ {r.maxHp.toLocaleString()} HP</span>
+                  </div>
+                </div>
+
+                {/* HP bar */}
+                <div style={{ height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: hpClr, borderRadius: 8, transition: 'width 0.5s ease' }} />
+                </div>
+
+                {/* Top attacker preview */}
+                {r.participants?.length > 0 && (
+                  <div style={{ fontSize: 11, color: '#64748B', marginBottom: 10 }}>
+                    🏆 Top: {r.participants[0].name} ({r.participants[0].damage} damage)
+                  </div>
+                )}
+
+                <button
+                  onClick={() => end(r.kelas)}
+                  disabled={ending === r.kelas}
+                  style={{
+                    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.35)',
+                    color: '#f87171', borderRadius: 8, padding: '7px 16px',
+                    fontSize: 12, fontWeight: 700, cursor: ending === r.kelas ? 'default' : 'pointer',
+                    opacity: ending === r.kelas ? 0.6 : 1,
+                  }}
+                >
+                  {ending === r.kelas ? '…' : '⏹ Akhiri Raid'}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Create form */}
+      <div style={{ background: '#111827', borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+        <div style={{ height: 2, background: 'linear-gradient(90deg,#ef4444,#f59e0b)' }} />
+        <div style={{ padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 8px rgba(239,68,68,0.8)' }} />
+            Mulai Boss Raid Baru
+          </div>
+          <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.6 }}>
+            Siswa sekelasmu bersatu mengalahkan satu bos bersama. Setiap jawaban benar = -100 HP Bos.
+          </div>
+
+          <form onSubmit={create} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
+              <div>
+                <div style={labelStyle}>Kelas</div>
+                <select value={form.kelas} onChange={e => setForm(f => ({ ...f, kelas: e.target.value }))} style={inputStyle}>
+                  {kelasDiampu.map(k => <option key={k} value={k}>{k}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={labelStyle}>Nama Boss</div>
+                <input
+                  value={form.bossName}
+                  onChange={e => setForm(f => ({ ...f, bossName: e.target.value }))}
+                  maxLength={40} placeholder="Boss Matematika"
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <div style={labelStyle}>Total HP Boss</div>
+                <select value={form.maxHp} onChange={e => setForm(f => ({ ...f, maxHp: e.target.value }))} style={inputStyle}>
+                  <option value={500}>500 HP — Mudah</option>
+                  <option value={1000}>1.000 HP — Normal</option>
+                  <option value={2000}>2.000 HP — Sulit</option>
+                  <option value={5000}>5.000 HP — Legenda</option>
+                </select>
+              </div>
+              <div>
+                <div style={labelStyle}>Emoji Boss</div>
+                <select value={form.bossEmoji} onChange={e => setForm(f => ({ ...f, bossEmoji: e.target.value }))} style={inputStyle}>
+                  {BOSS_EMOJIS.map(em => <option key={em} value={em}>{em} {em}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {error && (
+              <div style={{ color: '#fca5a5', fontSize: 12, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 10, padding: '8px 12px' }}>
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={creating || !form.kelas || activeKelas.includes(form.kelas)}
+              style={{
+                marginTop: 4,
+                background: (creating || !form.kelas || activeKelas.includes(form.kelas))
+                  ? 'rgba(239,68,68,0.1)'
+                  : 'linear-gradient(135deg,#ef4444,#b91c1c)',
+                color: '#fff', border: 'none', borderRadius: 14, padding: '14px 0',
+                fontSize: 14, fontWeight: 800, cursor: (creating || activeKelas.includes(form.kelas)) ? 'default' : 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                opacity: (creating || !form.kelas || activeKelas.includes(form.kelas)) ? 0.5 : 1,
+                boxShadow: (creating || activeKelas.includes(form.kelas)) ? 'none' : '0 0 20px rgba(239,68,68,0.25)',
+              }}
+            >
+              {creating
+                ? '⏳ Memulai…'
+                : activeKelas.includes(form.kelas)
+                  ? `⚔️ Raid sudah aktif di ${form.kelas}`
+                  : `⚔️ Mulai Raid untuk ${form.kelas || '…'}`}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {loading && !raids.length && (
+        <div style={{ textAlign: 'center', color: '#64748B', fontSize: 13, paddingTop: 8 }}>Memuat…</div>
+      )}
+    </div>
+  )
+}
+
 export default function GuruDashboardScreen({ onPlayGames }) {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('tugas')
@@ -644,6 +857,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           {tab === 'komunikasi' && <CommunicationScreen embedded initialTarget={komunikasiTarget} />}
           {tab === 'siswa'   && <SiswaTab onProfileClick={publicProfile.openProfile} />}
           {tab === 'kunci'   && <KunciTab grades={grades} />}
+          {tab === 'raid'    && <RaidTab kelasDiampu={kelasDiampu} />}
           {tab === 'insight' && <InsightTab onProfileClick={publicProfile.openProfile} />}
         </div>
         <PublicProfileModal

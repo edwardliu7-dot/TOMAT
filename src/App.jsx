@@ -22,6 +22,7 @@ import TaskOverlay from './components/TaskOverlay'
 import CommunicationScreen from './screens/CommunicationScreen'
 import LobbyScreen from './screens/LobbyScreen'
 import DuelKatakScreen from './screens/DuelKatakScreen'
+import BossRaidScreen from './screens/BossRaidScreen'
 
 // All game components are lazy-loaded on first navigation to keep initial bundle small
 
@@ -271,6 +272,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           goBack={goBack}
         />
       )
+    }
+
+    if (current === 'boss-raid') {
+      return <BossRaidScreen goBack={goBack} />
     }
 
     if (GAME_ROUTES[current]) {

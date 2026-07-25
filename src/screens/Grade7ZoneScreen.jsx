@@ -3,6 +3,7 @@ import { TopBar, PlayerHeader } from '../components/shared'
 import { useTask, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { useBabLock } from '../BabLockContext'
 import { GRADE_BAB_LABELS } from '../gamesCatalog'
+import { useBossRaid } from '../hooks/useBossRaid'
 
 function SectionHeader({ title, subtitle, color, locked }) {
   return (
@@ -70,6 +71,7 @@ export default function Grade7ZoneScreen({ navigate, goBack, onDuel }) {
   const accent = '#67E8F9'
   const { getTaskForGame } = useTask()
   const { isBabLocked } = useBabLock()
+  const { raid, checked } = useBossRaid()
 
   const babILocked = isBabLocked(7, 'I')
   const babIILocked = isBabLocked(7, 'II')
@@ -79,8 +81,24 @@ export default function Grade7ZoneScreen({ navigate, goBack, onDuel }) {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
       <TopBar title="🌊 Zona Penjelajah Pemula" onBack={goBack} accentColor={accent} />
+      {checked && raid && (
+        <div onClick={() => navigate('boss-raid')} style={{
+          margin: '8px 16px 0', background: 'linear-gradient(135deg,rgba(239,68,68,0.18),rgba(245,158,11,0.12))',
+          border: '1px solid rgba(239,68,68,0.5)', borderRadius: 12, padding: '10px 14px',
+          display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+          animation: 'bossGlow 2s ease-in-out infinite',
+        }}>
+          <div style={{ fontSize: 26, lineHeight: 1 }}>{raid.bossEmoji || '👹'}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#ef4444', letterSpacing: 0.5 }}>⚔️ BOSS RAID AKTIF!</div>
+            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>{raid.bossName} — {raid.hp.toLocaleString()}/{raid.maxHp.toLocaleString()} HP</div>
+          </div>
+          <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 800 }}>Serang ▶</div>
+        </div>
+      )}
+      <style>{`@keyframes bossGlow{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.3)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}`}</style>
       <div style={{ padding: '0 16px 40px' }}>
-        <div style={{ fontSize: 12, color: accent, fontWeight: 600, marginBottom: 4 }}>KELAS 7 · 20 MISI</div>
+        <div style={{ fontSize: 12, color: accent, fontWeight: 600, marginBottom: 4, marginTop: checked && raid ? 12 : 0 }}>KELAS 7 · 20 MISI</div>
         <div style={{ fontSize: 13, color: '#94A3B8' }}>Pilih misi dan selesaikan tantangan matematika!</div>
 
         {/* BAB I */}

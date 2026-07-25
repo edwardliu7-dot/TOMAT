@@ -3,6 +3,7 @@
  * Socket.io server module (attached to the existing Express http server)
  */
 import { Server } from 'socket.io'
+import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
 
 // ─── Question generation (server-authoritative, mirrors SubmarineGame.jsx) ───
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
@@ -242,6 +243,113 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     // ── LEAVE (explicit, e.g. pressing back mid-game) ────────────────────────
     socket.on('duel:leave', () => {
       leaveAllRooms(socket, io)
+    })
+
+    // ════════════════════════════════════════════════════════════════════════
+    // BOSS RAID — Co-op event: every student in the class chips away at a
+    //             shared boss HP pool. Server-authoritative question flow
+    //             mirrors the duel: answer never reaches client before submit.
+    // ════════════════════════════════════════════════════════════════════════
+    const BOSS_COOLDOWN_MS = 60_000   // 60s cooldown between attacks
+    const BOSS_Q_TTL_MS    = 30_000   // question expires after 30s
+    const BOSS_DAMAGE      = 100      // HP removed per correct answer
+
+    socket.on('boss:join', ({ kelas } = {}) => {
+      if (!kelas) return
+      if (user.kelas !== kelas) {
+        socket.emit('boss:error', { message: 'Kamu tidak terdaftar di kelas ini.' })
+        return
+      }
+      const raid = getBossRaid(kelas)
+      if (!raid) {
+        socket.emit('boss:error', { message: 'Tidak ada Boss Raid aktif untuk kelasmu.' })
+        return
+      }
+      socket.join(`boss:${kelas}`)
+      socket.emit('boss:state', raidToClient(raid))
+    })
+
+    socket.on('boss:attack', ({ kelas } = {}) => {
+      if (!kelas || user.kelas !== kelas) return
+      const raid = getBossRaid(kelas)
+      if (!raid || raid.status !== 'active') {
+        socket.emit('boss:error', { message: 'Boss Raid tidak aktif.' })
+        return
+      }
+      const now = Date.now()
+      const participant = raid.participants.get(user.id)
+      if (participant?.lastAttackAt && now - participant.lastAttackAt < BOSS_COOLDOWN_MS) {
+        const remainSec = Math.ceil((BOSS_COOLDOWN_MS - (now - participant.lastAttackAt)) / 1000)
+        socket.emit('boss:error', { message: `Tunggu ${remainSec} detik lagi!`, cooldownSec: remainSec })
+        return
+      }
+      const q = genKatakQ()
+      socket._bossQ = { ...q, kelas, issuedAt: now }
+      const { answer, ...qForClient } = q
+      socket.emit('boss:question', { question: qForClient })
+    })
+
+    socket.on('boss:answer', ({ kelas, value } = {}) => {
+      if (!kelas || user.kelas !== kelas) return
+      const raid = getBossRaid(kelas)
+      if (!raid || raid.status !== 'active') return
+
+      const pending = socket._bossQ
+      if (!pending || pending.kelas !== kelas || Date.now() - pending.issuedAt > BOSS_Q_TTL_MS) {
+        socket.emit('boss:attack-result', { correct: false, damage: 0, message: 'Waktu habis! Coba serang lagi.' })
+        return
+      }
+      socket._bossQ = null
+
+      const correct = (value === pending.answer)
+      const damage  = correct ? BOSS_DAMAGE : 0
+
+      // Upsert participant record
+      if (!raid.participants.has(user.id)) {
+        raid.participants.set(user.id, {
+          userId: user.id,
+          name:   user.nama || user.username || 'Siswa',
+          avatar: null,
+          hits:   0,
+          damage: 0,
+          lastAttackAt: 0,
+        })
+      }
+      const p = raid.participants.get(user.id)
+      p.lastAttackAt = Date.now()
+      if (correct) {
+        p.hits++
+        p.damage += damage
+        raid.hp = Math.max(0, raid.hp - damage)
+      }
+
+      // Send private result to the attacker
+      socket.emit('boss:attack-result', {
+        correct,
+        damage,
+        newHp: raid.hp,
+        correctAnswer: pending.answer,
+        yourValue: value,
+      })
+
+      const sortedParticipants = Array.from(raid.participants.values())
+        .sort((a, b) => b.damage - a.damage)
+
+      if (raid.hp <= 0) {
+        raid.status = 'defeated'
+        io.to(`boss:${kelas}`).emit('boss:defeated', {
+          participants: sortedParticipants,
+        })
+        // Keep entry for 5 min so late-joiners see the victory screen
+        setTimeout(() => bossRaids.delete(kelas), 5 * 60_000)
+      } else {
+        io.to(`boss:${kelas}`).emit('boss:update', {
+          hp:           raid.hp,
+          maxHp:        raid.maxHp,
+          attacker:     { name: p.name, damage, correct },
+          participants: sortedParticipants.slice(0, 20),
+        })
+      }
     })
 
     // ── DISCONNECT ───────────────────────────────────────────────────────────

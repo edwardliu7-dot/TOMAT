@@ -4,9 +4,21 @@ import { requireAuth, requireRole } from './auth.js'
 import { getAccessibleGrades } from './kelas.js'
 import { checkAndAwardBadges } from './gamify.js'
 import { notifyUser } from './notifications.js'
+import { getBossRaid, raidToClient } from './boss-state.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
+
+// GET /api/siswa/boss-raid — active raid for this student's class (may be null)
+router.get('/boss-raid', async (req, res) => {
+  try {
+    const kelas = await getMyKelas(req)
+    res.json({ raid: kelas ? raidToClient(getBossRaid(kelas)) : null })
+  } catch (err) {
+    console.error('siswa/boss-raid GET error', err)
+    res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  }
+})
 
 async function getMyKelas(req) {
   const { rows } = await pool.query('select kelas from students where id = $1', [req.session.user.id])
