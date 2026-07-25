@@ -85,35 +85,35 @@ export default function SporaJamurGame({ goBack, difficulty = 'medium', survival
             Setiap detik, <strong style={{ color: '#fff' }}>1 jamur → {q.base} jamur</strong>. Berapa jamur pada detik ke-{q.exp}?
           </div>
 
-          {/* Growth timeline */}
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, marginBottom: 16, overflowX: 'auto' }}>
-            {stages.map((count, i) => {
-              const isLast = i === stages.length - 1
-              return (
-                <React.Fragment key={i}>
-                  <div style={{ textAlign: 'center', minWidth: 60, flex: 1 }}>
-                    <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 6 }}>Detik {i}</div>
-                    <div style={{ background: isLast ? 'rgba(103,232,249,0.12)' : 'rgba(255,255,255,0.04)', border: `2px solid ${isLast ? 'rgba(103,232,249,0.4)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 10, padding: '10px 4px', minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                      {isLast ? (
-                        <div style={{ fontSize: feedback !== null ? 16 : 20, fontWeight: 900, color: feedback === true ? '#34D399' : feedback === false ? '#ef4444' : '#f59e0b' }}>
-                          {feedback !== null ? q.answer : '❓'}
-                        </div>
-                      ) : (
-                        <>
-                          <div style={{ fontSize: '🍄'.length > 0 ? 14 : 11, marginBottom: 2 }}>
-                            {'🍄'.repeat(Math.min(count, 4))}{count > 4 ? '…' : ''}
-                          </div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{count}</div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  {!isLast && (
-                    <div style={{ display: 'flex', alignItems: 'center', paddingTop: 20, color: '#34D399', fontSize: 14, paddingBottom: 0 }}>→</div>
-                  )}
-                </React.Fragment>
-              )
-            })}
+          {/* Growth timeline — only show Detik 0 and Detik 1 to illustrate the pattern */}
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, marginBottom: 16 }}>
+            {/* Detik 0 */}
+            <div style={{ textAlign: 'center', minWidth: 60, flex: 1 }}>
+              <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 6 }}>Detik 0</div>
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 4px', minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ fontSize: 14, marginBottom: 2 }}>🍄</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>1</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', paddingTop: 20, color: '#34D399', fontSize: 14 }}>→</div>
+            {/* Detik 1 */}
+            <div style={{ textAlign: 'center', minWidth: 60, flex: 1 }}>
+              <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 6 }}>Detik 1</div>
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '2px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 4px', minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ fontSize: 14, marginBottom: 2 }}>{'🍄'.repeat(Math.min(q.base, 4))}{q.base > 4 ? '…' : ''}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{q.base}</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', paddingTop: 20, color: '#94A3B8', fontSize: 18 }}>···</div>
+            {/* Final question */}
+            <div style={{ textAlign: 'center', minWidth: 60, flex: 1 }}>
+              <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 6 }}>Detik {q.exp}</div>
+              <div style={{ background: 'rgba(103,232,249,0.12)', border: '2px solid rgba(103,232,249,0.4)', borderRadius: 10, padding: '10px 4px', minHeight: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ fontSize: feedback !== null ? 16 : 20, fontWeight: 900, color: feedback === true ? '#34D399' : feedback === false ? '#ef4444' : '#f59e0b' }}>
+                  {feedback !== null ? q.answer : '❓'}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div style={{ padding: '10px 14px', background: 'rgba(103,232,249,0.08)', borderRadius: 10, textAlign: 'center' }}>

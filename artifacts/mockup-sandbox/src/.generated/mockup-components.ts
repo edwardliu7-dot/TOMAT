@@ -36,6 +36,12 @@ export const modules: ModuleMap = {
   "./components/mockups/turnamen/GuruTournamentTab.tsx": () => import("../components/mockups/turnamen/GuruTournamentTab.tsx"),
   "./components/mockups/turnamen/ModeSelectDuel.tsx": () => import("../components/mockups/turnamen/ModeSelectDuel.tsx"),
   "./components/mockups/turnamen/TournamentMatch.tsx": () => import("../components/mockups/turnamen/TournamentMatch.tsx"),
+  "./components/mockups/turnamen/TournamentMatchGembok.tsx": () => import("../components/mockups/turnamen/TournamentMatchGembok.tsx"),
+  "./components/mockups/turnamen/TournamentMatchMercusuar.tsx": () => import("../components/mockups/turnamen/TournamentMatchMercusuar.tsx"),
+  "./components/mockups/turnamen/TournamentMatchPabrikRobot.tsx": () => import("../components/mockups/turnamen/TournamentMatchPabrikRobot.tsx"),
+  "./components/mockups/turnamen/TournamentMatchScanner.tsx": () => import("../components/mockups/turnamen/TournamentMatchScanner.tsx"),
+  "./components/mockups/turnamen/TournamentMatchSporaJamur.tsx": () => import("../components/mockups/turnamen/TournamentMatchSporaJamur.tsx"),
+  "./components/mockups/turnamen/TournamentMatchTermometer.tsx": () => import("../components/mockups/turnamen/TournamentMatchTermometer.tsx"),
   "./components/mockups/turnamen/TournamentNotifBanner.tsx": () => import("../components/mockups/turnamen/TournamentNotifBanner.tsx"),
   "./components/mockups/turnamen/TournamentWait.tsx": () => import("../components/mockups/turnamen/TournamentWait.tsx")
 };

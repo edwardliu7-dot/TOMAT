@@ -40,9 +40,6 @@ export default function MercusaarGame({ goBack, difficulty = 'medium', survival 
     return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
-  const blinkA = selected % q.a === 0
-  const blinkB = selected % q.b === 0
-
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
@@ -61,16 +58,16 @@ export default function MercusaarGame({ goBack, difficulty = 'medium', survival 
             {/* Lighthouse A */}
             <polygon points="50,58 58,58 56,14 52,14" fill="#1a1200" stroke="#FFD700" strokeWidth="1.5" />
             <rect x="48" y="10" width="16" height="10" rx="2" fill="#1a1200" stroke="#FFD700" strokeWidth="1.5" />
-            <ellipse cx="56" cy="8" rx="10" ry="5" fill={blinkA ? "rgba(255,215,0,0.7)" : "rgba(255,215,0,0.12)"} stroke="#FFD700" strokeWidth="1" />
-            {blinkA && <line x1="56" y1="6" x2="30" y2="30" stroke="rgba(255,215,0,0.35)" strokeWidth="1.5" />}
-            {blinkA && <line x1="56" y1="6" x2="56" y2="35" stroke="rgba(255,215,0,0.35)" strokeWidth="1.5" />}
+            <ellipse cx="56" cy="8" rx="10" ry="5" fill="rgba(255,215,0,0.5)" stroke="#FFD700" strokeWidth="1" />
+            <line x1="56" y1="6" x2="30" y2="30" stroke="rgba(255,215,0,0.25)" strokeWidth="1.5" />
+            <line x1="56" y1="6" x2="56" y2="35" stroke="rgba(255,215,0,0.25)" strokeWidth="1.5" />
             <text x="56" y="72" textAnchor="middle" fill="#FFD700" fontSize="8">A ({q.a}s)</text>
             {/* Lighthouse B */}
             <polygon points="162,58 170,58 168,14 164,14" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
             <rect x="160" y="10" width="16" height="10" rx="2" fill="#001428" stroke="#67E8F9" strokeWidth="1.5" />
-            <ellipse cx="168" cy="8" rx="10" ry="5" fill={blinkB ? "rgba(103,232,249,0.7)" : "rgba(103,232,249,0.1)"} stroke="#67E8F9" strokeWidth="1" />
-            {blinkB && <line x1="168" y1="6" x2="192" y2="30" stroke="rgba(103,232,249,0.35)" strokeWidth="1.5" />}
-            {blinkB && <line x1="168" y1="6" x2="168" y2="35" stroke="rgba(103,232,249,0.35)" strokeWidth="1.5" />}
+            <ellipse cx="168" cy="8" rx="10" ry="5" fill="rgba(103,232,249,0.4)" stroke="#67E8F9" strokeWidth="1" />
+            <line x1="168" y1="6" x2="192" y2="30" stroke="rgba(103,232,249,0.25)" strokeWidth="1.5" />
+            <line x1="168" y1="6" x2="168" y2="35" stroke="rgba(103,232,249,0.25)" strokeWidth="1.5" />
             <text x="168" y="72" textAnchor="middle" fill="#67E8F9" fontSize="8">B ({q.b}s)</text>
             {/* Ship in middle */}
             <text x="112" y="60" textAnchor="middle" fontSize="18">⛵</text>
@@ -79,11 +76,11 @@ export default function MercusaarGame({ goBack, difficulty = 'medium', survival 
           </svg>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginBottom: 20 }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 40, opacity: blinkA ? 1 : 0.2, filter: blinkA ? 'drop-shadow(0 0 10px #FFD700)' : 'none', transition: 'all 0.1s' }}>🏮</div>
+              <div style={{ fontSize: 40, opacity: 0.8 }}>🏮</div>
               <div style={{ fontSize: 12, color: '#FFD700', fontWeight: 700 }}>A ({q.a}s)</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 40, opacity: blinkB ? 1 : 0.2, filter: blinkB ? 'drop-shadow(0 0 10px #67E8F9)' : 'none', transition: 'all 0.1s' }}>🏮</div>
+              <div style={{ fontSize: 40, opacity: 0.8 }}>🏮</div>
               <div style={{ fontSize: 12, color: '#67E8F9', fontWeight: 700 }}>B ({q.b}s)</div>
             </div>
           </div>
@@ -94,7 +91,7 @@ export default function MercusaarGame({ goBack, difficulty = 'medium', survival 
             max={40}
             onChange={setSelected}
             disabled={feedback !== null}
-            accentColor={blinkA && blinkB ? '#34D399' : '#67E8F9'}
+            accentColor="#67E8F9"
             unit="s"
             markEvery={5}
           />

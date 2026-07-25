@@ -39,11 +39,6 @@ export default function GembokRodaGigiGame({ goBack, difficulty = 'medium', surv
     return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
 
-  const factorsA = Array.from({ length: q.a }, (_, i) => i + 1).filter(n => q.a % n === 0)
-  const factorsB = Array.from({ length: q.b }, (_, i) => i + 1).filter(n => q.b % n === 0)
-  const isA = q.a % selected === 0
-  const isB = q.b % selected === 0
-
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
       <PlayerHeader />
@@ -80,12 +75,10 @@ export default function GembokRodaGigiGame({ goBack, difficulty = 'medium', surv
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 40, animation: `spin ${20/selected}s linear infinite` }}>⚙️</div>
               <div style={{ fontSize: 12, color: '#67E8F9', fontWeight: 700 }}>{q.a}</div>
-              <div style={{ fontSize: 10, color: isA ? '#34D399' : '#ef4444' }}>{isA ? 'OK' : 'X'}</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 40, animation: `spin ${20/selected}s linear infinite reverse` }}>⚙️</div>
               <div style={{ fontSize: 12, color: '#FDBA74', fontWeight: 700 }}>{q.b}</div>
-              <div style={{ fontSize: 10, color: isB ? '#34D399' : '#ef4444' }}>{isB ? 'OK' : 'X'}</div>
             </div>
           </div>
 
@@ -95,7 +88,7 @@ export default function GembokRodaGigiGame({ goBack, difficulty = 'medium', surv
             max={Math.min(q.a, q.b)}
             onChange={setSelected}
             disabled={feedback !== null}
-            accentColor={isA && isB ? '#34D399' : '#67E8F9'}
+            accentColor="#67E8F9"
           />
         </Card>
 
