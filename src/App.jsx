@@ -193,6 +193,30 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [duelInvite, setDuelInvite]                 = useState(null)   // { code, from: { userId, name } }
   const [duelInviteCode, setDuelInviteCode]         = useState(null)   // auto-join code for LobbyScreen
 
+  // ── Navigation helpers — defined before any useEffect so they are never in
+  //    the Temporal Dead Zone when referenced in dependency arrays. ──────────
+  // Push a new route onto the stack
+  const navigate = useCallback((route, options = {}) => {
+    if (GAME_ROUTES[route]) {
+      // Intercept: show mode select before any game
+      setPendingGame({ key: route, ...GAME_ROUTES[route] })
+      setPendingTaskId(options.taskId || null)
+      setHistory(h => [...h, 'modeselect'])
+    } else {
+      setPendingTaskId(null)
+      setHistory(h => [...h, route])
+    }
+  }, [])
+
+  const goBack = useCallback(() => {
+    setHistory(h => h.length > 1 ? h.slice(0, -1) : h)
+  }, [])
+
+  // Replace the top of the history stack (used when transitioning from modeselect → game)
+  const replaceTop = useCallback((route) => {
+    setHistory(h => [...h.slice(0, -1), route])
+  }, [])
+
   useEffect(() => {
     const openCommunication = e => {
       setKomunikasiTarget(e?.detail || null)
@@ -270,28 +294,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       socket.off('duel:invite-expired')
     }
   }, [guruMode])
-
-  // Push a new route onto the stack
-  const navigate = useCallback((route, options = {}) => {
-    if (GAME_ROUTES[route]) {
-      // Intercept: show mode select before any game
-      setPendingGame({ key: route, ...GAME_ROUTES[route] })
-      setPendingTaskId(options.taskId || null)
-      setHistory(h => [...h, 'modeselect'])
-    } else {
-      setPendingTaskId(null)
-      setHistory(h => [...h, route])
-    }
-  }, [])
-
-  const goBack = useCallback(() => {
-    setHistory(h => h.length > 1 ? h.slice(0, -1) : h)
-  }, [])
-
-  // Replace the top of the history stack (used when transitioning from modeselect → game)
-  const replaceTop = useCallback((route) => {
-    setHistory(h => [...h.slice(0, -1), route])
-  }, [])
 
   // Called by ModeSelectScreen when user picks a mode.
   // startTaskSession is called inside ModeSelectScreen (within TaskProvider tree) before this.
