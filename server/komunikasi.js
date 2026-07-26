@@ -174,7 +174,7 @@ router.get('/profile/:otherRole/:otherId', async (req, res) => {
                 s.level, s.exp, s.coins, s.stiker_layout,
                 coalesce(
                   json_agg(
-                    json_build_object('id', b.id, 'name', b.name, 'icon', b.icon, 'color', b.color)
+                    json_build_object('id', b.id, 'name', b.nama, 'icon', b.icon, 'color', b.color)
                     order by b.sort_order
                   ) filter (where b.id is not null),
                   '[]'
