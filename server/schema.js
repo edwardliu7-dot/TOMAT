@@ -302,6 +302,10 @@ export async function ensureSchema() {
     ['pet_skin_silver', 'pet_skin', 'Silver Fluff',   800,  { tier: 'premium',   desc: 'Bulu perak berkilau. Menunjukkan siswa aktif dan rajin mengumpulkan koin.' }, 1],
     ['pet_skin_cosmic', 'pet_skin', 'Cosmic Fluff',  2000,  { tier: 'eksklusif', desc: 'Bulu ungu-biru galaksi dengan bintang berkelip di rosette.' }, 2],
     ['pet_skin_void',   'pet_skin', 'Void Emperor',  5000,  { tier: 'legendaris',desc: 'Bulu hitam pekat berpendar emas, mahkota emas. Dominasi leaderboard.' }, 3],
+    // New animal pets — different base animal, not a Tomi skin
+    ['pet_kelinsay', 'pet_skin', 'Kelinsay',  3000, { tier: 'umum',   baseAnimal: 'kelinci', desc: 'Kelinci putih lembut berhati hangat. Telinganya panjang, selalu mendengarkan.' }, 4],
+    ['pet_monyong',  'pet_skin', 'Monyong',   8000, { tier: 'epic',   baseAnimal: 'monyet',  desc: 'Monyet ceria penuh ekspresi. Ekornya selalu berayun dan senyumnya lebar!' }, 5],
+    ['pet_nananaga', 'pet_skin', 'Nananaga', 15000, { tier: 'langka', baseAnimal: 'naga',    desc: 'Naga abadi berkuasa. Matanya menyala, sayapnya menggelegar, api di mulutnya.' }, 6],
     // Stiker — placed freely on banner canvas
     ['stiker_roket',   'stiker', 'Roket Belajar',  200,  { emoji: '🚀', tier: 'common' }, 1],
     ['stiker_api',     'stiker', 'Api Semangat',   200,  { emoji: '🔥', tier: 'common' }, 2],

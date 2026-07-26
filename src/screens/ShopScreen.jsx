@@ -4,7 +4,7 @@ import { useAuth } from '../AuthContext'
 import { usePet } from '../PetContext'
 import { usePlayer } from '../PlayerContext'
 import { KATEGORI_LABELS, PET_SKIN_INFO, PET_FOOD_CATALOG } from '../shopVisuals'
-import TomiSVG, { PET_CSS, STATE_ANIMS } from '../components/TomiSVG'
+import PetSVG, { PET_CSS, STATE_ANIMS, getPetName } from '../components/PetSVG'
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -94,6 +94,65 @@ function ItemVisual({ item }) {
 
 const REVIVE_COST = 300
 
+function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false }) {
+  const info = PET_SKIN_INFO[skinId]
+  if (!info) return null
+  const owned = skinId === 'golden' || data.ownedItemIds.includes(skinId)
+  const equipped = equippedSkin === skinId
+  const shopItem = data.items.find(it => it.id === skinId)
+  const affordable = skinId === 'golden' || (shopItem && data.coins >= shopItem.harga)
+  const busy = busyId === skinId
+  return (
+    <div style={{
+      background: info.glow ? `radial-gradient(ellipse at 50% 0%,${info.glow},transparent 65%),#1A1D27` : '#1A1D27',
+      border: `1.5px solid ${equipped ? info.tierColor : 'rgba(255,255,255,0.07)'}`,
+      borderRadius: 18, padding: wide ? '16px 20px' : '16px 12px',
+      display: 'flex', flexDirection: wide ? 'row' : 'column',
+      alignItems: 'center', gap: wide ? 16 : 10,
+      position: 'relative',
+      boxShadow: equipped ? `0 0 24px ${info.glow || 'rgba(245,166,35,0.2)'}` : 'none',
+    }}>
+      {equipped && (
+        <div style={{ position: 'absolute', top: 0, right: 0, background: info.tierColor, color: ['#F59E0B','#34D399'].includes(info.tierColor) ? '#000' : '#fff', fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: '0 16px 0 10px' }}>
+          DIPAKAI
+        </div>
+      )}
+      <div style={{ animation: STATE_ANIMS.idle, transformOrigin: 'center bottom', flexShrink: 0 }}>
+        <PetSVG state="idle" skinId={skinId} size={wide ? 88 : 80} />
+      </div>
+      <div style={{ textAlign: wide ? 'left' : 'center', flex: wide ? 1 : undefined, minWidth: 0 }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: info.tierColor, letterSpacing: '0.15em', marginBottom: 2 }}>{info.tier}</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{info.nama}</div>
+        <div style={{ fontSize: 10, color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>{info.desc}</div>
+        {wide && (
+          <div style={{ marginTop: 10 }}>
+            {equipped ? (
+              <div style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: '#94A3B8', fontSize: 11, fontWeight: 700, display: 'inline-block' }}>✓ Terpasang</div>
+            ) : owned ? (
+              <button onClick={() => onBuyEquip(skinId)} disabled={busy} style={{ padding: '8px 20px', borderRadius: 10, background: '#334155', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{busy ? '…' : 'Pakai'}</button>
+            ) : (
+              <button onClick={() => onBuyEquip(skinId)} disabled={!affordable || busy} style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: affordable ? `linear-gradient(135deg,${info.tierColor},${info.tierColor}cc)` : 'rgba(248,113,113,0.15)', color: affordable ? (info.tierColor === '#34D399' ? '#000' : '#fff') : '#F87171' }}>
+                {busy ? '…' : affordable ? `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      {!wide && (
+        equipped ? (
+          <div style={{ width: '100%', padding: '8px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: '#94A3B8', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>✓ Terpasang</div>
+        ) : owned ? (
+          <button onClick={() => onBuyEquip(skinId)} disabled={busy} style={{ width: '100%', padding: '8px', borderRadius: 10, background: '#334155', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{busy ? '…' : 'Pakai'}</button>
+        ) : (
+          <button onClick={() => onBuyEquip(skinId)} disabled={!affordable || busy} style={{ width: '100%', padding: '8px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: affordable ? '#6366F1' : 'rgba(248,113,113,0.15)', color: affordable ? '#fff' : '#F87171' }}>
+            {busy ? '…' : affordable ? `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
+          </button>
+        )
+      )}
+    </div>
+  )
+}
+
 function PetTokoTab({ data, onRefresh, setError }) {
   const { pet, feedPet, revivePet, refreshPet } = usePet()
   const { refreshMe } = useAuth()
@@ -101,8 +160,11 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const [localError, setLocalError] = useState('')
   const [feedSuccess, setFeedSuccess] = useState('')
 
-  const skinOrder = ['golden', 'pet_skin_silver', 'pet_skin_cosmic', 'pet_skin_void']
+  const tomiSkins  = ['golden', 'pet_skin_silver', 'pet_skin_cosmic', 'pet_skin_void']
+  const newPets    = ['pet_kelinsay', 'pet_monyong', 'pet_nananaga']
+  const skinOrder  = [...tomiSkins, ...newPets]
   const equippedSkin = data.equipped.pet_skin || 'golden'
+  const activePetName = getPetName(equippedSkin)
 
   const buyEquipSkin = async (skinId) => {
     if (skinId === 'golden') return
@@ -120,7 +182,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const buyFood = async (foodId) => {
     setBusyId(foodId); setLocalError(''); setFeedSuccess('')
     const result = await feedPet(foodId)
-    if (result.ok) { setFeedSuccess('🐹 Tomi sudah makan!'); await onRefresh(); await refreshMe(); setTimeout(() => setFeedSuccess(''), 3000) }
+    if (result.ok) { setFeedSuccess(`🐾 ${activePetName} sudah makan!`); await onRefresh(); await refreshMe(); setTimeout(() => setFeedSuccess(''), 3000) }
     else setLocalError(result.error)
     setBusyId(null)
   }
@@ -128,7 +190,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const doRevive = async () => {
     setBusyId('revive'); setLocalError(''); setFeedSuccess('')
     const result = await revivePet()
-    if (result.ok) { setFeedSuccess('🐹 Pet baru sudah diadopsi!'); await onRefresh(); await refreshMe(); setTimeout(() => setFeedSuccess(''), 4000) }
+    if (result.ok) { setFeedSuccess('🐾 Pet baru sudah diadopsi!'); await onRefresh(); await refreshMe(); setTimeout(() => setFeedSuccess(''), 4000) }
     else setLocalError(result.error)
     setBusyId(null)
   }
@@ -141,10 +203,10 @@ function PetTokoTab({ data, onRefresh, setError }) {
       <style>{PET_CSS}</style>
       <div style={{ margin: '0 0 20px', background: 'linear-gradient(160deg,#0d1b2a,#1a0d2e)', border: '1px solid rgba(245,166,35,0.2)', borderRadius: 20, padding: 20, display: 'flex', alignItems: 'flex-end', gap: 16 }}>
         <div style={{ animation: STATE_ANIMS[pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'], transformOrigin: 'center bottom' }}>
-          <TomiSVG state={pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'} skinId={equippedSkin} size={96} />
+          <PetSVG state={pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'} skinId={equippedSkin} size={96} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 18, fontWeight: 900, color: '#F7C55E', marginBottom: 4 }}>Tomi</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: '#F7C55E', marginBottom: 4 }}>{activePetName}</div>
           <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 10 }}>{hungerLabel}</div>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -164,46 +226,24 @@ function PetTokoTab({ data, onRefresh, setError }) {
         </div>
       )}
 
-      <div style={{ fontSize: 11, color: '#F5A623', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🎨 Koleksi Skin</div>
+      {/* ── Tomi skins ── */}
+      <div style={{ fontSize: 11, color: '#F5A623', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🎨 Kostum Tomi</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: 28 }}>
-        {skinOrder.map(skinId => {
-          const info = PET_SKIN_INFO[skinId]
-          if (!info) return null
-          const owned = skinId === 'golden' || data.ownedItemIds.includes(skinId)
-          const equipped = equippedSkin === skinId
-          const shopItem = data.items.find(it => it.id === skinId)
-          const affordable = skinId === 'golden' || (shopItem && data.coins >= shopItem.harga)
-          const busy = busyId === skinId
-          return (
-            <div key={skinId} style={{ background: info.glow ? `radial-gradient(ellipse at 50% 0%,${info.glow},transparent 65%),#1A1D27` : '#1A1D27', border: `1.5px solid ${equipped ? info.tierColor : 'rgba(255,255,255,0.07)'}`, borderRadius: 18, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, position: 'relative', boxShadow: equipped ? `0 0 20px ${info.glow || 'rgba(245,166,35,0.2)'}` : 'none' }}>
-              {equipped && <div style={{ position: 'absolute', top: 0, right: 0, background: info.tierColor, color: info.tierColor === '#F59E0B' ? '#000' : '#fff', fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: '0 16px 0 10px' }}>DIPAKAI</div>}
-              <div style={{ animation: STATE_ANIMS.idle, transformOrigin: 'center bottom' }}>
-                <TomiSVG state="idle" skinId={skinId} size={80} />
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: info.tierColor, letterSpacing: '0.15em', marginBottom: 2 }}>{info.tier}</div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{info.nama}</div>
-                <div style={{ fontSize: 10, color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>{info.desc}</div>
-              </div>
-              {equipped ? (
-                <div style={{ width: '100%', padding: '8px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: '#94A3B8', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>✓ Terpasang</div>
-              ) : owned ? (
-                <button onClick={() => buyEquipSkin(skinId)} disabled={busy} style={{ width: '100%', padding: '8px', borderRadius: 10, background: '#334155', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{busy ? '…' : 'Pakai'}</button>
-              ) : (
-                <button onClick={() => buyEquipSkin(skinId)} disabled={!affordable || busy} style={{ width: '100%', padding: '8px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: affordable ? '#6366F1' : 'rgba(248,113,113,0.15)', color: affordable ? '#fff' : '#F87171' }}>
-                  {busy ? '…' : affordable ? `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
-                </button>
-              )}
-            </div>
-          )
-        })}
+        {tomiSkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} />)}
+      </div>
+
+      {/* ── New animal pets ── */}
+      <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>🐾 Pet Baru</div>
+      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Ganti petmu dengan hewan lain! Membeli pet baru tidak menghapus Tomi — kamu bisa ganti kapan saja.</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
+        {newPets.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
       </div>
 
       {pet.isDead && (
         <div style={{ marginBottom: 24, borderRadius: 18, background: 'linear-gradient(145deg,#1a0000,#2d0a0a)', border: '2px solid rgba(239,68,68,0.4)', padding: '20px 16px', textAlign: 'center' }}>
           <div style={{ fontSize: 52, marginBottom: 10 }}>💀</div>
-          <div style={{ fontSize: 17, fontWeight: 900, color: '#F87171', marginBottom: 6 }}>Tomi sudah mati!</div>
-          <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 16, lineHeight: 1.6 }}>Tomi tidak bisa diberi makan lagi. Kamu perlu mengadopsi pet baru untuk melanjutkan perjalanan!</div>
+          <div style={{ fontSize: 17, fontWeight: 900, color: '#F87171', marginBottom: 6 }}>{activePetName} sudah mati!</div>
+          <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 16, lineHeight: 1.6 }}>{activePetName} tidak bisa diberi makan lagi. Kamu perlu mengadopsi pet baru untuk melanjutkan perjalanan!</div>
           <div style={{ fontSize: 13, color: '#FCA5A5', marginBottom: 16 }}>Biaya adopsi: <strong style={{ color: '#F87171', fontSize: 16 }}>🪙 {REVIVE_COST}</strong>{data.coins < REVIVE_COST && <span style={{ color: '#6B7280', fontSize: 11, display: 'block', marginTop: 4 }}>(Kamu punya 🪙 {data.coins} — perlu {REVIVE_COST - data.coins} lagi)</span>}</div>
           <button onClick={doRevive} disabled={data.coins < REVIVE_COST || busyId === 'revive'} style={{ width: '100%', padding: '13px', borderRadius: 12, border: 'none', fontSize: 14, fontWeight: 900, cursor: data.coins >= REVIVE_COST ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: data.coins >= REVIVE_COST ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'rgba(248,113,113,0.1)', color: data.coins >= REVIVE_COST ? '#fff' : '#F87171', outline: data.coins >= REVIVE_COST ? 'none' : '1px solid rgba(248,113,113,0.2)' }}>
             {busyId === 'revive' ? '…' : data.coins >= REVIVE_COST ? '🐾 Adopsi Pet Baru' : '🔒 Koin tidak cukup'}
@@ -211,14 +251,14 @@ function PetTokoTab({ data, onRefresh, setError }) {
         </div>
       )}
 
-      <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🌾 Toko Makanan Marmut</div>
+      <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🌾 Toko Makanan Pet</div>
       {pet.isDead ? (
         <div style={{ padding: '16px', borderRadius: 14, background: 'rgba(239,68,68,0.07)', border: '1px dashed rgba(239,68,68,0.3)', textAlign: 'center', fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
           🚫 Makanan tidak bisa diberikan ke pet yang sudah mati.<br />Adopsi dulu pet baru di atas!
         </div>
       ) : (
         <>
-          <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14 }}>Semakin mahal makanannya, semakin lama Tomi kenyang. Memberi makan langsung meningkatkan stamina Tomi.</div>
+          <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14 }}>Semakin mahal makanannya, semakin lama {activePetName} kenyang. Memberi makan langsung meningkatkan stamina petmu.</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
             {PET_FOOD_CATALOG.map(food => {
               const affordable = data.coins >= food.harga

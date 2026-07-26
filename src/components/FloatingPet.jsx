@@ -1,6 +1,6 @@
 // ── FloatingPet — Tomi wanders the screen and follows the cursor ─────────────
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import TomiSVG, { PET_CSS, STATE_ANIMS } from './TomiSVG'
+import PetSVG, { PET_CSS, STATE_ANIMS, getPetName } from './PetSVG'
 import { usePet } from '../PetContext'
 import { useAuth } from '../AuthContext'
 
@@ -275,7 +275,7 @@ function PetWidget({ pet, onHungryClick }) {
               animation:  'tomi-bubble-pop 0.3s ease-out',
               cursor:     onHungryClick ? 'pointer' : 'default',
             }}>
-            {pet.isDead ? '💀 Tomi mati! Beri makan!' : '🍖 Tomi lapar!'}
+            {pet.isDead ? `💀 ${getPetName(pet.skin)} mati!` : `🍖 ${getPetName(pet.skin)} lapar!`}
           </div>
         )}
 
@@ -300,7 +300,7 @@ function PetWidget({ pet, onHungryClick }) {
           transition:      'transform 0.12s ease',
           filter:          pet.isDead ? 'saturate(0.3) brightness(0.7)' : 'none',
         }}>
-          <TomiSVG state={petState} skinId={pet.skin} size={PET_SIZE} />
+          <PetSVG state={petState} skinId={pet.skin} size={PET_SIZE} />
         </div>
       </div>
     </>

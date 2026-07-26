@@ -50,6 +50,22 @@ export const PET_SKIN_INFO = {
     desc: 'Bulu hitam pekat berpendar emas, mahkota emas. Dominasi leaderboard.',
     glow: 'rgba(245,158,11,0.55)',
   },
+  // New animal pets
+  pet_kelinsay: {
+    nama: 'Kelinsay', tier: 'UMUM', tierColor: '#34D399',
+    desc: 'Kelinci putih lembut berhati hangat. Telinganya panjang, selalu mendengarkan.',
+    glow: 'rgba(52,211,153,0.30)',
+  },
+  pet_monyong: {
+    nama: 'Monyong', tier: 'EPIC', tierColor: '#C084FC',
+    desc: 'Monyet ceria penuh ekspresi. Ekornya selalu berayun dan senyumnya lebar!',
+    glow: 'rgba(192,132,252,0.40)',
+  },
+  pet_nananaga: {
+    nama: 'Nananaga', tier: 'LANGKA', tierColor: '#FB923C',
+    desc: 'Naga abadi berkuasa. Matanya menyala, sayapnya menggelegar, api di mulutnya.',
+    glow: 'rgba(251,146,60,0.50)',
+  },
 }
 
 // Hardcoded food catalog for shop display (matches server/pet.js PET_FOODS)
