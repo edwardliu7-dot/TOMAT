@@ -2,15 +2,6 @@ import React, { useState } from 'react'
 import { useAuth } from '../AuthContext'
 import logo from '../assets/logo.png'
 
-const FEATURES = [
-  ['⚔️', 'Duel Real-time'],
-  ['💥', 'Boss Raid Co-op'],
-  ['🏆', 'Turnamen Kelas'],
-  ['🐹', 'Pet Tomi'],
-  ['🛒', 'Toko Kosmetik'],
-  ['🧮', 'Hafalan Interaktif'],
-]
-
 const ROLE_META = {
   siswa: {
     icon: '📖',
@@ -19,8 +10,8 @@ const ROLE_META = {
     accent: '#818CF8',
     border: 'rgba(129,140,248,0.52)',
     soft: 'rgba(99,102,241,0.12)',
-    placeholder: 'contoh: 08123456789',
-    inputLabel: 'Email / WhatsApp',
+    placeholder: 'Masukkan username',
+    inputLabel: 'Username',
   },
   guru: {
     icon: '🎓',
@@ -29,8 +20,8 @@ const ROLE_META = {
     accent: '#A78BFA',
     border: 'rgba(167,139,250,0.52)',
     soft: 'rgba(139,92,246,0.12)',
-    placeholder: 'guru@sekolah.com',
-    inputLabel: 'Alamat Email',
+    placeholder: 'Masukkan username',
+    inputLabel: 'Username',
   },
 }
 
@@ -79,11 +70,6 @@ export default function LoginScreen() {
             <br />
             Kumpulkan koin, taklukkan boss, dan jadilah juara kelas! 🎮
           </p>
-          <div className="tomat-login__features">
-            {FEATURES.map(([icon, label]) => (
-              <span key={label}><span aria-hidden="true">{icon}</span>{label}</span>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -125,7 +111,7 @@ export default function LoginScreen() {
               <span>{meta.inputLabel}</span>
               <input
                 required
-                type={role === 'guru' ? 'email' : 'text'}
+                type="text"
                 value={form.username}
                 onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
                 placeholder={meta.placeholder}
@@ -262,25 +248,6 @@ export default function LoginScreen() {
           color: #4B6480;
           font-size: 15px;
           line-height: 1.65;
-        }
-        .tomat-login__features {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: center;
-          gap: 12px;
-          margin-top: 40px;
-        }
-        .tomat-login__features span {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
-          border: 1px solid rgba(99,102,241,0.20);
-          border-radius: 999px;
-          background: rgba(99,102,241,0.06);
-          color: #C7D2FE;
-          font-size: 12px;
-          font-weight: 700;
         }
         .tomat-login__form-panel {
           position: relative;
