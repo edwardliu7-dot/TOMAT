@@ -1540,6 +1540,30 @@ function TurnamenTab({ kelasDiampu }) {
   )
 }
 
+function useIsDesktop() {
+  const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    setDesk(mq.matches)
+    const h = e => setDesk(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return desk
+}
+
+const DESKTOP_TABS = [
+  { id: 'tugas',      icon: '📋', text: 'Kelola Tugas' },
+  { id: 'siswa',      icon: '👥', text: 'Pantau Kelas' },
+  { id: 'nilai',      icon: '📊', text: 'Nilai Siswa' },
+  { id: 'insight',    icon: '🎮', text: 'Insight Siswa' },
+  { id: 'raid',       icon: '⚔️', text: 'Boss Raid' },
+  { id: 'turnamen',   icon: '🏆', text: 'Turnamen' },
+  { id: 'hafalan',    icon: '📖', text: 'Hafalan' },
+  { id: 'kunci',      icon: '🔒', text: 'Kunci Bab' },
+  { id: 'komunikasi', icon: '💬', text: 'Komunikasi' },
+]
+
 export default function GuruDashboardScreen({ onPlayGames }) {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('tugas')
@@ -1547,6 +1571,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   const [komunikasiTarget, setKomunikasiTarget] = useState(null)
   const [visitedProfile, setVisitedProfile] = useState(null)
   const publicProfile = usePublicProfile()
+  const isDesktop = useIsDesktop()
   const kelasDiampu = user?.kelas || []
   const grades = [...new Set(kelasDiampu.map(kelasToGrade).filter(Boolean))].sort()
 
@@ -1565,42 +1590,58 @@ export default function GuruDashboardScreen({ onPlayGames }) {
     return <PublicProfileScreen profile={visitedProfile} goBack={() => setVisitedProfile(null)} />
   }
 
+  const tabContent = (
+    <>
+      {tab === 'tugas'      && <TugasTab kelasDiampu={kelasDiampu} />}
+      {tab === 'hafalan'    && <GuruHafalanScreen />}
+      {tab === 'nilai'      && <NilaiTab onProfileClick={publicProfile.openProfile} />}
+      {tab === 'komunikasi' && <CommunicationScreen embedded initialTarget={komunikasiTarget} />}
+      {tab === 'siswa'      && <SiswaTab onProfileClick={publicProfile.openProfile} />}
+      {tab === 'kunci'      && <KunciTab grades={grades} />}
+      {tab === 'raid'       && <RaidTab kelasDiampu={kelasDiampu} />}
+      {tab === 'turnamen'   && <TurnamenTab kelasDiampu={kelasDiampu} />}
+      {tab === 'insight'    && <InsightTab onProfileClick={publicProfile.openProfile} />}
+    </>
+  )
+
   return (
     <div style={{ minHeight: '100vh', background: '#0A0B14', position: 'relative' }}>
-      {/* Background */}
+      {/* Background blobs */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
         <div style={{ position: 'absolute', top: '-10%', right: '-15%', width: '60%', height: '45%', borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(100px)' }} />
         <div style={{ position: 'absolute', bottom: '20%', left: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(16,185,129,0.08)', filter: 'blur(100px)' }} />
       </div>
 
       <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* Header */}
+        {/* ── Sticky Topbar ── */}
         <div style={{
-          padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12,
-          background: 'rgba(10,11,20,0.85)', backdropFilter: 'blur(20px)',
+          padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
+          background: 'rgba(10,11,20,0.92)', backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255,255,255,0.07)',
           position: 'sticky', top: 0, zIndex: 50,
         }}>
           <button onClick={() => setView('profile')} style={{
-            width: 46, height: 46, borderRadius: 14, flexShrink: 0, padding: 0,
+            width: 44, height: 44, borderRadius: 13, flexShrink: 0, padding: 0,
             border: '2px solid rgba(139,92,246,0.4)', cursor: 'pointer',
             background: user?.photoUrl ? `url(${user.photoUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #8B5CF6, #6366F1)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 18, fontWeight: 800, color: '#fff',
+            fontSize: 17, fontWeight: 800, color: '#fff',
             boxShadow: '0 0 14px rgba(139,92,246,0.3)',
           }}>{!user?.photoUrl && user?.name?.[0]?.toUpperCase()}</button>
 
-          <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setView('profile')}>
-            <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>{user?.name}</div>
-            <div style={{ fontSize: 10, color: '#A78BFA', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 1 }}>
-              Guru · {kelasDiampu.join(', ') || 'Belum ada kelas diampu'}
+          <div style={{ flex: 1, cursor: 'pointer', minWidth: 0 }} onClick={() => setView('profile')}>
+            <div style={{ fontSize: isDesktop ? 16 : 15, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>
+              {isDesktop ? 'Dashboard Guru' : user?.name}
+            </div>
+            <div style={{ fontSize: 10, color: '#A78BFA', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {isDesktop ? user?.name : `Guru · ${kelasDiampu.join(', ') || 'Belum ada kelas diampu'}`}
             </div>
           </div>
 
-            <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); setTab('komunikasi') }} suppress={tab === 'komunikasi'} />
-            <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); setTab('komunikasi') }} />
+          <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); setTab('komunikasi') }} suppress={tab === 'komunikasi'} />
+          <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); setTab('komunikasi') }} />
 
-           <button onClick={onPlayGames} style={{
+          <button onClick={onPlayGames} style={{
             background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)',
             color: '#34D399', borderRadius: 20, padding: '8px 14px', cursor: 'pointer',
             fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
@@ -1609,42 +1650,108 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           <button onClick={logout} style={{
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
             color: '#64748B', width: 36, height: 36, borderRadius: 10, cursor: 'pointer', fontSize: 16,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>⏻</button>
         </div>
 
-        {/* Tab Bar */}
-        <div style={{ display: 'flex', gap: 4, padding: '12px 16px 0', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          {TABS.map(t => {
-            const active = tab === t.id
-            return (
-              <button key={t.id} onClick={() => setTab(t.id)} style={{
-                flex: '0 0 auto', padding: '8px 14px', borderRadius: 10, border: 'none',
-                cursor: 'pointer', fontSize: 12, fontWeight: 800, fontFamily: 'inherit',
-                whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5,
-                background: active ? 'rgba(52,211,153,0.12)' : 'transparent',
-                color: active ? '#34D399' : '#4B5563',
-                borderBottom: active ? '2px solid #34D399' : '2px solid transparent',
-                marginBottom: -1,
-                boxShadow: active ? '0 0 12px rgba(52,211,153,0.15)' : 'none',
-              }}>
-                {t.label} {t.text}
-              </button>
-            )
-          })}
-        </div>
+        {/* ── Body ── */}
+        {isDesktop ? (
+          /* ── Desktop: vertical sidebar + scrollable content ── */
+          <div style={{ display: 'flex', minHeight: 'calc(100vh - 65px)' }}>
+            {/* Internal Sidebar */}
+            <div style={{
+              width: 220, flexShrink: 0,
+              background: '#111318',
+              borderRight: '1px solid rgba(255,255,255,0.07)',
+              display: 'flex', flexDirection: 'column',
+              position: 'sticky', top: 65,
+              height: 'calc(100vh - 65px)',
+              overflowY: 'auto',
+              alignSelf: 'flex-start',
+            }}>
+              <nav style={{ flex: 1, padding: '8px 0' }}>
+                {DESKTOP_TABS.map(t => {
+                  const active = tab === t.id
+                  return (
+                    <button
+                      key={t.id}
+                      data-tab={t.id}
+                      onClick={() => setTab(t.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '12px 16px', width: '100%',
+                        border: 'none',
+                        borderLeft: `3px solid ${active ? '#6366F1' : 'transparent'}`,
+                        cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+                        fontWeight: active ? 700 : 400, textAlign: 'left',
+                        background: active ? 'rgba(99,102,241,0.12)' : 'transparent',
+                        color: active ? '#fff' : '#64748B',
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#94A3B8' }}
+                      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = active ? '#fff' : '#64748B' }}
+                    >
+                      <span style={{ fontSize: 15, width: 22, flexShrink: 0, textAlign: 'center' }}>{t.icon}</span>
+                      <span>{t.text}</span>
+                    </button>
+                  )
+                })}
+              </nav>
 
-        <div style={{ padding: 16, maxWidth: 'var(--content-max)', margin: '0 auto' }}>
-          {tab === 'tugas'   && <TugasTab kelasDiampu={kelasDiampu} />}
-          {tab === 'hafalan' && <GuruHafalanScreen />}
-          {tab === 'nilai'   && <NilaiTab onProfileClick={publicProfile.openProfile} />}
-          {tab === 'komunikasi' && <CommunicationScreen embedded initialTarget={komunikasiTarget} />}
-          {tab === 'siswa'   && <SiswaTab onProfileClick={publicProfile.openProfile} />}
-          {tab === 'kunci'   && <KunciTab grades={grades} />}
-          {tab === 'raid'     && <RaidTab kelasDiampu={kelasDiampu} />}
-          {tab === 'turnamen' && <TurnamenTab kelasDiampu={kelasDiampu} />}
-          {tab === 'insight'  && <InsightTab onProfileClick={publicProfile.openProfile} />}
-        </div>
+              {/* Class list at bottom of sidebar */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>
+                  Kelas Diampu
+                </div>
+                {kelasDiampu.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {kelasDiampu.map(k => (
+                      <div key={k} style={{
+                        fontSize: 12, fontWeight: 600, color: '#94A3B8',
+                        background: 'rgba(255,255,255,0.05)', borderRadius: 8,
+                        padding: '5px 10px',
+                      }}>{k}</div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: '#374151', fontStyle: 'italic' }}>Belum ada kelas</div>
+                )}
+              </div>
+            </div>
+
+            {/* Main content area */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', maxWidth: 960 }}>
+              {tabContent}
+            </div>
+          </div>
+        ) : (
+          /* ── Mobile: horizontal scroll tab bar + content ── */
+          <>
+            <div style={{ display: 'flex', gap: 4, padding: '12px 16px 0', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              {TABS.map(t => {
+                const active = tab === t.id
+                return (
+                  <button key={t.id} data-tab={t.id} onClick={() => setTab(t.id)} style={{
+                    flex: '0 0 auto', padding: '8px 14px', borderRadius: 10, border: 'none',
+                    cursor: 'pointer', fontSize: 12, fontWeight: 800, fontFamily: 'inherit',
+                    whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5,
+                    background: active ? 'rgba(52,211,153,0.12)' : 'transparent',
+                    color: active ? '#34D399' : '#4B5563',
+                    borderBottom: active ? '2px solid #34D399' : '2px solid transparent',
+                    marginBottom: -1,
+                    boxShadow: active ? '0 0 12px rgba(52,211,153,0.15)' : 'none',
+                  }}>
+                    {t.label} {t.text}
+                  </button>
+                )
+              })}
+            </div>
+            <div style={{ padding: 16, maxWidth: 'var(--content-max)', margin: '0 auto' }}>
+              {tabContent}
+            </div>
+          </>
+        )}
+
         <PublicProfileModal
           profile={publicProfile.profile}
           loading={publicProfile.loading}

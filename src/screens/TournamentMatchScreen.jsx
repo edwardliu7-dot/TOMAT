@@ -1,6 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { connectSocket, getSocket } from '../socket'
 
+function useIsMd() {
+  const [md, setMd] = React.useState(() => window.innerWidth >= 768)
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    setMd(mq.matches)
+    const h = e => setMd(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return md
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const NL_MIN = -20, NL_MAX = 20
 function toPercent(n) { return ((n - NL_MIN) / (NL_MAX - NL_MIN)) * 100 }
@@ -231,6 +243,7 @@ export default function TournamentMatchScreen({
   myUserId, myName,
   goBack, onMatchOver,
 }) {
+  const isMd = useIsMd()
   const [question,    setQuestion]    = useState(null)
   const [round,       setRound]       = useState(initRound || 1)
   const [maxRounds,   setMaxRounds]   = useState(7)
@@ -414,6 +427,127 @@ export default function TournamentMatchScreen({
   const myScore  = scores[myUserId] ?? 0
   const oppScore = Object.entries(scores).find(([id]) => id !== String(myUserId))?.[1] ?? 0
 
+  const questionPanel = (
+    <div style={{
+      background: '#1A1D27',
+      border: `1.5px solid ${phase === 'result' ? (myCorrect ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)') : 'rgba(103,232,249,0.25)'}`,
+      borderRadius: 20, padding: 16,
+    }}>
+      {/* Number line — only for katak */}
+      {gameKey === 'katak' && (
+        <KatakNumberLine
+          start={start}
+          myPos={slider}
+          oppPos={isMd ? null : oppSlider}
+          myAnswered={myAnswered}
+          myCorrect={myCorrect}
+        />
+      )}
+      {/* Question text */}
+      <div style={{ textAlign: 'center', marginTop: gameKey === 'katak' ? 8 : 0, marginBottom: 16 }}>
+        {gameKey === 'katak' ? (
+          <div style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>
+            Katak di batu{' '}
+            <strong style={{ color: '#67E8F9' }}>{start}</strong>, melompat{' '}
+            {isForward ? '⮕ maju' : '⬅ mundur'}{' '}
+            <strong style={{ color: '#f59e0b' }}>{jump} batu</strong>. Geser katak ke posisi akhir!
+          </div>
+        ) : (
+          <div style={{ fontSize: 14, color: '#fff', lineHeight: 1.7, fontWeight: 700, padding: '8px 4px' }}>
+            {q.text || ''}
+          </div>
+        )}
+      </div>
+      {/* Value badge */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+        <div style={{
+          background: 'rgba(103,232,249,0.1)', border: '1px solid rgba(103,232,249,0.4)',
+          color: '#67E8F9', padding: '8px 24px', borderRadius: 12,
+          fontSize: 28, fontWeight: 900, boxShadow: '0 0 16px rgba(103,232,249,0.15)',
+        }}>{slider}</div>
+      </div>
+      {/* Slider */}
+      <div style={{ width: '100%', padding: '0 10px', boxSizing: 'border-box' }}>
+        <input
+          type="range" min={sliderMin} max={sliderMax} step={1} value={slider}
+          onChange={e => !myAnswered && handleSlider(parseInt(e.target.value, 10))}
+          disabled={myAnswered}
+          style={{ width: '100%', accentColor: '#67E8F9', height: 6, opacity: myAnswered ? 0.4 : 1, cursor: myAnswered ? 'not-allowed' : 'pointer' }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94A3B8', fontSize: 13, fontWeight: 600, marginTop: 12 }}>
+          {[sliderMin, Math.round((sliderMin+sliderMax)/2), sliderMax].map(n => <span key={n}>{n}</span>)}
+        </div>
+      </div>
+      {/* Confirm button */}
+      {!myAnswered && phase === 'playing' && (
+        <button onClick={submitAnswer} style={{
+          width: '100%', background: '#0e7490', border: 'none', borderRadius: 14, padding: '16px',
+          color: '#fff', fontSize: 16, fontWeight: 'bold', cursor: 'pointer', fontFamily: 'inherit',
+          boxShadow: '0 4px 12px rgba(14,116,144,0.3)', marginTop: 8,
+        }}>
+          ✅ Konfirmasi Jawaban: {slider}
+        </button>
+      )}
+    </div>
+  )
+
+  const opponentPanel = (
+    <div style={{
+      background: '#1A1D27', border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', gap: 14,
+    }}>
+      <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, letterSpacing: 1 }}>🔥 LAWAN — {opponent?.name}</div>
+      {/* Opponent ghost on number line */}
+      {gameKey === 'katak' && (
+        <KatakNumberLine
+          start={start}
+          myPos={oppSlider ?? start}
+          oppPos={null}
+          myAnswered={false}
+          myCorrect={null}
+        />
+      )}
+      {/* Progress bars */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700 }}>Kamu</span>
+            <span style={{ fontSize: 11, color: '#67E8F9', fontWeight: 800 }}>{myScore} benar</span>
+          </div>
+          <div style={{ height: 8, background: 'rgba(103,232,249,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ width: `${maxRounds > 0 ? (myScore / maxRounds) * 100 : 0}%`, height: '100%', background: '#67E8F9', borderRadius: 4, transition: 'width 0.3s' }} />
+          </div>
+        </div>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700 }}>Lawan</span>
+            <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800 }}>{oppScore} benar</span>
+          </div>
+          <div style={{ height: 8, background: 'rgba(245,158,11,0.1)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ width: `${maxRounds > 0 ? (oppScore / maxRounds) * 100 : 0}%`, height: '100%', background: '#f59e0b', borderRadius: 4, transition: 'width 0.3s' }} />
+          </div>
+        </div>
+      </div>
+      {/* Last answer feedback */}
+      {phase === 'result' && (
+        <div style={{
+          background: myCorrect ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+          border: `1px solid ${myCorrect ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
+          borderRadius: 12, padding: '12px', textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 24 }}>{myCorrect ? '✅' : '❌'}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: myCorrect ? '#10b981' : '#f87171', marginTop: 4 }}>
+            {myCorrect ? 'Benar!' : `Jawaban: ${correctAnswer}`}
+          </div>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', fontSize: 11, color: '#475569', marginTop: 'auto' }}>
+        <span>🐸 Kamu</span>
+        <span>🔥 Lawan</span>
+      </div>
+    </div>
+  )
+
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)', fontFamily: 'system-ui, sans-serif', color: '#fff' }}>
       {/* TopBar */}
@@ -431,106 +565,64 @@ export default function TournamentMatchScreen({
         </div>
       </div>
 
-      <div style={{ padding: '12px 16px 40px', display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 480, margin: '0 auto' }}>
-        {/* Score bar */}
-        <ScoreBar
-          myName={myName}
-          oppName={opponent?.name}
-          myScore={myScore}
-          oppScore={oppScore}
-          round={round}
-          maxRounds={maxRounds}
-        />
-
-        {/* Game card */}
-        <div style={{
-          background: '#1A1D27',
-          border: `1.5px solid ${phase === 'result' ? (myCorrect ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)') : 'rgba(103,232,249,0.25)'}`,
-          borderRadius: 20, padding: 16,
-        }}>
-          {/* Number line — only for katak */}
-          {gameKey === 'katak' && (
-            <KatakNumberLine
-              start={start}
-              myPos={slider}
-              oppPos={oppSlider}
-              myAnswered={myAnswered}
-              myCorrect={myCorrect}
-            />
-          )}
-
-          {/* Question text */}
-          <div style={{ textAlign: 'center', marginTop: gameKey === 'katak' ? 8 : 0, marginBottom: 16 }}>
-            {gameKey === 'katak' ? (
-              <div style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>
-                Katak di batu{' '}
-                <strong style={{ color: '#67E8F9' }}>{start}</strong>, melompat{' '}
-                {isForward ? '⮕ maju' : '⬅ mundur'}{' '}
-                <strong style={{ color: '#f59e0b' }}>{jump} batu</strong>. Geser katak ke posisi akhir!
-              </div>
-            ) : (
-              <div style={{ fontSize: 14, color: '#fff', lineHeight: 1.7, fontWeight: 700, padding: '8px 4px' }}>
-                {q.text || ''}
-              </div>
-            )}
+      {isMd ? (
+        /* ── Desktop split layout ── */
+        <div style={{ padding: '16px 24px 40px', maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <ScoreBar
+            myName={myName}
+            oppName={opponent?.name}
+            myScore={myScore}
+            oppScore={oppScore}
+            round={round}
+            maxRounds={maxRounds}
+          />
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>{questionPanel}</div>
+            <div style={{ flex: 1 }}>{opponentPanel}</div>
           </div>
-
-          {/* Value badge — above slider */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          {phase === 'result' && (
             <div style={{
-              background: 'rgba(103,232,249,0.1)', border: '1px solid rgba(103,232,249,0.4)',
-              color: '#67E8F9', padding: '8px 24px', borderRadius: 12,
-              fontSize: 28, fontWeight: 900, boxShadow: '0 0 16px rgba(103,232,249,0.15)',
-            }}>{slider}</div>
-          </div>
-
-          {/* Slider */}
-          <div style={{ width: '100%', padding: '0 10px', boxSizing: 'border-box' }}>
-            <input
-              type="range" min={sliderMin} max={sliderMax} step={1} value={slider}
-              onChange={e => !myAnswered && handleSlider(parseInt(e.target.value, 10))}
-              disabled={myAnswered}
-              style={{ width: '100%', accentColor: '#67E8F9', height: 6, opacity: myAnswered ? 0.4 : 1, cursor: myAnswered ? 'not-allowed' : 'pointer' }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94A3B8', fontSize: 13, fontWeight: 600, marginTop: 12 }}>
-              {[sliderMin, Math.round((sliderMin+sliderMax)/2), sliderMax].map(n => <span key={n}>{n}</span>)}
-            </div>
-          </div>
-
-          {/* Confirm button — inside the card */}
-          {!myAnswered && phase === 'playing' && (
-            <button onClick={submitAnswer} style={{
-              width: '100%', background: '#0e7490', border: 'none', borderRadius: 14, padding: '16px',
-              color: '#fff', fontSize: 16, fontWeight: 'bold', cursor: 'pointer', fontFamily: 'inherit',
-              boxShadow: '0 4px 12px rgba(14,116,144,0.3)', marginTop: 8,
+              background: myCorrect ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+              border: `1px solid ${myCorrect ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
+              borderRadius: 12, padding: '14px 16px', textAlign: 'center',
             }}>
-              ✅ Konfirmasi Jawaban: {slider}
-            </button>
+              <div style={{ fontSize: 14, fontWeight: 800, color: myCorrect ? '#10b981' : '#f87171' }}>
+                {myCorrect ? '✅ Benar!' : `❌ Salah! Jawaban: ${correctAnswer}`}
+              </div>
+              <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>Soal berikutnya sebentar lagi…</div>
+            </div>
           )}
         </div>
-
-        {/* Result banner — brief feedback, soal berikutnya datang otomatis ~1.2s */}
-        {phase === 'result' && (
-          <div style={{
-            background: myCorrect ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-            border: `1px solid ${myCorrect ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
-            borderRadius: 12, padding: '14px 16px', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: myCorrect ? '#10b981' : '#f87171' }}>
-              {myCorrect ? '✅ Benar!' : `❌ Salah! Jawaban: ${correctAnswer}`}
+      ) : (
+        /* ── Mobile layout ── */
+        <div style={{ padding: '12px 16px 40px', display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 480, margin: '0 auto' }}>
+          <ScoreBar
+            myName={myName}
+            oppName={opponent?.name}
+            myScore={myScore}
+            oppScore={oppScore}
+            round={round}
+            maxRounds={maxRounds}
+          />
+          {questionPanel}
+          {phase === 'result' && (
+            <div style={{
+              background: myCorrect ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+              border: `1px solid ${myCorrect ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
+              borderRadius: 12, padding: '14px 16px', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: myCorrect ? '#10b981' : '#f87171' }}>
+                {myCorrect ? '✅ Benar!' : `❌ Salah! Jawaban: ${correctAnswer}`}
+              </div>
+              <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>Soal berikutnya sebentar lagi…</div>
             </div>
-            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>
-              Soal berikutnya sebentar lagi…
-            </div>
+          )}
+          <div style={{ display: 'flex', gap: 20, justifyContent: 'center', fontSize: 11, color: '#475569' }}>
+            <span>🐸 Kamu</span>
+            <span>🔥 Lawan</span>
           </div>
-        )}
-
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: 20, justifyContent: 'center', fontSize: 11, color: '#475569' }}>
-          <span>🐸 Kamu</span>
-          <span>🔥 Lawan</span>
         </div>
-      </div>
+      )}
     </div>
   )
 }

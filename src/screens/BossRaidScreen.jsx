@@ -3,6 +3,18 @@ import { TopBar } from '../components/shared'
 import { useAuth } from '../AuthContext'
 import { connectSocket } from '../socket'
 
+function useIsMd() {
+  const [md, setMd] = React.useState(() => window.innerWidth >= 768)
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    setMd(mq.matches)
+    const h = e => setMd(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return md
+}
+
 const DAMAGE_PER_HIT = 100
 const COOLDOWN_SEC   = 60
 
@@ -77,6 +89,7 @@ function SliderInput({ min, max, value, onChange }) {
 // ── Main Screen ────────────────────────────────────────────────────────────────
 export default function BossRaidScreen({ goBack }) {
   const { user } = useAuth()
+  const isMd = useIsMd()
 
   const [raid,        setRaid]        = useState(null)
   const [loading,     setLoading]     = useState(true)
@@ -287,6 +300,146 @@ export default function BossRaidScreen({ goBack }) {
   }
 
   // ── Main battle screen ────────────────────────────────────────────────────────
+  const bossHeader = (
+    <>
+      {/* Boss visual */}
+      <div style={{ textAlign: 'center', padding: '16px 0 10px' }}>
+        <div style={{
+          fontSize: isMd ? 72 : 86, lineHeight: 1, marginBottom: 10,
+          animation: 'bossFloat 3s ease-in-out infinite',
+          filter: 'drop-shadow(0 0 36px rgba(239,68,68,0.55))',
+          display: 'inline-block',
+        }}>{raid.bossEmoji || '👹'}</div>
+        <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 3 }}>{raid.bossName || 'Boss Matematika'}</div>
+        <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 700, letterSpacing: 1.5 }}>KELAS {raid.kelas}</div>
+      </div>
+      {/* HP Bar */}
+      <div style={{
+        background: '#111827', borderRadius: 14,
+        border: '1px solid rgba(239,68,68,0.2)', padding: '14px 16px', marginBottom: 14,
+      }}>
+        <HPBar hp={raid.hp} maxHp={raid.maxHp} />
+      </div>
+    </>
+  )
+
+  const questionArea = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Question overlay */}
+      {phase === 'question' && question && (
+        <div style={{
+          background: '#111827', borderRadius: 16,
+          border: '2px solid rgba(239,68,68,0.5)', padding: '18px 16px',
+        }}>
+          <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 800, letterSpacing: 1, marginBottom: 10 }}>⚔️ JAWAB UNTUK MENYERANG!</div>
+          <div style={{ fontSize: 14, color: '#fff', lineHeight: 1.7, marginBottom: 14 }}>
+            Katak mulai di{' '}
+            <strong style={{ color: '#67E8F9', fontSize: 16 }}>{question.start}</strong>, lalu{' '}
+            {question.isForward ? 'melompat maju' : 'melompat mundur'} sejauh{' '}
+            <strong style={{ color: '#67E8F9', fontSize: 16 }}>{question.jump}</strong> langkah.
+            <br />Posisi akhir katak?
+          </div>
+          <SliderInput min={-20} max={20} value={sliderVal} onChange={setSliderVal} />
+          <button onClick={handleAnswer} style={{
+            width: '100%', marginTop: 14,
+            background: 'linear-gradient(135deg,#ef4444,#b91c1c)',
+            color: '#fff', border: 'none', borderRadius: 12,
+            padding: '14px', fontSize: 16, fontWeight: 900, cursor: 'pointer',
+            boxShadow: '0 0 24px rgba(239,68,68,0.4)',
+          }}>⚔️ Serang!</button>
+        </div>
+      )}
+
+      {/* Attack result */}
+      {phase === 'result' && attackResult && (
+        <div style={{
+          background: attackResult.correct ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.06)',
+          borderRadius: 16,
+          border: `2px solid ${attackResult.correct ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.25)'}`,
+          padding: '18px 16px', textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 44, marginBottom: 8 }}>{attackResult.correct ? '💥' : '💨'}</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: attackResult.correct ? '#22c55e' : '#f87171', marginBottom: 6 }}>
+            {attackResult.correct ? `Mengenai! -${attackResult.damage} HP dari Bos` : 'Serangan meleset!'}
+          </div>
+          {!attackResult.correct && (
+            <div style={{ fontSize: 13, color: '#64748B', marginBottom: 4 }}>
+              Jawaban yang benar: <strong style={{ color: '#fff' }}>{attackResult.correctAnswer}</strong>
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: '#475569', marginBottom: 14 }}>
+            ⏳ Cooldown serangan: {COOLDOWN_SEC} detik
+          </div>
+          <button onClick={dismissResult} style={{
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+            color: '#fff', borderRadius: 10, padding: '10px 32px',
+            fontSize: 14, fontWeight: 700, cursor: 'pointer',
+          }}>Oke</button>
+        </div>
+      )}
+
+      {/* Attack button (battle phase only) */}
+      {phase === 'battle' && (
+        <button
+          onClick={handleAttack}
+          disabled={cooldownSec > 0}
+          style={{
+            width: '100%',
+            background: cooldownSec > 0
+              ? 'rgba(255,255,255,0.03)'
+              : 'linear-gradient(135deg,#ef4444,#b91c1c)',
+            color: cooldownSec > 0 ? '#475569' : '#fff',
+            border: cooldownSec > 0 ? '1px solid rgba(255,255,255,0.07)' : 'none',
+            borderRadius: 16, padding: '18px',
+            fontSize: cooldownSec > 0 ? 14 : 18,
+            fontWeight: 900, cursor: cooldownSec > 0 ? 'default' : 'pointer',
+            boxShadow: cooldownSec > 0 ? 'none' : '0 0 36px rgba(239,68,68,0.45)',
+            transition: 'all 0.3s',
+          }}
+        >
+          {cooldownSec > 0 ? `⏳ Cooldown: ${cooldownSec}s` : '⚔️ SERANG BOS!'}
+        </button>
+      )}
+
+      {/* Hint */}
+      <div style={{ textAlign: 'center', fontSize: 12, color: '#374151', lineHeight: 1.5 }}>
+        Setiap jawaban benar = -{DAMAGE_PER_HIT} HP Bos · Cooldown {COOLDOWN_SEC}s
+        {raid.rewardType && raid.rewardAmount > 0 && (
+          <>
+            <br/>
+            <span style={{ color: '#fbbf24', fontWeight: 700 }}>
+              🎁 {raid.rewardType === 'koin'
+                ? `🪙 ${raid.rewardAmount} koin`
+                : raid.rewardType === 'exp'
+                  ? `⚡ ${raid.rewardAmount} EXP`
+                  : `🪙 ${raid.rewardAmount} koin + ⚡ ${raid.rewardAmount} EXP`
+              } per siswa saat boss kalah
+            </span>
+          </>
+        )}
+      </div>
+    </div>
+  )
+
+  const liveFeedPanel = (
+    <div style={{
+      background: '#111827', borderRadius: 14,
+      border: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px',
+      display: 'flex', flexDirection: 'column', gap: 10,
+    }}>
+      <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1 }}>
+        ⚔️ PENYERANG TERKUAT
+      </div>
+      {(raid.participants?.length ?? 0) === 0 ? (
+        <div style={{ fontSize: 12, color: '#374151' }}>Belum ada serangan…</div>
+      ) : (
+        raid.participants.slice(0, 8).map((p, i) => (
+          <ParticipantRow key={p.userId || i} p={p} rank={i} />
+        ))
+      )}
+    </div>
+  )
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -308,141 +461,23 @@ export default function BossRaidScreen({ goBack }) {
         }}>{f.text}</div>
       ))}
 
-      <div style={{ padding: '0 16px 48px', maxWidth: 440, margin: '0 auto' }}>
-
-        {/* Boss visual */}
-        <div style={{ textAlign: 'center', padding: '16px 0 10px' }}>
-          <div style={{
-            fontSize: 86, lineHeight: 1, marginBottom: 10,
-            animation: 'bossFloat 3s ease-in-out infinite',
-            filter: 'drop-shadow(0 0 36px rgba(239,68,68,0.55))',
-            display: 'inline-block',
-          }}>{raid.bossEmoji || '👹'}</div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 3 }}>{raid.bossName || 'Boss Matematika'}</div>
-          <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 700, letterSpacing: 1.5 }}>KELAS {raid.kelas}</div>
-        </div>
-
-        {/* HP Bar */}
-        <div style={{
-          background: '#111827', borderRadius: 14,
-          border: '1px solid rgba(239,68,68,0.2)', padding: '14px 16px', marginBottom: 14,
-        }}>
-          <HPBar hp={raid.hp} maxHp={raid.maxHp} />
-        </div>
-
-        {/* Question overlay */}
-        {phase === 'question' && question && (
-          <div style={{
-            background: '#111827', borderRadius: 16,
-            border: '2px solid rgba(239,68,68,0.5)', padding: '18px 16px', marginBottom: 14,
-          }}>
-            <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 800, letterSpacing: 1, marginBottom: 10 }}>⚔️ JAWAB UNTUK MENYERANG!</div>
-            <div style={{ fontSize: 14, color: '#fff', lineHeight: 1.7, marginBottom: 14 }}>
-              Katak mulai di{' '}
-              <strong style={{ color: '#67E8F9', fontSize: 16 }}>{question.start}</strong>, lalu{' '}
-              {question.isForward ? 'melompat maju' : 'melompat mundur'} sejauh{' '}
-              <strong style={{ color: '#67E8F9', fontSize: 16 }}>{question.jump}</strong> langkah.
-              <br />Posisi akhir katak?
-            </div>
-            <SliderInput min={-20} max={20} value={sliderVal} onChange={setSliderVal} />
-            <button onClick={handleAnswer} style={{
-              width: '100%', marginTop: 14,
-              background: 'linear-gradient(135deg,#ef4444,#b91c1c)',
-              color: '#fff', border: 'none', borderRadius: 12,
-              padding: '14px', fontSize: 16, fontWeight: 900, cursor: 'pointer',
-              boxShadow: '0 0 24px rgba(239,68,68,0.4)',
-            }}>
-              ⚔️ Serang!
-            </button>
+      {isMd ? (
+        /* ── Desktop layout ── */
+        <div style={{ padding: '0 24px 48px', maxWidth: 1100, margin: '0 auto' }}>
+          {bossHeader}
+          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+            <div style={{ flex: 2 }}>{questionArea}</div>
+            <div style={{ width: 260, flexShrink: 0 }}>{liveFeedPanel}</div>
           </div>
-        )}
-
-        {/* Attack result */}
-        {phase === 'result' && attackResult && (
-          <div style={{
-            background: attackResult.correct ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.06)',
-            borderRadius: 16,
-            border: `2px solid ${attackResult.correct ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.25)'}`,
-            padding: '18px 16px', marginBottom: 14, textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 44, marginBottom: 8 }}>{attackResult.correct ? '💥' : '💨'}</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: attackResult.correct ? '#22c55e' : '#f87171', marginBottom: 6 }}>
-              {attackResult.correct ? `Mengenai! -${attackResult.damage} HP dari Bos` : 'Serangan meleset!'}
-            </div>
-            {!attackResult.correct && (
-              <div style={{ fontSize: 13, color: '#64748B', marginBottom: 4 }}>
-                Jawaban yang benar: <strong style={{ color: '#fff' }}>{attackResult.correctAnswer}</strong>
-              </div>
-            )}
-            <div style={{ fontSize: 12, color: '#475569', marginBottom: 14 }}>
-              ⏳ Cooldown serangan: {COOLDOWN_SEC} detik
-            </div>
-            <button onClick={dismissResult} style={{
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-              color: '#fff', borderRadius: 10, padding: '10px 32px',
-              fontSize: 14, fontWeight: 700, cursor: 'pointer',
-            }}>Oke</button>
-          </div>
-        )}
-
-        {/* Attack button (battle phase only) */}
-        {phase === 'battle' && (
-          <button
-            onClick={handleAttack}
-            disabled={cooldownSec > 0}
-            style={{
-              width: '100%', marginBottom: 14,
-              background: cooldownSec > 0
-                ? 'rgba(255,255,255,0.03)'
-                : 'linear-gradient(135deg,#ef4444,#b91c1c)',
-              color: cooldownSec > 0 ? '#475569' : '#fff',
-              border: cooldownSec > 0 ? '1px solid rgba(255,255,255,0.07)' : 'none',
-              borderRadius: 16, padding: '18px',
-              fontSize: cooldownSec > 0 ? 14 : 18,
-              fontWeight: 900, cursor: cooldownSec > 0 ? 'default' : 'pointer',
-              boxShadow: cooldownSec > 0 ? 'none' : '0 0 36px rgba(239,68,68,0.45)',
-              transition: 'all 0.3s',
-            }}
-          >
-            {cooldownSec > 0 ? `⏳ Cooldown: ${cooldownSec}s` : '⚔️ SERANG BOS!'}
-          </button>
-        )}
-
-        {/* Leaderboard */}
-        {(raid.participants?.length ?? 0) > 0 && (
-          <div style={{
-            background: '#111827', borderRadius: 14,
-            border: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px',
-          }}>
-            <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
-              ⚔️ PENYERANG TERKUAT
-            </div>
-            {raid.participants.slice(0, 5).map((p, i) => (
-              <ParticipantRow key={p.userId || i} p={p} rank={i} />
-            ))}
-          </div>
-        )}
-
-        {/* Hint */}
-        <div style={{ textAlign: 'center', marginTop: 14, fontSize: 12, color: '#374151', lineHeight: 1.5 }}>
-          Setiap jawaban benar = -{DAMAGE_PER_HIT} HP Bos<br/>
-          Cooldown {COOLDOWN_SEC}s per serangan
-          {raid.rewardType && raid.rewardAmount > 0 && (
-            <>
-              <br/>
-              <span style={{ color: '#fbbf24', fontWeight: 700 }}>
-                🎁 Hadiah kemenangan:{' '}
-                {raid.rewardType === 'koin'
-                  ? `🪙 ${raid.rewardAmount} koin`
-                  : raid.rewardType === 'exp'
-                    ? `⚡ ${raid.rewardAmount} EXP`
-                    : `🪙 ${raid.rewardAmount} koin + ⚡ ${raid.rewardAmount} EXP`
-                }{' '}per siswa
-              </span>
-            </>
-          )}
         </div>
-      </div>
+      ) : (
+        /* ── Mobile layout ── */
+        <div style={{ padding: '0 16px 48px', maxWidth: 440, margin: '0 auto' }}>
+          {bossHeader}
+          {questionArea}
+          {(raid.participants?.length ?? 0) > 0 && liveFeedPanel}
+        </div>
+      )}
 
       <style>{`
         @keyframes bossFloat {

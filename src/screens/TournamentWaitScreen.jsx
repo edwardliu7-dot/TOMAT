@@ -1,6 +1,30 @@
 import React, { useEffect, useState } from 'react'
 import { connectSocket } from '../socket'
 
+function useIsDesktop() {
+  const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    setDesk(mq.matches)
+    const h = e => setDesk(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return desk
+}
+
+function useIsMd() {
+  const [md, setMd] = React.useState(() => window.innerWidth >= 768)
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    setMd(mq.matches)
+    const h = e => setMd(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return md
+}
+
 const STATUS_BADGE = {
   finished:      { bg: 'rgba(16,185,129,0.15)',   color: '#10b981', label: '✅ Selesai' },
   'in-progress': { bg: 'rgba(245,158,11,0.15)',   color: '#f59e0b', label: '⚡ Berlangsung' },
@@ -12,6 +36,7 @@ const STATUS_BADGE = {
 
 export default function TournamentWaitScreen({ tournamentId, myUserId, myName, goBack }) {
   const [tournament, setTournament] = useState(null)
+  const isDesktop = useIsDesktop()
 
   useEffect(() => {
     const socket = connectSocket()
@@ -114,7 +139,19 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
         </div>
       </div>
 
-      <div style={{ padding: '16px 16px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ padding: '16px 16px 40px', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: isDesktop ? 'none' : undefined }}>
+        {/* Summary strip on desktop */}
+        {isDesktop && tournament && (
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 12, padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: '#f59e0b', fontWeight: 700 }}>🎮 {GAME_LABELS[tournament.gameKey] || tournament.gameKey}</span>
+            </div>
+            <div style={{ background: 'rgba(103,232,249,0.08)', border: '1px solid rgba(103,232,249,0.2)', borderRadius: 12, padding: '10px 16px' }}>
+              <span style={{ fontSize: 13, color: '#67E8F9', fontWeight: 700 }}>Ronde {tournament.currentRound} / {tournament.rounds?.length}</span>
+            </div>
+          </div>
+        )}
+
         {/* My status */}
         <div style={{ background: 'rgba(103,232,249,0.06)', border: '1.5px solid rgba(103,232,249,0.3)', borderRadius: 16, padding: '14px 16px' }}>
           <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700, marginBottom: 10 }}>STATUS KAMU</div>
@@ -127,49 +164,102 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
           </div>
         </div>
 
-        {/* Bracket */}
-        {tournament?.rounds?.map((round, ri) => (
-          <div key={ri}>
-            <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>
-              RONDE {ri + 1}{ri + 1 === tournament.currentRound ? ' (SEKARANG)' : ''}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {round.matches.map((m, mi) => {
-                const badge = STATUS_BADGE[m.status] || STATUS_BADGE.pending
-                const isMyMatch = m.player1?.userId === myUserId || m.player2?.userId === myUserId
-                return (
-                  <div key={mi} style={{
-                    background: isMyMatch ? 'rgba(103,232,249,0.06)' : '#1A1D27',
-                    border: `1.5px solid ${isMyMatch ? 'rgba(103,232,249,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                    borderRadius: 14, padding: '12px 14px',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ flex: 1 }}>
-                        {[m.player1, m.player2].map((p, pi) => p ? (
-                          <div key={pi}>
-                            {pi === 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '5px 0' }} />}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: 13, fontWeight: m.winner?.userId === p.userId ? 800 : 600, color: m.winner && m.winner.userId !== p.userId ? '#475569' : p.userId === myUserId ? '#67E8F9' : '#94A3B8' }}>
-                                {p.userId === myUserId ? '🐸 ' : ''}{p.name}
-                              </span>
-                              {m.scores?.[p.userId] !== undefined && (
-                                <span style={{ fontSize: 12, fontWeight: 800, color: pi === 0 ? '#67E8F9' : '#f59e0b' }}>{m.scores[p.userId]}</span>
-                              )}
-                            </div>
+        {/* Bracket — horizontal on desktop, vertical on mobile */}
+        {isDesktop ? (
+          <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 8 }}>
+            {tournament?.rounds?.map((round, ri) => (
+              <div key={ri} style={{ minWidth: 220, flex: '0 0 auto' }}>
+                <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
+                  RONDE {ri + 1}{ri + 1 === tournament.currentRound ? ' ⚡' : ''}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {round.matches.map((m, mi) => {
+                    const badge = STATUS_BADGE[m.status] || STATUS_BADGE.pending
+                    const isMyMatch = m.player1?.userId === myUserId || m.player2?.userId === myUserId
+                    const isLive = m.status === 'in-progress'
+                    return (
+                      <div key={mi} style={{
+                        background: isMyMatch ? 'rgba(103,232,249,0.06)' : '#1A1D27',
+                        border: `1.5px solid ${isLive ? '#67E8F9' : isMyMatch ? 'rgba(103,232,249,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                        borderRadius: 14, padding: '12px 14px',
+                        boxShadow: isLive ? '0 0 12px rgba(103,232,249,0.15)' : 'none',
+                      }}>
+                        {isLive && <div style={{ fontSize: 9, color: '#67E8F9', fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>⚡ LIVE</div>}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ flex: 1 }}>
+                            {[m.player1, m.player2].map((p, pi) => p ? (
+                              <div key={pi}>
+                                {pi === 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '5px 0' }} />}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <span style={{ fontSize: 12, fontWeight: m.winner?.userId === p.userId ? 800 : 600, color: m.winner && m.winner.userId !== p.userId ? '#475569' : p.userId === myUserId ? '#67E8F9' : '#94A3B8' }}>
+                                    {p.userId === myUserId ? '🐸 ' : ''}{p.name}
+                                  </span>
+                                  {m.scores?.[p.userId] !== undefined && (
+                                    <span style={{ fontSize: 12, fontWeight: 800, color: pi === 0 ? '#67E8F9' : '#f59e0b' }}>{m.scores[p.userId]}</span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : null)}
                           </div>
-                        ) : null)}
+                          <div style={{ flexShrink: 0 }}>
+                            <span style={{ background: badge.bg, color: badge.color, fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 20, display: 'block' }}>{badge.label}</span>
+                            {m.winner && <div style={{ fontSize: 9, color: '#10b981', marginTop: 4, fontWeight: 600 }}>🏅 {m.winner.name}</div>}
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                        <span style={{ background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, display: 'block' }}>{badge.label}</span>
-                        {m.winner && <div style={{ fontSize: 10, color: '#10b981', marginTop: 4, fontWeight: 600 }}>🏅 {m.winner.name}</div>}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        ) : (
+          /* Mobile: vertical stacked rounds */
+          <>
+            {tournament?.rounds?.map((round, ri) => (
+              <div key={ri}>
+                <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>
+                  RONDE {ri + 1}{ri + 1 === tournament.currentRound ? ' (SEKARANG)' : ''}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {round.matches.map((m, mi) => {
+                    const badge = STATUS_BADGE[m.status] || STATUS_BADGE.pending
+                    const isMyMatch = m.player1?.userId === myUserId || m.player2?.userId === myUserId
+                    return (
+                      <div key={mi} style={{
+                        background: isMyMatch ? 'rgba(103,232,249,0.06)' : '#1A1D27',
+                        border: `1.5px solid ${isMyMatch ? 'rgba(103,232,249,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                        borderRadius: 14, padding: '12px 14px',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ flex: 1 }}>
+                            {[m.player1, m.player2].map((p, pi) => p ? (
+                              <div key={pi}>
+                                {pi === 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '5px 0' }} />}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <span style={{ fontSize: 13, fontWeight: m.winner?.userId === p.userId ? 800 : 600, color: m.winner && m.winner.userId !== p.userId ? '#475569' : p.userId === myUserId ? '#67E8F9' : '#94A3B8' }}>
+                                    {p.userId === myUserId ? '🐸 ' : ''}{p.name}
+                                  </span>
+                                  {m.scores?.[p.userId] !== undefined && (
+                                    <span style={{ fontSize: 12, fontWeight: 800, color: pi === 0 ? '#67E8F9' : '#f59e0b' }}>{m.scores[p.userId]}</span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : null)}
+                          </div>
+                          <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                            <span style={{ background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, display: 'block' }}>{badge.label}</span>
+                            {m.winner && <div style={{ fontSize: 10, color: '#10b981', marginTop: 4, fontWeight: 600 }}>🏅 {m.winner.name}</div>}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
 
         {/* Loading */}
         {!tournament && (

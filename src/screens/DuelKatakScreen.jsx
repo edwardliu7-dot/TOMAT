@@ -3,6 +3,18 @@ import { TopBar, Card, Btn } from '../components/shared'
 import { connectSocket, getSocket } from '../socket'
 import { getGameInfo } from '../gamesCatalog'
 
+function useIsMd() {
+  const [md, setMd] = React.useState(() => window.innerWidth >= 768)
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    setMd(mq.matches)
+    const h = e => setMd(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return md
+}
+
 // ─── Number line helpers (katak) ─────────────────────────────────────────────
 const NL_MIN = -15, NL_MAX = 15
 function toPercent(n) { return ((n - NL_MIN) / (NL_MAX - NL_MIN)) * 100 }
@@ -312,6 +324,7 @@ function GameOverScreen({ winner, scores, myIndex, onLeave }) {
 // ─── Main Duel Screen ─────────────────────────────────────────────────────────
 export default function DuelKatakScreen({ code, myIndex, question: initQ, round: initRound, maxRounds, scores: initScores, gameKey = 'katak', goBack }) {
   const gameInfo = getGameInfo(gameKey)
+  const isMd = useIsMd()
   const [question, setQuestion] = useState(initQ)
   const [round, setRound]       = useState(initRound)
   const [scores, setScores]     = useState(initScores)
@@ -479,98 +492,155 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   const sliderMax  = question?.sliderMax ?? NL_MAX
   const isKatak    = gameKey === 'katak'
 
+  const inputArea = (
+    <>
+      <Card border={phase === 'result' ? (myCorrect ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)') : 'rgba(103,232,249,0.25)'}>
+        {/* Number line — katak only (on mobile only; on desktop shown on right panel) */}
+        {isKatak && !isMd && (
+          <NumberLine
+            question={q}
+            myPos={mySlider}
+            oppPos={oppSlider}
+            myAnswered={myAnswered}
+            myCorrect={myCorrect}
+          />
+        )}
+        {/* Question text */}
+        <div style={{ textAlign: 'center', marginTop: isKatak && !isMd ? 8 : 0, marginBottom: 16 }}>
+          {isKatak ? (
+            <div style={{ fontSize: 13, color: '#94A3B8' }}>
+              Katak di batu{' '}
+              <strong style={{ color: '#67E8F9' }}>{start}</strong>, melompat{' '}
+              {isForward ? '⮕ maju' : '⬅ mundur'}{' '}
+              <strong style={{ color: '#f59e0b' }}>{jump} batu</strong>. Geser katak!
+            </div>
+          ) : (
+            <div style={{ fontSize: 14, color: '#fff', lineHeight: 1.7, fontWeight: 700, padding: '8px 4px' }}>
+              {q.text || ''}
+            </div>
+          )}
+        </div>
+        {/* Slider value indicator */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <div style={{
+            background: 'rgba(103,232,249,0.1)', border: '1px solid rgba(103,232,249,0.4)',
+            color: '#67E8F9', padding: '8px 24px', borderRadius: 12,
+            fontSize: 28, fontWeight: 900, boxShadow: '0 0 16px rgba(103,232,249,0.15)',
+          }}>{mySlider}</div>
+        </div>
+        {/* My slider */}
+        <DuelSlider
+          value={mySlider}
+          min={sliderMin}
+          max={sliderMax}
+          onChange={handleSlider}
+          disabled={myAnswered}
+        />
+      </Card>
+      {/* Confirm button */}
+      {!myAnswered && (
+        <Btn onClick={submitAnswer} color="#0e7490">
+          ✅ Konfirmasi Posisi {mySlider}
+        </Btn>
+      )}
+      {/* Result banner */}
+      {phase === 'result' && (
+        <div style={{
+          background: myCorrect ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
+          border: `1px solid ${myCorrect ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
+          borderRadius: 12, padding: '14px 16px', textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: myCorrect ? '#10b981' : '#f87171' }}>
+            {myCorrect ? '✅ Benar!' : `❌ Salah! Jawaban: ${correctAnswer}`}
+          </div>
+          <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>Soal berikutnya sebentar lagi…</div>
+        </div>
+      )}
+      {isKatak && !isMd && (
+        <div style={{ display: 'flex', gap: 20, justifyContent: 'center', fontSize: 11, color: '#475569' }}>
+          <span>🐸 Kamu</span>
+          <span>🔥 Lawan</span>
+        </div>
+      )}
+    </>
+  )
+
+  const visualPanel = (
+    <div style={{
+      background: '#1A1D27', border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 20, padding: 16, display: 'flex', flexDirection: 'column', gap: 14,
+    }}>
+      <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, letterSpacing: 1 }}>
+        🔥 VISUALISASI — {scores[myIndex === 0 ? 1 : 0]?.name || 'Lawan'}
+      </div>
+      {/* Garis bilangan lawan */}
+      {isKatak && (
+        <NumberLine
+          question={q}
+          myPos={oppSlider ?? start}
+          oppPos={null}
+          myAnswered={false}
+          myCorrect={null}
+        />
+      )}
+      {/* Status lawan */}
+      <div style={{
+        background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)',
+        borderRadius: 12, padding: '10px 14px', fontSize: 12, color: '#94A3B8',
+      }}>
+        {oppSlider !== null
+          ? `🔥 Lawan di posisi ${oppSlider}`
+          : '⌛ Menunggu gerakan lawan…'}
+      </div>
+      {/* Progress kamu vs lawan */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {[
+          { label: 'Kamu', score: scores[myIndex]?.score ?? 0, color: '#67E8F9' },
+          { label: 'Lawan', score: scores[myIndex === 0 ? 1 : 0]?.score ?? 0, color: '#f59e0b' },
+        ].map(({ label, score, color }) => (
+          <div key={label}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ fontSize: 11, color, fontWeight: 700 }}>{label}</span>
+              <span style={{ fontSize: 11, color, fontWeight: 800 }}>{score} benar</span>
+            </div>
+            <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ width: `${maxRounds > 0 ? (score / maxRounds) * 100 : 0}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 0.3s' }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      {phase === 'result' && (
+        <div style={{ textAlign: 'center', fontSize: 32 }}>{myCorrect ? '✅' : '❌'}</div>
+      )}
+      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', fontSize: 11, color: '#475569', marginTop: 'auto' }}>
+        <span>🐸 Kamu</span>
+        <span>🔥 Lawan</span>
+      </div>
+    </div>
+  )
+
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)' }}>
       <TopBar
         title={`⚔️ ${gameInfo?.name || 'Duel'}`}
         onBack={() => { getSocket()?.emit('duel:leave'); goBack() }}
       />
-
-      <div style={{ padding: '0 16px 40px', display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 480, margin: '0 auto' }}>
-
-        {/* Score Bar */}
-        <ScoreBar scores={scores} myIndex={myIndex} round={round} maxRounds={maxRounds} />
-
-        {/* Game card */}
-        <Card border={phase === 'result' ? (myCorrect ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.5)') : 'rgba(103,232,249,0.25)'}>
-
-          {/* Number line — katak only */}
-          {isKatak && (
-            <NumberLine
-              question={q}
-              myPos={mySlider}
-              oppPos={oppSlider}
-              myAnswered={myAnswered}
-              myCorrect={myCorrect}
-            />
-          )}
-
-          {/* Question text */}
-          <div style={{ textAlign: 'center', marginTop: isKatak ? 8 : 0, marginBottom: 16 }}>
-            {isKatak ? (
-              <div style={{ fontSize: 13, color: '#94A3B8' }}>
-                Katak di batu{' '}
-                <strong style={{ color: '#67E8F9' }}>{start}</strong>, melompat{' '}
-                {isForward ? '⮕ maju' : '⬅ mundur'}{' '}
-                <strong style={{ color: '#f59e0b' }}>{jump} batu</strong>. Geser katak!
-              </div>
-            ) : (
-              <div style={{ fontSize: 14, color: '#fff', lineHeight: 1.7, fontWeight: 700, padding: '8px 4px' }}>
-                {q.text || ''}
-              </div>
-            )}
+      {isMd ? (
+        /* ── Desktop split layout ── */
+        <div style={{ padding: '12px 24px 40px', maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <ScoreBar scores={scores} myIndex={myIndex} round={round} maxRounds={maxRounds} />
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>{inputArea}</div>
+            <div style={{ flex: 1 }}>{visualPanel}</div>
           </div>
-
-          {/* Slider value indicator — shown ABOVE the slider */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-            <div style={{
-              background: 'rgba(103,232,249,0.1)', border: '1px solid rgba(103,232,249,0.4)',
-              color: '#67E8F9', padding: '8px 24px', borderRadius: 12,
-              fontSize: 28, fontWeight: 900, boxShadow: '0 0 16px rgba(103,232,249,0.15)',
-            }}>{mySlider}</div>
-          </div>
-
-          {/* My slider */}
-          <DuelSlider
-            value={mySlider}
-            min={sliderMin}
-            max={sliderMax}
-            onChange={handleSlider}
-            disabled={myAnswered}
-          />
-        </Card>
-
-        {/* Confirm button */}
-        {!myAnswered && (
-          <Btn onClick={submitAnswer} color="#0e7490">
-            ✅ Konfirmasi Posisi {mySlider}
-          </Btn>
-        )}
-
-        {/* Result banner — brief feedback after answering, next question arrives in ~1.2s */}
-        {phase === 'result' && (
-          <div style={{
-            background: myCorrect ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-            border: `1px solid ${myCorrect ? 'rgba(16,185,129,0.35)' : 'rgba(239,68,68,0.35)'}`,
-            borderRadius: 12, padding: '14px 16px', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: myCorrect ? '#10b981' : '#f87171' }}>
-              {myCorrect ? '✅ Benar!' : `❌ Salah! Jawaban: ${correctAnswer}`}
-            </div>
-            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>
-              Soal berikutnya sebentar lagi…
-            </div>
-          </div>
-        )}
-
-        {/* Legend — only meaningful for katak (number line with frogs) */}
-        {isKatak && (
-          <div style={{ display: 'flex', gap: 20, justifyContent: 'center', fontSize: 11, color: '#475569' }}>
-            <span>🐸 Kamu</span>
-            <span>🔥 Lawan</span>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        /* ── Mobile layout ── */
+        <div style={{ padding: '0 16px 40px', display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 480, margin: '0 auto' }}>
+          <ScoreBar scores={scores} myIndex={myIndex} round={round} maxRounds={maxRounds} />
+          {inputArea}
+        </div>
+      )}
     </div>
   )
 }

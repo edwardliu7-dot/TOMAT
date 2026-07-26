@@ -130,9 +130,22 @@ function EmptyTaskState() {
   )
 }
 
+function useIsMd() {
+  const [md, setMd] = React.useState(() => window.innerWidth >= 768)
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    setMd(mq.matches)
+    const h = e => setMd(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return md
+}
+
 export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId, onModeSelected, onDuel }) {
   const { tasks, getTaskForGame, startTaskSession } = useTask()
   const { pet } = usePet()
+  const isMd = useIsMd()
   const petDead = pet?.isDead === true
   const task = taskId
     ? tasks.find(candidate => candidate.id === taskId && candidate.status === 'active') || null
@@ -176,7 +189,12 @@ export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={isMd ? {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: 16,
+          alignItems: 'start',
+        } : { display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Free Play */}
           <ModeCard
             icon="🎮"
@@ -235,37 +253,41 @@ export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId
           {/* Mode Duel — tersedia untuk semua game turnamen */}
           {onDuel && (
             petDead ? (
-              <ModeCard
-                icon="⚔️"
-                title="Mode Duel"
-                subtitle="Mode Duel tidak tersedia saat Tomi mati."
-                badge="MULTIPLAYER"
-                badgeColor="#4B5563"
-                description={
-                  <div style={{ textAlign: 'center', padding: '4px 0' }}>
-                    <div style={{ fontSize: 26, marginBottom: 6 }}>💀</div>
-                    <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
-                      Hidupkan kembali Tomi di Toko<br />untuk bisa berduel.
+              <div style={isMd ? { gridColumn: '1 / -1' } : {}}>
+                <ModeCard
+                  icon="⚔️"
+                  title="Mode Duel"
+                  subtitle="Mode Duel tidak tersedia saat Tomi mati."
+                  badge="MULTIPLAYER"
+                  badgeColor="#4B5563"
+                  description={
+                    <div style={{ textAlign: 'center', padding: '4px 0' }}>
+                      <div style={{ fontSize: 26, marginBottom: 6 }}>💀</div>
+                      <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
+                        Hidupkan kembali Tomi di Toko<br />untuk bisa berduel.
+                      </div>
                     </div>
-                  </div>
-                }
-                ctaLabel=""
-                ctaColor="#4B5563"
-                disabled
-                disabledReason="🐾 Tomi harus hidup untuk bermain duel."
-              />
+                  }
+                  ctaLabel=""
+                  ctaColor="#4B5563"
+                  disabled
+                  disabledReason="🐾 Tomi harus hidup untuk bermain duel."
+                />
+              </div>
             ) : (
-              <ModeCard
-                icon="⚔️"
-                title="Mode Duel"
-                subtitle="Tantang teman sekelasmu secara real-time! 7 soal, siapa lebih banyak benar?"
-                badge="MULTIPLAYER"
-                badgeColor="#f59e0b"
-                topRightBadge="✨ BARU"
-                ctaLabel="Masuk Lobby Duel ▶"
-                ctaColor="#f59e0b"
-                onClick={onDuel}
-              />
+              <div style={isMd ? { gridColumn: '1 / -1' } : {}}>
+                <ModeCard
+                  icon="⚔️"
+                  title="Mode Duel"
+                  subtitle="Tantang teman sekelasmu secara real-time! 7 soal, siapa lebih banyak benar?"
+                  badge="MULTIPLAYER"
+                  badgeColor="#f59e0b"
+                  topRightBadge="✨ BARU"
+                  ctaLabel="Masuk Lobby Duel ▶"
+                  ctaColor="#f59e0b"
+                  onClick={onDuel}
+                />
+              </div>
             )
           )}
         </div>

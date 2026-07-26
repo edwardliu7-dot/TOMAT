@@ -4,6 +4,18 @@ import { useAuth } from '../AuthContext'
 import { connectSocket } from '../socket'
 import { getGameInfo } from '../gamesCatalog'
 
+function useIsMd() {
+  const [md, setMd] = React.useState(() => window.innerWidth >= 768)
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    setMd(mq.matches)
+    const h = e => setMd(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return md
+}
+
 // Games available for duel (shown in the selector grid)
 const DUEL_GAMES = [
   { key: 'katak',       emoji: '🐸', name: 'Katak Pelompat' },
@@ -74,6 +86,7 @@ function RoomCodeDisplay({ code }) {
 // ─── Main Lobby Screen ────────────────────────────────────────────────────────
 export default function LobbyScreen({ goBack, onStart, initialCode, gameKey = 'katak' }) {
   const { user } = useAuth()
+  const isMd = useIsMd()
 
   const [selectedGameKey, setSelectedGameKey] = useState(gameKey)
   const gameInfo = getGameInfo(selectedGameKey)
@@ -251,7 +264,7 @@ export default function LobbyScreen({ goBack, onStart, initialCode, gameKey = 'k
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)' }}>
       <TopBar title="⚔️ Mode Duel" onBack={handleBack} />
 
-      <div style={{ padding: '0 16px 40px', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 480, margin: '0 auto' }}>
+      <div style={{ padding: '0 16px 40px', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: isMd ? 900 : 480, margin: '0 auto' }}>
 
         {/* ── MENU ── */}
         {phase === 'menu' && (
@@ -259,13 +272,15 @@ export default function LobbyScreen({ goBack, onStart, initialCode, gameKey = 'k
             {/* Game selector */}
             <div style={{ padding: '16px 0 4px' }}>
               <div style={{ fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 1.5, marginBottom: 10 }}>PILIH GAME DUEL</div>
-              <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+              <div style={isMd ? {
+                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
+              } : { display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
                 {DUEL_GAMES.map(g => {
                   const active = selectedGameKey === g.key
                   return (
                     <button key={g.key} onClick={() => setSelectedGameKey(g.key)} style={{
                       flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                      width: 72, padding: '10px 6px',
+                      width: isMd ? '100%' : 72, padding: '10px 6px',
                       background: active ? 'rgba(103,232,249,0.08)' : 'rgba(255,255,255,0.03)',
                       border: `2px solid ${active ? 'rgba(103,232,249,0.6)' : 'rgba(255,255,255,0.08)'}`,
                       borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
@@ -280,50 +295,56 @@ export default function LobbyScreen({ goBack, onStart, initialCode, gameKey = 'k
               </div>
             </div>
 
-            {/* Buat Ruangan card */}
-            <div style={{
-              background: 'rgba(103,232,249,0.06)', border: '1px solid rgba(103,232,249,0.2)',
-              borderRadius: 16, padding: 24,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-              position: 'relative', overflow: 'hidden',
-            }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>⚔️</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Buat Ruangan</div>
-              <div style={{ fontSize: 14, color: '#94A3B8', marginBottom: 20 }}>Bagikan kode ke temanmu</div>
-              <button onClick={createRoom} style={{
-                background: '#0891b2', color: '#fff', border: 'none', borderRadius: 14,
-                padding: '16px', width: '100%', fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            {/* Buat Ruangan + Masuk — side by side on desktop */}
+            <div style={isMd ? { display: 'flex', gap: 16 } : {}}>
+              {/* Buat Ruangan card */}
+              <div style={{
+                background: 'rgba(103,232,249,0.06)', border: '1px solid rgba(103,232,249,0.2)',
+                borderRadius: 16, padding: 24,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                position: 'relative', overflow: 'hidden', flex: isMd ? 1 : undefined,
               }}>
-                Buat Ruangan →
-              </button>
-            </div>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>⚔️</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Buat Ruangan</div>
+                <div style={{ fontSize: 14, color: '#94A3B8', marginBottom: 20 }}>Bagikan kode ke temanmu</div>
+                <button onClick={createRoom} style={{
+                  background: '#0891b2', color: '#fff', border: 'none', borderRadius: 14,
+                  padding: '16px', width: '100%', fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                  Buat Ruangan →
+                </button>
+              </div>
 
-            {/* Masuk dengan kode card */}
-            <div style={{
-              background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)',
-              borderRadius: 16, padding: 24,
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-            }}>
-              <input
-                value={codeInput}
-                onChange={e => { setCodeInput(e.target.value.toUpperCase()); setError(null) }}
-                onKeyDown={e => e.key === 'Enter' && joinRoom()}
-                maxLength={6}
-                placeholder="A B C D 1 2"
-                style={{
-                  width: '100%', boxSizing: 'border-box',
-                  background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(245,158,11,0.3)',
-                  borderRadius: 12, padding: 16, color: '#f59e0b', fontSize: 24,
-                  fontWeight: 800, letterSpacing: 4, outline: 'none', textTransform: 'uppercase',
-                  textAlign: 'center', marginBottom: 20, fontFamily: 'inherit',
-                }}
-              />
-              <button onClick={joinRoom} style={{
-                width: '100%', background: '#b45309', color: '#fff', border: 'none', borderRadius: 14,
-                padding: '16px', fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              {/* Masuk dengan kode card */}
+              <div style={{
+                background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)',
+                borderRadius: 16, padding: 24,
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                flex: isMd ? 1 : undefined,
+                marginTop: isMd ? 0 : 0,
               }}>
-                Bergabung →
-              </button>
+                <div style={{ fontSize: 13, color: '#f59e0b', fontWeight: 700, marginBottom: 12 }}>Masuk dengan Kode</div>
+                <input
+                  value={codeInput}
+                  onChange={e => { setCodeInput(e.target.value.toUpperCase()); setError(null) }}
+                  onKeyDown={e => e.key === 'Enter' && joinRoom()}
+                  maxLength={6}
+                  placeholder="A B C D 1 2"
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(245,158,11,0.3)',
+                    borderRadius: 12, padding: 16, color: '#f59e0b', fontSize: 24,
+                    fontWeight: 800, letterSpacing: 4, outline: 'none', textTransform: 'uppercase',
+                    textAlign: 'center', marginBottom: 20, fontFamily: 'inherit',
+                  }}
+                />
+                <button onClick={joinRoom} style={{
+                  width: '100%', background: '#b45309', color: '#fff', border: 'none', borderRadius: 14,
+                  padding: '16px', fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                  Bergabung →
+                </button>
+              </div>
             </div>
           </>
         )}

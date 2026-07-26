@@ -1,6 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { PublicProfileModal, UserAvatar, usePublicProfile } from '../components/shared'
 
+function useIsDesktop() {
+  const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    setDesk(mq.matches)
+    const h = e => setDesk(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return desk
+}
+
 async function apiCall(path, options = {}) {
   const res = await fetch(path, {
     method: options.method || 'GET',
@@ -291,6 +303,7 @@ export default function GuruHafalanScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const publicProfile = usePublicProfile()
+  const isDesktop = useIsDesktop()
 
   const loadStudents = useCallback(async () => {
     setLoading(true)
@@ -315,9 +328,74 @@ export default function GuruHafalanScreen() {
   const handleBack = () => {
     setView('list')
     setSelectedStudent(null)
-    loadStudents() // refresh hafalan counts
+    loadStudents()
   }
 
+  const legend = (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399' }} />
+        <div style={{ fontSize: 10, color: '#34D399', fontWeight: 700 }}>Perkalian (×1–×10)</div>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#60A5FA', marginLeft: 8 }} />
+        <div style={{ fontSize: 10, color: '#60A5FA', fontWeight: 700 }}>Pembagian (÷1–÷10)</div>
+      </div>
+    </div>
+  )
+
+  if (isDesktop) {
+    return (
+      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+        {/* Left: student list — always visible */}
+        <div style={{ width: 300, flexShrink: 0 }}>
+          {legend}
+          <StudentList
+            students={students}
+            loading={loading}
+            error={error}
+            onSelect={handleSelect}
+            onProfileClick={publicProfile.openProfile}
+          />
+        </div>
+        {/* Right: assess view or empty state */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {selectedStudent ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <button onClick={handleBack} style={{
+                  background: 'rgba(255,255,255,0.08)', border: 'none', color: '#94A3B8',
+                  borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+                }}>← Daftar Siswa</button>
+              </div>
+              <AssessView
+                student={selectedStudent}
+                onBack={handleBack}
+                onProfileClick={publicProfile.openProfile}
+              />
+            </>
+          ) : (
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              padding: '60px 24px', gap: 12, color: '#374151', textAlign: 'center',
+              background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              <div style={{ fontSize: 40 }}>📋</div>
+              <div style={{ fontSize: 14, color: '#475569', lineHeight: 1.6 }}>
+                Pilih siswa di sebelah kiri<br/>untuk mulai menilai hafalan.
+              </div>
+            </div>
+          )}
+        </div>
+        <PublicProfileModal
+          profile={publicProfile.profile}
+          loading={publicProfile.loading}
+          error={publicProfile.error}
+          onClose={publicProfile.closeProfile}
+        />
+      </div>
+    )
+  }
+
+  // Mobile layout
   return (
     <div>
       {view === 'assess' && selectedStudent ? (
@@ -336,14 +414,7 @@ export default function GuruHafalanScreen() {
         </>
       ) : (
         <>
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399' }} />
-              <div style={{ fontSize: 10, color: '#34D399', fontWeight: 700 }}>Perkalian (×1–×10)</div>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#60A5FA', marginLeft: 8 }} />
-              <div style={{ fontSize: 10, color: '#60A5FA', fontWeight: 700 }}>Pembagian (÷1–÷10)</div>
-            </div>
-          </div>
+          {legend}
           <StudentList
             students={students}
             loading={loading}
