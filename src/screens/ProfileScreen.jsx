@@ -18,6 +18,16 @@ async function apiGet(path) {
 const MAX_BIO_LENGTH = 300
 const MAX_PHOTO_BYTES = 1024 * 1024
 
+function useIsDesktop() {
+  const [v, setV] = useState(() => window.innerWidth >= 1024)
+  useEffect(() => {
+    const h = () => setV(window.innerWidth >= 1024)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
+  return v
+}
+
 function PhotoCropModal({ imageSrc, onCancel, onConfirm }) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -44,40 +54,21 @@ function PhotoCropModal({ imageSrc, onCancel, onConfirm }) {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 1000,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-    }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: '#111827', borderRadius: 20, width: '100%', maxWidth: 400, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>Sesuaikan Foto</div>
           <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>Geser dan perbesar untuk memilih bagian foto</div>
         </div>
         <div style={{ position: 'relative', width: '100%', height: 320, background: '#000' }}>
-          <Cropper
-            image={imageSrc} crop={crop} zoom={zoom} aspect={1} cropShape="round"
-            showGrid={false} onCropChange={setCrop} onZoomChange={setZoom}
-            onCropComplete={onCropComplete}
-          />
+          <Cropper image={imageSrc} crop={crop} zoom={zoom} aspect={1} cropShape="round" showGrid={false} onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={onCropComplete} />
         </div>
         <div style={{ padding: '14px 18px' }}>
-          <input type="range" min={1} max={3} step={0.01} value={zoom}
-            onChange={e => setZoom(Number(e.target.value))} style={{ width: '100%' }} />
-          {error && (
-            <div style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid #dc2626', borderRadius: 10, padding: '8px 12px', color: '#fca5a5', fontSize: 12, textAlign: 'center', marginTop: 8 }}>
-              {error}
-            </div>
-          )}
+          <input type="range" min={1} max={3} step={0.01} value={zoom} onChange={e => setZoom(Number(e.target.value))} style={{ width: '100%' }} />
+          {error && <div style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid #dc2626', borderRadius: 10, padding: '8px 12px', color: '#fca5a5', fontSize: 12, textAlign: 'center', marginTop: 8 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-            <button onClick={onCancel} disabled={processing} style={{
-              flex: 1, background: 'rgba(255,255,255,0.08)', border: 'none', color: '#E2E2E6',
-              borderRadius: 12, padding: '11px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-            }}>Batal</button>
-            <button onClick={handleConfirm} disabled={processing || !croppedAreaPixels} style={{
-              flex: 1, background: 'linear-gradient(135deg,#10B981,#059669)', border: 'none', color: '#fff',
-              borderRadius: 12, padding: '11px 0', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
-              opacity: processing ? 0.7 : 1,
-            }}>{processing ? 'Memproses...' : 'Oke'}</button>
+            <button onClick={onCancel} disabled={processing} style={{ flex: 1, background: 'rgba(255,255,255,0.08)', border: 'none', color: '#E2E2E6', borderRadius: 12, padding: '11px 0', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Batal</button>
+            <button onClick={handleConfirm} disabled={processing || !croppedAreaPixels} style={{ flex: 1, background: 'linear-gradient(135deg,#10B981,#059669)', border: 'none', color: '#fff', borderRadius: 12, padding: '11px 0', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', opacity: processing ? 0.7 : 1 }}>{processing ? 'Memproses...' : 'Oke'}</button>
           </div>
         </div>
       </div>
@@ -98,7 +89,6 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
 
   React.useEffect(() => {
     ensureLuxuryStyles()
-    // Inject Tomi animations if not already present
     if (!document.getElementById('tomi-profile-css')) {
       const s = document.createElement('style')
       s.id = 'tomi-profile-css'
@@ -114,7 +104,6 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
     }
   }, [])
 
-  // ── Stiker canvas state ──
   const [stikerLayout, setStikerLayout] = useState(user?.stikerLayout || [])
   const [stikerEditMode, setStikerEditMode] = useState(false)
   const [ownedStiker, setOwnedStiker] = useState([])
@@ -129,9 +118,7 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
     if (!stikerEditMode) return
     fetch('/api/siswa/toko', { credentials: 'include' })
       .then(r => r.json())
-      .then(d => {
-        setOwnedStiker((d.items || []).filter(it => it.kategori === 'stiker' && (d.ownedItemIds || []).includes(it.id)))
-      })
+      .then(d => { setOwnedStiker((d.items || []).filter(it => it.kategori === 'stiker' && (d.ownedItemIds || []).includes(it.id))) })
       .catch(() => {})
   }, [stikerEditMode])
 
@@ -164,55 +151,27 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
 
   function addStikerToCanvas(item) {
     const uid = `sk${Date.now()}${Math.random().toString(36).slice(2, 5)}`
-    setStikerLayout(prev => [...prev, {
-      uid, catalogId: item.id,
-      emoji: item.visual?.emoji || '🪄',
-      x: 20 + Math.random() * 60,
-      y: 15 + Math.random() * 65,
-      size: 28,
-    }])
+    setStikerLayout(prev => [...prev, { uid, catalogId: item.id, emoji: item.visual?.emoji || '🪄', x: 20 + Math.random() * 60, y: 15 + Math.random() * 65, size: 28 }])
   }
 
   async function saveStikerLayout() {
     setSavingStiker(true)
     try {
-      const res = await fetch('/api/siswa/toko/stiker-layout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ layout: stikerLayout }),
-      })
+      const res = await fetch('/api/siswa/toko/stiker-layout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ layout: stikerLayout }) })
       if (res.ok) { await refreshMe(); setStikerEditMode(false) }
     } catch {}
     setSavingStiker(false)
   }
 
-  function cancelEdit() {
-    setStikerLayout(user?.stikerLayout || [])
-    setStikerEditMode(false)
-  }
+  function cancelEdit() { setStikerLayout(user?.stikerLayout || []); setStikerEditMode(false) }
 
   const previewUser = { ...user, photoUrl: photoPreview }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: 8 }}>
-      {/* Banner hero background — doubles as stiker drag canvas */}
-      <div ref={bannerRef} style={{
-        position: 'relative', width: '100%', height: 150, overflow: 'hidden',
-        background: spanduk ? spanduk.gradient : 'linear-gradient(160deg,#0c1a2e,#111827)',
-        cursor: stikerEditMode ? 'crosshair' : 'default',
-      }}>
-        {/* Glow overlay */}
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: isCelestia
-            ? 'radial-gradient(circle at 20% 60%, rgba(191,219,254,0.28), transparent 35%), radial-gradient(circle at 80% 30%, rgba(96,165,250,0.2), transparent 30%)'
-            : isRoyal
-              ? 'radial-gradient(circle at 50% 0%, rgba(212,175,55,0.25), transparent 55%), linear-gradient(90deg, transparent, rgba(212,175,55,0.08), transparent)'
-              : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)',
-        }} />
-
-        {/* Celestia particles */}
+      {/* Banner */}
+      <div ref={bannerRef} style={{ position: 'relative', width: '100%', height: 150, overflow: 'hidden', background: spanduk ? spanduk.gradient : 'linear-gradient(160deg,#0c1a2e,#111827)', cursor: stikerEditMode ? 'crosshair' : 'default' }}>
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: isCelestia ? 'radial-gradient(circle at 20% 60%, rgba(191,219,254,0.28), transparent 35%), radial-gradient(circle at 80% 30%, rgba(96,165,250,0.2), transparent 30%)' : isRoyal ? 'radial-gradient(circle at 50% 0%, rgba(212,175,55,0.25), transparent 55%), linear-gradient(90deg, transparent, rgba(212,175,55,0.08), transparent)' : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
         {isCelestia && (
           <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
             <CelestiaParticles />
@@ -222,202 +181,66 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
                 width: i % 3 === 0 ? 2 : 1, height: i % 3 === 0 ? 2 : 1,
                 borderRadius: '50%', background: '#bfdbfe',
                 opacity: 0.4 + (i % 4) * 0.12,
-                top: `${10 + (i * 17 + i * 3) % 80}%`,
-                left: `${5 + (i * 23 + i * 7) % 90}%`,
+                top: `${(10 + (i * 17 + i * 3) % 80)}%`,
+                left: `${(5 + (i * 23 + i * 7) % 90)}%`,
                 animation: i % 2 === 0 ? 'tomat-float-a 4s ease-in-out infinite' : 'tomat-float-b 5s ease-in-out infinite',
                 animationDelay: `${(i * 0.4).toFixed(1)}s`,
               }} />
             ))}
           </div>
         )}
-
-        {/* Royal shimmer */}
         {isRoyal && <RoyalShimmer />}
-
-        {/* Item label */}
-        {spanduk && (
-          <div style={{
-            position: 'absolute', left: 16, bottom: 52,
-            color: isRoyal ? '#f5e7b2cc' : isCelestia ? '#dbeafecc' : '#ffffffaa',
-            fontSize: 8, fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase',
-            textShadow: '0 1px 10px rgba(0,0,0,0.7)',
-          }}>
-            {isRoyal ? 'Royal Mathematician' : isCelestia ? 'Celestia Relic' : spandukId}
-          </div>
-        )}
-
-        {/* Decorative icon */}
-        {spanduk && (
-          <div style={{
-            position: 'absolute', top: 12, right: 16,
-            color: isRoyal ? '#d4af37' : isCelestia ? '#93c5fd' : '#cbd5e1',
-            fontSize: 13, opacity: 0.75, pointerEvents: 'none',
-          }}>
-            {isRoyal ? '◇' : isCelestia ? '✦' : '✧'}
-          </div>
-        )}
-
-        {/* Fade-to-page-bg at bottom */}
-        <div style={{
-          position: 'absolute', left: 0, right: 0, bottom: 0, height: 60,
-          background: 'linear-gradient(to bottom, transparent, #0A0B14)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Accent strips */}
-        {isCelestia && (
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #60a5fa, #93c5fd, #60a5fa, transparent)', opacity: 0.6, pointerEvents: 'none' }} />
-        )}
-        {isRoyal && (
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #d4af37, #f5e7b2, #d4af37, transparent)', opacity: 0.6, pointerEvents: 'none' }} />
-        )}
-
-        {/* ── Stiker layer ── */}
+        {spanduk && <div style={{ position: 'absolute', left: 16, bottom: 52, color: isRoyal ? '#f5e7b2cc' : isCelestia ? '#dbeafecc' : '#ffffffaa', fontSize: 8, fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase', textShadow: '0 1px 10px rgba(0,0,0,0.7)' }}>{isRoyal ? 'Royal Mathematician' : isCelestia ? 'Celestia Relic' : spandukId}</div>}
+        {spanduk && <div style={{ position: 'absolute', top: 12, right: 16, color: isRoyal ? '#d4af37' : isCelestia ? '#93c5fd' : '#cbd5e1', fontSize: 13, opacity: 0.75, pointerEvents: 'none' }}>{isRoyal ? '◇' : isCelestia ? '✦' : '✧'}</div>}
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 60, background: 'linear-gradient(to bottom, transparent, #0A0B14)', pointerEvents: 'none' }} />
+        {isCelestia && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #60a5fa, #93c5fd, #60a5fa, transparent)', opacity: 0.6, pointerEvents: 'none' }} />}
+        {isRoyal && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #d4af37, #f5e7b2, #d4af37, transparent)', opacity: 0.6, pointerEvents: 'none' }} />}
         {stikerLayout.map(s => (
-          <div
-            key={s.uid}
-            onPointerDown={stikerEditMode ? e => onStikerPointerDown(e, s.uid) : undefined}
-            onPointerMove={stikerEditMode ? e => onStikerPointerMove(e, s.uid) : undefined}
-            onPointerUp={stikerEditMode ? onStikerPointerUp : undefined}
-            style={{
-              position: 'absolute',
-              left: `${s.x}%`, top: `${s.y}%`,
-              fontSize: s.size,
-              lineHeight: 1,
-              transform: 'translate(-50%,-50%)',
-              zIndex: 15,
-              cursor: stikerEditMode ? (draggingUid === s.uid ? 'grabbing' : 'grab') : 'default',
-              userSelect: 'none',
-              filter: stikerEditMode
-                ? 'drop-shadow(0 0 5px rgba(129,140,248,0.9))'
-                : 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
-              pointerEvents: stikerEditMode ? 'auto' : 'none',
-            }}
-          >
+          <div key={s.uid} onPointerDown={stikerEditMode ? e => onStikerPointerDown(e, s.uid) : undefined} onPointerMove={stikerEditMode ? e => onStikerPointerMove(e, s.uid) : undefined} onPointerUp={stikerEditMode ? onStikerPointerUp : undefined} style={{ position: 'absolute', left: `${s.x}%`, top: `${s.y}%`, fontSize: s.size, lineHeight: 1, transform: 'translate(-50%,-50%)', zIndex: 15, cursor: stikerEditMode ? (draggingUid === s.uid ? 'grabbing' : 'grab') : 'default', userSelect: 'none', filter: stikerEditMode ? 'drop-shadow(0 0 5px rgba(129,140,248,0.9))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))', pointerEvents: stikerEditMode ? 'auto' : 'none' }}>
             {s.emoji}
             {stikerEditMode && (
-              <button
-                onPointerDown={e => e.stopPropagation()}
-                onClick={e => { e.stopPropagation(); setStikerLayout(prev => prev.filter(x => x.uid !== s.uid)) }}
-                style={{
-                  position: 'absolute', top: -6, right: -6,
-                  width: 15, height: 15, borderRadius: '50%',
-                  background: '#ef4444', border: 'none', color: '#fff',
-                  fontSize: 10, lineHeight: '15px', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: 0, fontFamily: 'inherit', zIndex: 1,
-                }}
-              >×</button>
+              <button onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); setStikerLayout(prev => prev.filter(x => x.uid !== s.uid)) }} style={{ position: 'absolute', top: -6, right: -6, width: 15, height: 15, borderRadius: '50%', background: '#ef4444', border: 'none', color: '#fff', fontSize: 10, lineHeight: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontFamily: 'inherit', zIndex: 1 }}>×</button>
             )}
           </div>
         ))}
-
-        {/* Edit stiker toggle button */}
-        <button
-          onClick={() => stikerEditMode ? cancelEdit() : setStikerEditMode(true)}
-          style={{
-            position: 'absolute', bottom: 8, right: 8, zIndex: 20,
-            background: stikerEditMode ? 'rgba(239,68,68,0.85)' : 'rgba(0,0,0,0.45)',
-            backdropFilter: 'blur(6px)',
-            border: `1px solid ${stikerEditMode ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.18)'}`,
-            color: '#fff', borderRadius: 8, padding: '5px 10px',
-            fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-            display: 'flex', alignItems: 'center', gap: 4,
-          }}
-        >
+        <button onClick={() => stikerEditMode ? cancelEdit() : setStikerEditMode(true)} style={{ position: 'absolute', bottom: 8, right: 8, zIndex: 20, background: stikerEditMode ? 'rgba(239,68,68,0.85)' : 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', border: `1px solid ${stikerEditMode ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.18)'}`, color: '#fff', borderRadius: 8, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4 }}>
           {stikerEditMode ? '✕ Batal' : '✨ Edit Stiker'}
         </button>
       </div>
 
-      {/* Avatar + Tomi — overlapping banner */}
+      {/* Avatar + Tomi */}
       <div style={{ marginTop: -56, position: 'relative', zIndex: 2, display: 'flex', alignItems: 'flex-end', gap: 4 }}>
         <div style={{ position: 'relative' }}>
-          {isLuxuryFrame ? (
-            <LuxuryAvatarFrame user={previewUser} size={112} bingkai={bingkai} bingkaiId={bingkaiId} />
-          ) : (
-            <UserAvatar user={previewUser} size={112} />
-          )}
-          <button onClick={onPickPhoto} style={{
-            position: 'absolute', bottom: 0, right: isLuxuryFrame ? -6 : 0,
-            width: 36, height: 36,
-            borderRadius: '50%', background: '#06B6D4', border: '3px solid #0A0B14',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, cursor: 'pointer', boxShadow: '0 2px 10px rgba(6,182,212,0.5)',
-            zIndex: 3,
-          }}>📷</button>
+          {isLuxuryFrame ? <LuxuryAvatarFrame user={previewUser} size={112} bingkai={bingkai} bingkaiId={bingkaiId} /> : <UserAvatar user={previewUser} size={112} />}
+          <button onClick={onPickPhoto} style={{ position: 'absolute', bottom: 0, right: isLuxuryFrame ? -6 : 0, width: 36, height: 36, borderRadius: '50%', background: '#06B6D4', border: '3px solid #0A0B14', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, cursor: 'pointer', boxShadow: '0 2px 10px rgba(6,182,212,0.5)', zIndex: 3 }}>📷</button>
         </div>
-        {/* Tomi seated beside avatar */}
         {pet && (
           <div style={{ position: 'relative', marginBottom: -8 }}>
-            {/* floating heart */}
-            <div style={{
-              position: 'absolute', right: -2, top: -12, fontSize: 13,
-              color: '#FF6B9D', animation: 'tomi-heart-pop 1.8s ease-in-out infinite',
-            }}>♥</div>
+            <div style={{ position: 'absolute', right: -2, top: -12, fontSize: 13, color: '#FF6B9D', animation: 'tomi-heart-pop 1.8s ease-in-out infinite' }}>♥</div>
             <div style={{ animation: 'tomi-idle 2.4s ease-in-out infinite', transformOrigin: 'center bottom' }}>
-              <TomiSVG
-                state={pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'happy'}
-                skinId={pet.skin}
-                size={80}
-              />
+              <TomiSVG state={pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'happy'} skinId={pet.skin} size={80} />
             </div>
           </div>
         )}
       </div>
 
-      {/* Name & class */}
-      <h2 style={{ marginTop: 14, fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '0.05em' }}>
-        {user?.name?.toUpperCase()}
-      </h2>
-      <div style={{
-        marginTop: 6, padding: '5px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(103,232,249,0.2)', color: '#67E8F9',
-        fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
-      }}>
-        {user?.kelas || 'Siswa'} · SMP TISA
-      </div>
+      {/* Name & kelas */}
+      <h2 style={{ marginTop: 14, fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '0.05em' }}>{user?.name?.toUpperCase()}</h2>
+      <div style={{ marginTop: 6, padding: '5px 16px', borderRadius: 20, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(103,232,249,0.2)', color: '#67E8F9', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em' }}>{user?.kelas || 'Siswa'} · SMP TISA</div>
 
-      {/* ── Stiker edit panel ── */}
+      {/* Stiker edit panel */}
       {stikerEditMode && (
         <div style={{ width: '100%', padding: '12px 0 4px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px' }}>
-            <div style={{ fontSize: 11, color: '#64748B', flex: 1, lineHeight: 1.4 }}>
-              Tap stiker → tambah ke banner · drag untuk geser · × untuk hapus
-            </div>
-            <button
-              onClick={saveStikerLayout}
-              disabled={savingStiker}
-              style={{
-                flexShrink: 0, background: 'linear-gradient(135deg,#10B981,#059669)',
-                border: 'none', color: '#fff', borderRadius: 10,
-                padding: '8px 18px', fontSize: 12, fontWeight: 800,
-                cursor: savingStiker ? 'default' : 'pointer', fontFamily: 'inherit',
-                opacity: savingStiker ? 0.7 : 1,
-              }}
-            >{savingStiker ? '…' : '💾 Simpan'}</button>
+            <div style={{ fontSize: 11, color: '#64748B', flex: 1, lineHeight: 1.4 }}>Tap stiker → tambah ke banner · drag untuk geser · × untuk hapus</div>
+            <button onClick={saveStikerLayout} disabled={savingStiker} style={{ flexShrink: 0, background: 'linear-gradient(135deg,#10B981,#059669)', border: 'none', color: '#fff', borderRadius: 10, padding: '8px 18px', fontSize: 12, fontWeight: 800, cursor: savingStiker ? 'default' : 'pointer', fontFamily: 'inherit', opacity: savingStiker ? 0.7 : 1 }}>{savingStiker ? '…' : '💾 Simpan'}</button>
           </div>
-
           {ownedStiker.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '10px 0', color: '#64748B', fontSize: 12 }}>
-              Belum punya stiker — beli di Toko Kosmetik!
-            </div>
+            <div style={{ textAlign: 'center', padding: '10px 0', color: '#64748B', fontSize: 12 }}>Belum punya stiker — beli di Toko Kosmetik!</div>
           ) : (
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 0 4px' }}>
               {ownedStiker.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => addStikerToCanvas(item)}
-                  title={item.nama}
-                  style={{
-                    flexShrink: 0, width: 52, height: 52, borderRadius: 14,
-                    background: '#1A1D27', border: '1px solid rgba(255,255,255,0.1)',
-                    fontSize: 26, cursor: 'pointer', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    transition: 'transform 0.1s', fontFamily: 'inherit',
-                  }}
-                  onPointerDown={e => e.currentTarget.style.transform = 'scale(0.9)'}
-                  onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}
-                >
+                <button key={item.id} onClick={() => addStikerToCanvas(item)} title={item.nama} style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 14, background: '#1A1D27', border: '1px solid rgba(255,255,255,0.1)', fontSize: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.1s', fontFamily: 'inherit' }} onPointerDown={e => e.currentTarget.style.transform = 'scale(0.9)'} onPointerUp={e => e.currentTarget.style.transform = 'scale(1)'}>
                   {item.visual?.emoji || '🪄'}
                 </button>
               ))}
@@ -426,193 +249,14 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
         </div>
       )}
 
-      {onRemovePhoto && (
-        <button onClick={onRemovePhoto} style={{
-          marginTop: 8, background: 'none', border: 'none', color: '#F87171',
-          fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-        }}>Hapus Foto</button>
-      )}
-    </div>
-  )
-}
-
-export default function ProfileScreen({ goBack }) {
-  const { user, updateProfile } = useAuth()
-  const playerCtx = usePlayer()
-  const player = playerCtx?.player ?? null
-  const fileInputRef = useRef(null)
-  const [photoPreview, setPhotoPreview] = useState(user?.photoUrl || null)
-  const [cropSrc, setCropSrc] = useState(null)
-  const [bio, setBio] = useState(user?.bio || '')
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-
-  const handlePickPhoto = () => fileInputRef.current?.click()
-
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    setError('')
-    setSuccess('')
-    if (!file.type.startsWith('image/')) { setError('File harus berupa gambar.'); return }
-    try {
-      const dataUrl = await readFileAsDataUrl(file)
-      setCropSrc(dataUrl)
-    } catch (err) {
-      setError(err.message || 'Gagal memproses gambar.')
-    }
-  }
-
-  const handleSave = async () => {
-    setError('')
-    setSuccess('')
-    setSaving(true)
-    try {
-      await updateProfile({
-        photoUrl: photoPreview !== user?.photoUrl ? photoPreview : undefined,
-        bio,
-      })
-      setSuccess('Profil berhasil disimpan!')
-    } catch (err) {
-      setError(err.message || 'Gagal menyimpan profil.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const initial = (user?.name || '?')[0]?.toUpperCase()
-
-  return (
-    <div style={{ minHeight: '100vh', background: '#0A0B14', position: 'relative' }}>
-      {/* Background blobs */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
-        <div style={{ position: 'absolute', top: '-10%', left: '-20%', width: '60%', height: '50%', borderRadius: '50%', background: 'rgba(139,92,246,0.15)', filter: 'blur(100px)' }} />
-        <div style={{ position: 'absolute', bottom: '0', right: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(52,211,153,0.1)', filter: 'blur(100px)' }} />
-      </div>
-
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* Top bar */}
-        <div style={{
-          display: 'flex', alignItems: 'center', padding: '20px 16px',
-          background: 'rgba(10,11,20,0.85)', backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'sticky', top: 0, zIndex: 50,
-        }}>
-          <button onClick={goBack} style={{
-            width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.1)', color: '#67E8F9', fontSize: 20,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-          }}>←</button>
-          <h1 style={{ fontSize: 17, fontWeight: 900, color: '#fff', marginLeft: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Profil Saya</h1>
-        </div>
-
-        {/* Hero section — banner + avatar, same visual system as PublicProfileModal */}
-        <ProfileHero
-          user={user}
-          photoPreview={photoPreview}
-          onPickPhoto={handlePickPhoto}
-          onRemovePhoto={photoPreview ? () => setPhotoPreview(null) : null}
-        />
-        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
-        {cropSrc && (
-          <PhotoCropModal
-            imageSrc={cropSrc}
-            onCancel={() => setCropSrc(null)}
-            onConfirm={(compressed) => { setPhotoPreview(compressed); setCropSrc(null) }}
-          />
-        )}
-
-        {/* Stats row — siswa only */}
-        {player && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '16px 20px' }}>
-            {[
-              { icon: '⭐', label: 'Level', value: player.level, color: '#FBBF24' },
-              { icon: '🪙', label: 'Koin', value: player.coins?.toLocaleString?.() ?? player.coins, color: '#FBBF24' },
-              { icon: '⚡', label: 'EXP', value: player.exp?.toLocaleString?.() ?? player.exp, color: '#67E8F9' },
-            ].map(s => (
-              <div key={s.label} style={{
-                background: '#111827', borderRadius: 18, padding: '14px 8px',
-                border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-              }}>
-                <div style={{ fontSize: 26, lineHeight: 1 }}>{s.icon}</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</div>
-                <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>{s.value}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Form */}
-        <div style={{ padding: '0 20px 32px', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 'var(--content-max)', margin: '0 auto' }}>
-          <div style={{ background: '#111827', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-            <div style={{ height: 2, background: 'linear-gradient(90deg, #8B5CF6, #06B6D4)' }} />
-            <div style={{ padding: 18 }}>
-              <div style={{ fontSize: 12, color: '#67E8F9', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 14 }}>Informasi Akun</div>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Nama</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{user?.name}</div>
-                <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>@{user?.username}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Bio</div>
-                <div style={{ position: 'relative' }}>
-                  <textarea
-                    value={bio}
-                    onChange={e => setBio(e.target.value.slice(0, MAX_BIO_LENGTH))}
-                    placeholder="Ceritakan sedikit tentang dirimu..."
-                    rows={4}
-                    style={{
-                      width: '100%', background: '#0D1117', border: '1px solid rgba(255,255,255,0.1)',
-                      borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14,
-                      fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', resize: 'none',
-                    }}
-                  />
-                  <div style={{ position: 'absolute', bottom: 10, right: 10, fontSize: 10, fontWeight: 700, color: '#475569', background: 'rgba(0,0,0,0.5)', padding: '2px 8px', borderRadius: 6 }}>
-                    {bio.length}/{MAX_BIO_LENGTH}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {error && (
-            <div style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.4)', borderRadius: 14, padding: '12px 14px', color: '#fca5a5', fontSize: 13, textAlign: 'center' }}>
-              {error}
-            </div>
-          )}
-          {success && (
-            <div style={{ background: 'rgba(22,163,74,0.15)', border: '1px solid rgba(22,163,74,0.4)', borderRadius: 14, padding: '12px 14px', color: '#4ade80', fontSize: 13, textAlign: 'center' }}>
-              {success}
-            </div>
-          )}
-
-          <button onClick={handleSave} disabled={saving} style={{
-            background: saving ? '#065f46' : 'linear-gradient(135deg, #10B981, #059669)',
-            color: '#fff', border: 'none', borderRadius: 16, padding: '16px 0',
-            fontSize: 15, fontWeight: 800, cursor: saving ? 'default' : 'pointer',
-            fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            boxShadow: '0 0 20px rgba(16,185,129,0.3)',
-          }}>
-            💾 {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-          </button>
-
-          <HafalanSection />
-        </div>
-      </div>
+      {onRemovePhoto && <button onClick={onRemovePhoto} style={{ marginTop: 8, background: 'none', border: 'none', color: '#F87171', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Hapus Foto</button>}
     </div>
   )
 }
 
 function HafalanBadge({ label, lulus }) {
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-      padding: '10px 6px', borderRadius: 12,
-      background: lulus ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.03)',
-      border: `1px solid ${lulus ? 'rgba(52,211,153,0.35)' : 'rgba(255,255,255,0.05)'}`,
-    }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 6px', borderRadius: 12, background: lulus ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.03)', border: `1px solid ${lulus ? 'rgba(52,211,153,0.35)' : 'rgba(255,255,255,0.05)'}` }}>
       <div style={{ fontSize: 14 }}>{lulus ? '✅' : '🔒'}</div>
       <div style={{ fontSize: 10, fontWeight: 700, color: lulus ? '#34D399' : '#374151' }}>{label}</div>
     </div>
@@ -639,32 +283,290 @@ function HafalanSection() {
           </div>
           <div style={{ fontSize: 13, fontWeight: 800, color: '#FBBF24' }}>{totalLulus}/20</div>
         </div>
-        {/* Progress bar */}
         <div style={{ height: 7, borderRadius: 99, background: 'rgba(255,255,255,0.07)', marginBottom: 18, overflow: 'hidden' }}>
           <div style={{ height: '100%', borderRadius: 99, background: 'linear-gradient(90deg,#FBBF24,#F59E0B)', width: `${pct}%`, transition: 'width 0.5s', boxShadow: '0 0 8px rgba(251,191,36,0.5)' }} />
         </div>
         {/* Perkalian */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#34D399', marginBottom: 8 }}>
-            ✖ Perkalian — {Object.values(perkalian).filter(s => s === 'lulus').length}/10 lulus
-          </div>
+          <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, marginBottom: 8 }}>× Perkalian</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 5 }}>
-            {[1,2,3,4,5,6,7,8,9,10].map(n => (
-              <HafalanBadge key={n} label={`×${n}`} lulus={perkalian[n] === 'lulus'} />
+            {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+              <HafalanBadge key={n} label={`×${n}`} lulus={perkalian[String(n)]} />
             ))}
           </div>
         </div>
         {/* Pembagian */}
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#60A5FA', marginBottom: 8 }}>
-            ➗ Pembagian — {Object.values(pembagian).filter(s => s === 'lulus').length}/10 lulus
-          </div>
+          <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, marginBottom: 8 }}>÷ Pembagian</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 5 }}>
-            {[1,2,3,4,5,6,7,8,9,10].map(n => (
-              <HafalanBadge key={n} label={`÷${n}`} lulus={pembagian[n] === 'lulus'} />
+            {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+              <HafalanBadge key={n} label={`÷${n}`} lulus={pembagian[String(n)]} />
             ))}
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+export default function ProfileScreen({ goBack }) {
+  const { user, updateProfile } = useAuth()
+  const playerCtx = usePlayer()
+  const player = playerCtx?.player ?? null
+  const isDesktop = useIsDesktop()
+  const fileInputRef = useRef(null)
+  const [photoPreview, setPhotoPreview] = useState(user?.photoUrl || null)
+  const [cropSrc, setCropSrc] = useState(null)
+  const [bio, setBio] = useState(user?.bio || '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const handlePickPhoto = () => fileInputRef.current?.click()
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setError(''); setSuccess('')
+    if (!file.type.startsWith('image/')) { setError('File harus berupa gambar.'); return }
+    try { setCropSrc(await readFileAsDataUrl(file)) }
+    catch (err) { setError(err.message || 'Gagal memproses gambar.') }
+  }
+
+  const handleSave = async () => {
+    setError(''); setSuccess(''); setSaving(true)
+    try {
+      await updateProfile({ photoUrl: photoPreview !== user?.photoUrl ? photoPreview : undefined, bio })
+      setSuccess('Profil berhasil disimpan!')
+    } catch (err) {
+      setError(err.message || 'Gagal menyimpan profil.')
+    } finally { setSaving(false) }
+  }
+
+  const [profileTab, setProfileTab] = useState('ekuipmen')
+
+  // ── Stats card (shared) ──
+  const StatsCards = () => player ? (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '16px 20px' }}>
+      {[
+        { icon: '⭐', label: 'Level', value: player.level, color: '#FBBF24' },
+        { icon: '🪙', label: 'Koin', value: player.coins?.toLocaleString?.() ?? player.coins, color: '#FBBF24' },
+        { icon: '⚡', label: 'EXP', value: player.exp?.toLocaleString?.() ?? player.exp, color: '#67E8F9' },
+      ].map(s => (
+        <div key={s.label} style={{ background: '#111827', borderRadius: 18, padding: '14px 8px', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <div style={{ fontSize: 26, lineHeight: 1 }}>{s.icon}</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</div>
+          <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>{s.value}</div>
+        </div>
+      ))}
+    </div>
+  ) : null
+
+  // ── Desktop left: Stats + Biodata ──
+  const DesktopLeftPanel = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Stats card */}
+      {player && (
+        <div style={{ background: '#111827', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+          <div style={{ height: 2, background: 'linear-gradient(90deg, #FBBF24, #67E8F9)' }} />
+          <div style={{ padding: 16 }}>
+            <div style={{ fontSize: 11, color: '#FBBF24', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>Statistik</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { icon: '⭐', label: 'Level', value: player.level },
+                { icon: '⚡', label: 'Total EXP', value: (player.exp ?? 0).toLocaleString('id-ID') },
+                { icon: '🪙', label: 'Total Koin', value: (player.coins ?? 0).toLocaleString('id-ID') },
+              ].map(s => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 12, background: 'rgba(255,255,255,0.03)' }}>
+                  <div style={{ fontSize: 18, width: 28, textAlign: 'center' }}>{s.icon}</div>
+                  <div style={{ flex: 1, fontSize: 12, color: '#94A3B8' }}>{s.label}</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Biodata card */}
+      <div style={{ background: '#111827', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+        <div style={{ height: 2, background: 'linear-gradient(90deg, #8B5CF6, #06B6D4)' }} />
+        <div style={{ padding: 16 }}>
+          <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>Biodata</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { icon: '👤', label: 'Nama', value: user?.name },
+              { icon: '@', label: 'Username', value: user?.username ? `@${user.username}` : '—' },
+              { icon: '📧', label: 'Email', value: user?.email || '—' },
+              { icon: '📱', label: 'WhatsApp', value: user?.whatsapp || '—' },
+              { icon: '🏫', label: 'Kelas', value: user?.kelas || '—' },
+            ].map(item => (
+              <div key={item.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ fontSize: 13, width: 20, textAlign: 'center', flexShrink: 0, marginTop: 1 }}>{item.icon}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 }}>{item.label}</div>
+                  <div style={{ fontSize: 13, color: '#CBD5E1', fontWeight: 600, marginTop: 2, wordBreak: 'break-word' }}>{item.value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  // ── Desktop right: Ekuipmen tab content ──
+  const EquipmentTab = () => {
+    const bingkaiId = user?.equippedBingkai ?? user?.equipped_bingkai
+    const spandukId = user?.equippedSpanduk ?? user?.equipped_spanduk
+    const petSkin   = user?.equippedPetSkin ?? user?.equipped_pet_skin
+    const stikerCount = (user?.stikerLayout || []).length
+    const items = [
+      { label: 'Bingkai Avatar', icon: '🖼️', value: bingkaiId ? (BINGKAI_VISUALS[bingkaiId]?.name || bingkaiId) : null },
+      { label: 'Spanduk Profil', icon: '🎨', value: spandukId || null },
+      { label: 'Skin Pet',       icon: '🐾', value: petSkin && petSkin !== 'golden' ? petSkin : null },
+      { label: 'Stiker Banner',  icon: '✨', value: stikerCount > 0 ? `${stikerCount} stiker terpasang` : null },
+    ]
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 4 }}>Item kosmetik yang sedang kamu gunakan.</div>
+        {items.map(it => (
+          <div key={it.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: it.value ? '#1A1D27' : 'rgba(255,255,255,0.02)', border: `1px solid ${it.value ? 'rgba(234,179,8,0.3)' : 'rgba(255,255,255,0.05)'}` }}>
+            <div style={{ fontSize: 22, width: 32, textAlign: 'center' }}>{it.icon}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: '#64748B', fontWeight: 700 }}>{it.label}</div>
+              <div style={{ fontSize: 13, color: it.value ? '#fff' : '#374151', fontWeight: it.value ? 700 : 400, marginTop: 2 }}>
+                {it.value || '— Tidak digunakan'}
+              </div>
+            </div>
+            {it.value && <div style={{ fontSize: 11, color: '#EAB308', fontWeight: 800, background: 'rgba(234,179,8,0.12)', padding: '3px 10px', borderRadius: 20, flexShrink: 0 }}>DIPAKAI</div>}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // ── Bio form (shared) ──
+  const BioForm = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ background: '#111827', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+        <div style={{ height: 2, background: 'linear-gradient(90deg, #8B5CF6, #06B6D4)' }} />
+        <div style={{ padding: 18 }}>
+          <div style={{ fontSize: 12, color: '#67E8F9', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 14 }}>Edit Bio</div>
+          <div style={{ position: 'relative' }}>
+            <textarea value={bio} onChange={e => setBio(e.target.value.slice(0, MAX_BIO_LENGTH))} placeholder="Ceritakan sedikit tentang dirimu..." rows={4} style={{ width: '100%', background: '#0D1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', resize: 'none' }} />
+            <div style={{ position: 'absolute', bottom: 10, right: 10, fontSize: 10, fontWeight: 700, color: '#475569', background: 'rgba(0,0,0,0.5)', padding: '2px 8px', borderRadius: 6 }}>{bio.length}/{MAX_BIO_LENGTH}</div>
+          </div>
+        </div>
+      </div>
+      {error && <div style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.4)', borderRadius: 14, padding: '12px 14px', color: '#fca5a5', fontSize: 13, textAlign: 'center' }}>{error}</div>}
+      {success && <div style={{ background: 'rgba(22,163,74,0.15)', border: '1px solid rgba(22,163,74,0.4)', borderRadius: 14, padding: '12px 14px', color: '#4ade80', fontSize: 13, textAlign: 'center' }}>{success}</div>}
+      <button onClick={handleSave} disabled={saving} style={{ background: saving ? '#065f46' : 'linear-gradient(135deg, #10B981, #059669)', color: '#fff', border: 'none', borderRadius: 16, padding: '16px 0', fontSize: 15, fontWeight: 800, cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 0 20px rgba(16,185,129,0.3)' }}>
+        💾 {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+      </button>
+    </div>
+  )
+
+  // ── Mobile bio form wrapper (with padding) ──
+  const MobileBioForm = () => (
+    <div style={{ padding: '0 20px' }}>
+      <div style={{ background: '#111827', borderRadius: 20, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden', marginBottom: 16 }}>
+        <div style={{ height: 2, background: 'linear-gradient(90deg, #8B5CF6, #06B6D4)' }} />
+        <div style={{ padding: 18 }}>
+          <div style={{ fontSize: 12, color: '#67E8F9', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 14 }}>Informasi Akun</div>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Nama</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{user?.name}</div>
+            <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>@{user?.username}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Bio</div>
+            <div style={{ position: 'relative' }}>
+              <textarea value={bio} onChange={e => setBio(e.target.value.slice(0, MAX_BIO_LENGTH))} placeholder="Ceritakan sedikit tentang dirimu..." rows={4} style={{ width: '100%', background: '#0D1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', resize: 'none' }} />
+              <div style={{ position: 'absolute', bottom: 10, right: 10, fontSize: 10, fontWeight: 700, color: '#475569', background: 'rgba(0,0,0,0.5)', padding: '2px 8px', borderRadius: 6 }}>{bio.length}/{MAX_BIO_LENGTH}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {error && <div style={{ marginBottom: 12, background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.4)', borderRadius: 14, padding: '12px 14px', color: '#fca5a5', fontSize: 13, textAlign: 'center' }}>{error}</div>}
+      {success && <div style={{ marginBottom: 12, background: 'rgba(22,163,74,0.15)', border: '1px solid rgba(22,163,74,0.4)', borderRadius: 14, padding: '12px 14px', color: '#4ade80', fontSize: 13, textAlign: 'center' }}>{success}</div>}
+      <button onClick={handleSave} disabled={saving} style={{ width: '100%', background: saving ? '#065f46' : 'linear-gradient(135deg, #10B981, #059669)', color: '#fff', border: 'none', borderRadius: 16, padding: '16px 0', fontSize: 15, fontWeight: 800, cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 0 20px rgba(16,185,129,0.3)' }}>
+        💾 {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+      </button>
+    </div>
+  )
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#0A0B14', position: 'relative' }}>
+      {/* Background blobs */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
+        <div style={{ position: 'absolute', top: '-10%', left: '-20%', width: '60%', height: '50%', borderRadius: '50%', background: 'rgba(139,92,246,0.15)', filter: 'blur(100px)' }} />
+        <div style={{ position: 'absolute', bottom: '0', right: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(52,211,153,0.1)', filter: 'blur(100px)' }} />
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Top bar */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '20px 16px', background: 'rgba(10,11,20,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'sticky', top: 0, zIndex: 50 }}>
+          <button onClick={goBack} style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#67E8F9', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>←</button>
+          <h1 style={{ fontSize: 17, fontWeight: 900, color: '#fff', marginLeft: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Profil Saya</h1>
+        </div>
+
+        {/* Profile hero — always full width */}
+        <ProfileHero user={user} photoPreview={photoPreview} onPickPhoto={handlePickPhoto} onRemovePhoto={photoPreview ? () => setPhotoPreview(null) : null} />
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+        {cropSrc && <PhotoCropModal imageSrc={cropSrc} onCancel={() => setCropSrc(null)} onConfirm={(compressed) => { setPhotoPreview(compressed); setCropSrc(null) }} />}
+
+        {!isDesktop ? (
+          /* ── Mobile layout ── */
+          <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto' }}>
+            <StatsCards />
+            <div style={{ padding: '0 0 32px' }}>
+              <MobileBioForm />
+              <div style={{ padding: '16px 20px 0' }}>
+                <HafalanSection />
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* ── Desktop two-column layout ── */
+          <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', padding: '16px var(--page-pad) 40px' }}>
+            <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+              {/* Left: stats + biodata */}
+              <div style={{ width: 300, flexShrink: 0 }}>
+                <DesktopLeftPanel />
+              </div>
+
+              {/* Right: tabs — Ekuipmen / Statistik & Edit */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {/* Tab bar */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 4 }}>
+                  {[
+                    { id: 'ekuipmen',    label: '🎨 Ekuipmen' },
+                    { id: 'statistik',   label: '🧮 Statistik & Hafalan' },
+                    { id: 'edit',        label: '✏️ Edit Profil' },
+                  ].map(t => (
+                    <button
+                      key={t.id}
+                      onClick={() => setProfileTab(t.id)}
+                      style={{
+                        flex: 1, border: 'none', borderRadius: 8, padding: '10px 8px',
+                        background: profileTab === t.id ? 'rgba(103,232,249,0.15)' : 'transparent',
+                        color: profileTab === t.id ? '#67E8F9' : '#64748B',
+                        fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                        transition: 'all 0.15s', whiteSpace: 'nowrap',
+                      }}
+                    >{t.label}</button>
+                  ))}
+                </div>
+
+                {profileTab === 'ekuipmen'  && <EquipmentTab />}
+                {profileTab === 'statistik' && <HafalanSection />}
+                {profileTab === 'edit'      && <BioForm />}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
