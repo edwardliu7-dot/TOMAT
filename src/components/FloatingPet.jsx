@@ -4,6 +4,18 @@ import TomiSVG, { PET_CSS, STATE_ANIMS } from './TomiSVG'
 import { usePet } from '../PetContext'
 import { useAuth } from '../AuthContext'
 
+function useIsDesktop() {
+  const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    setDesk(mq.matches)
+    const h = e => setDesk(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return desk
+}
+
 const PET_SIZE   = 76      // px
 const TICK_MS    = 40      // ~25 fps
 const MAX_SPEED  = 0.022   // max fraction-of-screenWidth per tick
@@ -19,6 +31,8 @@ export default function FloatingPet({ onHungryClick }) {
 }
 
 function PetWidget({ pet, onHungryClick }) {
+  const isDesktop = useIsDesktop()
+
   // ── position state (fraction of screen width, 0–1) ───────────────────────
   const [xFrac,   setXFrac]   = useState(0.15)
   const [dir,     setDir]     = useState(1)        // 1=right, -1=left
@@ -223,17 +237,22 @@ function PetWidget({ pet, onHungryClick }) {
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
         style={{
-          position:          'fixed',
-          bottom:            16,
-          left:              `calc(${xFrac * 100}vw)`,
-          width:             PET_SIZE,
-          zIndex:            9000,
-          cursor:            'pointer',
-          userSelect:        'none',
-          WebkitUserSelect:  'none',
-          touchAction:       'none',
-          willChange:        'left',
-          // CSS transition removed — JS drives position directly for smooth organic feel
+          position:         'fixed',
+          bottom:           isDesktop ? 32 : 16,
+          ...(isDesktop
+            ? { right: 32 }
+            : { left: `calc(${xFrac * 100}vw)` }
+          ),
+          width:            PET_SIZE,
+          zIndex:           9000,
+          cursor:           'pointer',
+          userSelect:       'none',
+          WebkitUserSelect: 'none',
+          touchAction:      'none',
+          willChange:       isDesktop ? 'auto' : 'left',
+          transform:        isDesktop ? 'scale(1.1)' : undefined,
+          transformOrigin:  'bottom right',
+          // JS drives position directly for smooth organic feel on mobile
         }}
       >
         {/* Hunger / dead bubble */}

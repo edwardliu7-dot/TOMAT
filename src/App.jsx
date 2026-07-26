@@ -31,6 +31,7 @@ import PublicProfileScreen from './screens/PublicProfileScreen'
 import DuelInviteBanner from './components/DuelInviteBanner'
 import { connectSocket } from './socket'
 import { DUEL_GAME_KEYS } from './gamesCatalog'
+import GameDesktopWrapper from './components/GameDesktopWrapper'
 
 // Auth-aware wrappers — need useAuth inside the PlayerProvider/AuthContext tree
 function TournamentMatchWithAuth({ matchData, goBack, onMatchOver }) {
@@ -175,6 +176,23 @@ const GAME_ROUTES = {
 
 const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen, komunikasi: CommunicationScreen }
 
+const SCREEN_TITLES = {
+  home: 'Beranda',
+  grade7: 'Zona Kelas 7',
+  grade8: 'Zona Kelas 8',
+  grade9: 'Zona Kelas 9',
+  toko: 'Toko',
+  papanperingkat: 'Papan Peringkat',
+  lencana: 'Lencana',
+  grades: 'Nilai & Tugas',
+  komunikasi: 'Chat',
+  profile: 'Profil',
+  modeselect: 'Pilih Mode',
+  'duel-lobby': 'Duel Lobby',
+  'boss-raid': 'Boss Raid',
+  'tournament-wait': 'Turnamen',
+}
+
 // Shared game-playing shell. Used for students (normal play with tasks/nilai) and for
 // teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
@@ -196,6 +214,17 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [duelInvite, setDuelInvite]                 = useState(null)   // { code, from: { userId, name } }
   const [duelInviteCode, setDuelInviteCode]         = useState(null)   // auto-join code for LobbyScreen
   const [tokoInitialTab, setTokoInitialTab]         = useState(null)   // pre-select shop tab on open
+
+  // Update browser tab title whenever the active screen changes
+  useEffect(() => {
+    const gameRoute = GAME_ROUTES[current]
+    if (gameRoute) {
+      document.title = `${gameRoute.emoji} ${gameRoute.name} — TOMAT`
+    } else {
+      const label = SCREEN_TITLES[current]
+      document.title = label ? `${label} — TOMAT` : 'TOMAT — Tantangan Otak Matematika'
+    }
+  }, [current])
 
   // ── Navigation helpers — defined before any useEffect so they are never in
   //    the Temporal Dead Zone when referenced in dependency arrays. ──────────
@@ -441,13 +470,15 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (GAME_ROUTES[current]) {
-      const { Component } = GAME_ROUTES[current]
+      const { Component, name, emoji } = GAME_ROUTES[current]
       const difficulty = gameConfig?.difficulty || 'medium'
       const survival = !!gameConfig?.survival
       return (
-        <Suspense fallback={<GameLoadingFallback />}>
-          <Component navigate={navigate} goBack={goBack} difficulty={difficulty} survival={survival} />
-        </Suspense>
+        <GameDesktopWrapper gameTitle={name} gameEmoji={emoji} onExit={goBack}>
+          <Suspense fallback={<GameLoadingFallback />}>
+            <Component navigate={navigate} goBack={goBack} difficulty={difficulty} survival={survival} />
+          </Suspense>
+        </GameDesktopWrapper>
       )
     }
 
@@ -524,6 +555,16 @@ export default function App() {
       window.__hideSplash?.()
     }
   }, [checking])
+
+  // Update tab title for guru dashboard and login screen
+  useEffect(() => {
+    if (checking) return
+    if (user?.role === 'guru' && !guruPracticeMode) {
+      document.title = 'Dashboard Guru — TOMAT'
+    } else if (!user) {
+      document.title = 'TOMAT — Tantangan Otak Matematika'
+    }
+  }, [user, guruPracticeMode, checking])
 
   if (checking) {
     // Splash is still visible — render nothing so there's no flash

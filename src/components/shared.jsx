@@ -7,15 +7,32 @@ import { BINGKAI_VISUALS, SPANDUK_VISUALS, STIKER_VISUALS } from '../shopVisuals
 import TomiSVG from './TomiSVG'
 import { useAppNotifications, usePushNotifications } from '../notifications'
 
+function useIsDesktop() {
+  const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    setDesk(mq.matches)
+    const h = e => setDesk(e.matches)
+    mq.addEventListener('change', h)
+    return () => mq.removeEventListener('change', h)
+  }, [])
+  return desk
+}
+
 export function TopBar({ title, onBack, accentColor = '#67E8F9', rightElement }) {
+  const isDesktop = useIsDesktop()
   return (
-    <div style={{ display: 'flex', alignItems: 'center', padding: '16px', gap: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'center', padding: isDesktop ? '8px 16px' : '16px', gap: 12, minHeight: isDesktop ? 52 : 'auto' }}>
       <button onClick={onBack} style={{
         background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff',
-        width: 40, height: 40, borderRadius: 10, cursor: 'pointer', fontSize: 20,
+        width: 36, height: 36, borderRadius: 10, cursor: 'pointer', fontSize: 18,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      }}>←</button>
-      <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 700, flex: 1 }}>{title}</h2>
+        transition: 'background 0.15s',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
+      >←</button>
+      <h2 style={{ color: '#fff', fontSize: isDesktop ? 16 : 18, fontWeight: 700, flex: 1 }}>{title}</h2>
       {rightElement}
     </div>
   )
@@ -51,8 +68,12 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
   return (
     <button onClick={onClick} title={title || 'Lihat profil'} aria-label={title || `Lihat profil ${user?.name || ''}`} style={{
       border: 'none', background: 'none', padding: 0, cursor: 'pointer',
-      display: 'flex', flexShrink: 0,
-    }}>
+      display: 'flex', flexShrink: 0, borderRadius: size * 0.3 + 3,
+      transition: 'box-shadow 0.15s', outline: 'none',
+    }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 0 2px #6366F1' }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
+    >
       {content}
     </button>
   )
@@ -274,8 +295,17 @@ export function RoyalShimmer() {
 }
 
 export function PublicProfileModal({ profile, loading, error, onClose }) {
-  if (!profile && !loading && !error) return null
   const { user: currentUser } = useAuth()
+
+  // Close on Escape key
+  React.useEffect(() => {
+    if (!profile && !loading && !error) return
+    const h = e => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
+  }, [profile, loading, error, onClose])
+
+  if (!profile && !loading && !error) return null
 
   const spandukId = profile?.equippedSpanduk ?? profile?.equipped_spanduk
   const spanduk    = spandukId ? SPANDUK_VISUALS[spandukId] : null
@@ -1006,12 +1036,27 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
   )
 }
 
-export function Card({ children, style = {}, border = 'rgba(255,255,255,0.08)' }) {
+export function Card({ children, style = {}, border = 'rgba(255,255,255,0.08)', onClick }) {
   return (
-    <div style={{
-      background: '#1E2128', borderRadius: 16, border: `1px solid ${border}`,
-      padding: '16px', ...style
-    }}>
+    <div
+      onClick={onClick}
+      style={{
+        background: '#1E2128', borderRadius: 16, border: `1px solid ${border}`,
+        padding: '16px', cursor: onClick ? 'pointer' : 'default',
+        transition: onClick ? 'border-color 0.2s, box-shadow 0.2s, transform 0.15s' : undefined,
+        ...style,
+      }}
+      onMouseEnter={onClick ? e => {
+        e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'
+        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)'
+        e.currentTarget.style.transform = 'translateY(-2px)'
+      } : undefined}
+      onMouseLeave={onClick ? e => {
+        e.currentTarget.style.borderColor = border
+        e.currentTarget.style.boxShadow = 'none'
+        e.currentTarget.style.transform = 'translateY(0)'
+      } : undefined}
+    >
       {children}
     </div>
   )
@@ -1024,9 +1069,12 @@ export function Btn({ children, onClick, disabled, color = '#6366F1', textColor 
       color: disabled ? '#6B7280' : textColor,
       border: 'none', borderRadius: 12, padding: '14px 20px',
       fontSize: 15, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
-      width: '100%', fontFamily: 'inherit', transition: 'opacity 0.2s',
+      width: '100%', fontFamily: 'inherit', transition: 'opacity 0.15s, transform 0.15s',
       opacity: disabled ? 0.6 : 1, ...style,
-    }}>{children}</button>
+    }}
+      onMouseEnter={e => { if (!disabled) { e.currentTarget.style.opacity = '0.85'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
+      onMouseLeave={e => { e.currentTarget.style.opacity = disabled ? '0.6' : '1'; e.currentTarget.style.transform = 'translateY(0)' }}
+    >{children}</button>
   )
 }
 
@@ -1303,6 +1351,24 @@ export function DragMatch({ items, slots, placed, onPlace, disabled = false, acc
             </div>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+// PageLayout — standard wrapper for all content screens.
+// Props: { title, onBack, children, maxWidth, noPad }
+export function PageLayout({ title, onBack, children, maxWidth, noPad }) {
+  return (
+    <div style={{ minHeight: '100vh', background: '#0F1115' }}>
+      {onBack && <TopBar title={title} onBack={onBack} />}
+      <div style={{
+        maxWidth: maxWidth || 'var(--content-max)',
+        margin: '0 auto',
+        padding: noPad ? 0 : 'var(--page-pad)',
+        paddingTop: noPad ? 0 : 24,
+      }}>
+        {children}
       </div>
     </div>
   )
