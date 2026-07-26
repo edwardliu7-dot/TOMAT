@@ -50,6 +50,79 @@ function HafalanChip({ total }) {
   )
 }
 
+function LeaderboardPodium({ leaderboard, publicProfile }) {
+  const top = (leaderboard || []).filter(s => s.rank <= 3).sort((a, b) => a.rank - b.rank)
+  if (top.length === 0) return null
+
+  const byRank = Object.fromEntries(top.map(s => [s.rank, s]))
+  const order = [byRank[2], byRank[1], byRank[3]].filter(Boolean)
+  const podiumMeta = {
+    1: { accent: '#FBBF24', soft: 'rgba(251,191,36,0.12)', label: 'Juara 1', height: 132, avatar: 72 },
+    2: { accent: '#CBD5E1', soft: 'rgba(203,213,225,0.10)', label: 'Juara 2', height: 102, avatar: 62 },
+    3: { accent: '#FB923C', soft: 'rgba(251,146,60,0.10)', label: 'Juara 3', height: 84, avatar: 58 },
+  }
+
+  return (
+    <section style={{
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 12,
+      padding: '18px 10px 0', marginBottom: 18,
+      borderBottom: '1px solid rgba(99,102,241,0.14)',
+    }} aria-label="Tiga besar papan peringkat">
+      {order.map(student => {
+        const meta = podiumMeta[student.rank]
+        const hafalanTotal = (student.hafalanPerkalian || 0) + (student.hafalanPembagian || 0)
+        const isWinner = student.rank === 1
+        return (
+          <div key={student.id} style={{
+            width: isWinner ? 150 : 128, minWidth: 0,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+          }}>
+            {isWinner && <div style={{ fontSize: 24, lineHeight: 1, marginBottom: 4, filter: 'drop-shadow(0 0 8px rgba(251,191,36,.65))' }}>♛</div>}
+            <button
+              onClick={() => publicProfile.openProfile({ ...student, role: 'siswa' })}
+              aria-label={`Lihat profil ${student.name}`}
+              style={{
+                position: 'relative', width: meta.avatar, height: meta.avatar, padding: 0,
+                borderRadius: '50%', border: `2px solid ${meta.accent}`,
+                background: meta.soft, cursor: 'pointer', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                boxShadow: `0 4px 20px ${meta.accent}22`,
+              }}
+            >
+              <UserAvatar user={{ ...student, role: 'siswa' }} size={meta.avatar - 6} />
+              <span style={{
+                position: 'absolute', bottom: -9, right: -5, width: 23, height: 23,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: '50%', background: meta.accent, color: '#071321',
+                fontSize: 11, fontWeight: 900, border: '2px solid #071321',
+              }}>{student.rank}</span>
+            </button>
+            <div style={{
+              width: '100%', height: meta.height, marginTop: 12, padding: '16px 8px 12px',
+              boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'flex-end', gap: 3,
+              border: `1px solid ${meta.accent}33`, borderBottom: 'none',
+              borderRadius: '16px 16px 0 0',
+              background: `linear-gradient(180deg, ${meta.soft}, rgba(10,22,40,.88))`,
+            }}>
+              <div style={{
+                maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                color: isWinner ? '#FDE68A' : '#fff', fontSize: isWinner ? 13 : 12, fontWeight: 900,
+              }}>{student.name}</div>
+              <div style={{ color: isWinner ? '#FBBF24' : '#94A3B8', fontSize: 11, fontWeight: 800 }}>
+                {Number(student.compositeScore || 0).toLocaleString('id-ID')} poin
+              </div>
+              <div style={{ color: '#64748B', fontSize: 9, fontWeight: 700 }}>
+                {meta.label} · 🧮 {hafalanTotal}/20
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
 // Mobile card list
 function LeaderboardList({ leaderboard, publicProfile }) {
   if (!leaderboard || leaderboard.length === 0) {
@@ -209,11 +282,27 @@ export default function LeaderboardScreen({ goBack }) {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0B0D14' }}>
+    <div style={{ minHeight: '100vh', background: '#071321', color: '#fff' }}>
       <PlayerHeader />
-      <TopBar title="Papan Peringkat" onBack={goBack} accentColor="#818CF8" />
+      <TopBar title="Papan Peringkat 🏆" onBack={goBack} accentColor="#818CF8" />
 
-      <div style={{ padding: '0 var(--page-pad) 32px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
+      <div style={{ padding: '0 var(--page-pad) 32px', maxWidth: 1080, margin: '0 auto' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 16, padding: '18px 0 12px',
+        }}>
+          <div>
+            <div style={{ color: '#fff', fontSize: isDesktop ? 20 : 18, fontWeight: 900 }}>Papan Peringkat 🏆</div>
+            <div style={{ color: '#58718A', fontSize: 11, marginTop: 4 }}>Diperbarui otomatis · lihat posisi dan progres kelasmu</div>
+          </div>
+          <div style={{
+            display: isDesktop ? 'block' : 'none', maxWidth: 340, padding: '9px 12px',
+            border: '1px solid rgba(99,102,241,0.15)', borderRadius: 12,
+            background: '#0E1E35', color: '#64748B', fontSize: 10, lineHeight: 1.5,
+          }}>
+            <strong style={{ color: '#A5B4FC' }}>Poin</strong> = Tugas 40% + Level 20% + EXP 10% + Hafalan 30%
+          </div>
+        </div>
         {tabBar}
 
         {error && <div style={{ marginBottom: 10, color: '#F87171', fontSize: 13 }}>{error}</div>}
@@ -231,6 +320,8 @@ export default function LeaderboardScreen({ goBack }) {
                 Peringkat semua siswa <span style={{ color: '#A5B4FC', fontWeight: 700 }}>Kelas {activeTab}</span>
               </div>
             )}
+
+            <LeaderboardPodium leaderboard={currentData.leaderboard} publicProfile={publicProfile} />
 
             {!isDesktop && (
               <>

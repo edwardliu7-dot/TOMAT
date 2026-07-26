@@ -297,9 +297,9 @@ export default function ShopScreen({ goBack, initialTab }) {
 
   if (!data) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0B0D14' }}>
+      <div style={{ minHeight: '100vh', background: '#071321' }}>
         <PlayerHeader />
-        <TopBar title="Toko Kosmetik" onBack={goBack} accentColor="#818CF8" />
+        <TopBar title="Toko 🛒" onBack={goBack} accentColor="#818CF8" />
         <div style={{ padding: 24, color: '#94A3B8', textAlign: 'center' }}>{error || 'Memuat…'}</div>
       </div>
     )
@@ -336,18 +336,21 @@ export default function ShopScreen({ goBack, initialTab }) {
 
   if (isDesktop) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0B0D14' }}>
-        <TopBar title="Toko Kosmetik" onBack={goBack} accentColor="#818CF8" />
+      <div style={{
+        minHeight: '100vh', background: '#071321',
+        backgroundImage: 'radial-gradient(circle at 0% 0%, rgba(79,70,229,.12), transparent 34%), radial-gradient(circle at 100% 70%, rgba(6,182,212,.06), transparent 32%)',
+      }}>
+        <TopBar title="Toko 🛒" onBack={goBack} accentColor="#818CF8" />
         <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', padding: '16px var(--page-pad) 40px' }}>
           <CoinBar />
           {error && <div style={{ marginBottom: 12, color: '#F87171', fontSize: 13 }}>{error}</div>}
 
           <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
             {/* Category sidebar */}
-            <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', padding: '4px 14px 8px' }}>Kategori</div>
+             <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6, padding: 10, borderRadius: 18, background: 'rgba(10,22,40,.68)', border: '1px solid rgba(99,102,241,.12)' }}>
+               <div style={{ fontSize: 10, color: '#58718A', fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', padding: '4px 10px 8px' }}>Kategori</div>
               {TABS.map(t => (
-                <button key={t} onClick={() => setTab(t)} style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', background: tab === t ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.04)', borderLeft: `3px solid ${tab === t ? '#6366F1' : 'transparent'}`, color: tab === t ? '#A5B4FC' : '#94A3B8', fontSize: 13, fontWeight: 700, transition: 'all 0.15s' }}>
+                 <button key={t} onClick={() => setTab(t)} style={{ width: '100%', padding: '12px 10px', borderRadius: 11, border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', background: tab === t ? 'rgba(99,102,241,0.18)' : 'transparent', borderLeft: `3px solid ${tab === t ? '#818CF8' : 'transparent'}`, color: tab === t ? '#C4B5FD' : '#94A3B8', fontSize: 13, fontWeight: 800, transition: 'all 0.15s' }}>
                   {KATEGORI_LABELS[t]}
                 </button>
               ))}
@@ -366,15 +369,15 @@ export default function ShopScreen({ goBack, initialTab }) {
 
   // ── Mobile layout ──
   return (
-    <div style={{ minHeight: '100vh', background: '#0B0D14' }}>
+     <div style={{ minHeight: '100vh', background: '#071321', backgroundImage: 'radial-gradient(circle at 0% 0%, rgba(79,70,229,.12), transparent 42%)' }}>
       <PlayerHeader />
-      <TopBar title="Toko Kosmetik" onBack={goBack} accentColor="#818CF8" />
+      <TopBar title="Toko 🛒" onBack={goBack} accentColor="#818CF8" />
       <div style={{ margin: '0 16px 16px' }}>
         <CoinBar />
       </div>
       <div style={{ display: 'flex', gap: 8, padding: '0 16px 16px', overflowX: 'auto' }}>
         {TABS.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{ flex: '0 0 auto', padding: '9px 16px', borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', whiteSpace: 'nowrap', background: tab === t ? '#6366F1' : '#1A1D27', color: tab === t ? '#fff' : '#94A3B8' }}>{KATEGORI_LABELS[t]}</button>
+          <button key={t} onClick={() => setTab(t)} style={{ flex: '0 0 auto', padding: '10px 16px', borderRadius: 999, border: tab === t ? '1px solid rgba(129,140,248,.5)' : '1px solid rgba(99,102,241,.12)', cursor: 'pointer', fontSize: 12, fontWeight: 800, fontFamily: 'inherit', whiteSpace: 'nowrap', background: tab === t ? '#6366F1' : '#0E1E35', color: tab === t ? '#fff' : '#94A3B8', boxShadow: tab === t ? '0 4px 16px rgba(99,102,241,.25)' : 'none' }}>{KATEGORI_LABELS[t]}</button>
         ))}
       </div>
       {error && <div style={{ margin: '0 16px 12px', color: '#F87171', fontSize: 13 }}>{error}</div>}

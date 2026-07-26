@@ -53,7 +53,7 @@ function useIsDesktop() {
 function UnreadBadge({ count }) {
   if (!count) return null
   return (
-    <span style={{ minWidth: 18, height: 18, padding: '0 4px', borderRadius: 99, background: '#EF4444', color: '#fff', fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid #111827' }}>
+    <span style={{ minWidth: 18, height: 18, padding: '0 4px', borderRadius: 99, background: '#6366F1', color: '#fff', fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid #0E1E35' }}>
       {count > 99 ? '99+' : count}
     </span>
   )
@@ -88,8 +88,8 @@ function MessageList({ messages, user, forum, onProfileClick }) {
       {messages.map(message => {
         const own = message.sender_id === user.id && message.sender_role === user.role
         return (
-          <div key={message.id} style={{ display: 'flex', justifyContent: own ? 'flex-end' : 'flex-start' }}>
-            <div style={{ maxWidth: '82%', background: own ? 'linear-gradient(135deg, #0E7490, #2563EB)' : '#1E293B', border: `1px solid ${own ? 'rgba(103,232,249,0.35)' : 'rgba(255,255,255,0.08)'}`, borderRadius: own ? '15px 15px 4px 15px' : '15px 15px 15px 4px', padding: '9px 12px' }}>
+            <div key={message.id} style={{ display: 'flex', justifyContent: own ? 'flex-end' : 'flex-start' }}>
+            <div style={{ maxWidth: '82%', background: own ? 'linear-gradient(135deg, #6366F1, #7C3AED)' : '#0E1E35', border: `1px solid ${own ? 'rgba(165,180,252,0.35)' : 'rgba(99,102,241,0.12)'}`, borderRadius: own ? '15px 15px 4px 15px' : '15px 15px 15px 4px', padding: '9px 12px' }}>
               {forum && !own && (
                 <button onClick={() => onProfileClick?.({ id: message.sender_id, role: message.sender_role, name: message.sender_name })} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 0, border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', color: '#fff', marginBottom: 5 }} title="Lihat profil">
                   <UserAvatar user={{ name: message.sender_name, role: message.sender_role, photoUrl: message.sender_photo_url, equippedBingkai: message.sender_equipped_bingkai }} size={24} />
@@ -120,7 +120,7 @@ function ContactList({ contacts, selected, onSelect, onProfileClick, loading, un
         const active = selected?.id === contact.id && selected?.role === contact.role
         const unread = unreadCounts?.[`${contact.role}:${contact.id}`] || 0
         return (
-          <div key={`${contact.role}-${contact.id}`} onClick={() => onSelect(contact)} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onSelect(contact) }} title={contact.name} style={{ border: `1px solid ${active ? 'rgba(103,232,249,0.45)' : unread ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.07)'}`, background: active ? 'rgba(103,232,249,0.12)' : unread ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.035)', borderRadius: 12, padding: '7px 8px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div key={`${contact.role}-${contact.id}`} onClick={() => onSelect(contact)} role="button" tabIndex={0} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') onSelect(contact) }} title={contact.name} style={{ border: `1px solid ${active ? 'rgba(129,140,248,0.45)' : unread ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.07)'}`, background: active ? 'rgba(99,102,241,0.12)' : unread ? 'rgba(99,102,241,0.06)' : 'rgba(255,255,255,0.035)', borderRadius: 12, padding: '9px 8px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <button onClick={e => { e.stopPropagation(); onProfileClick?.(contact) }} aria-label={`Lihat profil ${contact.name}`} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', flexShrink: 0 }}>
               <UserAvatar user={contact} size={31} />
             </button>
@@ -322,9 +322,9 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
   const content = (
     <div style={{ padding: embedded ? 0 : '0 var(--page-pad) 32px', maxWidth: embedded ? undefined : 'var(--content-max)', margin: embedded ? undefined : '0 auto' }}>
       {/* Tab switcher */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, background: 'rgba(255,255,255,0.035)', borderRadius: 14, padding: 4 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, background: '#0A1628', border: '1px solid rgba(99,102,241,0.08)', borderRadius: 14, padding: 4 }}>
         {[{ id: 'private', label: '✉️ Chat Pribadi' }, { id: 'forum', label: '💬 Forum Kelas' }].map(item => (
-          <button key={item.id} onClick={() => selectTab(item.id)} style={{ flex: 1, border: 'none', borderRadius: 10, padding: '10px 8px', background: tab === item.id ? 'rgba(103,232,249,0.16)' : 'transparent', color: tab === item.id ? '#67E8F9' : '#64748B', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>{item.label}</button>
+          <button key={item.id} onClick={() => selectTab(item.id)} style={{ flex: 1, border: tab === item.id ? '1px solid rgba(99,102,241,0.12)' : '1px solid transparent', borderRadius: 10, padding: '10px 8px', background: tab === item.id ? '#0E1E35' : 'transparent', color: tab === item.id ? '#fff' : '#58718A', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>{item.label}</button>
         ))}
       </div>
 
@@ -339,7 +339,7 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
       }}>
         {/* Sidebar — always open on desktop */}
         <div style={{
-          background: '#111827',
+           background: '#0A1628',
           border: (sidebarOpen || isDesktop) ? '1px solid rgba(255,255,255,0.08)' : 'none',
           borderRadius: 16, padding: (sidebarOpen || isDesktop) ? 10 : 0,
           minWidth: 0, minHeight: 0,
@@ -354,10 +354,10 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
             classes.length === 0
               ? <div style={{ color: '#64748B', fontSize: 12, padding: 12 }}>Belum ada kelas yang tersedia.</div>
               : <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 3, scrollbarWidth: 'thin' }}>
-                {classes.map(kelas => {
+                  {classes.map(kelas => {
                   const forumUnread = unreadDetail.perForum?.[kelas] || 0
                   return (
-                    <button key={kelas} onClick={() => selectClass(kelas)} style={{ border: `1px solid ${selectedClass === kelas ? 'rgba(103,232,249,0.45)' : forumUnread ? 'rgba(239,68,68,0.35)' : 'rgba(255,255,255,0.07)'}`, background: selectedClass === kelas ? 'rgba(103,232,249,0.12)' : forumUnread ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.035)', borderRadius: 12, padding: '11px 10px', color: selectedClass === kelas ? '#67E8F9' : '#CBD5E1', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                   <button key={kelas} onClick={() => selectClass(kelas)} style={{ border: `1px solid ${selectedClass === kelas ? 'rgba(129,140,248,0.45)' : forumUnread ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.07)'}`, background: selectedClass === kelas ? 'rgba(99,102,241,0.12)' : forumUnread ? 'rgba(99,102,241,0.06)' : 'rgba(255,255,255,0.035)', borderRadius: 12, padding: '11px 10px', color: selectedClass === kelas ? '#C4B5FD' : '#CBD5E1', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                       <span>🏫 {kelas}</span>
                       <UnreadBadge count={forumUnread} />
                     </button>
@@ -368,7 +368,7 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
         </div>
 
         {/* Chat panel */}
-        <div style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+         <div style={{ background: 'rgba(7,19,33,.82)', border: '1px solid rgba(99,102,241,0.10)', borderRadius: 16, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', gap: 8 }}>
             {/* Mobile-only: back to list */}
             {isMobile && !sidebarOpen && (
@@ -388,8 +388,8 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
               : <MessageList messages={messages} user={user} forum={tab === 'forum'} onProfileClick={openProfile} />}
           </div>
           <form onSubmit={sendMessage} style={{ display: 'flex', gap: 8, padding: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            <textarea value={body} onChange={e => setBody(e.target.value.slice(0, 2000))} placeholder={tab === 'forum' ? 'Tulis pesan untuk kelas…' : 'Tulis pesan…'} rows={isDesktop ? 2 : 2} disabled={!activeTitle || activeTitle === 'Pilih kontak' || activeTitle === 'Pilih kelas'} style={{ flex: 1, resize: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 11, background: '#0D1117', color: '#fff', padding: '9px 10px', fontFamily: 'inherit', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
-            <button type="submit" disabled={sending || !body.trim() || (!selectedContact && tab === 'private') || (!selectedClass && tab === 'forum')} style={{ width: 62, border: 'none', borderRadius: 11, background: sending ? '#374151' : 'linear-gradient(135deg,#06B6D4,#2563EB)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: sending ? 'default' : 'pointer', fontFamily: 'inherit' }}>
+             <textarea value={body} onChange={e => setBody(e.target.value.slice(0, 2000))} placeholder={tab === 'forum' ? 'Tulis pesan untuk kelas…' : 'Tulis pesan…'} rows={isDesktop ? 2 : 2} disabled={!activeTitle || activeTitle === 'Pilih kontak' || activeTitle === 'Pilih kelas'} style={{ flex: 1, resize: 'none', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 11, background: '#0E1E35', color: '#fff', padding: '9px 10px', fontFamily: 'inherit', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
+             <button type="submit" disabled={sending || !body.trim() || (!selectedContact && tab === 'private') || (!selectedClass && tab === 'forum')} style={{ width: 62, border: 'none', borderRadius: 11, background: sending ? '#374151' : 'linear-gradient(135deg,#6366F1,#7C3AED)', color: '#fff', fontSize: 11, fontWeight: 800, cursor: sending ? 'default' : 'pointer', fontFamily: 'inherit', boxShadow: sending ? 'none' : '0 4px 18px rgba(99,102,241,.28)' }}>
               {sending ? '…' : 'Kirim'}
             </button>
           </form>
@@ -405,9 +405,9 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
 
   if (embedded) return content
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
+    <div style={{ minHeight: '100vh', background: '#071321', backgroundImage: 'radial-gradient(circle at 0% 0%, rgba(79,70,229,.12), transparent 36%), radial-gradient(circle at 100% 50%, rgba(124,58,237,.06), transparent 34%)' }}>
       <PlayerHeader />
-      <TopBar title="💬 Komunikasi" onBack={goBack} accentColor="#67E8F9" />
+      <TopBar title="Chat & Forum 💬" onBack={goBack} accentColor="#818CF8" />
       {content}
     </div>
   )

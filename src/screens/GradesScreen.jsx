@@ -21,7 +21,7 @@ function GradeCard({ grade }) {
   const scoreColor = grade.score >= 90 ? '#34D399' : grade.score >= 75 ? '#67E8F9' : grade.score >= 60 ? '#F59E0B' : '#F87171'
 
   return (
-    <div style={{ background: '#1A1D27', borderRadius: 16, border: `1px solid ${color}33`, padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+    <div style={{ background: '#0E1E35', borderRadius: 16, border: `1px solid ${color}33`, padding: 16, display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 4px 20px rgba(0,0,0,.16)' }}>
       <div style={{ fontSize: 28, flexShrink: 0 }}>{grade.gameEmoji}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 2 }}>{grade.gameName}</div>
@@ -70,7 +70,7 @@ function PendingTaskCard({ task, onClick }) {
   const label = TYPE_LABELS[task.type]
   const icon = TYPE_ICONS[task.type]
   return (
-    <div style={{ background: '#1A1D27', borderRadius: 16, border: `1px dashed ${color}55`, padding: 14, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+    <div style={{ background: 'linear-gradient(135deg,#141B3A,#0E1E35)', borderRadius: 16, border: `1px solid ${color}44`, padding: 16, display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,.14)' }}>
       <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 0, background: 'none', border: 'none', color: 'inherit', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
         <div style={{ fontSize: 26 }}>{task.gameEmoji}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -113,10 +113,10 @@ export default function GradesScreen({ goBack, navigate }) {
   // ── Summary card ──
   const SummaryCard = () => hasAnyGrade ? (
     <div style={{
-      background: 'linear-gradient(135deg, #2d1b69, #1a1a3e)',
+       background: 'linear-gradient(135deg, #141B3A, #0F1830)',
       border: '1.5px solid rgba(167,139,250,0.3)', borderRadius: 20, padding: 20, marginBottom: 20,
     }}>
-      <div style={{ fontSize: 11, color: '#A78BFA', fontWeight: 700, letterSpacing: 2, marginBottom: 10 }}>RINGKASAN NILAI</div>
+       <div style={{ display: 'inline-block', fontSize: 10, color: '#C4B5FD', fontWeight: 900, letterSpacing: 1.7, padding: '5px 9px', borderRadius: 6, background: 'rgba(99,102,241,.15)', marginBottom: 12 }}>RINGKASAN NILAI</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 28, fontWeight: 900, color: '#fff' }}>{avgScore}</div>
@@ -137,9 +137,9 @@ export default function GradesScreen({ goBack, navigate }) {
   if (!isDesktop) {
     // ── Mobile layout ──
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
+       <div style={{ minHeight: '100vh', background: '#071321', backgroundImage: 'radial-gradient(circle at 0% 0%, rgba(79,70,229,.12), transparent 38%), radial-gradient(circle at 100% 70%, rgba(124,58,237,.06), transparent 35%)' }}>
         <PlayerHeader />
-        <TopBar title="📊 Nilai Akademik Saya" onBack={goBack} accentColor="#A78BFA" />
+         <TopBar title="Nilai & Tugas 📊" onBack={goBack} accentColor="#818CF8" />
         <div style={{ padding: '0 16px 40px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
           <SummaryCard />
           {pendingTasks.length > 0 && (
@@ -185,21 +185,21 @@ export default function GradesScreen({ goBack, navigate }) {
 
   // ── Desktop layout ──
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
-      <TopBar title="📊 Nilai & Tugas" onBack={goBack} accentColor="#A78BFA" />
+     <div style={{ minHeight: '100vh', background: '#071321', backgroundImage: 'radial-gradient(circle at 0% 0%, rgba(79,70,229,.12), transparent 38%), radial-gradient(circle at 100% 70%, rgba(124,58,237,.06), transparent 35%)' }}>
+       <TopBar title="Nilai & Tugas 📊" onBack={goBack} accentColor="#818CF8" />
       <div style={{ padding: '16px var(--page-pad) 40px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
         <SummaryCard />
 
         {/* Desktop tabs */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 4 }}>
+         <div style={{ display: 'flex', gap: 8, marginBottom: 20, background: '#0A1628', border: '1px solid rgba(99,102,241,0.08)', borderRadius: 14, padding: 4 }}>
           {DESKTOP_TABS.map(t => (
             <button
               key={t.id}
               onClick={() => setDesktopTab(t.id)}
               style={{
-                flex: 1, border: 'none', borderRadius: 8, padding: '10px 16px',
-                background: desktopTab === t.id ? 'rgba(167,139,250,0.18)' : 'transparent',
-                color: desktopTab === t.id ? '#A78BFA' : '#64748B',
+                 flex: 1, border: desktopTab === t.id ? '1px solid rgba(99,102,241,0.12)' : '1px solid transparent', borderRadius: 10, padding: '10px 16px',
+                 background: desktopTab === t.id ? '#0E1E35' : 'transparent',
+                 color: desktopTab === t.id ? '#C4B5FD' : '#58718A',
                 fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
               }}
             >{t.label}</button>
@@ -229,7 +229,7 @@ export default function GradesScreen({ goBack, navigate }) {
               <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>Selesaikan tugas yang ditetapkan guru untuk melihat nilaimu.</div>
             </div>
           ) : (
-            <div style={{ background: '#111318', borderRadius: 16, border: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+             <div style={{ background: '#0E1E35', borderRadius: 16, border: '1px solid rgba(99,102,241,0.10)', overflow: 'hidden', boxShadow: '0 6px 24px rgba(0,0,0,.16)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -267,7 +267,7 @@ export default function GradesScreen({ goBack, navigate }) {
                 {gameList.map((g, i) => {
                   const bestColor = g.best >= 90 ? '#34D399' : g.best >= 75 ? '#67E8F9' : g.best >= 60 ? '#F59E0B' : '#F87171'
                   return (
-                    <div key={i} style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 16 }}>
+                     <div key={i} style={{ background: '#0E1E35', border: '1px solid rgba(99,102,241,0.10)', borderRadius: 16, padding: 16 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                         <div style={{ fontSize: 28 }}>{g.emoji}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>

@@ -22,7 +22,7 @@ function useIsDesktop() {
 export function TopBar({ title, onBack, accentColor = '#67E8F9', rightElement }) {
   const isDesktop = useIsDesktop()
   return (
-    <div style={{ display: 'flex', alignItems: 'center', padding: isDesktop ? '14px 20px' : '16px', gap: 12, minHeight: isDesktop ? 58 : 'auto', background: 'rgba(7,19,33,0.72)', borderBottom: '1px solid rgba(99,102,241,0.1)', backdropFilter: 'blur(14px)' }}>
+    <div className="tomat-topbar" style={{ display: 'flex', alignItems: 'center', padding: isDesktop ? '14px 20px' : '16px', gap: 12, minHeight: isDesktop ? 58 : 'auto', background: 'rgba(7,19,33,0.72)', borderBottom: '1px solid rgba(99,102,241,0.1)', backdropFilter: 'blur(14px)' }}>
       <button onClick={onBack} style={{
         background: '#0E1E35', border: '1px solid rgba(99,102,241,0.18)', color: '#C4B5FD',
         width: 38, height: 38, borderRadius: 11, cursor: 'pointer', fontSize: 19,
@@ -881,7 +881,7 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
   const expPct = Math.min(100, Math.round((player.exp / player.maxExp) * 100))
   const bingkai = user?.equippedBingkai ? BINGKAI_VISUALS[user.equippedBingkai] : null
   return (
-    <div style={{
+    <div className="tomat-player-header" style={{
       padding: '14px 16px 10px', display: 'flex', alignItems: 'center', gap: 12,
       background: 'rgba(10,11,20,0.85)', backdropFilter: 'blur(20px)',
       borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'relative', zIndex: 20,

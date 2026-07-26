@@ -312,7 +312,7 @@ function HafalanSection() {
 }
 
 export default function ProfileScreen({ goBack }) {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, logout } = useAuth()
   const playerCtx = usePlayer()
   const player = playerCtx?.player ?? null
   const isDesktop = useIsDesktop()
@@ -511,18 +511,33 @@ export default function ProfileScreen({ goBack }) {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0A0B14', position: 'relative' }}>
+    <div className="tomat-profile-screen" style={{ minHeight: '100vh', background: '#071321', position: 'relative', color: '#fff' }}>
       {/* Background blobs */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
-        <div style={{ position: 'absolute', top: '-10%', left: '-20%', width: '60%', height: '50%', borderRadius: '50%', background: 'rgba(139,92,246,0.15)', filter: 'blur(100px)' }} />
-        <div style={{ position: 'absolute', bottom: '0', right: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(52,211,153,0.1)', filter: 'blur(100px)' }} />
+        <div style={{ position: 'absolute', top: '-10%', left: '-20%', width: '60%', height: '50%', borderRadius: '50%', background: 'rgba(79,70,229,0.14)', filter: 'blur(110px)' }} />
+        <div style={{ position: 'absolute', bottom: '0', right: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(6,182,212,0.07)', filter: 'blur(110px)' }} />
       </div>
 
       <div style={{ position: 'relative', zIndex: 1 }}>
         {/* Top bar */}
-        <div style={{ display: 'flex', alignItems: 'center', padding: '20px 16px', background: 'rgba(10,11,20,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'sticky', top: 0, zIndex: 50 }}>
-          <button onClick={goBack} style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', color: '#67E8F9', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>←</button>
-          <h1 style={{ fontSize: 17, fontWeight: 900, color: '#fff', marginLeft: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Profil Saya</h1>
+        <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+          <TopBar
+            title="Profil Saya 👤"
+            onBack={goBack}
+            accentColor="#818CF8"
+            rightElement={(
+              <button
+                onClick={logout}
+                title="Keluar"
+                style={{
+                  border: '1px solid rgba(248,113,113,0.22)', borderRadius: 10,
+                  background: 'rgba(248,113,113,0.08)', color: '#FCA5A5',
+                  padding: '8px 11px', cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 11, fontWeight: 800,
+                }}
+              >Keluar</button>
+            )}
+          />
         </div>
 
         {/* Profile hero — always full width */}
