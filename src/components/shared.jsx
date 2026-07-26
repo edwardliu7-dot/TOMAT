@@ -45,10 +45,13 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
   const bingkaiId = user?.equippedBingkai ?? user?.equipped_bingkai
   const bingkai = bingkaiId ? BINGKAI_VISUALS[bingkaiId] : null
   const initial = (user?.name || '?')[0]?.toUpperCase()
+  const [imageFailed, setImageFailed] = React.useState(false)
+  React.useEffect(() => { setImageFailed(false) }, [photoUrl])
+  const showPhoto = Boolean(photoUrl) && !imageFailed
   const content = (
     <div style={{
       width: size, height: size, borderRadius: size * 0.3, flexShrink: 0,
-      background: photoUrl
+      background: showPhoto
         ? `url(${photoUrl}) center/cover no-repeat`
         : user?.role === 'guru'
           ? 'linear-gradient(135deg, #8B5CF6, #6366F1)'
@@ -61,7 +64,16 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
       boxSizing: 'border-box',
       boxShadow: bingkai?.glow ? `0 0 ${Math.max(8, Math.round(size / 3))}px ${bingkai.border}88` : 'none',
     }}>
-      {!photoUrl && initial}
+      {showPhoto && (
+        <img
+          src={photoUrl}
+          alt=""
+          aria-hidden="true"
+          onError={() => setImageFailed(true)}
+          style={{ display: 'none' }}
+        />
+      )}
+      {!showPhoto && initial}
     </div>
   )
   if (!onClick) return content
@@ -187,6 +199,10 @@ export function ProfileBanner({ user, height = 92 }) {
 // Avatar wrapped with animated luxury frame rings (for Aurum/Void Monarch).
 export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
   React.useEffect(() => { ensureLuxuryStyles() }, [])
+  const photoUrl = user?.photoUrl ?? user?.photo_url
+  const [imageFailed, setImageFailed] = React.useState(false)
+  React.useEffect(() => { setImageFailed(false) }, [photoUrl])
+  const showPhoto = Boolean(photoUrl) && !imageFailed
   const isAurum = bingkai?.luxury === 'aurum'
   const isVoid  = bingkai?.luxury === 'void'
   const ringColor = bingkai?.border || '#D4AF37'
@@ -258,8 +274,8 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
       {/* Avatar itself */}
       <div style={{
         width: size, height: size, borderRadius: size * 0.3, flexShrink: 0,
-        background: user?.photoUrl || user?.photo_url
-          ? `url(${user.photoUrl ?? user.photo_url}) center/cover no-repeat`
+        background: showPhoto
+          ? `url(${photoUrl}) center/cover no-repeat`
           : user?.role === 'guru'
             ? 'linear-gradient(135deg, #8B5CF6, #6366F1)'
             : 'linear-gradient(135deg, #0891B2, #2563EB)',
@@ -269,7 +285,16 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
         boxSizing: 'border-box',
         position: 'relative', zIndex: 1,
       }}>
-        {!(user?.photoUrl || user?.photo_url) && (user?.name || '?')[0]?.toUpperCase()}
+        {showPhoto && (
+          <img
+            src={photoUrl}
+            alt=""
+            aria-hidden="true"
+            onError={() => setImageFailed(true)}
+            style={{ display: 'none' }}
+          />
+        )}
+        {!showPhoto && (user?.name || '?')[0]?.toUpperCase()}
       </div>
     </div>
   )
@@ -880,21 +905,22 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
   const push = usePushNotifications(true)
   const expPct = Math.min(100, Math.round((player.exp / player.maxExp) * 100))
   const bingkai = user?.equippedBingkai ? BINGKAI_VISUALS[user.equippedBingkai] : null
+  const isLuxuryFrame = bingkai?.luxury === 'aurum' || bingkai?.luxury === 'void'
+  const avatar = isLuxuryFrame
+    ? <LuxuryAvatarFrame user={user} size={48} bingkai={bingkai} bingkaiId={user.equippedBingkai} />
+    : <UserAvatar user={user} size={48} />
   return (
     <div className="tomat-player-header" style={{
       padding: '14px 16px 10px', display: 'flex', alignItems: 'center', gap: 12,
       background: 'rgba(10,11,20,0.85)', backdropFilter: 'blur(20px)',
       borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'relative', zIndex: 20,
     }}>
-      <button onClick={onAvatarClick} disabled={!onAvatarClick} style={{
+      <button onClick={onAvatarClick} disabled={!onAvatarClick} aria-label={onAvatarClick ? 'Buka profil' : undefined} style={{
         width: 48, height: 48, borderRadius: 14, flexShrink: 0, padding: 0,
         cursor: onAvatarClick ? 'pointer' : 'default',
-        background: (user?.photoUrl ?? user?.photo_url) ? `url(${user.photoUrl ?? user.photo_url}) center/cover no-repeat` : 'linear-gradient(135deg, #10B981, #06B6D4)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 20, fontWeight: 800, color: '#fff',
-        border: bingkai ? `3px ${bingkai.style} ${bingkai.border}` : '2px solid rgba(16,185,129,0.4)',
-        boxShadow: bingkai?.glow ? `0 0 14px ${bingkai.border}88` : '0 0 12px rgba(16,185,129,0.2)',
-      }}>{!(user?.photoUrl ?? user?.photo_url) && player.name[0].toUpperCase()}</button>
+        border: 'none', background: 'transparent',
+      }}>{avatar}</button>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 10, color: '#34D399', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
           ⭐ Level {player.level}

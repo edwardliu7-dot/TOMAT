@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useAuth } from '../AuthContext'
+import logo from '../assets/logo.png'
 
 const FEATURES = [
   ['⚔️', 'Duel Real-time'],
@@ -68,7 +69,9 @@ export default function LoginScreen() {
 
       <section className="tomat-login__brand">
         <div className="tomat-login__brand-inner">
-          <div className="tomat-login__tomato" aria-hidden="true">🍅</div>
+           <div className="tomat-login__tomato" aria-hidden="true">
+             <img src={logo} alt="" />
+           </div>
           <h1>TOMAT</h1>
           <p className="tomat-login__tagline">Tantangan Otak Matematika</p>
           <p className="tomat-login__description">
@@ -87,7 +90,9 @@ export default function LoginScreen() {
       <section className="tomat-login__form-panel">
         <div className="tomat-login__form-wrap">
           <div className="tomat-login__mobile-brand">
-            <div className="tomat-login__tomato tomat-login__tomato--small" aria-hidden="true">🍅</div>
+             <div className="tomat-login__tomato tomat-login__tomato--small" aria-hidden="true">
+               <img src={logo} alt="" />
+             </div>
             <h1>TOMAT</h1>
             <p>Tantangan Otak Matematika</p>
             <span>Platform belajar matematika SMP yang menyenangkan 🎮</span>
@@ -228,7 +233,13 @@ export default function LoginScreen() {
           border-radius: 32px;
           background: linear-gradient(135deg, #6366F1, #7C3AED);
           box-shadow: 0 20px 60px rgba(99,102,241,0.40);
-          font-size: 52px;
+           overflow: hidden;
+         }
+         .tomat-login__tomato img {
+           width: 100%;
+           height: 100%;
+           display: block;
+           object-fit: cover;
         }
         .tomat-login__brand h1,
         .tomat-login__mobile-brand h1 {

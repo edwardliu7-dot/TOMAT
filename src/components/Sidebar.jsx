@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import logo from '../assets/logo.png'
 import { getGradeNumber } from '../kelasUtils'
+import { UserAvatar } from './shared'
 
 // Screens where sidebar is shown
 const SAFE_SCREENS = new Set([
@@ -117,9 +118,6 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
     navigate(key)
   }
 
-  // Determine avatar initials
-  const initials = (user.name || user.username || '?').slice(0, 2).toUpperCase()
-
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0,
@@ -141,17 +139,12 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
       </div>
 
       {/* User info */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '10px 8px', marginBottom: 16,
-        background: 'rgba(255,255,255,0.04)', borderRadius: 10,
-      }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: '50%',
-           background: (user.photoUrl ?? user.photo_url) ? `url(${user.photoUrl ?? user.photo_url}) center/cover no-repeat` : isGuru ? 'linear-gradient(135deg,#7C3AED,#6366F1)' : 'linear-gradient(135deg,#10B981,#059669)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 12, fontWeight: 800, color: '#fff', flexShrink: 0,
-         }}>{!(user.photoUrl ?? user.photo_url) && initials}</div>
+       <div style={{
+         display: 'flex', alignItems: 'center', gap: 10,
+         padding: '10px 8px', marginBottom: 16,
+         background: 'rgba(255,255,255,0.04)', borderRadius: 10,
+       }}>
+         <UserAvatar user={user} size={32} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user.name || user.username}
