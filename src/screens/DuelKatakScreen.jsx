@@ -144,7 +144,7 @@ function NumberLine({ question, myPos, oppPos, myAnswered, myCorrect }) {
 }
 
 // ─── Leaderboard Wait Screen ──────────────────────────────────────────────────
-function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, onLeave }) {
+function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, oppRound, maxRounds, onLeave }) {
   return (
     <div style={{
       minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)',
@@ -160,34 +160,63 @@ function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, onLeave }) 
       <div style={{
         background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 16, padding: '16px 28px', display: 'flex', gap: 28, alignItems: 'center',
+        width: '100%', maxWidth: 340, boxSizing: 'border-box',
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700, marginBottom: 4 }}>KAMU</div>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6 }}>{myName}</div>
+          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{myName}</div>
           <div style={{ fontSize: 40, fontWeight: 900, color: '#67E8F9' }}>{myScore}</div>
           <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>soal benar</div>
         </div>
-        <div style={{ fontSize: 20, color: '#f59e0b', fontWeight: 900 }}>VS</div>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{ fontSize: 20, color: '#f59e0b', fontWeight: 900 }}>VS</div>
+          <div style={{ fontSize: 9, color: '#475569', marginTop: 4, lineHeight: 1.4 }}>
+            diperbarui langsung saat lawan menjawab
+          </div>
+        </div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, marginBottom: 4 }}>LAWAN</div>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6 }}>{oppName}</div>
+          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{oppName}</div>
           <div style={{ fontSize: 40, fontWeight: 900, color: '#f59e0b' }}>{oppScore}</div>
           <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>soal benar</div>
         </div>
       </div>
 
-      {/* Status */}
+      {/* Status banner */}
       <div style={{
         background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
         borderRadius: 12, padding: '12px 20px', textAlign: 'center',
-        fontSize: 13, color: '#fbbf24', fontWeight: 600,
+        fontSize: 13, color: '#fbbf24', fontWeight: 600, width: '100%', maxWidth: 340, boxSizing: 'border-box',
       }}>
         ⏳ Lawan masih mengerjakan soal…
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 8 }}>
+          {[0,1,2].map(i => (
+            <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b',
+              animation: `lbBounce 1.2s ease-in-out ${i*0.2}s infinite` }} />
+          ))}
+        </div>
       </div>
+
+      {/* Opponent progress */}
+      {oppRound != null && maxRounds != null && (
+        <div style={{
+          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 12, padding: '10px 16px', width: '100%', maxWidth: 340, boxSizing: 'border-box',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 12, color: '#94A3B8' }}>{oppName}</span>
+            <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 700 }}>soal {oppRound} dari {maxRounds}</span>
+          </div>
+          <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${Math.min(100, (oppRound / maxRounds) * 100)}%`, background: '#f59e0b', borderRadius: 4, transition: 'width 0.4s' }} />
+          </div>
+        </div>
+      )}
 
       <Btn onClick={onLeave} color="#1e293b" style={{ width: '100%', maxWidth: 300 }}>
         ← Keluar
       </Btn>
+      <style>{`@keyframes lbBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}`}</style>
     </div>
   )
 }

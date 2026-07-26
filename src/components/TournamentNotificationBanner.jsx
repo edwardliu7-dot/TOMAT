@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { usePet } from '../PetContext'
 
 const GAME_LABELS = {
   katak:           '🐸 Katak Pelompat',
@@ -28,6 +29,8 @@ export default function TournamentNotificationBanner({ matchData, onAccept, onDi
   const TOTAL = 60
   const [countdown, setCountdown] = useState(TOTAL)
   const timerRef = useRef(null)
+  const { pet } = usePet()
+  const petDead = pet?.isDead === true
 
   useEffect(() => {
     timerRef.current = setInterval(() => {
@@ -127,24 +130,43 @@ export default function TournamentNotificationBanner({ matchData, onAccept, onDi
         </div>
 
         {/* Accept CTA */}
-        <button onClick={handleAccept} style={{
-          width: '100%',
-          background: urgent ? '#ef4444' : 'linear-gradient(90deg,#f59e0b,#ef4444)',
-          border: 'none', borderRadius: 14, padding: '16px',
-          color: '#fff', fontSize: 16, fontWeight: 900,
-          cursor: 'pointer', fontFamily: 'inherit', letterSpacing: 0.5,
-          boxShadow: `0 4px 24px ${urgent ? 'rgba(239,68,68,0.5)' : 'rgba(245,158,11,0.4)'}`,
-          transition: 'all 0.3s',
-        }}>
-          ⚔️ Masuk Arena!
-        </button>
-        <button onClick={handleDismiss} style={{
-          width: '100%', background: 'transparent', border: 'none',
-          color: '#475569', fontSize: 12, marginTop: 10,
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}>
-          Lewati (walkover)
-        </button>
+        {petDead ? (
+          <div style={{ textAlign: 'center', padding: '10px 0 4px' }}>
+            <div style={{ fontSize: 28, marginBottom: 6 }}>💀</div>
+            <div style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.6, marginBottom: 14 }}>
+              Tomi sedang mati — kamu tidak bisa ikut turnamen.<br />
+              Hidupkan Tomi di Toko dulu ya!
+            </div>
+            <button onClick={handleDismiss} style={{
+              width: '100%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 14, padding: '13px', color: '#6B7280', fontSize: 14, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              Tutup (walkover)
+            </button>
+          </div>
+        ) : (
+          <>
+            <button onClick={handleAccept} style={{
+              width: '100%',
+              background: urgent ? '#ef4444' : 'linear-gradient(90deg,#f59e0b,#ef4444)',
+              border: 'none', borderRadius: 14, padding: '16px',
+              color: '#fff', fontSize: 16, fontWeight: 900,
+              cursor: 'pointer', fontFamily: 'inherit', letterSpacing: 0.5,
+              boxShadow: `0 4px 24px ${urgent ? 'rgba(239,68,68,0.5)' : 'rgba(245,158,11,0.4)'}`,
+              transition: 'all 0.3s',
+            }}>
+              ⚔️ Masuk Arena!
+            </button>
+            <button onClick={handleDismiss} style={{
+              width: '100%', background: 'transparent', border: 'none',
+              color: '#475569', fontSize: 12, marginTop: 10,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              Lewati (walkover)
+            </button>
+          </>
+        )}
       </div>
     </div>
   )

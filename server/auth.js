@@ -1,6 +1,7 @@
 import express from 'express'
 import bcrypt from 'bcryptjs'
 import { pool } from './db.js'
+import { computeHunger } from './pet-state.js'
 
 const router = express.Router()
 
@@ -19,6 +20,7 @@ function sanitizeUser(row, role) {
   // included on login/me so PlayerContext can hydrate without a second round-trip.
   return {
     ...base,
+    petIsDead: computeHunger(row.pet_hunger_until).isDead,
     coins: row.coins,
     level: row.level,
     exp: row.exp,

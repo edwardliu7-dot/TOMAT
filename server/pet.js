@@ -1,6 +1,7 @@
 import express from 'express'
 import { pool } from './db.js'
 import { requireAuth, requireRole } from './auth.js'
+import { computeHunger } from './pet-state.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
@@ -11,23 +12,6 @@ export const PET_FOODS = {
   sayuran_segar: { nama: 'Sayuran Segar', emoji: '🥦', harga: 80,  hours: 6,  color: '#34D399' },
   buah_premium:  { nama: 'Buah Premium',  emoji: '🍓', harga: 200, hours: 16, color: '#F472B6' },
   pesta_mewah:   { nama: 'Pesta Mewah',   emoji: '🫐', harga: 500, hours: 72, color: '#A78BFA' },
-}
-
-// ── Derive live hunger state from pet_hunger_until timestamp ──
-// hunger_until = when hunger reaches 0%
-// dead = hunger has been 0% for more than 24 hours (matches design: ">24 jam → mati")
-export function computeHunger(petHungerUntil) {
-  if (!petHungerUntil) {
-    // Never fed — treat as freshly acquired (full hunger)
-    return { hunger: 100, isDead: false, isStarving: false }
-  }
-  const now = Date.now()
-  const until = new Date(petHungerUntil).getTime()
-  const deadAt = until + 24 * 3600 * 1000
-  if (now >= deadAt) return { hunger: 0, isDead: true,  isStarving: true  }
-  if (now >= until)  return { hunger: 0, isDead: false, isStarving: true  }
-  const hunger = Math.min(100, Math.round((until - now) / (24 * 3600 * 1000) * 100))
-  return { hunger, isDead: false, isStarving: false }
 }
 
 // GET /api/siswa/pet

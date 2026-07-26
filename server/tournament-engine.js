@@ -14,6 +14,14 @@ const WALKOVER_TIMEOUT_MS    = 60_000   // 60 detik jika tidak join
 const NEXT_Q_DELAY_MS        = 1200     // jeda sebelum soal berikutnya (per-player, async)
 const NEXT_ROUND_DELAY_MS    = 5_000    // jeda sebelum ronde baru
 
+function emitToUser(io, userId, event, payload) {
+  for (const socket of io.sockets.sockets.values()) {
+    if (String(socket.data?.userId) === String(userId)) {
+      socket.emit(event, payload)
+    }
+  }
+}
+
 // ─── Send one question to a single player ────────────────────────────────────
 function startPlayerTournamentRound(io, tournament, match, userId) {
   match._playerRounds  = match._playerRounds  || {}
@@ -218,9 +226,9 @@ export function startTournamentRound_all(io, tournament) {
     match.status   = 'waiting-join'
     match.roomCode = `t-${tournament.id}-${match.id}`.slice(0, 24)
 
-    // Notify player 1
-    const p1Socket = io.sockets.sockets.get(match.player1?.socketId)
-    p1Socket?.emit('tournament:your-match', {
+    // Notify players by authenticated user id. At the beginning of a round
+    // socketId can still be null because the player has not opened the match.
+    const p1Payload = {
       matchId:      match.id,
       tournamentId: tournament.id,
       opponent:     match.player2
@@ -228,17 +236,19 @@ export function startTournamentRound_all(io, tournament) {
         : null,
       gameKey:      tournament.gameKey,
       round:        tournament.currentRound,
-    })
+    }
+    emitToUser(io, match.player1?.userId, 'tournament:your-match', p1Payload)
 
-    // Notify player 2
-    const p2Socket = match.player2 && io.sockets.sockets.get(match.player2?.socketId)
-    p2Socket?.emit('tournament:your-match', {
+    const p2Payload = {
       matchId:      match.id,
       tournamentId: tournament.id,
       opponent:     { userId: match.player1.userId, name: match.player1.name },
       gameKey:      tournament.gameKey,
       round:        tournament.currentRound,
-    })
+    }
+    if (match.player2) {
+      emitToUser(io, match.player2.userId, 'tournament:your-match', p2Payload)
+    }
 
     // Walkover timer: 60 detik jika tidak join
     match.walkoverTimer = setTimeout(() => {

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { TopBar, PlayerHeader } from '../components/shared'
 import { useTask, TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
+import { usePet } from '../PetContext'
 
 // Inline 4-way picker nested inside the Latihan Bebas card: Mudah / Sedang / Sulit / Survival.
 // Each button starts free play immediately with its own config — there is no separate CTA.
@@ -131,6 +132,8 @@ function EmptyTaskState() {
 
 export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId, onModeSelected, onDuel }) {
   const { tasks, getTaskForGame, startTaskSession } = useTask()
+  const { pet } = usePet()
+  const petDead = pet?.isDead === true
   const task = taskId
     ? tasks.find(candidate => candidate.id === taskId && candidate.status === 'active') || null
     : (pendingGame ? getTaskForGame(pendingGame.key) : null)
@@ -187,7 +190,25 @@ export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId
           />
 
           {/* Task Mode */}
-          {task ? (
+          {petDead ? (
+            <ModeCard
+              icon="📋"
+              title="Mode Tugas"
+              subtitle="Mode Tugas tidak tersedia saat Tomi mati."
+              description={
+                <div style={{ textAlign: 'center', padding: '4px 0' }}>
+                  <div style={{ fontSize: 26, marginBottom: 6 }}>💀</div>
+                  <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
+                    Hidupkan kembali Tomi di Toko<br />untuk membuka Mode Tugas.
+                  </div>
+                </div>
+              }
+              ctaLabel=""
+              ctaColor="#4B5563"
+              disabled
+              disabledReason="🐾 Tomi harus hidup untuk mengerjakan tugas."
+            />
+          ) : task ? (
             <ModeCard
               icon={TYPE_ICONS[task.type]}
               title="Mode Tugas"
@@ -213,17 +234,39 @@ export default function ModeSelectScreen({ navigate, goBack, pendingGame, taskId
 
           {/* Mode Duel — tersedia untuk semua game turnamen */}
           {onDuel && (
-            <ModeCard
-              icon="⚔️"
-              title="Mode Duel"
-              subtitle="Tantang teman sekelasmu secara real-time! 7 soal, siapa lebih banyak benar?"
-              badge="MULTIPLAYER"
-              badgeColor="#f59e0b"
-              topRightBadge="✨ BARU"
-              ctaLabel="Masuk Lobby Duel ▶"
-              ctaColor="#f59e0b"
-              onClick={onDuel}
-            />
+            petDead ? (
+              <ModeCard
+                icon="⚔️"
+                title="Mode Duel"
+                subtitle="Mode Duel tidak tersedia saat Tomi mati."
+                badge="MULTIPLAYER"
+                badgeColor="#4B5563"
+                description={
+                  <div style={{ textAlign: 'center', padding: '4px 0' }}>
+                    <div style={{ fontSize: 26, marginBottom: 6 }}>💀</div>
+                    <div style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
+                      Hidupkan kembali Tomi di Toko<br />untuk bisa berduel.
+                    </div>
+                  </div>
+                }
+                ctaLabel=""
+                ctaColor="#4B5563"
+                disabled
+                disabledReason="🐾 Tomi harus hidup untuk bermain duel."
+              />
+            ) : (
+              <ModeCard
+                icon="⚔️"
+                title="Mode Duel"
+                subtitle="Tantang teman sekelasmu secara real-time! 7 soal, siapa lebih banyak benar?"
+                badge="MULTIPLAYER"
+                badgeColor="#f59e0b"
+                topRightBadge="✨ BARU"
+                ctaLabel="Masuk Lobby Duel ▶"
+                ctaColor="#f59e0b"
+                onClick={onDuel}
+              />
+            )
           )}
         </div>
 

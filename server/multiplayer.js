@@ -10,6 +10,7 @@ import { tournaments, tournamentToClient, getTournamentIo } from './tournament-s
 import { startTournamentMatch, handleTournamentAnswer } from './tournament-engine.js'
 import { genTournamentQ } from './tournament-questions.js'
 import { notifyUser } from './notifications.js'
+import { isStudentPetDead } from './pet-state.js'
 
 // ─── Question generation (server-authoritative) ───────────────────────────────
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
@@ -119,6 +120,24 @@ setInterval(() => {
 // Track online users: userId → Set<socketId>
 const userSockets = new Map()
 
+async function canPlayStudentMode(socket, eventName) {
+  if (socket.data.role !== 'siswa') return true
+  try {
+    const dead = await isStudentPetDead(pool, socket.data.userId)
+    if (dead) {
+      socket.emit(eventName, {
+        message: 'Tomi sedang mati. Hidupkan Tomi kembali sebelum bermain mode ini.',
+      })
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('pet access check error', err)
+    socket.emit(eventName, { message: 'Status Tomi belum dapat diperiksa. Coba lagi.' })
+    return false
+  }
+}
+
 // ─── Socket.io ───────────────────────────────────────────────────────────────
 export function setupMultiplayer(httpServer, sessionMiddleware) {
   const io = new Server(httpServer, {
@@ -138,6 +157,10 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       socket.disconnect(true)
       return
     }
+    // Tournament notifications can be sent before a student opens a match,
+    // so keep the authenticated user id on the socket for server-side lookup.
+    socket.data.userId = user.id
+    socket.data.role = user.role
 
     // Register socket for direct messaging
     if (!userSockets.has(user.id)) userSockets.set(user.id, new Set())
@@ -162,7 +185,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // ── CREATE ROOM ──────────────────────────────────────────────────────────
-    socket.on('duel:create', ({ avatar, gameKey } = {}) => {
+    socket.on('duel:create', async ({ avatar, gameKey } = {}) => {
+      if (!(await canPlayStudentMode(socket, 'duel:error'))) return
       leaveAllRooms(socket, io)
       const code = genCode()
       const player = makePlayer(avatar)
@@ -178,7 +202,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // ── JOIN ROOM ────────────────────────────────────────────────────────────
-    socket.on('duel:join', ({ code: rawCode, avatar } = {}) => {
+    socket.on('duel:join', async ({ code: rawCode, avatar } = {}) => {
+      if (!(await canPlayStudentMode(socket, 'duel:error'))) return
       const code = rawCode?.toUpperCase?.()?.trim()
       if (!code) { socket.emit('duel:error', { message: 'Masukkan kode ruangan.' }); return }
 
@@ -205,7 +230,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // ── START GAME (host only) ───────────────────────────────────────────────
-    socket.on('duel:start-game', ({ code } = {}) => {
+    socket.on('duel:start-game', async ({ code } = {}) => {
+      if (!(await canPlayStudentMode(socket, 'duel:error'))) return
       const room = rooms.get(code)
       if (!room)                                { socket.emit('duel:error', { message: 'Ruangan tidak ditemukan.' }); return }
       if (room.players[0].userId !== user.id)   { socket.emit('duel:error', { message: 'Hanya host yang bisa memulai.' }); return }
@@ -230,7 +256,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // ── SLIDER MOVE (real-time ghost position) ───────────────────────────────
-    socket.on('duel:slider-move', ({ code, value } = {}) => {
+    socket.on('duel:slider-move', async ({ code, value } = {}) => {
+      if (!(await canPlayStudentMode(socket, 'duel:error'))) return
       const room = rooms.get(code)
       if (!room || room.status !== 'in-progress') return
       const player = room.players.find(p => p.userId === user.id)
@@ -239,7 +266,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // ── ANSWER SUBMISSION ────────────────────────────────────────────────────
-    socket.on('duel:answer', ({ code, value } = {}) => {
+    socket.on('duel:answer', async ({ code, value } = {}) => {
+      if (!(await canPlayStudentMode(socket, 'duel:error'))) return
       const room = rooms.get(code)
       if (!room || room.status !== 'in-progress') return
       const player = room.players.find(p => p.userId === user.id)
@@ -298,7 +326,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // ── INVITE (kirim undangan duel langsung ke user lain) ───────────────────
-    socket.on('duel:invite', ({ targetUserId, targetRole, avatar } = {}) => {
+    socket.on('duel:invite', async ({ targetUserId, targetRole, avatar } = {}) => {
+      if (!(await canPlayStudentMode(socket, 'duel:error'))) return
       if (user.role !== 'siswa' || targetRole !== 'siswa') {
         socket.emit('duel:error', { message: 'Undangan duel hanya antar siswa.' })
         return
@@ -530,11 +559,22 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     // TOURNAMENT — spectator (guru) + player (siswa) events
     // ════════════════════════════════════════════════════════════════════════
 
-    // Guru: join tournament room untuk melihat bracket live
+    // Guru/siswa: join tournament room untuk melihat bracket live.
+    // Siswa hanya boleh melihat turnamen yang memang diikutinya.
     socket.on('tournament:spectate', ({ tournamentId } = {}) => {
-      if (user.role !== 'guru') return
       const t = tournaments.get(tournamentId)
       if (!t) return
+      const isGuru = user.role === 'guru'
+      const isParticipant = t.students?.some(student => String(student.userId) === String(user.id))
+      if (!isGuru && !isParticipant) return
+      if (!isGuru) {
+        isStudentPetDead(pool, user.id).then(dead => {
+          if (dead) return
+          socket.join(`tournament:${tournamentId}`)
+          socket.emit('tournament:state', tournamentToClient(t))
+        }).catch(() => {})
+        return
+      }
       socket.join(`tournament:${tournamentId}`)
       socket.emit('tournament:state', tournamentToClient(t))
     })
@@ -546,8 +586,9 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // Siswa: siap bergabung ke match (dipanggil saat buka TournamentMatchScreen)
-    socket.on('tournament:player-ready', ({ tournamentId, matchId } = {}) => {
+    socket.on('tournament:player-ready', async ({ tournamentId, matchId } = {}) => {
       if (user.role !== 'siswa') return
+      if (!(await canPlayStudentMode(socket, 'tournament:error'))) return
       const t = tournaments.get(tournamentId)
       if (!t) return
 
@@ -579,8 +620,9 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // Siswa: submit jawaban turnamen
-    socket.on('tournament:answer', ({ tournamentId, matchId, value } = {}) => {
+    socket.on('tournament:answer', async ({ tournamentId, matchId, value } = {}) => {
       if (user.role !== 'siswa') return
+      if (!(await canPlayStudentMode(socket, 'tournament:error'))) return
       const t = tournaments.get(tournamentId)
       if (!t) return
       const round = t.rounds[t.currentRound - 1]
@@ -590,8 +632,9 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // Siswa: kirim posisi slider ke guru spectator
-    socket.on('tournament:slider-move', ({ matchId, value } = {}) => {
+    socket.on('tournament:slider-move', async ({ matchId, value } = {}) => {
       if (user.role !== 'siswa') return
+      if (!(await canPlayStudentMode(socket, 'tournament:error'))) return
       socket.to(`match-spectate:${matchId}`).emit('tournament:opponent-slider', {
         userId: user.id, value, matchId,
       })
