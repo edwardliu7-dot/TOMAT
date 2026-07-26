@@ -67,76 +67,114 @@ function KatakNumberLine({ start, myPos, oppPos, myAnswered, myCorrect }) {
 function ScoreBar({ myName, oppName, myScore, oppScore, round, maxRounds }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: '10px 16px',
-      border: '1px solid rgba(255,255,255,0.08)',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      background: '#1A1D27', borderRadius: 16, padding: '12px 16px',
+      border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
     }}>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700, marginBottom: 2 }}>KAMU</div>
-        <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{myName}</div>
-        <div style={{ fontSize: 26, fontWeight: 900, color: '#67E8F9' }}>{myScore}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 60 }}>
+        <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600 }}>KAMU</div>
+        <div style={{ fontSize: 13, color: '#fff', fontWeight: 500, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{myName}</div>
+        <div style={{ fontSize: 36, fontWeight: 900, color: '#67E8F9', lineHeight: 1, marginTop: 4 }}>{myScore}</div>
       </div>
-      <div style={{ textAlign: 'center', flexShrink: 0 }}>
-        <div style={{ fontSize: 10, color: '#475569', fontWeight: 600, marginBottom: 4 }}>SOAL</div>
-        <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{round}/{maxRounds}</div>
-        <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, marginTop: 2 }}>VS</div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ fontSize: 11, color: '#475569', fontWeight: 700, letterSpacing: 1 }}>SOAL</div>
+        <div style={{ fontSize: 18, color: '#fff', fontWeight: 800, marginTop: 4 }}>{round}/{maxRounds}</div>
       </div>
-      <div style={{ flex: 1, textAlign: 'right' }}>
-        <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, marginBottom: 2 }}>LAWAN</div>
-        <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4, maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginLeft: 'auto' }}>{oppName}</div>
-        <div style={{ fontSize: 26, fontWeight: 900, color: '#f59e0b' }}>{oppScore}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 60 }}>
+        <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600 }}>LAWAN</div>
+        <div style={{ fontSize: 13, color: '#fff', fontWeight: 500, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{oppName}</div>
+        <div style={{ fontSize: 36, fontWeight: 900, color: '#f59e0b', lineHeight: 1, marginTop: 4 }}>{oppScore}</div>
       </div>
     </div>
   )
 }
 
 // ─── Leaderboard Wait Screen ──────────────────────────────────────────────────
-function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, onLeave }) {
+function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, round, onLeave }) {
   return (
     <div style={{
       minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: 24, gap: 20, fontFamily: 'system-ui, sans-serif', color: '#fff',
+      fontFamily: 'system-ui, sans-serif', color: '#fff',
+      display: 'flex', flexDirection: 'column', overflow: 'hidden',
     }}>
-      <div style={{ fontSize: 56 }}>🏁</div>
-      <div style={{ fontSize: 22, fontWeight: 900, color: '#67E8F9', textAlign: 'center' }}>
-        Kamu Sudah Selesai!
-      </div>
-
-      {/* Score comparison */}
+      <style>{`@keyframes tLbBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-3px)}}`}</style>
       <div style={{
-        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 16, padding: '16px 28px', display: 'flex', gap: 28, alignItems: 'center',
+        flex: 1, width: '100%', maxWidth: 390, margin: '0 auto',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: 24, boxSizing: 'border-box', gap: 24,
       }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700, marginBottom: 4 }}>KAMU</div>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6 }}>{myName}</div>
-          <div style={{ fontSize: 40, fontWeight: 900, color: '#67E8F9' }}>{myScore}</div>
-          <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>soal benar</div>
+        {/* Header */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 56, lineHeight: 1 }}>🏁</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: '#67E8F9', textAlign: 'center' }}>
+            Kamu Sudah Selesai!
+          </div>
+          {round && oppName && (
+            <div style={{ fontSize: 13, color: '#94A3B8', fontWeight: 500 }}>
+              Ronde {round} — vs {oppName}
+            </div>
+          )}
         </div>
-        <div style={{ fontSize: 20, color: '#f59e0b', fontWeight: 900 }}>VS</div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, marginBottom: 4 }}>LAWAN</div>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6 }}>{oppName}</div>
-          <div style={{ fontSize: 40, fontWeight: 900, color: '#f59e0b' }}>{oppScore}</div>
-          <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>soal benar</div>
+
+        {/* Score card */}
+        <div style={{
+          background: '#1A1D27', border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 16, padding: '24px 20px', width: '100%', boxSizing: 'border-box',
+          display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+          gap: 28, boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#67E8F9', letterSpacing: 0.5, marginBottom: 4 }}>KAMU</div>
+            <div style={{ fontSize: 14, color: '#fff', fontWeight: 600, marginBottom: 12 }}>{myName}</div>
+            <div style={{ fontSize: 40, fontWeight: 900, color: '#67E8F9', lineHeight: 1 }}>{myScore}</div>
+            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 6, fontWeight: 500 }}>soal benar</div>
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#f59e0b', fontStyle: 'italic', opacity: 0.9 }}>VS</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#f59e0b', letterSpacing: 0.5, marginBottom: 4 }}>LAWAN</div>
+            <div style={{ fontSize: 14, color: '#fff', fontWeight: 600, marginBottom: 12 }}>{oppName}</div>
+            <div style={{ fontSize: 40, fontWeight: 900, color: '#f59e0b', lineHeight: 1 }}>{oppScore}</div>
+            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 6, fontWeight: 500 }}>soal benar</div>
+          </div>
         </div>
-      </div>
 
-      {/* Status */}
-      <div style={{
-        background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
-        borderRadius: 12, padding: '12px 20px', textAlign: 'center',
-        fontSize: 13, color: '#fbbf24', fontWeight: 600,
-      }}>
-        ⏳ Lawan masih mengerjakan soal…
-      </div>
+        {/* Status banner */}
+        <div style={{
+          background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
+          borderRadius: 12, padding: '14px 16px', width: '100%', boxSizing: 'border-box',
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
+        }}>
+          <div style={{ fontSize: 13, color: '#f59e0b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>⏳ Lawan masih mengerjakan soal</span>
+            <span style={{ display: 'flex', gap: 2 }}>
+              {['-0.32s','-0.16s','0s'].map((d,i) => (
+                <span key={i} style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: '#f59e0b', animation: `tLbBounce 1.4s ${d} infinite ease-in-out` }} />
+              ))}
+            </span>
+          </div>
+        </div>
 
-      <button onClick={onLeave} style={{
-        background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
-        padding: '14px 32px', color: '#94A3B8', fontSize: 14, fontWeight: 700,
-        cursor: 'pointer', fontFamily: 'inherit',
-      }}>← Keluar Turnamen</button>
+        {/* Bracket info */}
+        <div style={{
+          background: '#1A1D27', border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 12, padding: '12px 16px', width: '100%', boxSizing: 'border-box',
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+        }}>
+          <div style={{ fontSize: 18, lineHeight: 1.2 }}>🏆</div>
+          <div style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.5, fontWeight: 500 }}>
+            Hasil ronde ini menentukan lanjutan turnamen. Tetap semangat!
+          </div>
+        </div>
+
+        <button onClick={onLeave} style={{
+          background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
+          padding: '16px 24px', color: '#fff', fontSize: 15, fontWeight: 600,
+          cursor: 'pointer', fontFamily: 'inherit', width: '100%', maxWidth: 300,
+          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+        }}>
+          <span style={{ color: '#94A3B8' }}>←</span> Keluar Turnamen
+        </button>
+      </div>
     </div>
   )
 }
@@ -345,6 +383,7 @@ export default function TournamentMatchScreen({
         myName={leaderboardData.myName}
         oppScore={leaderboardData.oppScore}
         oppName={leaderboardData.oppName}
+        round={round}
         onLeave={goBack}
       />
     )
@@ -436,37 +475,39 @@ export default function TournamentMatchScreen({
             )}
           </div>
 
+          {/* Value badge — above slider */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <div style={{
+              background: 'rgba(103,232,249,0.1)', border: '1px solid rgba(103,232,249,0.4)',
+              color: '#67E8F9', padding: '8px 24px', borderRadius: 12,
+              fontSize: 28, fontWeight: 900, boxShadow: '0 0 16px rgba(103,232,249,0.15)',
+            }}>{slider}</div>
+          </div>
+
           {/* Slider */}
-          <div style={{ padding: '0 4px' }}>
+          <div style={{ width: '100%', padding: '0 10px', boxSizing: 'border-box' }}>
             <input
               type="range" min={sliderMin} max={sliderMax} step={1} value={slider}
               onChange={e => !myAnswered && handleSlider(parseInt(e.target.value, 10))}
               disabled={myAnswered}
-              style={{ width: '100%', accentColor: '#67E8F9', height: 28, opacity: myAnswered ? 0.4 : 1, cursor: myAnswered ? 'not-allowed' : 'pointer' }}
+              style={{ width: '100%', accentColor: '#67E8F9', height: 6, opacity: myAnswered ? 0.4 : 1, cursor: myAnswered ? 'not-allowed' : 'pointer' }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569', fontSize: 10, marginTop: -4 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94A3B8', fontSize: 13, fontWeight: 600, marginTop: 12 }}>
               {[sliderMin, Math.round((sliderMin+sliderMax)/2), sliderMax].map(n => <span key={n}>{n}</span>)}
             </div>
           </div>
 
-          {/* Current value */}
-          <div style={{ textAlign: 'center', marginTop: 8 }}>
-            <span style={{
-              background: 'rgba(103,232,249,0.1)', border: '1.5px solid rgba(103,232,249,0.3)',
-              borderRadius: 20, padding: '4px 16px', fontSize: 20, fontWeight: 900, color: '#67E8F9',
-            }}>{slider}</span>
-          </div>
+          {/* Confirm button — inside the card */}
+          {!myAnswered && phase === 'playing' && (
+            <button onClick={submitAnswer} style={{
+              width: '100%', background: '#0e7490', border: 'none', borderRadius: 14, padding: '16px',
+              color: '#fff', fontSize: 16, fontWeight: 'bold', cursor: 'pointer', fontFamily: 'inherit',
+              boxShadow: '0 4px 12px rgba(14,116,144,0.3)', marginTop: 8,
+            }}>
+              ✅ Konfirmasi Jawaban: {slider}
+            </button>
+          )}
         </div>
-
-        {/* Confirm button */}
-        {!myAnswered && phase === 'playing' && (
-          <button onClick={submitAnswer} style={{
-            background: '#0e7490', border: 'none', borderRadius: 14, padding: '16px',
-            color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            ✅ Konfirmasi Posisi {slider}
-          </button>
-        )}
 
         {/* Result banner — brief feedback, soal berikutnya datang otomatis ~1.2s */}
         {phase === 'result' && (

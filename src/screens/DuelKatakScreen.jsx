@@ -149,50 +149,60 @@ function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, oppRound, m
     <div style={{
       minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: 24, gap: 20, fontFamily: 'system-ui, sans-serif', color: '#fff',
+      padding: 24, gap: 24, fontFamily: 'system-ui, sans-serif', color: '#fff',
     }}>
-      <div style={{ fontSize: 56 }}>🏁</div>
-      <div style={{ fontSize: 22, fontWeight: 900, color: '#67E8F9', textAlign: 'center' }}>
-        Kamu Sudah Selesai!
+      <style>{`
+        @keyframes lbBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+      `}</style>
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <div style={{ fontSize: 64, lineHeight: 1 }}>🏁</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#67E8F9', textAlign: 'center' }}>
+          Kamu Sudah Selesai!
+        </div>
       </div>
 
-      {/* Score comparison */}
+      {/* Score comparison card */}
       <div style={{
-        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 16, padding: '16px 28px', display: 'flex', gap: 28, alignItems: 'center',
-        width: '100%', maxWidth: 340, boxSizing: 'border-box',
+        background: '#1A1D27', border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 16, padding: '24px 20px', width: '100%', maxWidth: 340, boxSizing: 'border-box',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
       }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700, marginBottom: 4 }}>KAMU</div>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{myName}</div>
-          <div style={{ fontSize: 40, fontWeight: 900, color: '#67E8F9' }}>{myScore}</div>
-          <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>soal benar</div>
-        </div>
-        <div style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 20, color: '#f59e0b', fontWeight: 900 }}>VS</div>
-          <div style={{ fontSize: 9, color: '#475569', marginTop: 4, lineHeight: 1.4 }}>
-            diperbarui langsung saat lawan menjawab
+        <div style={{ display: 'flex', gap: 28, alignItems: 'center', width: '100%' }}>
+          <div style={{ textAlign: 'center', flex: 1 }}>
+            <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 800, letterSpacing: 1 }}>KAMU</div>
+            <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>{myName}</div>
+            <div style={{ fontSize: 40, fontWeight: 900, color: '#67E8F9', marginTop: 6, lineHeight: 1 }}>{myScore}</div>
+            <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 6 }}>soal benar</div>
+          </div>
+          <div style={{ fontSize: 20, color: '#f59e0b', fontWeight: 900, opacity: 0.9 }}>VS</div>
+          <div style={{ textAlign: 'center', flex: 1 }}>
+            <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1 }}>LAWAN</div>
+            <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4 }}>{oppName}</div>
+            <div style={{ fontSize: 40, fontWeight: 900, color: '#f59e0b', marginTop: 6, lineHeight: 1 }}>{oppScore}</div>
+            <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 6 }}>soal benar</div>
           </div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, marginBottom: 4 }}>LAWAN</div>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 6, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{oppName}</div>
-          <div style={{ fontSize: 40, fontWeight: 900, color: '#f59e0b' }}>{oppScore}</div>
-          <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>soal benar</div>
+        <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.05)' }} />
+        <div style={{ fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>
+          diperbarui langsung saat lawan menjawab
         </div>
       </div>
 
       {/* Status banner */}
       <div style={{
         background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
-        borderRadius: 12, padding: '12px 20px', textAlign: 'center',
-        fontSize: 13, color: '#fbbf24', fontWeight: 600, width: '100%', maxWidth: 340, boxSizing: 'border-box',
+        borderRadius: 12, padding: '16px 20px', width: '100%', maxWidth: 340, boxSizing: 'border-box',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
       }}>
-        ⏳ Lawan masih mengerjakan soal…
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 8 }}>
+        <div style={{ fontSize: 13, color: '#f59e0b', fontWeight: 600 }}>⏳ Lawan masih mengerjakan soal…</div>
+        <div style={{ display: 'flex', gap: 4 }}>
           {[0,1,2].map(i => (
-            <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b',
-              animation: `lbBounce 1.2s ease-in-out ${i*0.2}s infinite` }} />
+            <div key={i} style={{
+              width: 6, height: 6, borderRadius: '50%', background: '#f59e0b',
+              animation: `lbBounce 1.4s ease-in-out ${[-0.32,-0.16,0][i]}s infinite`,
+            }} />
           ))}
         </div>
       </div>
@@ -207,16 +217,19 @@ function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, oppRound, m
             <span style={{ fontSize: 12, color: '#94A3B8' }}>{oppName}</span>
             <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 700 }}>soal {oppRound} dari {maxRounds}</span>
           </div>
-          <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+          <div style={{ height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${Math.min(100, (oppRound / maxRounds) * 100)}%`, background: '#f59e0b', borderRadius: 4, transition: 'width 0.4s' }} />
           </div>
         </div>
       )}
 
-      <Btn onClick={onLeave} color="#1e293b" style={{ width: '100%', maxWidth: 300 }}>
+      <button onClick={onLeave} style={{
+        width: '100%', maxWidth: 300, padding: 16, background: '#1e293b',
+        border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
+        color: '#94A3B8', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+      }}>
         ← Keluar
-      </Btn>
-      <style>{`@keyframes lbBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}`}</style>
+      </button>
     </div>
   )
 }
@@ -228,39 +241,69 @@ function GameOverScreen({ winner, scores, myIndex, onLeave }) {
   const iWon  = winner?.userId === me?.userId
   const isDraw = winner === null
 
+  const myScoreColor  = iWon ? '#67E8F9' : isDraw ? '#94A3B8' : '#f87171'
+  const oppScoreColor = !iWon && !isDraw ? '#10b981' : isDraw ? '#94A3B8' : '#f87171'
+  const myLabelColor  = iWon ? '#67E8F9' : '#94A3B8'
+  const oppLabelColor = (!iWon && !isDraw) ? '#f59e0b' : '#94A3B8'
+
   return (
     <div style={{
       minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: 24, gap: 20,
+      padding: 24, gap: 20, fontFamily: 'system-ui, sans-serif', color: '#fff',
     }}>
-      <div style={{ fontSize: 72 }}>{isDraw ? '🤝' : iWon ? '🏆' : '😤'}</div>
-      <div style={{ fontSize: 26, fontWeight: 900, color: iWon ? '#fbbf24' : isDraw ? '#94A3B8' : '#f87171', textAlign: 'center' }}>
-        {isDraw ? 'Seri!' : iWon ? 'Kamu Menang!' : `${winner?.name} Menang!`}
+      <style>{`
+        @keyframes duelPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+        @keyframes duelShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+      `}</style>
+
+      <div style={{
+        fontSize: 80, lineHeight: 1, marginBottom: 4,
+        animation: isDraw ? 'none' : iWon ? 'duelPulse 2s infinite ease-in-out' : 'duelShake 4s infinite ease-in-out',
+      }}>
+        {isDraw ? '🤝' : iWon ? '🏆' : '😤'}
+      </div>
+
+      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ fontSize: 26, fontWeight: 900, color: iWon ? '#fbbf24' : isDraw ? '#94A3B8' : '#f87171' }}>
+          {isDraw ? 'Seri!' : iWon ? 'Kamu Menang!' : 'Kamu Kalah!'}
+        </div>
+        <div style={{ fontSize: 13, color: '#94A3B8' }}>
+          {isDraw ? 'Pertarungan sengit — tidak ada yang kalah!'
+            : iWon ? 'Selamat! Kamu mendapat 🪙 +15 koin'
+            : 'Jangan menyerah, coba lagi di duel berikutnya!'}
+        </div>
       </div>
 
       {/* Score comparison */}
       <div style={{
-        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 16, padding: '16px 24px', display: 'flex', gap: 32, alignItems: 'center',
+        background: '#1A1D27', border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 16, padding: '24px 20px', display: 'flex', gap: 32, alignItems: 'center',
+        width: '100%', maxWidth: 340, boxSizing: 'border-box', marginTop: 12, marginBottom: 12,
       }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700, marginBottom: 4 }}>KAMU</div>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>{me?.name}</div>
-          <div style={{ fontSize: 36, fontWeight: 900, color: '#67E8F9' }}>{me?.score}</div>
-          <div style={{ fontSize: 10, color: '#475569' }}>soal benar</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: myLabelColor, letterSpacing: 0.5 }}>KAMU</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{me?.name}</div>
+          <div style={{ fontSize: 36, fontWeight: 900, color: myScoreColor, lineHeight: 1.2 }}>{me?.score ?? 0}</div>
+          <div style={{ fontSize: 11, color: '#94A3B8' }}>soal benar</div>
         </div>
-        <div style={{ fontSize: 20, color: '#f59e0b', fontWeight: 900 }}>VS</div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 700, marginBottom: 4 }}>LAWAN</div>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 4 }}>{opp?.name}</div>
-          <div style={{ fontSize: 36, fontWeight: 900, color: '#f59e0b' }}>{opp?.score}</div>
-          <div style={{ fontSize: 10, color: '#475569' }}>soal benar</div>
+        <div style={{ fontSize: 20, fontWeight: 900, color: '#f59e0b', marginTop: -16 }}>VS</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: oppLabelColor, letterSpacing: 0.5 }}>LAWAN</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{opp?.name}</div>
+          <div style={{ fontSize: 36, fontWeight: 900, color: oppScoreColor, lineHeight: 1.2 }}>{opp?.score ?? 0}</div>
+          <div style={{ fontSize: 11, color: '#94A3B8' }}>soal benar</div>
         </div>
       </div>
 
-      <div style={{ width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <Btn onClick={onLeave} color="#1e293b">← Keluar</Btn>
+      <div style={{ width: '100%', maxWidth: 340, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <button onClick={onLeave} style={{
+          width: '100%', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 14, color: '#fff', padding: 16, fontSize: 16, fontWeight: 600,
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}>
+          ← Keluar
+        </button>
       </div>
     </div>
   )
@@ -478,6 +521,15 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
             )}
           </div>
 
+          {/* Slider value indicator — shown ABOVE the slider */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <div style={{
+              background: 'rgba(103,232,249,0.1)', border: '1px solid rgba(103,232,249,0.4)',
+              color: '#67E8F9', padding: '8px 24px', borderRadius: 12,
+              fontSize: 28, fontWeight: 900, boxShadow: '0 0 16px rgba(103,232,249,0.15)',
+            }}>{mySlider}</div>
+          </div>
+
           {/* My slider */}
           <DuelSlider
             value={mySlider}
@@ -486,14 +538,6 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
             onChange={handleSlider}
             disabled={myAnswered}
           />
-
-          {/* Slider value indicator */}
-          <div style={{ textAlign: 'center', marginTop: 6 }}>
-            <span style={{
-              background: 'rgba(103,232,249,0.1)', border: '1.5px solid rgba(103,232,249,0.3)',
-              borderRadius: 20, padding: '4px 16px', fontSize: 18, fontWeight: 900, color: '#67E8F9',
-            }}>{mySlider}</span>
-          </div>
         </Card>
 
         {/* Confirm button */}

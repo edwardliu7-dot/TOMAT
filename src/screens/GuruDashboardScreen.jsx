@@ -1033,6 +1033,7 @@ function TurnamenTab({ kelasDiampu }) {
   const [spectateSliders,setSpectateSliders] = useState({})    // { [userId]: number }
   const [spectateQ,      setSpectateQ]       = useState(null)  // { round, maxRounds, text }
   const [form,         setForm]         = useState({ kelas: kelasDiampu[0] || '', gameKey: 'katak' })
+  const [liveFeed,     setLiveFeed]     = useState([])         // { time, text, color }
   const socketJoined   = useRef(false)
 
   // Fetch current tournament state via REST on mount
@@ -1063,6 +1064,26 @@ function TurnamenTab({ kelasDiampu }) {
       if (spectate?.id === data.matchId) {
         setSpectate(s => s ? { ...s, scores: data.scores } : s)
       }
+      if (data.playerName) {
+        const now = new Date()
+        const time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        const icon = data.correct ? '✅' : '❌'
+        setLiveFeed(prev => [{
+          time, color: data.correct ? '#67E8F9' : '#f87171',
+          text: `${data.playerName} menjawab soal ${data.round ?? ''} ${icon}`,
+        }, ...prev].slice(0, 20))
+      }
+    })
+
+    socket.on('tournament:player-finished', (data) => {
+      if (data.playerName != null) {
+        const now = new Date()
+        const time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        setLiveFeed(prev => [{
+          time, color: '#10b981',
+          text: `${data.playerName} menyelesaikan semua soal (${data.score ?? '?'} benar)`,
+        }, ...prev].slice(0, 20))
+      }
     })
 
     return () => {
@@ -1071,6 +1092,7 @@ function TurnamenTab({ kelasDiampu }) {
       socket.off('tournament:finished')
       socket.off('tournament:cancelled')
       socket.off('tournament:player-answered')
+      socket.off('tournament:player-finished')
     }
   }, [spectate])
 
@@ -1156,37 +1178,66 @@ function TurnamenTab({ kelasDiampu }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {!tournament ? (
         // ── Setup Form ──────────────────────────────────────────────────────
-        <div style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', padding: 16 }}>
-          <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1.5, marginBottom: 12 }}>⚔️ MULAI TURNAMEN BARU</div>
-          <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ background: '#1A1D27', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1.5 }}>🏆 BUAT TURNAMEN BARU</div>
+          <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Kelas */}
-            <div>
-              <div style={labelS}>Kelas</div>
-              <select value={form.kelas} onChange={e => setForm(f => ({ ...f, kelas: e.target.value }))} style={inputS}>
-                <option value="">Pilih kelas…</option>
-                {kelasDiampu.map(k => <option key={k} value={k}>{k}</option>)}
-              </select>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={labelS}>KELAS</div>
+              <div style={{ position: 'relative' }}>
+                <select value={form.kelas} onChange={e => setForm(f => ({ ...f, kelas: e.target.value }))} style={{ ...inputS, appearance: 'none' }}>
+                  <option value="">Pilih kelas…</option>
+                  {kelasDiampu.map(k => <option key={k} value={k}>{k}</option>)}
+                </select>
+                <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94A3B8', fontSize: 12 }}>▼</div>
+              </div>
             </div>
-            {/* Game */}
-            <div>
-              <div style={labelS}>Game Turnamen</div>
+
+            {/* Game — 2-column grid */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={labelS}>GAME</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {TOURNAMENT_GAMES.map(g => {
+                  const sel = form.gameKey === g.key
+                  const emoji = g.label.split(' ')[0]
+                  const name = g.label.split(' ').slice(1).join(' ')
+                  return (
+                    <button key={g.key} type="button" onClick={() => setForm(f => ({ ...f, gameKey: g.key }))} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+                      borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                      background: sel ? 'rgba(103,232,249,0.1)' : '#111827',
+                      border: sel ? '1px solid #67E8F9' : '1px solid rgba(255,255,255,0.1)',
+                      boxShadow: sel ? '0 0 8px rgba(103,232,249,0.2)' : 'none',
+                      fontSize: 13, fontWeight: sel ? 600 : 500,
+                      color: sel ? '#67E8F9' : '#fff',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      <span style={{ fontSize: 16, flexShrink: 0 }}>{emoji}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Format — cosmetic radio */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={labelS}>FORMAT</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {TOURNAMENT_GAMES.map(g => (
-                  <label key={g.key} style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-                    background: form.gameKey === g.key ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.03)',
-                    border: `1.5px solid ${form.gameKey === g.key ? 'rgba(245,158,11,0.5)' : 'rgba(255,255,255,0.08)'}`,
-                    borderRadius: 12, cursor: 'pointer',
-                  }}>
-                    <input type="radio" name="gameKey" value={g.key} checked={form.gameKey === g.key}
-                      onChange={e => setForm(f => ({ ...f, gameKey: e.target.value }))}
-                      style={{ accentColor: '#f59e0b' }} />
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{g.label}</div>
-                      <div style={{ fontSize: 11, color: '#94A3B8' }}>{g.desc}</div>
-                    </div>
-                  </label>
-                ))}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 12, border: '1px solid #67E8F9', background: 'rgba(103,232,249,0.05)' }}>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', border: '5px solid #67E8F9', background: '#111827', marginTop: 2, flexShrink: 0, boxSizing: 'border-box' }} />
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Eliminasi Tunggal</div>
+                    <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>Kalah sekali langsung gugur</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: '#111827', opacity: 0.5 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', border: '1px solid #94A3B8', background: 'transparent', marginTop: 2, flexShrink: 0, boxSizing: 'border-box' }} />
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: '#fff' }}>Round Robin</div>
+                    <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>Semua lawan semua</div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1194,97 +1245,212 @@ function TurnamenTab({ kelasDiampu }) {
               <div style={{ color: '#fca5a5', fontSize: 12, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 10, padding: '8px 12px' }}>{error}</div>
             )}
 
+            <div style={{ background: 'rgba(103,232,249,0.06)', border: '1px solid rgba(103,232,249,0.15)', borderRadius: 12, padding: '12px 16px', fontSize: 12, color: '#94A3B8', lineHeight: 1.5 }}>
+              🎯 Turnamen akan dimulai setelah kamu klik Mulai. Semua siswa online akan otomatis masuk.
+            </div>
+
             <button type="submit" disabled={creating || !form.kelas} style={{
-              background: creating || !form.kelas ? 'rgba(245,158,11,0.1)' : 'linear-gradient(135deg,#f59e0b,#d97706)',
-              color: '#fff', border: 'none', borderRadius: 14, padding: '14px 0',
-              fontSize: 14, fontWeight: 800, cursor: creating || !form.kelas ? 'default' : 'pointer',
+              background: creating || !form.kelas ? 'rgba(180,83,9,0.3)' : '#b45309',
+              color: '#fff', border: 'none', borderRadius: 14, padding: '16px',
+              fontSize: 16, fontWeight: 700, cursor: creating || !form.kelas ? 'default' : 'pointer',
               fontFamily: 'inherit', opacity: creating || !form.kelas ? 0.5 : 1,
-              boxShadow: !creating && form.kelas ? '0 0 20px rgba(245,158,11,0.25)' : 'none',
+              boxShadow: !creating && form.kelas ? '0 4px 12px rgba(180,83,9,0.3)' : 'none',
+              marginTop: 8,
             }}>
-              {creating ? '⏳ Memulai…' : `🏆 Mulai Turnamen untuk ${form.kelas || '…'}`}
+              {creating ? '⏳ Memulai…' : `🏆 Mulai Turnamen — ${form.kelas || '…'}`}
             </button>
           </form>
         </div>
       ) : (
         // ── Bracket View ─────────────────────────────────────────────────────
         <>
-          {/* Tournament info */}
-          <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 16, padding: '14px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          {/* Champion banner */}
+          {tournament.champion && (
+            <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 28 }}>🏆</div>
               <div>
-                <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1.5 }}>🏆 TURNAMEN AKTIF</div>
-                <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', marginTop: 4 }}>
-                  {TOURNAMENT_GAMES.find(g => g.key === tournament.gameKey)?.label || tournament.gameKey}
-                </div>
-                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
-                  {tournament.kelas} · Ronde {tournament.currentRound}
-                  {tournament.status === 'finished' && ' · SELESAI'}
-                </div>
+                <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 800 }}>JUARA TURNAMEN</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{tournament.champion.name}</div>
               </div>
-              {tournament.status !== 'finished' && (
-                <button onClick={handleEnd} style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '8px 14px', color: '#f87171', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  🛑 Akhiri
-                </button>
-              )}
             </div>
-            {tournament.champion && (
-              <div style={{ marginTop: 12, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ fontSize: 24 }}>🏆</div>
+          )}
+
+          {/* Summary stats bar */}
+          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 2 }}>
+            {[
+              { icon: '🎮', label: 'Game', value: TOURNAMENT_GAMES.find(g => g.key === tournament.gameKey)?.label?.split(' ').slice(1,3).join(' ') || tournament.gameKey },
+              { icon: '👥', label: 'Peserta', value: `${tournament.rounds?.[0]?.matches?.reduce((a,m) => a + (m.player1 ? 1 : 0) + (m.player2 ? 1 : 0), 0) ?? '?'} siswa` },
+              { icon: '⏱️', label: 'Ronde', value: `${tournament.currentRound} / ${tournament.rounds?.length ?? '?'}` },
+              { icon: '📊', label: 'Status', value: tournament.status === 'finished' ? 'Selesai' : 'Berlangsung' },
+            ].map((stat, i) => (
+              <div key={i} style={{ background: '#1A1D27', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                <span style={{ fontSize: 20 }}>{stat.icon}</span>
                 <div>
-                  <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 800 }}>JUARA TURNAMEN</div>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>{tournament.champion.name}</div>
+                  <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 2, fontWeight: 500 }}>{stat.label}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{stat.value}</div>
                 </div>
               </div>
-            )}
+            ))}
           </div>
 
-          {/* Bracket rounds */}
-          {tournament.rounds?.map((round, ri) => (
-            <div key={ri} style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', padding: 16 }}>
-              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
-                RONDE {ri + 1}{ri + 1 === tournament.currentRound && tournament.status !== 'finished' ? ' (BERLANGSUNG)' : ''}
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {round.matches.map((m, mi) => {
-                  const badge = MATCH_STATUS_BADGE[m.status] || MATCH_STATUS_BADGE.pending
-                  return (
-                    <div key={mi} style={{
-                      background: '#0D1117', border: '1px solid rgba(255,255,255,0.08)',
-                      borderRadius: 12, padding: '12px 14px',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1 }}>
-                          {[m.player1, m.player2].filter(Boolean).map((p, pi) => (
-                            <div key={pi}>
-                              {pi === 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '5px 0' }} />}
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <span style={{ fontSize: 13, fontWeight: m.winner?.userId === p.userId ? 800 : 500, color: m.winner && m.winner.userId !== p.userId ? '#475569' : '#94A3B8' }}>
-                                  {m.winner?.userId === p.userId ? '🏅 ' : ''}{p.name}
-                                </span>
-                                {m.scores?.[p.userId] !== undefined && (
-                                  <span style={{ fontSize: 12, fontWeight: 800, color: pi === 0 ? '#67E8F9' : '#f59e0b' }}>{m.scores[p.userId]}</span>
-                                )}
+          {/* Bracket rounds — vertical list with in-progress expanded */}
+          {tournament.rounds?.map((round, ri) => {
+            const isLive = ri + 1 === tournament.currentRound && tournament.status !== 'finished'
+            return (
+              <div key={ri} style={{ background: '#111827', borderRadius: 16, border: `1px solid ${isLive ? 'rgba(103,232,249,0.2)' : 'rgba(255,255,255,0.08)'}`, padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: isLive ? '#67E8F9' : '#94A3B8' }}>
+                    RONDE {ri + 1}
+                  </div>
+                  {isLive && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(248,113,113,0.15)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171', padding: '3px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>
+                      <div style={{ width: 5, height: 5, background: '#f87171', borderRadius: '50%' }} />
+                      LIVE
+                    </div>
+                  )}
+                  {ri + 1 < tournament.currentRound && (
+                    <div style={{ fontSize: 10, color: '#10b981', background: 'rgba(16,185,129,0.12)', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>SELESAI</div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {round.matches.map((m, mi) => {
+                    const badge = MATCH_STATUS_BADGE[m.status] || MATCH_STATUS_BADGE.pending
+                    const isMatchLive = m.status === 'in-progress'
+                    return (
+                      <div key={mi} style={{
+                        background: isMatchLive ? 'rgba(103,232,249,0.04)' : '#0D1117',
+                        border: `1px solid ${isMatchLive ? 'rgba(103,232,249,0.2)' : 'rgba(255,255,255,0.08)'}`,
+                        borderRadius: 12, padding: isMatchLive ? 16 : '12px 14px',
+                      }}>
+                        {isMatchLive && m.player1 && m.player2 ? (
+                          // Expanded live match card
+                          <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                              <div style={{ background: 'rgba(103,232,249,0.1)', color: '#67E8F9', padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>MATCH {mi + 1}</div>
+                              <div style={{ fontSize: 11, color: '#67E8F9', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500 }}>
+                                <span>⚔️</span> Sedang berlangsung
                               </div>
                             </div>
-                          ))}
-                        </div>
-                        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                          <span style={{ background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20 }}>{badge.label}</span>
-                          {m.status === 'in-progress' && (
+                            {[
+                              { p: m.player1, color: '#67E8F9' },
+                              null,
+                              { p: m.player2, color: '#f59e0b' },
+                            ].map((item, idx) => {
+                              if (!item) return (
+                                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '12px 0' }}>
+                                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+                                  <span style={{ fontSize: 10, color: '#475569', fontWeight: 700, letterSpacing: 1 }}>VS</span>
+                                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+                                </div>
+                              )
+                              const { p, color } = item
+                              const score = m.scores?.[p.userId] ?? 0
+                              const initial = p.name?.charAt(0)?.toUpperCase() || '?'
+                              const qDone = spectate?.id === m.id && spectateQ ? spectateQ.round : null
+                              const qTotal = spectate?.id === m.id && spectateQ ? spectateQ.maxRounds : 7
+                              const pct = qDone ? Math.min(100, (qDone / qTotal) * 100) : 0
+                              return (
+                                <div key={idx}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: color === '#67E8F9' ? '#0e7490' : '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff' }}>{initial}</div>
+                                      <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{p.name}</span>
+                                    </div>
+                                    <span style={{ fontSize: 32, fontWeight: 900, color, lineHeight: 1 }}>{score}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.1)', height: 6, borderRadius: 3, overflow: 'hidden' }}>
+                                      <div style={{ width: `${pct}%`, background: color, height: '100%', borderRadius: 3, transition: 'width 0.3s' }} />
+                                    </div>
+                                    <span style={{ fontSize: 12, color: '#94A3B8', width: 28, textAlign: 'right', fontWeight: 600 }}>{qDone ? `${qDone}/${qTotal}` : ''}</span>
+                                  </div>
+                                </div>
+                              )
+                            })}
                             <button onClick={() => openSpectate(m)} style={{
-                              background: 'rgba(103,232,249,0.08)', border: '1px solid rgba(103,232,249,0.2)',
-                              borderRadius: 8, padding: '4px 8px', color: '#67E8F9', fontSize: 10, fontWeight: 700,
+                              marginTop: 14, width: '100%', background: 'rgba(103,232,249,0.08)', border: '1px solid rgba(103,232,249,0.2)',
+                              borderRadius: 10, padding: '8px', color: '#67E8F9', fontSize: 12, fontWeight: 700,
                               cursor: 'pointer', fontFamily: 'inherit',
-                            }}>👁 Pantau</button>
-                          )}
-                        </div>
+                            }}>👁 Pantau Real-time</button>
+                          </>
+                        ) : (
+                          // Compact match card (done or pending)
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ flex: 1 }}>
+                              {[m.player1, m.player2].filter(Boolean).map((p, pi) => (
+                                <div key={pi}>
+                                  {pi === 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '6px 0' }} />}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 14, fontWeight: m.winner?.userId === p.userId ? 600 : 500, color: m.winner && m.winner.userId !== p.userId ? '#94A3B8' : '#fff' }}>
+                                      {m.winner?.userId === p.userId ? '🏅 ' : ''}{p.name}
+                                    </span>
+                                    {m.scores?.[p.userId] !== undefined && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <span style={{ fontSize: 14, fontWeight: 800, color: m.winner?.userId === p.userId ? '#10b981' : '#94A3B8' }}>{m.scores[p.userId]}</span>
+                                        {m.winner?.userId === p.userId && <span style={{ fontSize: 12, color: '#10b981' }}>✓</span>}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <span style={{ background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, flexShrink: 0 }}>{badge.label}</span>
+                          </div>
+                        )}
                       </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Live Feed */}
+          {liveFeed.length > 0 && (
+            <div style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', padding: 16 }}>
+              <div style={{ fontSize: 13, color: '#fff', fontWeight: 600, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                📡 Live Feed
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {liveFeed.slice(0, 8).map((ev, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', opacity: i === 0 ? 1 : Math.max(0.4, 1 - i * 0.1) }}>
+                    <span style={{ color: ev.color, fontSize: 10, marginTop: 3 }}>●</span>
+                    <div style={{ fontSize: 13, color: '#E2E8F0', lineHeight: 1.5 }}>
+                      <span style={{ color: '#94A3B8', fontFamily: 'monospace', fontSize: 11, marginRight: 8 }}>{ev.time}</span>
+                      {ev.text}
                     </div>
-                  )
-                })}
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Bottom action buttons */}
+          <div style={{ display: 'flex', gap: 12, paddingBottom: 8 }}>
+            <button
+              onClick={() => {
+                const tabs = document.querySelectorAll('[data-tab]')
+                tabs.forEach(t => t.getAttribute('data-tab') === 'nilai' && t.click())
+              }}
+              style={{
+                flex: 1, background: 'rgba(103,232,249,0.08)', border: '1px solid rgba(103,232,249,0.25)',
+                borderRadius: 14, padding: '14px 0', color: '#67E8F9', fontSize: 14, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              📊 Lihat Nilai Siswa
+            </button>
+            {tournament.status !== 'finished' && (
+              <button onClick={handleEnd} style={{
+                flex: 1, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+                borderRadius: 14, padding: '14px 0', color: '#f87171', fontSize: 14, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                🛑 Hentikan
+              </button>
+            )}
+          </div>
         </>
       )}
 

@@ -282,44 +282,45 @@ export default function LobbyScreen({ goBack, onStart, initialCode, gameKey = 'k
 
             {/* Buat Ruangan card */}
             <div style={{
-              background: 'rgba(103,232,249,0.05)', border: '1px solid rgba(103,232,249,0.2)',
-              borderRadius: 18, padding: '18px 16px',
+              background: 'rgba(103,232,249,0.06)', border: '1px solid rgba(103,232,249,0.2)',
+              borderRadius: 16, padding: 24,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+              position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
-                <div style={{ fontSize: 32 }}>⚔️</div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>Buat Ruangan</div>
-                  <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>Bagikan kode ke temanmu</div>
-                </div>
-              </div>
-              <Btn onClick={createRoom} color="#0e7490">
+              <div style={{ fontSize: 40, marginBottom: 12 }}>⚔️</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Buat Ruangan</div>
+              <div style={{ fontSize: 14, color: '#94A3B8', marginBottom: 20 }}>Bagikan kode ke temanmu</div>
+              <button onClick={createRoom} style={{
+                background: '#0891b2', color: '#fff', border: 'none', borderRadius: 14,
+                padding: '16px', width: '100%', fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
                 Buat Ruangan →
-              </Btn>
+              </button>
             </div>
 
             {/* Masuk dengan kode card */}
             <div style={{
-              background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)',
-              borderRadius: 18, padding: '18px 16px',
+              background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)',
+              borderRadius: 16, padding: 24,
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
             }}>
-              <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 10, fontWeight: 600 }}>MASUK DENGAN KODE</div>
               <input
                 value={codeInput}
                 onChange={e => { setCodeInput(e.target.value.toUpperCase()); setError(null) }}
                 onKeyDown={e => e.key === 'Enter' && joinRoom()}
                 maxLength={6}
-                placeholder="A B C 1 2 3"
+                placeholder="A B C D 1 2"
                 style={{
                   width: '100%', boxSizing: 'border-box',
-                  background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(245,158,11,0.25)',
-                  borderRadius: 12, padding: '14px', color: '#fff', fontSize: 22,
-                  fontWeight: 900, letterSpacing: 6, outline: 'none', textTransform: 'uppercase',
-                  textAlign: 'center', marginBottom: 10, fontFamily: 'inherit',
+                  background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(245,158,11,0.3)',
+                  borderRadius: 12, padding: 16, color: '#f59e0b', fontSize: 24,
+                  fontWeight: 800, letterSpacing: 4, outline: 'none', textTransform: 'uppercase',
+                  textAlign: 'center', marginBottom: 20, fontFamily: 'inherit',
                 }}
               />
               <button onClick={joinRoom} style={{
-                width: '100%', background: '#b45309', color: '#fff', border: 'none', borderRadius: 12,
-                padding: '14px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                width: '100%', background: '#b45309', color: '#fff', border: 'none', borderRadius: 14,
+                padding: '16px', fontSize: 16, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
               }}>
                 Bergabung →
               </button>
