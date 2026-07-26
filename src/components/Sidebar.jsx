@@ -33,6 +33,11 @@ const GURU_NAV = [
   { key: 'guruPantau',     emoji: '👥', label: 'Pantau Kelas' },
   { key: 'guruNilai',      emoji: '📊', label: 'Nilai Siswa' },
   { key: 'guruHafalan',    emoji: '🎯', label: 'Hafalan' },
+  { key: 'guruInsight',    emoji: '🎮', label: 'Insight Siswa' },
+  { key: 'guruRaid',       emoji: '⚔️', label: 'Boss Raid' },
+  { key: 'guruTurnamen',   emoji: '🏆', label: 'Turnamen' },
+  { key: 'guruKunci',      emoji: '🔒', label: 'Kunci Bab' },
+  { key: 'guruKomunikasi', emoji: '💬', label: 'Komunikasi' },
 ]
 
 function NavItem({ item, isActive, onClick }) {
@@ -64,12 +69,34 @@ function NavItem({ item, isActive, onClick }) {
 
 export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
   const [visible, setVisible] = useState(window.innerWidth >= 1024)
+  const [activeGuruKey, setActiveGuruKey] = useState('guruDashboard')
 
   useEffect(() => {
     const onResize = () => setVisible(window.innerWidth >= 1024)
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  useEffect(() => {
+    if (user?.role !== 'guru') return undefined
+    const tabToKey = {
+      tugas: 'guruTugas',
+      hafalan: 'guruHafalan',
+      nilai: 'guruNilai',
+      komunikasi: 'guruKomunikasi',
+      siswa: 'guruPantau',
+      kunci: 'guruKunci',
+      raid: 'guruRaid',
+      turnamen: 'guruTurnamen',
+      insight: 'guruInsight',
+    }
+    const onTabActive = event => {
+      const key = tabToKey[event.detail]
+      if (key) setActiveGuruKey(key)
+    }
+    window.addEventListener('tomat:guru-tab-active', onTabActive)
+    return () => window.removeEventListener('tomat:guru-tab-active', onTabActive)
+  }, [user?.role])
 
   // Hide conditions
   if (!visible) return null
@@ -82,7 +109,8 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
 
   const handleNav = (key) => {
     // Guru tab items dispatch custom events; main screens use navigate
-    if (isGuru && ['guruTugas', 'guruPantau', 'guruNilai'].includes(key)) {
+    if (isGuru) {
+      setActiveGuruKey(key)
       window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
       return
     }
@@ -120,10 +148,10 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
       }}>
         <div style={{
           width: 32, height: 32, borderRadius: '50%',
-          background: isGuru ? 'linear-gradient(135deg,#7C3AED,#6366F1)' : 'linear-gradient(135deg,#10B981,#059669)',
+           background: (user.photoUrl ?? user.photo_url) ? `url(${user.photoUrl ?? user.photo_url}) center/cover no-repeat` : isGuru ? 'linear-gradient(135deg,#7C3AED,#6366F1)' : 'linear-gradient(135deg,#10B981,#059669)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 12, fontWeight: 800, color: '#fff', flexShrink: 0,
-        }}>{initials}</div>
+         }}>{!(user.photoUrl ?? user.photo_url) && initials}</div>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {user.name || user.username}
@@ -143,7 +171,7 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
           <NavItem
             key={item.key}
             item={item}
-            isActive={currentScreen === item.key}
+            isActive={isGuru ? activeGuruKey === item.key : currentScreen === item.key}
             onClick={handleNav}
           />
         ))}

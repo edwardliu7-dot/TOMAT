@@ -32,6 +32,7 @@ import DuelInviteBanner from './components/DuelInviteBanner'
 import { connectSocket } from './socket'
 import { DUEL_GAME_KEYS } from './gamesCatalog'
 import GameDesktopWrapper from './components/GameDesktopWrapper'
+import { fetchPublicProfile, normalizeProfileTarget } from './components/shared'
 
 // Auth-aware wrappers — need useAuth inside the PlayerProvider/AuthContext tree
 function TournamentMatchWithAuth({ matchData, goBack, onMatchOver }) {
@@ -211,6 +212,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [tournamentBanner,    setTournamentBanner]    = useState(null)  // show notification banner
   const [activeTournamentId,  setActiveTournamentId]  = useState(null)  // when we are spectating bracket
   const [publicProfileData, setPublicProfileData]   = useState(null)   // { ...profile }
+  const [publicProfileError, setPublicProfileError] = useState('')
   const [duelInvite, setDuelInvite]                 = useState(null)   // { code, from: { userId, name } }
   const [duelInviteCode, setDuelInviteCode]         = useState(null)   // auto-join code for LobbyScreen
   const [tokoInitialTab, setTokoInitialTab]         = useState(null)   // pre-select shop tab on open
@@ -260,8 +262,17 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   }, [])
 
   useEffect(() => {
-    const onVisitProfile = e => {
-      setPublicProfileData(e.detail)
+    const onVisitProfile = async e => {
+      let target
+      try { target = normalizeProfileTarget(e.detail) } catch { return }
+      setPublicProfileError('')
+      try {
+        setPublicProfileData(target.photoUrl !== undefined || target.bio !== undefined
+          ? target
+          : await fetchPublicProfile(target))
+      } catch (error) {
+        setPublicProfileData({ id: target.id, role: target.role, name: target.name || 'Pengguna', profileError: error.message || 'Gagal memuat profil.' })
+      }
       setHistory(h => [...h, 'public-profile'])
     }
     const onInviteDuel = e => {

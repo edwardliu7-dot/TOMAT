@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  PlayerHeader, TopBar, PublicProfileModal, UserAvatar,
+  PlayerHeader, TopBar, PublicProfileModal, UserAvatar, fetchPublicProfile, normalizeProfileTarget,
 } from '../components/shared'
 import { useAuth } from '../AuthContext'
 
@@ -226,11 +226,11 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
   }, [initialTarget, contacts, classes, loadingContacts, isMobile])
 
   const openProfile = useCallback(async target => {
-    if (!target?.id || !target?.role) return
+    let normalizedTarget
+    try { normalizedTarget = normalizeProfileTarget(target) } catch { return }
     setViewedProfile(null); setProfileError(''); setProfileLoading(true)
     try {
-      const data = await apiCall(`/api/komunikasi/profile/${target.role}/${encodeURIComponent(target.id)}`)
-      setViewedProfile(data.profile)
+      setViewedProfile(await fetchPublicProfile(normalizedTarget))
     } catch (err) { setProfileError(err.message) }
     finally { setProfileLoading(false) }
   }, [])

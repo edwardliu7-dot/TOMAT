@@ -79,6 +79,34 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
   )
 }
 
+export function normalizeProfileTarget(target) {
+  const role = typeof target?.role === 'string' ? target.role.trim().toLowerCase() : ''
+  if (!target?.id || (role !== 'guru' && role !== 'siswa')) {
+    throw new Error('Data profil tidak lengkap.')
+  }
+  return { ...target, id: target.id, role }
+}
+
+export async function fetchPublicProfile(target) {
+  const normalizedTarget = normalizeProfileTarget(target)
+  const res = await fetch(`/api/komunikasi/profile/${normalizedTarget.role}/${encodeURIComponent(normalizedTarget.id)}`, {
+    credentials: 'include',
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'Gagal memuat profil.')
+  const profile = data.profile
+  if (!profile?.id || !profile?.role) throw new Error('Data profil yang diterima tidak lengkap.')
+  return normalizeProfileTarget({
+    ...profile,
+    photoUrl: profile.photoUrl ?? profile.photo_url ?? null,
+    equippedBingkai: profile.equippedBingkai ?? profile.equipped_bingkai ?? null,
+    equippedSpanduk: profile.equippedSpanduk ?? profile.equipped_spanduk ?? null,
+    equippedPetSkin: profile.equippedPetSkin ?? profile.equipped_pet_skin ?? null,
+    stikerLayout: profile.stikerLayout ?? profile.stiker_layout ?? [],
+    kelas: profile.kelas ?? [],
+  })
+}
+
 // Keyframe CSS injected once for luxury cosmetic animations
 const LUXURY_KEYFRAMES = `
 @keyframes tomat-spin-cw  { from { transform: rotate(0deg) }   to { transform: rotate(360deg) } }
@@ -509,6 +537,9 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
             <div style={{ display: 'flex', gap: 8, padding: '0 22px 18px', marginTop: 8 }}>
               <button
                 onClick={() => {
+                  // The modal already has the complete, access-checked profile.
+                  // Pass it along so the full profile screen does not make a
+                  // second request that can race or fail independently.
                   window.dispatchEvent(new CustomEvent('tomat:visit-profile', { detail: profile }))
                   onClose()
                 }}
@@ -561,13 +592,12 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
 export function usePublicProfile() {
   const [profileState, setProfileState] = React.useState({ profile: null, loading: false, error: '' })
   const openProfile = React.useCallback(async target => {
-    if (!target?.id || !target?.role) return
+    let normalizedTarget
+    try { normalizedTarget = normalizeProfileTarget(target) } catch { return }
     setProfileState({ profile: null, loading: true, error: '' })
     try {
-      const res = await fetch(`/api/komunikasi/profile/${target.role}/${encodeURIComponent(target.id)}`, { credentials: 'include' })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Gagal memuat profil.')
-      setProfileState({ profile: data.profile, loading: false, error: '' })
+      const profile = await fetchPublicProfile(normalizedTarget)
+      setProfileState({ profile, loading: false, error: '' })
     } catch (err) {
       setProfileState({ profile: null, loading: false, error: err.message })
     }
@@ -859,12 +889,12 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
       <button onClick={onAvatarClick} disabled={!onAvatarClick} style={{
         width: 48, height: 48, borderRadius: 14, flexShrink: 0, padding: 0,
         cursor: onAvatarClick ? 'pointer' : 'default',
-        background: user?.photoUrl ? `url(${user.photoUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #10B981, #06B6D4)',
+        background: (user?.photoUrl ?? user?.photo_url) ? `url(${user.photoUrl ?? user.photo_url}) center/cover no-repeat` : 'linear-gradient(135deg, #10B981, #06B6D4)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 20, fontWeight: 800, color: '#fff',
         border: bingkai ? `3px ${bingkai.style} ${bingkai.border}` : '2px solid rgba(16,185,129,0.4)',
         boxShadow: bingkai?.glow ? `0 0 14px ${bingkai.border}88` : '0 0 12px rgba(16,185,129,0.2)',
-      }}>{!user?.photoUrl && player.name[0].toUpperCase()}</button>
+      }}>{!(user?.photoUrl ?? user?.photo_url) && player.name[0].toUpperCase()}</button>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 10, color: '#34D399', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
           ⭐ Level {player.level}

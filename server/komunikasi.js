@@ -65,8 +65,10 @@ async function canUseClassForum(user, kelas) {
 }
 
 async function canViewProfile(user, otherId, otherRole) {
+  otherRole = typeof otherRole === 'string' ? otherRole.trim().toLowerCase() : ''
+  otherId = String(otherId ?? '')
   if (otherRole !== 'guru' && otherRole !== 'siswa') return false
-  if (user.id === otherId && user.role === otherRole) return true
+  if (String(user.id) === otherId && user.role === otherRole) return true
 
   if (user.role === 'guru') {
     const classes = await getGuruClasses(user.id)
@@ -147,7 +149,8 @@ router.get('/classes', async (req, res) => {
 router.get('/profile/:otherRole/:otherId', async (req, res) => {
   try {
     const user = currentUser(req)
-    const { otherRole, otherId } = req.params
+    const otherRole = String(req.params.otherRole || '').trim().toLowerCase()
+    const otherId = String(req.params.otherId || '')
     if (!(await canViewProfile(user, otherId, otherRole))) {
       return res.status(403).json({ error: 'Anda tidak memiliki akses ke profil ini.' })
     }

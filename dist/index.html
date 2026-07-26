@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TOMAT – Tantangan Otak Matematika</title>
+    <meta name="description" content="TOMAT - Platform gamifikasi matematika SMP dengan duel real-time, turnamen, dan sistem reward." />
+    <meta name="theme-color" content="#0F1115" />
+    <meta property="og:title" content="TOMAT — Tantangan Otak Matematika" />
+    <meta property="og:description" content="Belajar matematika SMP dengan cara yang menyenangkan. Duel teman, ikut turnamen, kumpulkan reward!" />
+    <meta property="og:type" content="website" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TOMAT" />
     <link rel="icon" type="image/png" href="/assets/logo-Cw-77iwy.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -12,23 +20,53 @@
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       :root {
-        --shell-max: 480px; --shell-max-wide: 640px;
+        /* Layout */
+        --sidebar-w: 0px;
+        --shell-max: 100%;
         --content-max: 480px;
-        /* Fluid font scale: smaller on tiny screens, normal on mobile, slightly bigger on desktop */
+        --page-pad: 16px;
         --fs-scale: clamp(0.82, 2.8vw, 1);
       }
-      @media (min-width: 540px)  { :root { --shell-max: 540px;  --shell-max-wide: 700px;  --content-max: 520px;  --fs-scale: clamp(0.88, 2.5vw, 1); } }
-      @media (min-width: 768px)  { :root { --shell-max: 100%;   --shell-max-wide: 100%;   --content-max: 640px;  --fs-scale: 1; } }
-      @media (min-width: 1024px) { :root { --content-max: 720px; } }
-      @media (min-width: 1280px) { :root { --content-max: 800px; } }
+      @media (min-width: 540px) {
+        :root { --content-max: 540px; --fs-scale: 1; }
+      }
+      @media (min-width: 768px) {
+        :root { --content-max: 720px; --page-pad: 24px; }
+      }
+      @media (min-width: 1024px) {
+        :root {
+          --sidebar-w: 220px;
+          --content-max: 860px;
+          --page-pad: 32px;
+        }
+      }
+      @media (min-width: 1280px) {
+        :root { --content-max: 1000px; }
+      }
+      @media (min-width: 1440px) {
+        :root { --content-max: 1100px; }
+      }
       html { font-size: calc(16px * var(--fs-scale)); }
       body { font-family: 'Inter', sans-serif; background: #0F1115; color: #E2E2E6; min-height: 100vh; }
       #root { min-height: 100vh; }
-      /* Content centering helper — applied to game screen inner wrappers on wide screens */
+
+      /* Sidebar offset untuk konten utama */
+      .with-sidebar { margin-left: var(--sidebar-w); transition: margin-left 0.2s; }
+
+      /* Hover utility */
+      .btn-hover { transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s; }
+      .btn-hover:hover { opacity: 0.88; transform: translateY(-1px); }
+
+      /* Card hover */
+      .card-hover { transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s; }
+      .card-hover:hover { border-color: rgba(99,102,241,0.4) !important; box-shadow: 0 8px 24px rgba(0,0,0,0.3); transform: translateY(-2px); }
+
+      /* Content centering helper */
       @media (min-width: 768px) {
         .tomat-content { max-width: var(--content-max); margin-left: auto; margin-right: auto; }
       }
-      ::-webkit-scrollbar { width: 6px; }
+
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
       ::-webkit-scrollbar-track { background: #1E2128; }
       ::-webkit-scrollbar-thumb { background: #6366F1; border-radius: 3px; }
       input[type=range] { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px; background: #2d3748; outline: none; }
@@ -38,9 +76,9 @@
       input[type=text] { background: #1E2128; border: 1px solid #374151; color: #E2E2E6; border-radius: 8px; padding: 10px 14px; font-size: 16px; width: 100%; outline: none; font-family: inherit; }
       input[type=text]:focus { border-color: #6366F1; }
     </style>
-    <script type="module" crossorigin src="/assets/index-BJN_J2nh.js"></script>
+    <script type="module" crossorigin src="/assets/index-DcO7PFKj.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-BMML5I2x.js">
-    <link rel="modulepreload" crossorigin href="/assets/games-L1y_LzuP.js">
+    <link rel="modulepreload" crossorigin href="/assets/games-D2yEZD6l.js">
   </head>
   <style>
     #splash {

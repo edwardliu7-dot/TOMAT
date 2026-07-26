@@ -30,6 +30,17 @@ export default function PublicProfileScreen({ profile, goBack, onInviteDuel }) {
 
   if (!profile) return null
 
+  if (profile.profileError) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0A0B14' }}>
+        <TopBar title="Profil" onBack={goBack} />
+        <div style={{ maxWidth: 420, margin: '80px auto', padding: 24, textAlign: 'center', color: '#FCA5A5', background: '#111827', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 18 }}>
+          {profile.profileError}
+        </div>
+      </div>
+    )
+  }
+
   const spandukId   = profile.equippedSpanduk ?? profile.equipped_spanduk
   const spanduk     = spandukId ? SPANDUK_VISUALS[spandukId] : null
   const bingkaiId   = profile.equippedBingkai ?? profile.equipped_bingkai

@@ -14,7 +14,7 @@ import ProfileScreen from './ProfileScreen'
 import PublicProfileScreen from './PublicProfileScreen'
 import CommunicationScreen from './CommunicationScreen'
 import {
-  MessageNotificationBell, AppNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile,
+  MessageNotificationBell, AppNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile, fetchPublicProfile, normalizeProfileTarget,
 } from '../components/shared'
 
 async function apiCall(path, options = {}) {
@@ -30,6 +30,7 @@ async function apiCall(path, options = {}) {
 }
 
 const TABS = [
+  { id: 'home',    label: '🏠', text: 'Beranda' },
   { id: 'tugas',   label: '📋', text: 'Tugas' },
   { id: 'hafalan', label: '🧮', text: 'Hafalan' },
   { id: 'nilai',   label: '📊', text: 'Nilai' },
@@ -1552,7 +1553,399 @@ function useIsDesktop() {
   return desk
 }
 
+// ── Guru Home Overview Tab ────────────────────────────────────────────────────
+function GuruActionCard({ eyebrow, icon, title, body, action, isEmerald, onClick }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        minHeight: 178, borderRadius: 16, padding: 20,
+        border: `1px solid ${isEmerald ? 'rgba(159,227,189,0.2)' : 'rgba(215,199,255,0.2)'}`,
+        background: isEmerald ? '#153633' : '#252442',
+        transition: 'transform 0.15s',
+        transform: hovered ? 'translateY(-2px)' : 'none',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <span style={{
+          width: 40, height: 40, borderRadius: 12, fontSize: 18,
+          background: isEmerald ? 'rgba(159,227,189,0.15)' : 'rgba(215,199,255,0.15)',
+          color: isEmerald ? '#9fe3bd' : '#d7c7ff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{icon}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: isEmerald ? '#8dc7ae' : '#b4a8d5' }}>{eyebrow}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginTop: 24 }}>
+        <div>
+          <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.03em', color: '#fff', margin: 0 }}>{title}</h3>
+          <p style={{ marginTop: 4, maxWidth: 400, fontSize: 12, lineHeight: 1.6, color: isEmerald ? '#a8c7bd' : '#bdb9d0', margin: '4px 0 0' }}>{body}</p>
+        </div>
+        <button
+          onClick={onClick}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+            borderRadius: 9999, padding: '10px 14px', fontSize: 11, fontWeight: 700,
+            background: isEmerald ? '#9fe3bd' : '#d7c7ff',
+            color: isEmerald ? '#12302e' : '#332653',
+            border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >{action} +</button>
+      </div>
+    </div>
+  )
+}
+
+function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSelectTab }) {
+  const [tugas, setTugas]       = useState([])
+  const [students, setStudents] = useState([])
+  const [nilaiList, setNilai]   = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [activeClass, setActiveClass] = useState('Semua kelas')
+  const [showNotif, setShowNotif]     = useState(false)
+  const [showMenu, setShowMenu]       = useState(false)
+  const [toast, setToast]             = useState('')
+  const isDesktop = useIsDesktop()
+
+  useEffect(() => {
+    setLoading(true)
+    Promise.all([
+      apiCall('/api/guru/tugas').then(d => setTugas(d.tugas || [])),
+      apiCall('/api/guru/students').then(d => setStudents(d.students || [])),
+      apiCall('/api/guru/nilai').then(d => setNilai(d.nilai || [])),
+    ]).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  const notify = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2600) }
+
+  const classes = ['Semua kelas', ...kelasDiampu]
+  const filteredTugas = activeClass === 'Semua kelas' ? tugas : tugas.filter(t => t.kelas === activeClass)
+  const activeTugas   = tugas.filter(t => t.status === 'active')
+  const avgScore      = nilaiList.length > 0
+    ? (nilaiList.reduce((s, n) => s + n.score, 0) / nilaiList.length).toFixed(1).replace('.', ',')
+    : '—'
+
+  const nama     = user?.name || 'Guru'
+  const initials = nama.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+  const hour     = new Date().getHours()
+  const greeting = hour < 11 ? 'pagi' : hour < 15 ? 'siang' : hour < 18 ? 'sore' : 'malam'
+  const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+  const metrics = [
+    { label: 'Siswa aktif',    value: students.length.toString().padStart(2, '0'), detail: `${kelasDiampu.length} kelas diampu`,        icon: '👥', accent: '#9fe3bd',  bg: 'rgba(159,227,189,0.1)' },
+    { label: 'Tugas berjalan', value: activeTugas.length.toString().padStart(2, '0'), detail: `${activeTugas.length} perlu ditinjau`, icon: '📋', accent: '#d7c7ff',  bg: 'rgba(215,199,255,0.1)' },
+    { label: 'Rata-rata kelas',value: avgScore,                                   detail: nilaiList.length > 0 ? `dari ${nilaiList.length} nilai` : 'Belum ada nilai', icon: '🎓', accent: '#f5cf9c',  bg: 'rgba(245,207,156,0.1)' },
+    { label: 'Kelas diampu',   value: kelasDiampu.length.toString(),              detail: kelasDiampu.slice(0, 2).join(', ') || '—',     icon: '📅', accent: '#a8d7ec',  bg: 'rgba(168,215,236,0.1)' },
+  ]
+
+  const classColor = (kelas) => {
+    const idx = kelasDiampu.indexOf(kelas)
+    return ['#9fe3bd', '#d7c7ff', '#f5cf9c', '#a8d7ec'][idx % 4]
+  }
+
+  const photoSrc = user?.photoUrl ?? user?.photo_url ?? null
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#071321', color: '#e8f1ee', position: 'relative' }}>
+      {/* radial overlays */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.6,
+        background: 'radial-gradient(circle at 84% 0%, rgba(94,75,160,.18), transparent 33%), radial-gradient(circle at 8% 64%, rgba(29,123,96,.10), transparent 30%)' }} />
+
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1500, margin: '0 auto', padding: '0 clamp(20px,4vw,48px)' }}>
+
+        {/* ── Header ── */}
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '20px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={() => notify('Kamu sudah berada di beranda TOMAT')} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 14, background: '#9fe3bd', color: '#0b2c2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 11, letterSpacing: '-0.1em', boxShadow: '0 0 0 5px rgba(159,227,189,0.08)' }}>TM</span>
+              {isDesktop && (
+                <span style={{ textAlign: 'left' }}>
+                  <span style={{ display: 'block', fontFamily: 'monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.24em', color: '#9fe3bd' }}>Ruang belajar</span>
+                  <span style={{ fontWeight: 600, letterSpacing: '-0.03em', color: '#fff', fontSize: 14 }}>TOMAT</span>
+                </span>
+              )}
+            </button>
+            {isDesktop && (
+              <nav style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 16 }}>
+                <button style={{ borderRadius: 9999, background: 'rgba(255,255,255,0.09)', padding: '8px 16px', fontSize: 12, fontWeight: 600, color: '#fff', border: 'none', cursor: 'default', fontFamily: 'inherit' }}>Beranda</button>
+                <NavBtn label="Kelas" onClick={() => onSelectTab('siswa')} />
+                <NavBtn label="Rekap nilai" onClick={() => onSelectTab('nilai')} />
+              </nav>
+            )}
+          </div>
+
+          {/* Right controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+            <button
+              onClick={() => { setShowNotif(v => !v); setShowMenu(false) }}
+              style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#a8b6bd', cursor: 'pointer', position: 'relative', fontSize: 15 }}
+            >
+              🔔
+              {activeTugas.length > 0 && <span style={{ position: 'absolute', top: 9, right: 10, width: 6, height: 6, borderRadius: '50%', background: '#9fe3bd' }} />}
+            </button>
+            <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.09)' }} />
+            <button
+              onClick={() => { setShowMenu(v => !v); setShowNotif(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, borderRadius: 9999, padding: '4px 8px 4px 4px', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              {photoSrc
+                ? <img src={photoSrc} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                : <span style={{ width: 36, height: 36, borderRadius: '50%', background: '#d7c7ff', color: '#3d286c', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{initials}</span>
+              }
+              {isDesktop && (
+                <span style={{ textAlign: 'left' }}>
+                  <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#fff' }}>{nama}</span>
+                  <span style={{ display: 'block', fontSize: 10, color: '#83929d' }}>Guru</span>
+                </span>
+              )}
+              <span style={{ color: '#71818c', fontSize: 11 }}>▾</span>
+            </button>
+
+            {/* Notif dropdown */}
+            {showNotif && (
+              <div style={{ position: 'absolute', right: 140, top: 52, zIndex: 30, width: 288, borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)', background: '#122231', padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.35)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Notifikasi</span>
+                  <button onClick={() => setShowNotif(false)} style={{ background: 'none', border: 'none', color: '#84959e', cursor: 'pointer', fontSize: 14 }}>✕</button>
+                </div>
+                {activeTugas.length > 0
+                  ? <p style={{ borderRadius: 12, background: 'rgba(159,227,189,0.08)', padding: 12, fontSize: 12, lineHeight: 1.6, color: '#b7cbc8' }}>{activeTugas.length} tugas aktif sedang berjalan.</p>
+                  : <p style={{ fontSize: 12, color: '#4e626e', textAlign: 'center', padding: 12 }}>Tidak ada notifikasi baru.</p>
+                }
+              </div>
+            )}
+
+            {/* Profile menu */}
+            {showMenu && (
+              <div style={{ position: 'absolute', right: 0, top: 52, zIndex: 30, width: 208, borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)', background: '#122231', padding: 8, boxShadow: '0 20px 60px rgba(0,0,0,0.35)' }}>
+                <MenuBtn label="Pengaturan profil" onClick={() => { setShowMenu(false); onGoProfile() }} />
+                <MenuBtn label="🎮 Media Ajar" onClick={() => { setShowMenu(false); onPlayGames() }} />
+                <MenuBtn label="Keluar" onClick={() => { setShowMenu(false); logout() }} danger />
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* ── Hero ── */}
+        <section style={{ paddingTop: isDesktop ? 56 : 32, paddingBottom: 32 }}>
+          <div style={{ display: 'flex', flexDirection: isDesktop ? 'row' : 'column', justifyContent: 'space-between', alignItems: isDesktop ? 'flex-end' : 'flex-start', gap: 28 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#82939e', marginBottom: 16 }}>
+                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#9fe3bd', flexShrink: 0 }} />
+                {todayStr}
+              </div>
+              <h1 style={{ fontSize: 'clamp(2rem,5vw,4rem)', fontWeight: 600, lineHeight: 0.98, letterSpacing: '-0.065em', color: '#fff', maxWidth: 560, margin: 0 }}>
+                Selamat {greeting},<br /><span style={{ color: '#9fe3bd' }}>{nama.split(' ')[0]}.</span>
+              </h1>
+              <p style={{ marginTop: 20, maxWidth: 400, fontSize: 14, lineHeight: 1.7, color: '#98aab1' }}>
+                {loading ? 'Memuat data kelas…' : `${kelasDiampu.length} kelas diampu · ${activeTugas.length} tugas aktif · ${students.length} siswa terdaftar.`}
+              </p>
+            </div>
+            {/* Insight chip */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, maxWidth: 320, width: '100%', borderRadius: 16, border: '1px solid rgba(215,199,255,0.2)', background: 'rgba(215,199,255,0.07)', padding: 16 }}>
+              <span style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 12, background: 'rgba(215,199,255,0.15)', color: '#d7c7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>✨</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#e5dcff', margin: 0 }}>
+                  {activeTugas.length > 0 ? `${activeTugas.length} tugas aktif berjalan` : 'Semua terkelola dengan baik'}
+                </p>
+                <p style={{ marginTop: 4, fontSize: 11, lineHeight: 1.5, color: '#a99fc6', margin: '4px 0 0' }}>
+                  {nilaiList.length > 0 ? `Rata-rata nilai kelas: ${avgScore}` : 'Mulai buat tugas untuk kelasmu.'}
+                </p>
+              </div>
+              <button onClick={() => onSelectTab('insight')} style={{ color: '#d7c7ff', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, flexShrink: 0, padding: 4, lineHeight: 1 }}>↗</button>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Action cards ── */}
+        <section style={{ display: 'grid', gridTemplateColumns: isDesktop ? '1.1fr 0.9fr' : '1fr', gap: 16 }}>
+          <GuruActionCard
+            eyebrow="TUGAS AKTIF" icon="📋"
+            title="Buat tugas baru untuk kelasmu"
+            body="Mulai dari kuis singkat, evaluasi harian, atau kumpulkan hasil pengamatan."
+            action="Buat tugas" isEmerald={true}
+            onClick={() => onSelectTab('tugas')}
+          />
+          <GuruActionCard
+            eyebrow="PANTAU KELAS" icon="👥"
+            title={students.length > 0 ? `${students.length} siswa terdaftar` : 'Pantau kelas aktif'}
+            body={kelasDiampu.length > 0 ? `${kelasDiampu.join(' · ')} · SMP TISA` : 'Belum ada kelas diampu.'}
+            action="Lihat kelas" isEmerald={false}
+            onClick={() => onSelectTab('siswa')}
+          />
+        </section>
+
+        {/* ── Metrics ── */}
+        <section style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(4,1fr)' : 'repeat(2,1fr)', gap: 12, padding: '32px 0' }}>
+          {metrics.map(m => (
+            <button
+              key={m.label}
+              onClick={() => notify(`${m.label}: ${m.value}`)}
+              style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(13,29,43,0.8)', padding: isDesktop ? 20 : 16, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+                <span style={{ width: 36, height: 36, borderRadius: 12, background: m.bg, color: m.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{m.icon}</span>
+                <span style={{ fontSize: 13, color: '#4e626e' }}>↗</span>
+              </div>
+              <p style={{ fontSize: 11, fontWeight: 500, color: '#82939e', margin: 0 }}>{m.label}</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                <p style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-0.05em', color: '#fff', margin: 0 }}>{loading ? '—' : m.value}</p>
+                <p style={{ fontSize: 10, color: m.accent, margin: 0 }}>{m.detail}</p>
+              </div>
+            </button>
+          ))}
+        </section>
+
+        {/* ── Bottom: task list + attention sidebar ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'minmax(0,1.55fr) minmax(290px,0.75fr)' : '1fr', gap: 32, paddingBottom: 48 }}>
+
+          {/* Task list */}
+          <section style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
+              <div>
+                <p style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#738793', margin: 0 }}>Ruang kerja</p>
+                <h2 style={{ marginTop: 8, fontSize: 22, fontWeight: 600, letterSpacing: '-0.045em', color: '#fff', margin: '8px 0 0' }}>Tugas mendatang</h2>
+              </div>
+              <button onClick={() => onSelectTab('tugas')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#9fe3bd', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = '#9fe3bd'}>Lihat semua ↗</button>
+            </div>
+
+            {/* Class filter pills */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
+              <span style={{ fontSize: 13, color: '#6e818c', flexShrink: 0 }}>⚙</span>
+              {classes.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setActiveClass(c)}
+                  style={{ whiteSpace: 'nowrap', borderRadius: 9999, border: `1px solid ${activeClass === c ? 'rgba(159,227,189,0.5)' : 'rgba(255,255,255,0.08)'}`, background: activeClass === c ? '#9fe3bd' : 'rgba(255,255,255,0.03)', color: activeClass === c ? '#12302e' : '#81939e', padding: '8px 14px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+                >{c}</button>
+              ))}
+            </div>
+
+            {/* Task rows */}
+            <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(13,29,43,0.7)', overflow: 'hidden' }}>
+              {loading
+                ? <div style={{ padding: 32, textAlign: 'center', color: '#4e626e', fontSize: 14 }}>Memuat…</div>
+                : filteredTugas.length === 0
+                  ? <div style={{ padding: 40, textAlign: 'center', color: '#4e626e', fontSize: 14 }}>Belum ada tugas untuk kelas ini.</div>
+                  : filteredTugas.slice(0, 6).map((t, i) => {
+                      const isActive = t.status === 'active'
+                      const color = classColor(t.kelas)
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => onSelectTab('tugas')}
+                          style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 12, borderBottom: i < Math.min(filteredTugas.length, 6) - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none', padding: isDesktop ? '16px 20px' : '14px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.035)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                          <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                            <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#e0eae7', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.game_name || t.gameName}</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4, fontSize: 10, color: '#7f939d' }}>
+                              <span>{t.kelas}</span>
+                              <span style={{ color: '#435964' }}>·</span>
+                              <span>{t.total_questions} soal</span>
+                              {t.due_at && <><span style={{ color: '#435964' }}>·</span><span>Tenggat {new Date(t.due_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span></>}
+                            </span>
+                          </span>
+                          {isDesktop && (
+                            <span style={{ borderRadius: 9999, padding: '4px 10px', fontSize: 10, fontWeight: 600, flexShrink: 0, background: isActive ? 'rgba(159,227,189,0.1)' : 'rgba(255,255,255,0.05)', color: isActive ? '#9fe3bd' : '#64748B' }}>
+                              {isActive ? 'Aktif' : 'Ditutup'}
+                            </span>
+                          )}
+                          <span style={{ color: '#536975', fontSize: 14, flexShrink: 0 }}>↗</span>
+                        </button>
+                      )
+                    })
+              }
+            </div>
+          </section>
+
+          {/* Attention sidebar */}
+          <section style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
+              <div>
+                <p style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#738793', margin: 0 }}>Sinyal kelas</p>
+                <h2 style={{ marginTop: 8, fontSize: 22, fontWeight: 600, letterSpacing: '-0.045em', color: '#fff', margin: '8px 0 0' }}>Ringkasan kelas</h2>
+              </div>
+              <button onClick={() => onSelectTab('insight')} style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.08)', color: '#7e9099', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = '#7e9099'}>⋯</button>
+            </div>
+
+            <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(13,29,43,0.7)', padding: isDesktop ? 20 : 16 }}>
+              <p style={{ fontSize: 12, lineHeight: 1.6, color: '#8fa1a8', margin: 0 }}>
+                {loading ? 'Memuat data…' : students.length === 0 ? 'Belum ada siswa di kelasmu.' : `${students.length} siswa terdaftar di ${kelasDiampu.length} kelas.`}
+              </p>
+              {!loading && kelasDiampu.length > 0 && (
+                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {kelasDiampu.slice(0, 3).map((kelas, idx) => {
+                    const colorPairs = [['#9fe3bd','#153a32'],['#d7c7ff','#3d286c'],['#f5cf9c','#633f20']]
+                    const [bg, text] = colorPairs[idx % 3]
+                    const cnt = students.filter(s => s.kelas === kelas).length
+                    const aktif = activeTugas.filter(t => t.kelas === kelas).length
+                    return (
+                      <button key={kelas} onClick={() => onSelectTab('siswa')} style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%', padding: 0 }}>
+                        <span style={{ width: 36, height: 36, borderRadius: '50%', background: bg, color: text, fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{kelas.replace(/[^A-Z0-9]/gi,'').substring(0,4).toUpperCase()}</span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#dbe6e4' }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{kelas}</span>
+                            <span style={{ borderRadius: 4, background: 'rgba(255,255,255,0.07)', padding: '2px 6px', fontSize: 9, fontWeight: 500, color: '#92a5aa', flexShrink: 0 }}>{cnt} siswa</span>
+                          </span>
+                          <span style={{ display: 'block', marginTop: 4, fontSize: 11, color: '#82939e' }}>{aktif > 0 ? `${aktif} tugas aktif` : 'Tidak ada tugas aktif'}</span>
+                        </span>
+                        <span style={{ fontSize: 13, color: '#536975', flexShrink: 0 }}>↗</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              <button onClick={() => onSelectTab('siswa')} style={{ marginTop: 24, display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, border: '1px solid rgba(255,255,255,0.09)', padding: '10px 0', fontSize: 12, fontWeight: 600, color: '#b4c4c5', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#b4c4c5' }}>
+                🔍 Buka pantau kelas
+              </button>
+            </div>
+
+            {/* Highlight */}
+            {!loading && activeTugas.length > 0 && (
+              <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, border: '1px solid rgba(159,227,189,0.15)', background: 'rgba(159,227,189,0.05)', padding: 16 }}>
+                <span style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(159,227,189,0.15)', color: '#9fe3bd', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>✓</span>
+                <p style={{ fontSize: 11, lineHeight: 1.5, color: '#9fb5b1', margin: 0 }}>
+                  <span style={{ fontWeight: 600, color: '#cde4d8' }}>{activeTugas[0].kelas}</span> memiliki tugas aktif: {activeTugas[0].game_name}.
+                </p>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 50, borderRadius: 9999, border: '1px solid rgba(159,227,189,0.25)', background: '#162d35', padding: '12px 16px', fontSize: 12, fontWeight: 500, color: '#d6ebe2', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', whiteSpace: 'nowrap' }}>
+          {toast}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NavBtn({ label, onClick }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} style={{ borderRadius: 9999, padding: '8px 16px', fontSize: 12, fontWeight: 500, color: hov ? '#fff' : '#9eacb6', border: 'none', cursor: 'pointer', background: hov ? 'rgba(255,255,255,0.06)' : 'transparent', fontFamily: 'inherit', transition: 'color 0.15s, background 0.15s' }}>{label}</button>
+  )
+}
+
+function MenuBtn({ label, onClick, danger }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)} style={{ width: '100%', borderRadius: 12, padding: '8px 12px', textAlign: 'left', fontSize: 12, color: hov ? (danger ? '#fff' : '#fff') : (danger ? '#F87171' : '#c0ced0'), border: 'none', background: hov ? (danger ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.06)') : 'transparent', cursor: 'pointer', fontFamily: 'inherit' }}>{label}</button>
+  )
+}
+
 const DESKTOP_TABS = [
+  { id: 'home',       icon: '🏠', text: 'Beranda' },
   { id: 'tugas',      icon: '📋', text: 'Kelola Tugas' },
   { id: 'siswa',      icon: '👥', text: 'Pantau Kelas' },
   { id: 'nilai',      icon: '📊', text: 'Nilai Siswa' },
@@ -1566,7 +1959,7 @@ const DESKTOP_TABS = [
 
 export default function GuruDashboardScreen({ onPlayGames }) {
   const { user, logout } = useAuth()
-  const [tab, setTab] = useState('tugas')
+  const [tab, setTab] = useState('home')
   const [view, setView] = useState('dashboard')
   const [komunikasiTarget, setKomunikasiTarget] = useState(null)
   const [visitedProfile, setVisitedProfile] = useState(null)
@@ -1575,9 +1968,53 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   const kelasDiampu = user?.kelas || []
   const grades = [...new Set(kelasDiampu.map(kelasToGrade).filter(Boolean))].sort()
 
-  // Listen for "Lihat Profil" from PublicProfileModal → open full PublicProfileScreen overlay
+  const selectTab = useCallback((nextTab) => {
+    setTab(nextTab)
+    window.dispatchEvent(new CustomEvent('tomat:guru-tab-active', { detail: nextTab }))
+  }, [])
+
+  // The global desktop sidebar is the only desktop navigation. Keep its active
+  // state in sync with the dashboard's internal tab state.
   useEffect(() => {
-    const handler = (e) => setVisitedProfile(e.detail || null)
+    const handler = (e) => {
+      const key = e.detail?.key
+      const nextTab = {
+        guruDashboard: 'home',
+        guruTugas: 'tugas',
+        guruPantau: 'siswa',
+        guruNilai: 'nilai',
+        guruHafalan: 'hafalan',
+        guruInsight: 'insight',
+        guruRaid: 'raid',
+        guruTurnamen: 'turnamen',
+        guruKunci: 'kunci',
+        guruKomunikasi: 'komunikasi',
+      }[key]
+      if (nextTab) selectTab(nextTab)
+    }
+    window.addEventListener('tomat:guru-nav', handler)
+    return () => window.removeEventListener('tomat:guru-nav', handler)
+  }, [selectTab])
+
+  // "Lihat Profil" must not reuse the compact profile object from the modal.
+  // Fetch the complete, access-checked profile before opening the full page.
+  useEffect(() => {
+    const handler = async (e) => {
+      let target
+      try { target = normalizeProfileTarget(e.detail) } catch { return }
+      try {
+        setVisitedProfile(target.photoUrl !== undefined || target.bio !== undefined
+          ? target
+          : await fetchPublicProfile(target))
+      } catch (error) {
+        setVisitedProfile({
+          id: target.id,
+          role: target.role,
+          name: target.name || 'Pengguna',
+          profileError: error.message || 'Gagal memuat profil.',
+        })
+      }
+    }
     window.addEventListener('tomat:visit-profile', handler)
     return () => window.removeEventListener('tomat:visit-profile', handler)
   }, [])
@@ -1588,6 +2025,28 @@ export default function GuruDashboardScreen({ onPlayGames }) {
 
   if (visitedProfile) {
     return <PublicProfileScreen profile={visitedProfile} goBack={() => setVisitedProfile(null)} />
+  }
+
+  // ── Home tab renders as a full standalone page ──
+  if (tab === 'home') {
+    return (
+      <>
+        <GuruHomeTab
+          kelasDiampu={kelasDiampu}
+          user={user}
+          logout={logout}
+          onPlayGames={onPlayGames}
+          onGoProfile={() => setView('profile')}
+          onSelectTab={selectTab}
+        />
+        <PublicProfileModal
+          profile={publicProfile.profile}
+          loading={publicProfile.loading}
+          error={publicProfile.error}
+          onClose={publicProfile.closeProfile}
+        />
+      </>
+    )
   }
 
   const tabContent = (
@@ -1615,31 +2074,30 @@ export default function GuruDashboardScreen({ onPlayGames }) {
       <div style={{ position: 'relative', zIndex: 1 }}>
         {/* ── Sticky Topbar ── */}
         <div style={{
-          padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12,
+          padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10,
           background: 'rgba(10,11,20,0.92)', backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255,255,255,0.07)',
           position: 'sticky', top: 0, zIndex: 50,
         }}>
-          <button onClick={() => setView('profile')} style={{
-            width: 44, height: 44, borderRadius: 13, flexShrink: 0, padding: 0,
-            border: '2px solid rgba(139,92,246,0.4)', cursor: 'pointer',
-            background: user?.photoUrl ? `url(${user.photoUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #8B5CF6, #6366F1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 17, fontWeight: 800, color: '#fff',
-            boxShadow: '0 0 14px rgba(139,92,246,0.3)',
-          }}>{!user?.photoUrl && user?.name?.[0]?.toUpperCase()}</button>
+          {/* Back to home button */}
+          <button onClick={() => selectTab('home')} style={{
+            background: 'rgba(159,227,189,0.1)', border: '1px solid rgba(159,227,189,0.25)',
+            color: '#9fe3bd', borderRadius: 10, padding: '6px 12px', cursor: 'pointer',
+            fontSize: 12, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', gap: 5,
+          }}>← Beranda</button>
 
-          <div style={{ flex: 1, cursor: 'pointer', minWidth: 0 }} onClick={() => setView('profile')}>
-            <div style={{ fontSize: isDesktop ? 16 : 15, fontWeight: 900, color: '#fff', lineHeight: 1.2 }}>
-              {isDesktop ? 'Dashboard Guru' : user?.name}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {TABS.find(t => t.id === tab)?.label} {TABS.find(t => t.id === tab)?.text}
             </div>
-            <div style={{ fontSize: 10, color: '#A78BFA', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {isDesktop ? user?.name : `Guru · ${kelasDiampu.join(', ') || 'Belum ada kelas diampu'}`}
+            <div style={{ fontSize: 10, color: '#A78BFA', fontWeight: 600, marginTop: 1 }}>
+              {user?.name} · {kelasDiampu.join(', ') || 'Guru'}
             </div>
           </div>
 
-          <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); setTab('komunikasi') }} suppress={tab === 'komunikasi'} />
-          <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); setTab('komunikasi') }} />
+          <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} suppress={tab === 'komunikasi'} />
+          <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} />
 
           <button onClick={onPlayGames} style={{
             background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)',
@@ -1657,70 +2115,9 @@ export default function GuruDashboardScreen({ onPlayGames }) {
         {/* ── Body ── */}
         {isDesktop ? (
           /* ── Desktop: vertical sidebar + scrollable content ── */
-          <div style={{ display: 'flex', minHeight: 'calc(100vh - 65px)' }}>
-            {/* Internal Sidebar */}
-            <div style={{
-              width: 220, flexShrink: 0,
-              background: '#111318',
-              borderRight: '1px solid rgba(255,255,255,0.07)',
-              display: 'flex', flexDirection: 'column',
-              position: 'sticky', top: 65,
-              height: 'calc(100vh - 65px)',
-              overflowY: 'auto',
-              alignSelf: 'flex-start',
-            }}>
-              <nav style={{ flex: 1, padding: '8px 0' }}>
-                {DESKTOP_TABS.map(t => {
-                  const active = tab === t.id
-                  return (
-                    <button
-                      key={t.id}
-                      data-tab={t.id}
-                      onClick={() => setTab(t.id)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '12px 16px', width: '100%',
-                        border: 'none',
-                        borderLeft: `3px solid ${active ? '#6366F1' : 'transparent'}`,
-                        cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
-                        fontWeight: active ? 700 : 400, textAlign: 'left',
-                        background: active ? 'rgba(99,102,241,0.12)' : 'transparent',
-                        color: active ? '#fff' : '#64748B',
-                        transition: 'all 0.15s',
-                      }}
-                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#94A3B8' }}
-                      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = active ? '#fff' : '#64748B' }}
-                    >
-                      <span style={{ fontSize: 15, width: 22, flexShrink: 0, textAlign: 'center' }}>{t.icon}</span>
-                      <span>{t.text}</span>
-                    </button>
-                  )
-                })}
-              </nav>
-
-              {/* Class list at bottom of sidebar */}
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '14px 16px' }}>
-                <div style={{ fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>
-                  Kelas Diampu
-                </div>
-                {kelasDiampu.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {kelasDiampu.map(k => (
-                      <div key={k} style={{
-                        fontSize: 12, fontWeight: 600, color: '#94A3B8',
-                        background: 'rgba(255,255,255,0.05)', borderRadius: 8,
-                        padding: '5px 10px',
-                      }}>{k}</div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 12, color: '#374151', fontStyle: 'italic' }}>Belum ada kelas</div>
-                )}
-              </div>
-            </div>
-
-            {/* Main content area */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', maxWidth: 960 }}>
+           <div style={{ display: 'flex', minHeight: 'calc(100vh - 65px)' }}>
+             {/* Main content area. Desktop navigation lives in AppShell/Sidebar. */}
+             <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', maxWidth: 1100 }}>
               {tabContent}
             </div>
           </div>
@@ -1728,10 +2125,10 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           /* ── Mobile: horizontal scroll tab bar + content ── */
           <>
             <div style={{ display: 'flex', gap: 4, padding: '12px 16px 0', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              {TABS.map(t => {
+               {TABS.filter(t => t.id !== 'home').map(t => {
                 const active = tab === t.id
-                return (
-                  <button key={t.id} data-tab={t.id} onClick={() => setTab(t.id)} style={{
+                 return (
+                   <button key={t.id} data-tab={t.id} onClick={() => selectTab(t.id)} style={{
                     flex: '0 0 auto', padding: '8px 14px', borderRadius: 10, border: 'none',
                     cursor: 'pointer', fontSize: 12, fontWeight: 800, fontFamily: 'inherit',
                     whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5,

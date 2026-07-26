@@ -35,7 +35,9 @@ function sanitizeUser(row, role) {
   }
 }
 
-const MAX_PHOTO_BYTES = 800 * 1024 // ~800KB base64 data URL
+// The client compresses by decoded image bytes, while the request contains a
+// base64 data URL. Leave room for base64 overhead and JSON quoting.
+const MAX_PHOTO_BYTES = 1100 * 1024 // ~1.1MB encoded data URL
 const MAX_BIO_LENGTH = 300
 
 // Regex to detect bcrypt hash format (starts with $2a$, $2b$, or $2y$)
@@ -149,12 +151,14 @@ router.put('/profile', async (req, res) => {
     }
 
     const table = session.role === 'guru' ? 'gurus' : 'students'
+    const hasPhotoUpdate = photoUrl !== undefined
+    const hasBioUpdate = bio !== undefined
     const { rows } = await pool.query(
       `update ${table} set
-        photo_url = coalesce($2, photo_url),
-        bio = coalesce($3, bio)
+        photo_url = case when $2 then $3 else photo_url end,
+        bio = case when $4 then $5 else bio end
        where id = $1 returning *`,
-      [session.id, photoUrl === undefined ? null : photoUrl, bio === undefined ? null : bio]
+      [session.id, hasPhotoUpdate, photoUrl, hasBioUpdate, bio]
     )
     const user = rows[0]
     if (!user) return res.status(404).json({ error: 'Pengguna tidak ditemukan.' })

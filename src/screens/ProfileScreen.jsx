@@ -16,7 +16,9 @@ async function apiGet(path) {
 }
 
 const MAX_BIO_LENGTH = 300
-const MAX_PHOTO_BYTES = 1024 * 1024
+// Keep the encoded data URL under the server's request limit while retaining
+// the roughly 1MB decoded-image budget described to users.
+const MAX_PHOTO_BYTES = 760 * 1024
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -315,7 +317,17 @@ export default function ProfileScreen({ goBack }) {
   const player = playerCtx?.player ?? null
   const isDesktop = useIsDesktop()
   const fileInputRef = useRef(null)
-  const [photoPreview, setPhotoPreview] = useState(user?.photoUrl || null)
+  const [photoPreview, setPhotoPreview] = useState(user?.photoUrl ?? user?.photo_url ?? null)
+  // Keep preview in sync when user object refreshes (e.g. after saving or re-auth)
+  useEffect(() => {
+    const fresh = user?.photoUrl ?? user?.photo_url ?? null
+    setPhotoPreview(prev => {
+      // Only overwrite if no local unsaved change is pending (prev === saved server value)
+      const saved = user?.photoUrl ?? user?.photo_url ?? null
+      if (prev === saved || prev === null) return fresh
+      return prev
+    })
+  }, [user?.photoUrl, user?.photo_url])
   const [cropSrc, setCropSrc] = useState(null)
   const [bio, setBio] = useState(user?.bio || '')
   const [saving, setSaving] = useState(false)
@@ -337,7 +349,8 @@ export default function ProfileScreen({ goBack }) {
   const handleSave = async () => {
     setError(''); setSuccess(''); setSaving(true)
     try {
-      await updateProfile({ photoUrl: photoPreview !== user?.photoUrl ? photoPreview : undefined, bio })
+      const savedPhoto = user?.photoUrl ?? user?.photo_url ?? null
+      await updateProfile({ photoUrl: photoPreview !== savedPhoto ? photoPreview : undefined, bio })
       setSuccess('Profil berhasil disimpan!')
     } catch (err) {
       setError(err.message || 'Gagal menyimpan profil.')
