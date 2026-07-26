@@ -1,574 +1,419 @@
-import React, { useState, useEffect } from 'react'
-import { PlayerHeader } from '../components/shared'
+import React, { useEffect, useState } from 'react'
 import { usePlayer } from '../PlayerContext'
 import { useTask } from '../TaskContext'
 import { useAuth } from '../AuthContext'
-import logo from '../assets/logo.png'
+import { usePet } from '../PetContext'
+import { UserAvatar } from '../components/shared'
 import { getAccessibleGradesForUser } from '../kelasUtils'
 
-const ZONE_DEFS = [
+const ZONES = [
   {
-    id: 'grade7', grade: 7, label: 'Kelas 7', title: 'Gerbang Bilangan', subject: 'Matematika · Kelas VII',
-    description: 'Bangun fondasi logika dan taklukkan bilangan bulat, rasional, dan rasio.',
-    progress: null, // live from player
-    icon: '🧭', missions: 20, accent: '#67E8F9', accentDim: 'rgba(103,232,249,0.1)',
-    accentBorder: 'rgba(103,232,249,0.2)', accentText: 'indigo',
-    bg: 'linear-gradient(135deg, #0c2340 0%, #0e3d5e 50%, #0a1e38 100%)',
-    accentGlow: 'rgba(56,189,248,0.25)',
+    id: 'grade7',
+    grade: 7,
+    label: 'KELAS VII',
+    title: 'Gerbang Bilangan',
+    icon: '🏰',
+    subject: 'Bilangan Bulat, Rasional, Rasio',
+    description: 'Bangun fondasi logika dan taklukkan bilangan.',
+    accent: '#67E8F9',
+    soft: 'rgba(103,232,249,0.08)',
     babs: ['BAB I: Bilangan Bulat', 'BAB II: Bilangan Rasional', 'BAB III: Rasio'],
-    hasContent: true,
+    missions: 20,
   },
   {
-    id: 'grade8', grade: 8, label: 'Kelas 8', title: 'Kerajaan Pythagoras', subject: 'Matematika · Kelas VIII',
-    description: 'Perjuangkan teorema, pangkat, dan persamaan linear di kerajaan api.',
-    progress: null,
-    icon: '⚔️', missions: 38, accent: '#FB923C', accentDim: 'rgba(251,146,60,0.1)',
-    accentBorder: 'rgba(251,146,60,0.2)', accentText: 'amber',
-    bg: 'linear-gradient(135deg, #3b1200 0%, #5c2000 50%, #2a0e00 100%)',
-    accentGlow: 'rgba(251,146,60,0.25)',
-    babs: ['BAB I: Bilangan Berpangkat', 'BAB II: Teorema Pythagoras', 'BAB III: PLSV'],
-    hasContent: true,
+    id: 'grade8',
+    grade: 8,
+    label: 'KELAS VIII',
+    title: 'Kerajaan Pythagoras',
+    icon: '⚔️',
+    subject: 'Pythagoras, PLSV, Bangun Datar',
+    description: 'Perjuangkan teorema dan persamaan linear.',
+    accent: '#FB923C',
+    soft: 'rgba(251,146,60,0.08)',
+    babs: ['BAB I: Bilangan Berpangkat', 'BAB II: Pythagoras', 'BAB III: PLSV'],
+    missions: 38,
   },
   {
-    id: 'grade9', grade: 9, label: 'Kelas 9', title: 'Observatorium SPLDV', subject: 'Matematika · Kelas IX',
-    description: 'Jelajahi antariksa persamaan, lingkaran, dan bangun ruang.',
-    progress: null,
-    icon: '🚀', missions: 31, accent: '#34D399', accentDim: 'rgba(52,211,153,0.1)',
-    accentBorder: 'rgba(52,211,153,0.2)', accentText: 'emerald',
-    bg: 'linear-gradient(135deg, #0d1829 0%, #111e35 50%, #0a1020 100%)',
-    accentGlow: 'rgba(52,211,153,0.25)',
+    id: 'grade9',
+    grade: 9,
+    label: 'KELAS IX',
+    title: 'Observatorium SPLDV',
+    icon: '🚀',
+    subject: 'SPLDV, Lingkaran, Bangun Ruang',
+    description: 'Jelajahi antariksa persamaan dan geometri.',
+    accent: '#34D399',
+    soft: 'rgba(52,211,153,0.08)',
     babs: ['BAB I: SPLDV', 'BAB II: Lingkaran', 'BAB III: Bangun Ruang'],
-    hasContent: true,
+    missions: 31,
   },
-]
-
-const QUICK_LINKS = [
-  { id: 'grades',       label: 'Nilai',    sublabel: 'Rekap belajarmu',   icon: '📊', accent: '#67E8F9', bg: 'rgba(103,232,249,0.1)' },
-  { id: 'komunikasi',   label: 'Chat',     sublabel: 'Tanya guru',        icon: '💬', accent: '#818CF8', bg: 'rgba(129,140,248,0.1)' },
-  { id: 'toko',         label: 'Toko',     sublabel: null,                 icon: '🛍️', accent: '#FBBF24', bg: 'rgba(251,191,36,0.1)' },
-  { id: 'lencana',      label: 'Lencana',  sublabel: null,                 icon: '🏅', accent: '#F472B6', bg: 'rgba(244,114,182,0.1)' },
-]
-
-const NAV_ITEMS = [
-  { label: 'Perjalanan', icon: '🧭', screen: null },
-  { label: 'Kelas Saya', icon: '📊', screen: 'grades' },
-  { label: 'Pencapaian', icon: '🏆', screen: 'lencana' },
 ]
 
 function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024)
+  const [desktop, setDesktop] = useState(() => window.innerWidth >= 1024)
   useEffect(() => {
-    const onResize = () => setIsDesktop(window.innerWidth >= 1024)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    const update = () => setDesktop(window.innerWidth >= 1024)
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
   }, [])
-  return isDesktop
+  return desktop
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString('id-ID')
+}
+
+function ZoneCard({ zone, locked, selected, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`home-zone ${selected ? 'is-selected' : ''} ${locked ? 'is-locked' : ''}`}
+      style={{ '--zone-accent': zone.accent, '--zone-soft': zone.soft }}
+      onClick={onClick}
+      aria-label={locked ? `${zone.title} terkunci` : `Buka ${zone.title}`}
+    >
+      <div className="home-zone__top">
+        <span className="home-zone__icon">{locked ? '🔒' : zone.icon}</span>
+        <span className="home-zone__number">0{zone.grade - 6}</span>
+      </div>
+      <div className="home-zone__body">
+        <span className="home-zone__label">{zone.label}</span>
+        <strong>{zone.title}</strong>
+        <small>{zone.subject}</small>
+      </div>
+      <div className="home-zone__progress">
+        <span>{locked ? 'Selesaikan kelas sebelumnya untuk membuka' : `${zone.missions} misi tersedia`}</span>
+        <div><i style={{ width: locked ? '0%' : '100%' }} /></div>
+      </div>
+      {!locked && <span className="home-zone__action">{selected ? 'ZONA DIPILIH' : 'BUKA PETA'} <b>›</b></span>}
+    </button>
+  )
 }
 
 export default function HomeScreen({ navigate, guruMode, onExitGuruMode }) {
   const { player } = usePlayer()
   const { tasks, grades } = useTask()
   const { user } = useAuth()
+  const { pet } = usePet()
   const isDesktop = useIsDesktop()
+  const [activeZone, setActiveZone] = useState(null)
+  const [notice, setNotice] = useState('')
   const accessibleGrades = getAccessibleGradesForUser(user)
-  const pendingTasks = tasks.filter(t => t.status === 'active')
-  const pendingTaskCount = pendingTasks.length
+  const pendingTasks = tasks.filter(task => task.status === 'active')
+  const nextTask = pendingTasks[0] || null
+  const firstName = (user?.name || player?.name || 'Pelajar').split(' ')[0]
+  const photoUrl = user?.photoUrl ?? user?.photo_url
 
-  const openTask = (task) => navigate(task.gameKey, { taskId: task.id })
+  useEffect(() => {
+    if (!notice) return undefined
+    const timer = setTimeout(() => setNotice(''), 3000)
+    return () => clearTimeout(timer)
+  }, [notice])
 
-  const zones = ZONE_DEFS.map(z => {
-    const accessible = accessibleGrades.includes(z.grade)
-    return { ...z, locked: !z.hasContent || !accessible, accessDenied: !accessible }
-  })
+  const zones = ZONES.map(zone => ({
+    ...zone,
+    locked: !accessibleGrades.includes(zone.grade),
+  }))
 
-  const SHORTCUTS = [
-    { id: 'komunikasi', emoji: '💬', label: 'Chat & Forum', color: '#67E8F9', bg: 'rgba(103,232,249,0.12)' },
-    { id: 'toko',       emoji: '🛍️', label: 'Toko',         color: '#818CF8', bg: 'rgba(129,140,248,0.12)' },
-    { id: 'papanperingkat', emoji: '🏆', label: 'Peringkat', color: '#34D399', bg: 'rgba(52,211,153,0.12)' },
-    { id: 'lencana',    emoji: '🏅', label: 'Lencana',      color: '#FBBF24', bg: 'rgba(251,191,36,0.12)' },
-    { id: 'profile',    emoji: '👤', label: 'Profil',       color: '#94A3B8', bg: 'rgba(148,163,184,0.12)' },
+  const openTask = task => task && navigate(task.gameKey, { taskId: task.id })
+  const showNotice = text => setNotice(text)
+  const openZone = zone => {
+    if (zone.locked) {
+      showNotice('Zona ini belum terbuka untuk akunmu.')
+      return
+    }
+    if (activeZone === zone.id) navigate(zone.id)
+    else setActiveZone(zone.id)
+  }
+
+  const quickLinks = [
+    { id: 'grades', icon: '📊', label: 'Nilai & Tugas', sub: `${grades.length} nilai tersimpan`, accent: '#818CF8' },
+    { id: 'komunikasi', icon: '💬', label: 'Chat Guru', sub: 'Tanya gurumu', accent: '#67E8F9' },
+    { id: 'toko', icon: '🛒', label: 'Toko', sub: `${formatNumber(player.coins)} koin`, accent: '#FBBF24' },
+    { id: 'lencana', icon: '🏅', label: 'Lencana', sub: 'Koleksimu', accent: '#FB923C' },
   ]
 
-  // ── Mobile layout (unchanged) ──
-  if (!isDesktop) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#0A0B14', position: 'relative' }}>
-        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
-          <div style={{ position: 'absolute', top: '-10%', left: '-15%', width: '60%', height: '40%', borderRadius: '50%', background: 'rgba(99,102,241,0.12)', filter: 'blur(100px)' }} />
-          <div style={{ position: 'absolute', bottom: '10%', right: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(52,211,153,0.08)', filter: 'blur(100px)' }} />
-        </div>
-
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 'var(--content-max)', margin: '0 auto' }}>
-          {guruMode && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(52,211,153,0.12)', borderBottom: '1px solid rgba(52,211,153,0.3)' }}>
-              <div style={{ fontSize: 12, color: '#34D399', fontWeight: 700 }}>🎓 Mode Mengajar · Latihan Bebas untuk Media Ajar</div>
-              <button onClick={onExitGuruMode} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>← Kembali</button>
-            </div>
-          )}
-
-          <PlayerHeader
-            onAvatarClick={() => navigate('profile')}
-            onNotificationTaskClick={openTask}
-            onCommunicationClick={() => navigate('komunikasi')}
-          />
-
-          <div style={{ margin: '16px 16px 0', borderRadius: 22, overflow: 'hidden', position: 'relative' }}>
-            <div style={{ background: 'linear-gradient(135deg, #1a1a3e 0%, #2d1b69 50%, #1a1a3e 100%)', border: '1px solid rgba(99,102,241,0.4)', padding: '22px 20px', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #818CF8, transparent)' }} />
-              <img src={logo} alt="" style={{ position: 'absolute', right: -16, top: -16, width: 120, height: 120, opacity: 0.12, objectFit: 'contain' }} />
-              <div style={{ fontSize: 10, color: '#818CF8', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>TANTANGAN OTAK MATEMATIKA</div>
-              <div style={{ fontSize: 30, fontWeight: 900, color: '#fff', fontStyle: 'italic', letterSpacing: -1 }}>TOMAT</div>
-              <div style={{ fontSize: 13, color: '#94A3B8', marginTop: 5, lineHeight: 1.5 }}>Selesaikan misi matematika, kumpulkan koin &amp; EXP untuk naik level!</div>
-              <div style={{ marginTop: 16, display: 'flex', gap: 10 }}>
-                <StatPill emoji="🪙" value={player.coins} label="Koin" color="#FBBF24" />
-                <StatPill emoji="⭐" value={`Lv ${player.level}`} label="Level" color="#818CF8" />
-                <StatPill emoji="📚" value={player.exp} label="EXP" color="#34D399" />
-              </div>
-            </div>
-          </div>
-
-          {!guruMode && (
-            <div style={{ padding: '14px 16px 0', display: 'flex', gap: 10 }}>
-              <button onClick={() => navigate('grades')} style={{ flex: 1, background: 'linear-gradient(135deg, #1e1b4b, #312e81)', border: '1px solid rgba(167,139,250,0.35)', borderRadius: 18, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
-                <div style={{ fontSize: 24 }}>📊</div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Nilai Akademik Saya</div>
-                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>{grades.length > 0 ? `${grades.length} nilai tersimpan` : 'Belum ada nilai'}</div>
-                </div>
-                {pendingTaskCount > 0 && <div style={{ position: 'absolute', top: 10, right: 12, background: '#EF4444', color: '#fff', borderRadius: 20, fontSize: 11, fontWeight: 800, padding: '2px 8px' }}>{pendingTaskCount} tugas</div>}
-              </button>
-            </div>
-          )}
-
-          {!guruMode && (
-            <div style={{ padding: '10px 16px 0', display: 'flex', gap: 10 }}>
-              {SHORTCUTS.slice(0, 4).map(item => (
-                <button key={item.id} onClick={() => navigate(item.id)} style={{ flex: 1, background: item.bg, border: `1px solid ${item.color}33`, borderRadius: 16, padding: '12px 8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                  <div style={{ fontSize: 22 }}>{item.emoji}</div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: item.color }}>{item.label}</div>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div style={{ padding: '18px 16px 32px' }}>
-            <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 14 }}>Pilih Zona Petualangan</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {zones.map(z => <ZoneCard key={z.id} z={z} onClick={() => !z.locked && navigate(z.id)} />)}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Desktop layout: canvas-matched design ──
-  const nama = user?.name || player?.name || 'Pelajar'
-  const hour = new Date().getHours()
-  const greeting = hour < 11 ? 'Halo' : hour < 15 ? 'Halo' : hour < 18 ? 'Halo' : 'Halo'
-  const photoSrc = user?.photoUrl ?? user?.photo_url ?? null
-  const initials = nama.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
-  const firstName = nama.split(' ')[0]
-  const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-
-  const [activeSideNav, setActiveSideNav] = useState('Perjalanan')
-  const [activeZone, setActiveZone] = useState(null)
-  const [notice, setNotice] = useState(null)
-
-  const showNotice = (msg) => { setNotice(msg); setTimeout(() => setNotice(null), 2600) }
-
-  const handleSideNav = (item) => {
-    setActiveSideNav(item.label)
-    if (item.screen) navigate(item.screen)
-    else showNotice(`${item.label} — kamu sudah di halaman ini.`)
-  }
-
-  const nextTask = pendingTasks[0] || null
-  const firstAccessibleZone = zones.find(z => !z.locked)
-
   return (
-    <div style={{ minHeight: '100vh', background: '#071321', color: '#F1F5F9', position: 'relative', overflow: 'hidden' }}>
-      {/* Background blobs */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', left: -128, top: -128, width: 520, height: 520, borderRadius: '50%', background: 'rgba(6,182,212,0.08)', filter: 'blur(110px)' }} />
-        <div style={{ position: 'absolute', right: -160, top: '38%', width: 580, height: 580, borderRadius: '50%', background: 'rgba(99,102,241,0.10)', filter: 'blur(130px)' }} />
-        <div style={{ position: 'absolute', bottom: -280, left: '35%', width: 520, height: 520, borderRadius: '50%', background: 'rgba(14,165,233,0.06)', filter: 'blur(120px)' }} />
-        {/* Dot grid */}
-        <div style={{ position: 'absolute', inset: 0, opacity: 0.12, backgroundImage: 'radial-gradient(#b8deef 0.65px, transparent 0.65px)', backgroundSize: '23px 23px' }} />
-      </div>
+    <main className={`home-screen ${isDesktop ? 'home-screen--desktop' : 'home-screen--mobile'}`}>
+      <div className="home-screen__glow home-screen__glow--one" />
+      <div className="home-screen__glow home-screen__glow--two" />
+      <div className="home-screen__glow home-screen__glow--three" />
 
       {guruMode && (
-        <div style={{ position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 32px', background: 'rgba(52,211,153,0.12)', borderBottom: '1px solid rgba(52,211,153,0.3)' }}>
-          <div style={{ fontSize: 12, color: '#34D399', fontWeight: 700 }}>🎓 Mode Mengajar · Latihan Bebas untuk Media Ajar</div>
-          <button onClick={onExitGuruMode} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>← Kembali</button>
+        <div className="home-teacher-mode">
+          <span>🎓 Mode Mengajar · Latihan bebas untuk media ajar</span>
+          <button type="button" onClick={onExitGuruMode}>← Kembali</button>
         </div>
       )}
 
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', minHeight: '100vh' }}>
+      <header className="home-topbar">
+        <div className="home-topbar__date">
+          {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}
+          <span>/</span> Semester Aktif
+        </div>
+        <div className="home-topbar__actions">
+          {!guruMode && <button type="button" className="home-coins" onClick={() => navigate('toko')}>🪙 {formatNumber(player.coins)}</button>}
+          <button
+            type="button"
+            className="home-notification"
+            onClick={() => nextTask ? openTask(nextTask) : showNotice('Belum ada tugas aktif.')}
+            aria-label="Notifikasi tugas"
+          >
+            🔔
+            {pendingTasks.length > 0 && <i />}
+          </button>
+          <button type="button" className="home-profile-button" onClick={() => navigate('profile')}>
+            <UserAvatar user={user} size={34} />
+            <span>{firstName}</span>
+            <b>⌄</b>
+          </button>
+        </div>
+      </header>
 
-        {/* ── Left Sidebar ── */}
-        {!guruMode && (
-          <aside style={{ width: 222, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(255,255,255,0.07)', background: 'rgba(9,24,39,0.8)', padding: '28px 20px', backdropFilter: 'blur(12px)' }}>
-            {/* Logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 8px', marginBottom: 48 }}>
-              <div style={{ position: 'relative', width: 40, height: 40, borderRadius: 13, background: 'linear-gradient(135deg, #67E8F9, #6366F1)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 30px rgba(45,212,191,0.18)', color: '#071321', flexShrink: 0 }}>
-                🎯
-                <span style={{ position: 'absolute', top: -4, right: -4, width: 10, height: 10, borderRadius: '50%', border: '2px solid #091827', background: '#FCD34D' }} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 900, letterSpacing: '0.18em', color: '#fff', fontSize: 14 }}>TOMAT</div>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(103,232,249,0.7)', marginTop: 2 }}>Ruang Tumbuh</div>
-              </div>
-            </div>
-
-            {/* Nav */}
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {NAV_ITEMS.map(item => {
-                const isActive = activeSideNav === item.label
-                return (
-                  <button
-                    key={item.label}
-                    onClick={() => handleSideNav(item)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                      borderRadius: 12, padding: '12px 14px', textAlign: 'left',
-                      fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-                      background: isActive ? 'rgba(103,232,249,0.12)' : 'transparent',
-                      color: isActive ? '#67E8F9' : '#94A3B8',
-                      border: isActive ? '1px solid rgba(103,232,249,0.2)' : '1px solid transparent',
-                      transition: 'all 0.15s',
-                    }}
-                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#E2E8F0' } }}
-                    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94A3B8' } }}
-                  >
-                    <span style={{ fontSize: 16 }}>{item.icon}</span>
-                    {item.label}
-                    {isActive && <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: '#67E8F9', boxShadow: '0 0 12px rgba(103,232,249,0.9)', flexShrink: 0 }} />}
-                  </button>
-                )
-              })}
-            </nav>
-
-            {/* Help card */}
-            <div style={{ marginTop: 'auto', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'linear-gradient(135deg, rgba(99,102,241,0.13), rgba(6,182,212,0.06))', padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#67E8F9', marginBottom: 8 }}>
-                <span style={{ fontSize: 14 }}>❓</span>
-                <span style={{ fontSize: 11, fontWeight: 700 }}>Butuh bantuan?</span>
-              </div>
-              <p style={{ fontSize: 10, lineHeight: 1.6, color: '#64748B', margin: '0 0 12px' }}>Teman belajar TOMAT siap menemanimu.</p>
-              <button onClick={() => navigate('komunikasi')} style={{ fontSize: 10, fontWeight: 700, color: '#67E8F9', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>Hubungi guru → </button>
-            </div>
-          </aside>
-        )}
-
-        {/* ── Main content ── */}
-        <section style={{ flex: 1, minWidth: 0, padding: guruMode ? '0 40px 48px' : '0 40px 48px' }}>
-
-          {/* Header */}
-          <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '20px 0' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>
-              {todayStr} <span style={{ color: '#1E3A4C', margin: '0 8px' }}>/</span> Semester Aktif
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {/* Coins */}
-              {!guruMode && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, border: '1px solid rgba(251,191,36,0.15)', background: 'rgba(251,191,36,0.07)', padding: '8px 12px' }}>
-                  <span style={{ fontSize: 14 }}>🪙</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#FDE68A' }}>{player.coins?.toLocaleString?.() ?? player.coins}</span>
-                </div>
-              )}
-              {/* Notif bell (reuse existing PlayerHeader click) */}
-              <button onClick={() => openTask(pendingTasks[0])} style={{ position: 'relative', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', padding: '10px', color: '#94A3B8', cursor: 'pointer', lineHeight: 1 }} onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.09)'; e.currentTarget.style.color='#fff' }} onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#94A3B8' }}>
-                <span style={{ fontSize: 15 }}>🔔</span>
-                {pendingTaskCount > 0 && <span style={{ position: 'absolute', top: 8, right: 8, width: 6, height: 6, borderRadius: '50%', background: '#67E8F9' }} />}
-              </button>
-              {/* Profile */}
-              <button onClick={() => navigate('profile')} style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', padding: '6px 10px 6px 6px', cursor: 'pointer', fontFamily: 'inherit' }} onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.09)'} onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,0.04)'}>
-                {photoSrc
-                  ? <img src={photoSrc} alt="" style={{ width: 32, height: 32, borderRadius: 9, objectFit: 'cover' }} />
-                  : <span style={{ width: 32, height: 32, borderRadius: 9, background: 'linear-gradient(135deg, #67E8F9, #6366F1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#071321' }}>{initials}</span>
-                }
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#E2E8F0' }}>{firstName}</span>
-                <span style={{ fontSize: 12, color: '#475569' }}>▾</span>
-              </button>
-            </div>
-          </header>
-
-          <div style={{ maxWidth: 1120, paddingTop: 36 }}>
-
-            {/* Hero greeting + streak */}
-            <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 20, marginBottom: 28 }}>
-              <div>
-                <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.22em', color: '#67E8F9', margin: '0 0 8px' }}>PETA PERJALANANMU</p>
-                <h1 style={{ fontSize: 34, fontWeight: 900, letterSpacing: '-0.035em', color: '#fff', margin: 0 }}>
-                  {greeting}, {firstName}. <span style={{ color: '#475569' }}>Siap menjelajah?</span>
-                </h1>
-                <p style={{ marginTop: 8, fontSize: 13, color: '#64748B', margin: '8px 0 0' }}>Satu langkah kecil hari ini membawa kamu lebih dekat ke tujuan.</p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.035)', padding: '12px 16px', flexShrink: 0 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 12, background: 'rgba(251,146,60,0.1)', color: '#FB923C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🔥</div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>Lv {player.level}</div>
-                  <div style={{ fontSize: 10, color: '#475569' }}>level saat ini</div>
-                </div>
-                <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.1)' }} />
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: '#67E8F9' }}>{player.exp?.toLocaleString?.() ?? player.exp} XP</div>
-                  <div style={{ fontSize: 10, color: '#475569' }}>total EXP</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Next mission / active task hero card */}
-            {!guruMode && (
-              <section style={{ position: 'relative', overflow: 'hidden', borderRadius: 24, border: '1px solid rgba(103,232,249,0.2)', background: 'linear-gradient(135deg, #102e42, #0c2539, #151b47)', padding: 28, boxShadow: '0 22px 70px rgba(3,16,38,0.35)', marginBottom: 32 }}>
-                {/* Decorative rings */}
-                <div style={{ position: 'absolute', top: -96, right: -48, width: 288, height: 288, borderRadius: '50%', border: '34px solid rgba(103,232,249,0.07)', pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', top: 32, right: -8, width: 224, height: 224, borderRadius: '50%', border: '1px solid rgba(99,102,241,0.12)', pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', bottom: -75, right: '19%', width: 160, height: 160, borderRadius: '50%', background: 'rgba(103,232,249,0.08)', filter: 'blur(48px)', pointerEvents: 'none' }} />
-
-                <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 28 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                      <span style={{ borderRadius: 6, background: 'rgba(103,232,249,0.15)', padding: '4px 8px', fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.16em', color: '#67E8F9' }}>
-                        {nextTask ? 'TUGAS AKTIF' : 'MISI BERIKUTNYA'}
-                      </span>
-                      {nextTask && <span style={{ fontSize: 10, fontWeight: 600, color: '#94A3B8' }}>⚡ +{(nextTask.totalQuestions || 5) * 10} EXP</span>}
-                    </div>
-                    <h2 style={{ fontSize: 28, fontWeight: 900, lineHeight: 1.15, letterSpacing: '-0.025em', color: '#fff', margin: 0, maxWidth: 520 }}>
-                      {nextTask
-                        ? <><span>{nextTask.gameName || nextTask.gameKey}</span></>
-                        : firstAccessibleZone
-                          ? <>Masuki <span style={{ color: '#67E8F9' }}>{firstAccessibleZone.title}</span></>
-                          : <><span style={{ color: '#67E8F9' }}>Mulai petualangan</span> matematikamu</>
-                      }
-                    </h2>
-                    <p style={{ marginTop: 8, fontSize: 12, lineHeight: 1.7, color: 'rgba(203,213,225,0.8)', margin: '8px 0 0', maxWidth: 480 }}>
-                      {nextTask
-                        ? `Selesaikan ${nextTask.totalQuestions || 5} soal untuk mendapatkan nilai dari gurumu.`
-                        : firstAccessibleZone
-                          ? firstAccessibleZone.description
-                          : 'Pilih zona petualangan di bawah untuk mulai belajar.'}
-                    </p>
-                    <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
-                      <button
-                        onClick={() => nextTask ? openTask(nextTask) : (firstAccessibleZone && navigate(firstAccessibleZone.id))}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, borderRadius: 12, background: '#67E8F9', padding: '12px 16px', fontSize: 11, fontWeight: 900, color: '#082033', boxShadow: '0 8px 28px rgba(103,232,249,0.2)', border: 'none', cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#a5f3fc'}
-                        onMouseLeave={e => e.currentTarget.style.background = '#67E8F9'}
-                      >
-                        {nextTask ? 'KERJAKAN SEKARANG' : 'MULAI MISI'} →
-                      </button>
-                      {pendingTaskCount > 1 && (
-                        <button onClick={() => navigate('grades')} style={{ fontSize: 11, fontWeight: 700, color: '#CBD5E1', textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.2)', textUnderlineOffset: 4, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                          Lihat {pendingTaskCount - 1} tugas lainnya
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Progress panel */}
-                  <div style={{ width: 260, flexShrink: 0, borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(7,24,39,0.45)', padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.13em', color: '#64748B' }}>PROGRES</span>
-                      <span style={{ fontSize: 14, fontWeight: 900, color: '#67E8F9' }}>Lv {player.level}</span>
-                    </div>
-                    {/* EXP bar */}
-                    <div style={{ marginBottom: 12 }}>
-                      <div style={{ height: 8, borderRadius: 9999, background: 'rgba(255,255,255,0.09)', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', borderRadius: 9999, background: '#67E8F9', boxShadow: '0 0 10px rgba(103,232,249,0.35)', width: `${Math.min(100, (player.exp % 100))}%`, transition: 'width 0.5s' }} />
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10, color: '#64748B' }}>
-                      <span>✓</span> {pendingTaskCount > 0 ? `${pendingTaskCount} tugas menunggu` : 'Tidak ada tugas aktif'}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* Zone cards */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <h2 style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.02em', color: '#fff', margin: 0 }}>Zona petualangan</h2>
-                  <span style={{ borderRadius: 9999, background: 'rgba(103,232,249,0.1)', padding: '4px 8px', fontSize: 9, fontWeight: 700, color: '#67E8F9' }}>3 ZONA</span>
-                </div>
-                <p style={{ marginTop: 4, fontSize: 11, color: '#475569', margin: '4px 0 0' }}>Pilih jalur yang ingin kamu taklukkan.</p>
-              </div>
-              <button onClick={() => showNotice('Semua zona yang tersedia sudah tampil di sini.')} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#67E8F9', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onMouseEnter={e => e.currentTarget.style.color='#a5f3fc'} onMouseLeave={e => e.currentTarget.style.color='#67E8F9'}>Lihat semua →</button>
-            </div>
-
-            <section style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-              {zones.map(z => {
-                const isSelected = activeZone === z.id
-                return (
-                  <button
-                    key={z.id}
-                    onClick={() => z.locked ? showNotice('Selesaikan zona sebelumnya atau minta gurumu untuk membuka akses.') : (isSelected ? setActiveZone(null) : setActiveZone(z.id))}
-                    style={{
-                      position: 'relative', overflow: 'hidden', borderRadius: 20,
-                      border: `1px solid ${z.locked ? 'rgba(255,255,255,0.07)' : isSelected ? `${z.accent}66` : 'rgba(255,255,255,0.08)'}`,
-                      background: z.locked ? 'rgba(255,255,255,0.025)' : isSelected ? `${z.accentDim}` : 'rgba(11,28,44,0.8)',
-                      padding: 20, textAlign: 'left', cursor: z.locked ? 'not-allowed' : 'pointer',
-                      opacity: z.locked ? 0.7 : 1,
-                      boxShadow: isSelected ? `0 14px 38px rgba(22,184,209,0.1)` : 'none',
-                      fontFamily: 'inherit', transition: 'all 0.15s',
-                    }}
-                    onMouseEnter={e => { if (!z.locked && !isSelected) { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = `${z.accent}44` } }}
-                    onMouseLeave={e => { if (!z.locked && !isSelected) { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' } }}
-                  >
-                    <div style={{ position: 'absolute', top: -36, right: -36, width: 112, height: 112, borderRadius: '50%', background: z.locked ? 'rgba(148,163,184,0.05)' : `${z.accent}18`, filter: 'blur(24px)', pointerEvents: 'none' }} />
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 12, border: `1px solid ${z.locked ? 'rgba(255,255,255,0.1)' : `${z.accent}33`}`, background: z.locked ? 'rgba(255,255,255,0.04)' : z.accentDim, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, color: z.locked ? '#64748B' : z.accent }}>
-                        {z.icon}
-                      </div>
-                      <span style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: '#1E3A4C' }}>0{zones.indexOf(z) + 1}</span>
-                    </div>
-                    <div style={{ position: 'relative', marginTop: 20 }}>
-                      <h3 style={{ fontSize: 15, fontWeight: 900, color: '#fff', margin: 0 }}>{z.title}</h3>
-                      <p style={{ marginTop: 4, fontSize: 10, fontWeight: 700, color: `${z.accent}bb`, margin: '4px 0 0' }}>{z.subject}</p>
-                      <p style={{ marginTop: 12, minHeight: 34, fontSize: 11, lineHeight: 1.6, color: '#64748B', margin: '12px 0 0' }}>{z.description}</p>
-                    </div>
-                    <div style={{ position: 'relative', marginTop: 20 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, fontSize: 10 }}>
-                        <span style={{ fontWeight: 600, color: '#475569' }}>{z.missions} misi tersedia</span>
-                        {z.locked ? <span style={{ fontSize: 12 }}>🔒</span> : <span style={{ fontWeight: 900, color: z.accent }}>{z.missions} misi</span>}
-                      </div>
-                      <div style={{ height: 6, overflow: 'hidden', borderRadius: 9999, background: 'rgba(255,255,255,0.09)' }}>
-                        <div style={{ height: '100%', borderRadius: 9999, background: z.locked ? '#334155' : z.accent, width: z.locked ? '0%' : '100%' }} />
-                      </div>
-                    </div>
-                    {!z.locked && (
-                      <div style={{ position: 'relative', marginTop: 16, display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 900, color: isSelected ? z.accent : '#475569' }}>
-                        {isSelected ? 'ZONA DIPILIH' : 'BUKA PETA'} <span style={{ fontSize: 12 }}>›</span>
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </section>
-
-            {/* Zone detail panel (if selected) */}
-            {activeZone && !zones.find(z => z.id === activeZone)?.locked && (
-              <div style={{ marginBottom: 32, borderRadius: 16, border: `1px solid ${zones.find(z => z.id === activeZone)?.accent}33`, background: `${zones.find(z => z.id === activeZone)?.accentDim}`, padding: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 900, color: '#fff' }}>{zones.find(z => z.id === activeZone)?.title}</div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-                      {zones.find(z => z.id === activeZone)?.babs.map((b, i) => (
-                        <span key={i} style={{ background: `${zones.find(z => z.id === activeZone)?.accent}22`, color: zones.find(z => z.id === activeZone)?.accent, fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 20, border: `1px solid ${zones.find(z => z.id === activeZone)?.accent}33` }}>{b}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <button onClick={() => navigate(activeZone)} style={{ borderRadius: 12, background: zones.find(z => z.id === activeZone)?.accent, color: '#071321', padding: '10px 20px', fontSize: 12, fontWeight: 900, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    Masuki Zona →
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Quick links */}
-            {!guruMode && (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <h2 style={{ fontSize: 14, fontWeight: 900, color: '#fff', margin: 0 }}>Akses cepat</h2>
-                  <span style={{ fontSize: 10, color: '#1E3A4C' }}>Semua yang kamu butuhkan</span>
-                </div>
-                <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                  {QUICK_LINKS.map(({ id, label, sublabel, icon, accent, bg }) => (
-                    <button
-                      key={id}
-                      onClick={() => navigate(id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(11,28,44,0.75)', padding: 12, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.background = 'rgba(11,28,44,0.75)' }}
-                    >
-                      <span style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 12, background: bg, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{icon}</span>
-                      <span style={{ minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: 11, fontWeight: 900, color: '#E2E8F0' }}>{label}</span>
-                        {sublabel && <span style={{ display: 'block', marginTop: 2, fontSize: 9, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sublabel}</span>}
-                        {!sublabel && id === 'toko' && <span style={{ display: 'block', marginTop: 2, fontSize: 9, color: '#475569' }}>{player.coins?.toLocaleString?.() ?? player.coins} koin</span>}
-                        {!sublabel && id === 'lencana' && <span style={{ display: 'block', marginTop: 2, fontSize: 9, color: '#475569' }}>koleksimu</span>}
-                      </span>
-                    </button>
-                  ))}
-                </section>
-              </>
-            )}
-
-            {/* Guru mode zones */}
-            {guruMode && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {zones.map(z => <ZoneCard key={z.id} z={z} onClick={() => !z.locked && navigate(z.id)} />)}
-              </div>
-            )}
+      <div className="home-content">
+        <section className="home-greeting">
+          <div>
+            <span className="home-eyebrow">PETA PERJALANANMU</span>
+            <h1>Halo, {firstName}. <em>Siap menjelajah?</em></h1>
+            <p>Satu langkah kecil hari ini membawa kamu lebih dekat ke tujuan.</p>
+          </div>
+          <div className="home-level">
+            <span>🔥</span>
+            <div><strong>Lv {player.level}</strong><small>level saat ini</small></div>
+            <i />
+            <div className="home-level__xp"><strong>{formatNumber(player.exp)} XP</strong><small>total EXP</small></div>
           </div>
         </section>
-      </div>
 
-      {/* Notice toast */}
-      {notice && (
-        <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 50, display: 'flex', alignItems: 'center', gap: 12, borderRadius: 12, border: '1px solid rgba(103,232,249,0.2)', background: '#10263a', padding: '12px 16px', fontSize: 11, fontWeight: 600, color: '#67E8F9', boxShadow: '0 20px 60px rgba(0,0,0,0.5)', whiteSpace: 'nowrap' }}>
-          ✦ {notice}
-          <button onClick={() => setNotice(null)} style={{ color: '#475569', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, marginLeft: 8 }}>✕</button>
-        </div>
-      )}
-    </div>
-  )
-}
+        {!guruMode && (
+          <section className="home-mission">
+            <div className="home-mission__rings" />
+            <div className="home-mission__copy">
+              <div className="home-mission__meta">
+                <span>{nextTask ? 'TUGAS AKTIF' : 'MISI BERIKUTNYA'}</span>
+                <small>⚡ +{nextTask ? (nextTask.totalQuestions || 5) * 10 : 40} EXP</small>
+              </div>
+              <h2>
+                {nextTask
+                  ? nextTask.gameName || nextTask.gameKey
+                  : zones.find(zone => !zone.locked)?.title || 'Mulai petualangan matematikamu'}
+              </h2>
+              <p>
+                {nextTask
+                  ? `Selesaikan ${nextTask.totalQuestions || 5} soal untuk mendapatkan nilai dari gurumu.`
+                  : 'Pilih zona petualangan di bawah untuk mulai belajar dan kumpulkan pengalaman.'}
+              </p>
+              <div className="home-mission__buttons">
+                <button type="button" onClick={() => nextTask ? openTask(nextTask) : navigate(zones.find(zone => !zone.locked)?.id || 'grade7')}>
+                  {nextTask ? 'KERJAKAN SEKARANG' : 'MULAI MISI'} →
+                </button>
+                {pendingTasks.length > 1 && <button type="button" onClick={() => navigate('grades')}>Lihat tugas lainnya</button>}
+              </div>
+            </div>
+            <div className="home-mission__progress">
+              <div><span>PROGRES</span><strong>Lv {player.level}</strong></div>
+              <div className="home-progress-bar"><i style={{ width: `${Math.min(100, Math.round((player.exp / Math.max(player.maxExp || 100, 1)) * 100))}%` }} /></div>
+              <small>{pendingTasks.length ? `${pendingTasks.length} tugas menunggu` : 'Tidak ada tugas aktif'}</small>
+            </div>
+          </section>
+        )}
 
-function ZoneCard({ z, onClick }) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        background: z.bg, borderRadius: 22, padding: '20px',
-        border: `1px solid ${z.accent}40`, cursor: z.locked ? 'default' : 'pointer',
-        position: 'relative', overflow: 'hidden',
-        opacity: z.locked ? 0.55 : 1,
-        boxShadow: z.locked ? 'none' : `0 4px 32px ${z.accentGlow}`,
-        transition: 'transform 0.15s, box-shadow 0.15s',
-      }}
-      onMouseEnter={e => { if (!z.locked) e.currentTarget.style.transform = 'translateY(-2px)' }}
-      onMouseLeave={e => { e.currentTarget.style.transform = '' }}
-    >
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${z.accent}80, transparent)` }} />
-      <div style={{ position: 'absolute', right: -10, top: -10, fontSize: 90, opacity: 0.14, lineHeight: 1 }}>{z.icon}</div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        {z.locked && <span style={{ background: `${z.accent}22`, color: z.accent, fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 20, letterSpacing: 1 }}>{z.accessDenied ? '🔒 BELUM TERBUKA' : '🔒 SEGERA HADIR'}</span>}
-        <div style={{ fontSize: 10, color: z.accent, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>{z.label}</div>
-      </div>
-
-      <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', fontStyle: 'italic', marginTop: 2, lineHeight: 1.2 }}>{z.title}</div>
-      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 5 }}>{z.missions} Misi</div>
-
-      {z.babs && (
-        <div style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {z.babs.map((b, i) => (
-            <span key={i} style={{ background: `${z.accent}18`, color: z.accent, fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 20, border: `1px solid ${z.accent}25` }}>{b}</span>
+        <section className="home-section-heading">
+          <div><h2>Zona petualangan <span>3 ZONA</span></h2><p>Pilih jalur yang ingin kamu taklukkan.</p></div>
+          <button type="button" onClick={() => showNotice('Semua zona yang tersedia sudah tampil di sini.')}>Lihat semua →</button>
+        </section>
+        <section className="home-zones">
+          {zones.map(zone => (
+            <ZoneCard key={zone.id} zone={zone} locked={zone.locked} selected={activeZone === zone.id} onClick={() => openZone(zone)} />
           ))}
-        </div>
+        </section>
+
+        {activeZone && !zones.find(zone => zone.id === activeZone)?.locked && (
+          <section className="home-zone-detail">
+            <div><strong>{zones.find(zone => zone.id === activeZone)?.title}</strong><div>{zones.find(zone => zone.id === activeZone)?.babs.map(bab => <span key={bab}>{bab}</span>)}</div></div>
+            <button type="button" onClick={() => navigate(activeZone)}>Masuki Zona →</button>
+          </section>
+        )}
+
+        {!guruMode && (
+          <>
+            <section className="home-section-heading home-section-heading--quick"><div><h2>Akses cepat</h2><p>Semua yang kamu butuhkan.</p></div></section>
+            <section className="home-quick-links">
+              {quickLinks.map(link => (
+                <button key={link.id} type="button" onClick={() => navigate(link.id)} style={{ '--quick-accent': link.accent }}>
+                  <span>{link.icon}</span><div><strong>{link.label}</strong><small>{link.sub}</small></div>
+                </button>
+              ))}
+            </section>
+            <section className="home-pet">
+              <span className="home-pet__emoji">{pet.isDead ? '💀' : pet.isStarving ? '😩' : '🐹'}</span>
+              <div><strong>Tomi — {pet.isDead ? 'Perlu dihidupkan kembali' : pet.isStarving ? 'Lapar' : 'Kenyang'}</strong><div className="home-pet__bar"><i style={{ width: `${pet.hunger}%` }} /></div></div>
+              <button type="button" onClick={() => navigate('toko')}>{pet.isDead ? 'Adopsi' : 'Beri Makan'}</button>
+            </section>
+          </>
+        )}
+      </div>
+
+      {!isDesktop && (
+        <nav className="home-bottom-nav">
+          {[
+            ['home', '🏠', 'Beranda'],
+            [zones.find(zone => !zone.locked)?.id || 'grade7', '🗺️', 'Zona'],
+            ['papanperingkat', '🏆', 'Peringkat'],
+            ['profile', '👤', 'Profil'],
+          ].map(([id, icon, label]) => (
+            <button type="button" key={label} className={id === 'home' ? 'is-active' : ''} onClick={() => navigate(id)}>
+              <span>{icon}</span><small>{label}</small>
+            </button>
+          ))}
+        </nav>
       )}
 
-      <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {[...Array(3)].map((_, i) => <div key={i} style={{ height: 4, width: i === 0 ? 36 : 10, background: i === 0 ? z.accent : `${z.accent}40`, borderRadius: 2 }} />)}
-        </div>
-        <div style={{ background: z.locked ? 'rgba(255,255,255,0.06)' : z.accent, border: `1px solid ${z.locked ? 'rgba(255,255,255,0.1)' : 'transparent'}`, borderRadius: 20, padding: '7px 18px', color: z.locked ? '#fff' : '#000' }}>
-          <span style={{ fontSize: 12, fontWeight: 800 }}>{z.locked ? 'Terkunci 🔒' : 'Masuki Zona ▶'}</span>
-        </div>
-      </div>
-    </div>
-  )
-}
+      {notice && <div className="home-notice">✦ {notice}<button type="button" onClick={() => setNotice('')}>×</button></div>}
 
-function StatPill({ emoji, value, label, color }) {
-  return (
-    <div style={{ background: `${color}18`, border: `1px solid ${color}35`, borderRadius: 12, padding: '8px 14px', textAlign: 'center' }}>
-      <div style={{ fontSize: 16, fontWeight: 800, color }}>{emoji} {value}</div>
-      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>{label}</div>
-    </div>
+      <style>{`
+        .home-screen { min-height: 100vh; position: relative; overflow: hidden; background: #071321; color: #F1F5F9; }
+        .home-screen__glow { position: fixed; pointer-events: none; border-radius: 50%; filter: blur(130px); z-index: 0; }
+        .home-screen__glow--one { width: 520px; height: 520px; left: -180px; top: -160px; background: rgba(6,182,212,.08); }
+        .home-screen__glow--two { width: 580px; height: 580px; right: -180px; top: 38%; background: rgba(99,102,241,.10); }
+        .home-screen__glow--three { width: 520px; height: 520px; left: 35%; bottom: -300px; background: rgba(14,165,233,.06); }
+        .home-teacher-mode { position: relative; z-index: 4; display:flex; justify-content:space-between; align-items:center; padding:10px 32px; background:rgba(52,211,153,.12); border-bottom:1px solid rgba(52,211,153,.3); color:#34D399; font-size:12px; font-weight:700; }
+        .home-teacher-mode button { border:0; border-radius:20px; padding:6px 14px; background:rgba(255,255,255,.1); color:#fff; cursor:pointer; font:inherit; }
+        .home-topbar { position:relative; z-index:3; display:flex; justify-content:space-between; align-items:center; min-height:68px; padding:14px 40px; border-bottom:1px solid rgba(255,255,255,.07); background:rgba(7,19,33,.72); backdrop-filter:blur(16px); }
+        .home-topbar__date { color:#64748B; font-size:11px; font-weight:600; text-transform:capitalize; }
+        .home-topbar__date span { margin:0 10px; color:#1E3A4C; }
+        .home-topbar__actions { display:flex; align-items:center; gap:10px; }
+        .home-coins, .home-notification, .home-profile-button { border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.04); color:#E2E8F0; cursor:pointer; font:inherit; }
+        .home-coins { padding:9px 13px; border-color:rgba(251,191,36,.18); border-radius:12px; color:#FDE68A; font-size:12px; font-weight:800; }
+        .home-notification { position:relative; width:38px; height:38px; border-radius:12px; font-size:16px; }
+        .home-notification i { position:absolute; top:8px; right:8px; width:6px; height:6px; border-radius:50%; background:#67E8F9; box-shadow:0 0 8px #67E8F9; }
+        .home-profile-button { display:flex; align-items:center; gap:8px; padding:4px 10px 4px 4px; border-radius:12px; font-size:11px; font-weight:800; }
+        .home-profile-button > b { color:#475569; font-size:13px; }
+        .home-content { position:relative; z-index:1; max-width:1160px; margin:0 auto; padding:36px 40px 72px; }
+        .home-greeting { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; margin-bottom:28px; }
+        .home-eyebrow { color:#67E8F9; font-size:11px; font-weight:800; letter-spacing:.22em; }
+        .home-greeting h1 { margin:8px 0 0; font-size:34px; letter-spacing:-.035em; }
+        .home-greeting h1 em { color:#475569; font-style:normal; }
+        .home-greeting p { margin:8px 0 0; color:#64748B; font-size:13px; }
+        .home-level { display:flex; align-items:center; gap:12px; padding:12px 16px; border:1px solid rgba(255,255,255,.08); border-radius:16px; background:rgba(255,255,255,.035); flex-shrink:0; }
+        .home-level > span { width:36px; height:36px; display:grid; place-items:center; border-radius:12px; background:rgba(251,146,60,.10); font-size:18px; }
+        .home-level div { display:flex; flex-direction:column; gap:3px; }
+        .home-level strong { color:#fff; font-size:14px; }
+        .home-level small { color:#475569; font-size:10px; }
+        .home-level > i { width:1px; height:28px; background:rgba(255,255,255,.1); }
+        .home-level__xp strong { color:#67E8F9; }
+        .home-mission { position:relative; display:flex; justify-content:space-between; gap:28px; overflow:hidden; margin-bottom:32px; padding:28px; border:1px solid rgba(103,232,249,.20); border-radius:24px; background:linear-gradient(135deg,#102E42,#0C2539,#151B47); box-shadow:0 22px 70px rgba(3,16,38,.35); }
+        .home-mission__rings { position:absolute; right:-50px; top:-100px; width:290px; height:290px; border-radius:50%; border:34px solid rgba(103,232,249,.07); }
+        .home-mission__copy { position:relative; z-index:1; flex:1; }
+        .home-mission__meta { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+        .home-mission__meta span { padding:4px 8px; border-radius:6px; background:rgba(103,232,249,.15); color:#67E8F9; font-size:9px; font-weight:900; letter-spacing:.16em; }
+        .home-mission__meta small { color:#94A3B8; font-size:10px; }
+        .home-mission h2 { max-width:550px; margin:0; font-size:28px; line-height:1.15; letter-spacing:-.025em; }
+        .home-mission p { max-width:500px; margin:8px 0 0; color:rgba(203,213,225,.80); font-size:12px; line-height:1.7; }
+        .home-mission__buttons { display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin-top:20px; }
+        .home-mission__buttons button:first-child { border:0; border-radius:12px; padding:12px 16px; background:#67E8F9; color:#082033; cursor:pointer; font:inherit; font-size:11px; font-weight:900; }
+        .home-mission__buttons button:last-child { border:0; background:none; color:#CBD5E1; cursor:pointer; font:inherit; font-size:11px; text-decoration:underline; }
+        .home-mission__progress { position:relative; z-index:1; width:260px; align-self:center; padding:16px; border:1px solid rgba(255,255,255,.10); border-radius:16px; background:rgba(7,24,39,.45); }
+        .home-mission__progress > div:first-child { display:flex; justify-content:space-between; margin-bottom:12px; }
+        .home-mission__progress span { color:#64748B; font-size:10px; font-weight:800; letter-spacing:.13em; }
+        .home-mission__progress strong { color:#67E8F9; font-size:14px; }
+        .home-progress-bar, .home-pet__bar { height:8px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.09); }
+        .home-progress-bar i, .home-pet__bar i { display:block; height:100%; border-radius:inherit; background:#67E8F9; box-shadow:0 0 10px rgba(103,232,249,.35); }
+        .home-mission__progress small { display:block; margin-top:12px; color:#64748B; font-size:10px; }
+        .home-section-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+        .home-section-heading h2 { margin:0; font-size:18px; }
+        .home-section-heading h2 span { margin-left:8px; padding:4px 8px; border-radius:99px; background:rgba(103,232,249,.1); color:#67E8F9; font-size:9px; vertical-align:middle; }
+        .home-section-heading p { margin:4px 0 0; color:#475569; font-size:11px; }
+        .home-section-heading > button { border:0; background:none; color:#67E8F9; cursor:pointer; font:inherit; font-size:11px; font-weight:800; }
+        .home-zones { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:26px; }
+        .home-zone { position:relative; overflow:hidden; min-height:232px; display:flex; flex-direction:column; padding:20px; border:1px solid rgba(255,255,255,.08); border-radius:20px; background:rgba(11,28,44,.82); color:#fff; cursor:pointer; text-align:left; font:inherit; transition:.18s ease; }
+        .home-zone:hover:not(.is-locked), .home-zone.is-selected { transform:translateY(-3px); border-color:var(--zone-accent); background:var(--zone-soft); box-shadow:0 14px 38px rgba(22,184,209,.10); }
+        .home-zone.is-locked { opacity:.55; cursor:not-allowed; }
+        .home-zone__top { display:flex; justify-content:space-between; align-items:flex-start; }
+        .home-zone__icon { width:40px; height:40px; display:grid; place-items:center; border:1px solid color-mix(in srgb,var(--zone-accent) 25%,transparent); border-radius:12px; background:var(--zone-soft); font-size:19px; }
+        .home-zone__number { color:#1E3A4C; font-family:monospace; font-size:10px; font-weight:700; letter-spacing:.18em; }
+        .home-zone__body { margin-top:20px; }
+        .home-zone__label { display:block; color:var(--zone-accent); font-size:10px; font-weight:800; letter-spacing:.13em; }
+        .home-zone__body strong { display:block; margin-top:5px; font-size:16px; }
+        .home-zone__body small { display:block; margin-top:5px; color:#64748B; font-size:10px; line-height:1.45; }
+        .home-zone__progress { margin-top:auto; padding-top:18px; }
+        .home-zone__progress span { display:block; margin-bottom:8px; color:#475569; font-size:10px; }
+        .home-zone__progress > div { height:6px; overflow:hidden; border-radius:99px; background:rgba(255,255,255,.09); }
+        .home-zone__progress i { display:block; height:100%; border-radius:inherit; background:var(--zone-accent); }
+        .home-zone__action { display:block; margin-top:14px; color:#475569; font-size:10px; font-weight:900; }
+        .home-zone__action b { font-size:14px; }
+        .home-zone-detail { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:-10px 0 26px; padding:16px 20px; border:1px solid rgba(103,232,249,.20); border-radius:16px; background:rgba(103,232,249,.07); }
+        .home-zone-detail strong { font-size:14px; }
+        .home-zone-detail div > div { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+        .home-zone-detail span { padding:3px 9px; border:1px solid rgba(103,232,249,.20); border-radius:99px; color:#67E8F9; font-size:10px; }
+        .home-zone-detail button { border:0; border-radius:12px; padding:10px 18px; background:#67E8F9; color:#071321; cursor:pointer; font:inherit; font-size:11px; font-weight:900; }
+        .home-section-heading--quick { margin-top:4px; }
+        .home-quick-links { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+        .home-quick-links button { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid rgba(255,255,255,.07); border-radius:16px; background:rgba(11,28,44,.75); color:#E2E8F0; cursor:pointer; text-align:left; font:inherit; }
+        .home-quick-links button:hover { border-color:var(--quick-accent); background:rgba(255,255,255,.06); }
+        .home-quick-links button > span { width:36px; height:36px; display:grid; place-items:center; border-radius:12px; background:color-mix(in srgb,var(--quick-accent) 13%,transparent); font-size:17px; }
+        .home-quick-links strong, .home-quick-links small { display:block; }
+        .home-quick-links strong { font-size:11px; }
+        .home-quick-links small { margin-top:3px; color:#475569; font-size:9px; }
+        .home-pet { display:flex; align-items:center; gap:12px; max-width:440px; margin-top:20px; padding:14px 16px; border:1px solid rgba(99,102,241,.15); border-radius:18px; background:#0E1E35; }
+        .home-pet__emoji { font-size:27px; }
+        .home-pet > div { flex:1; }
+        .home-pet strong { display:block; margin-bottom:7px; font-size:12px; }
+        .home-pet__bar { height:6px; }
+        .home-pet__bar i { background:#34D399; }
+        .home-pet button { border:1px solid rgba(251,191,36,.25); border-radius:10px; padding:7px 10px; background:rgba(251,191,36,.08); color:#FDE68A; cursor:pointer; font:inherit; font-size:10px; font-weight:800; }
+        .home-notice { position:fixed; z-index:20; left:50%; bottom:22px; transform:translateX(-50%); display:flex; align-items:center; gap:12px; max-width:calc(100% - 32px); padding:12px 16px; border:1px solid rgba(103,232,249,.22); border-radius:12px; background:#10263A; color:#67E8F9; box-shadow:0 20px 60px rgba(0,0,0,.5); font-size:11px; font-weight:700; }
+        .home-notice button { border:0; background:none; color:#475569; cursor:pointer; font-size:16px; }
+        .home-bottom-nav { display:none; }
+        @media (max-width:1100px) and (min-width:901px) { .home-content { padding-inline:24px; } .home-topbar { padding-inline:24px; } }
+        @media (max-width:900px) {
+          .home-screen { padding-bottom:84px; }
+          .home-topbar { min-height:62px; padding:10px 16px; }
+          .home-topbar__date { display:none; }
+          .home-topbar__actions { width:100%; justify-content:flex-end; }
+          .home-profile-button > span, .home-profile-button > b { display:none; }
+          .home-profile-button { padding:3px; border-radius:12px; }
+          .home-content { padding:20px 16px 20px; }
+          .home-greeting { display:block; margin-bottom:18px; }
+          .home-eyebrow { font-size:9px; letter-spacing:.16em; }
+          .home-greeting h1 { margin-top:6px; font-size:26px; }
+          .home-greeting p { font-size:13px; }
+          .home-level { margin-top:16px; justify-content:space-between; }
+          .home-level > i { flex:0 0 1px; }
+          .home-mission { display:block; margin-bottom:24px; padding:20px; border-radius:22px; }
+          .home-mission h2 { font-size:19px; }
+          .home-mission p { font-size:11px; }
+          .home-mission__progress { width:auto; margin-top:20px; padding:0; border:0; background:none; }
+          .home-section-heading h2 { font-size:14px; }
+          .home-section-heading h2 span { display:none; }
+          .home-section-heading > button { display:none; }
+          .home-zones { display:flex; flex-direction:column; gap:10px; margin-bottom:22px; }
+          .home-zone { min-height:0; display:grid; grid-template-columns:48px 1fr auto; grid-template-rows:auto auto; column-gap:12px; padding:15px; border-radius:18px; }
+          .home-zone__top { grid-row:1 / 3; display:block; }
+          .home-zone__number { display:none; }
+          .home-zone__icon { width:46px; height:46px; font-size:21px; }
+          .home-zone__body { margin:0; }
+          .home-zone__label { font-size:9px; }
+          .home-zone__body strong { margin-top:4px; font-size:14px; }
+          .home-zone__body small { display:none; }
+          .home-zone__progress { grid-column:2 / 4; padding-top:8px; }
+          .home-zone__progress span { display:none; }
+          .home-zone__action { grid-column:3; grid-row:1; margin:0; align-self:center; color:var(--zone-accent); }
+          .home-zone__action b { display:none; }
+          .home-zone-detail { align-items:flex-start; flex-direction:column; }
+          .home-zone-detail button { width:100%; }
+          .home-quick-links { grid-template-columns:repeat(2,1fr); gap:10px; }
+          .home-quick-links button { padding:10px; }
+          .home-pet { max-width:none; }
+          .home-bottom-nav { position:fixed; z-index:10; display:flex; left:0; right:0; bottom:0; justify-content:space-around; padding:10px 16px 22px; border-top:1px solid rgba(99,102,241,.10); background:rgba(7,19,33,.96); backdrop-filter:blur(16px); }
+          .home-bottom-nav button { position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; width:64px; border:0; background:none; color:#4B6480; cursor:pointer; font:inherit; }
+          .home-bottom-nav button span { font-size:20px; opacity:.55; }
+          .home-bottom-nav button small { font-size:10px; }
+          .home-bottom-nav button.is-active { color:#818CF8; font-weight:800; }
+          .home-bottom-nav button.is-active span { opacity:1; }
+          .home-bottom-nav button.is-active::before { content:''; position:absolute; top:-10px; width:20px; height:3px; border-radius:99px; background:#818CF8; }
+        }
+        @media (max-width:430px) { .home-topbar__actions { gap:6px; } .home-coins { padding-inline:9px; } .home-level { padding:10px 12px; } .home-level__xp { text-align:right; } }
+      `}</style>
+    </main>
   )
 }

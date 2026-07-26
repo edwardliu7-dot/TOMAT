@@ -1,273 +1,463 @@
 import React, { useState } from 'react'
 import { useAuth } from '../AuthContext'
-import logo from '../assets/logo.png'
+
+const FEATURES = [
+  ['⚔️', 'Duel Real-time'],
+  ['💥', 'Boss Raid Co-op'],
+  ['🏆', 'Turnamen Kelas'],
+  ['🐹', 'Pet Tomi'],
+  ['🛒', 'Toko Kosmetik'],
+  ['🧮', 'Hafalan Interaktif'],
+]
+
+const ROLE_META = {
+  siswa: {
+    icon: '📖',
+    label: 'Siswa',
+    subtitle: 'Pelajar Tangguh',
+    accent: '#818CF8',
+    border: 'rgba(129,140,248,0.52)',
+    soft: 'rgba(99,102,241,0.12)',
+    placeholder: 'contoh: 08123456789',
+    inputLabel: 'Email / WhatsApp',
+  },
+  guru: {
+    icon: '🎓',
+    label: 'Guru',
+    subtitle: 'Pemandu Ilmu',
+    accent: '#A78BFA',
+    border: 'rgba(167,139,250,0.52)',
+    soft: 'rgba(139,92,246,0.12)',
+    placeholder: 'guru@sekolah.com',
+    inputLabel: 'Alamat Email',
+  },
+}
 
 export default function LoginScreen() {
   const { login } = useAuth()
-  const [chosen, setChosen] = useState(null) // 'siswa' | 'guru' | null
+  const [role, setRole] = useState('siswa')
   const [form, setForm] = useState({ username: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [showPw, setShowPw] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const meta = ROLE_META[role]
 
-  const decide = (r) => { setChosen(r); setError('') }
-  const goBack  = () => { setChosen(null); setError(''); setForm({ username: '', password: '' }) }
+  const setRoleAndClearError = (nextRole) => {
+    setRole(nextRole)
+    setError('')
+  }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmit = async (event) => {
+    event.preventDefault()
     setError('')
     setLoading(true)
     try {
-      await login({ role: chosen, username: form.username, password: form.password })
+      await login({ role, username: form.username.trim(), password: form.password })
     } catch (err) {
-      setError(err.message || 'Terjadi kesalahan.')
+      setError(err.message || 'Terjadi kesalahan. Silakan coba lagi.')
     } finally {
       setLoading(false)
     }
   }
 
-  const isSiswa = chosen === 'siswa'
-  const isGuru  = chosen === 'guru'
-
   return (
-    <div style={{
-      minHeight: '100vh', width: '100%',
-      background: '#0F1115', display: 'flex',
-      fontFamily: 'inherit', color: '#fff',
-    }}>
-      {/* ── Left branding panel (hidden on mobile) ── */}
-      <div style={{
-        width: '40%', flexShrink: 0,
-        background: 'linear-gradient(160deg, #0F1115 0%, #1a1040 100%)',
-        borderRight: '1px solid rgba(255,255,255,0.07)',
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        padding: '48px 40px',
-        position: 'relative', overflow: 'hidden',
-      }} className="login-brand-panel">
-        {/* Glow blobs */}
-        <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '60%', height: '50%', borderRadius: '50%', background: 'rgba(99,102,241,0.15)', filter: 'blur(80px)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-10%', right: '-10%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(167,139,250,0.1)', filter: 'blur(80px)', pointerEvents: 'none' }} />
+    <main className="tomat-login">
+      <div className="tomat-login__glow tomat-login__glow--one" />
+      <div className="tomat-login__glow tomat-login__glow--two" />
+      <div className="tomat-login__glow tomat-login__glow--three" />
 
-        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 320 }}>
-          {/* Logo */}
-          <img src={logo} alt="TOMAT" style={{ width: 80, height: 80, borderRadius: 20, objectFit: 'cover', marginBottom: 20, boxShadow: '0 0 40px rgba(99,102,241,0.4)' }} />
+      <section className="tomat-login__brand">
+        <div className="tomat-login__brand-inner">
+          <div className="tomat-login__tomato" aria-hidden="true">🍅</div>
+          <h1>TOMAT</h1>
+          <p className="tomat-login__tagline">Tantangan Otak Matematika</p>
+          <p className="tomat-login__description">
+            Platform gamifikasi matematika SMP yang membuat belajar jadi petualangan seru.
+            <br />
+            Kumpulkan koin, taklukkan boss, dan jadilah juara kelas! 🎮
+          </p>
+          <div className="tomat-login__features">
+            {FEATURES.map(([icon, label]) => (
+              <span key={label}><span aria-hidden="true">{icon}</span>{label}</span>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          {/* App name */}
-          <div style={{
-            fontSize: 36, fontWeight: 900, fontStyle: 'italic',
-            background: 'linear-gradient(135deg, #818CF8, #A78BFA)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            letterSpacing: -1, marginBottom: 8,
-          }}>TOMAT</div>
-          <div style={{ fontSize: 14, color: '#94A3B8', marginBottom: 48 }}>
-            Tantangan Otak Matematika
+      <section className="tomat-login__form-panel">
+        <div className="tomat-login__form-wrap">
+          <div className="tomat-login__mobile-brand">
+            <div className="tomat-login__tomato tomat-login__tomato--small" aria-hidden="true">🍅</div>
+            <h1>TOMAT</h1>
+            <p>Tantangan Otak Matematika</p>
+            <span>Platform belajar matematika SMP yang menyenangkan 🎮</span>
           </div>
 
-          {/* Feature bullets */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'left' }}>
-            {[
-              { emoji: '✦', text: 'Gamifikasi Matematika SMP' },
-              { emoji: '✦', text: 'Duel & Turnamen Real-time' },
-              { emoji: '✦', text: 'Sistem Reward & Leaderboard' },
-            ].map(f => (
-              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ color: '#6366F1', fontSize: 16, fontWeight: 900 }}>{f.emoji}</span>
-                <span style={{ fontSize: 14, color: '#CBD5E1', fontWeight: 500 }}>{f.text}</span>
-              </div>
+          <div className="tomat-login__heading">
+            <h2>Masuk</h2>
+            <p>Pilih peran dan masukkan kredensialmu.</p>
+          </div>
+
+          <div className="tomat-login__roles" role="group" aria-label="Pilih peran">
+            {Object.entries(ROLE_META).map(([value, item]) => (
+              <button
+                type="button"
+                key={value}
+                className={`tomat-login__role ${role === value ? 'is-active' : ''}`}
+                style={role === value ? { '--role-accent': item.accent, '--role-border': item.border, '--role-soft': item.soft } : undefined}
+                onClick={() => setRoleAndClearError(value)}
+                aria-pressed={role === value}
+              >
+                <span className="tomat-login__role-icon" aria-hidden="true">{item.icon}</span>
+                <strong>{item.label}</strong>
+                <small>{item.subtitle}</small>
+              </button>
             ))}
           </div>
 
-          {/* Bottom credit */}
-          <div style={{ marginTop: 'auto', paddingTop: 64, fontSize: 12, color: '#475569' }}>
-            SMP TISA Islamic School · v2.0
-          </div>
-        </div>
-      </div>
+          <form onSubmit={handleSubmit} className="tomat-login__fields">
+            <label>
+              <span>{meta.inputLabel}</span>
+              <input
+                required
+                type={role === 'guru' ? 'email' : 'text'}
+                value={form.username}
+                onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
+                placeholder={meta.placeholder}
+                autoCapitalize="none"
+                autoComplete="username"
+              />
+            </label>
 
-      {/* ── Right form panel ── */}
-      <div style={{
-        flex: 1, background: '#111318',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '48px 24px',
-      }}>
-        <div style={{ width: '100%', maxWidth: 420 }}>
-
-          {/* Mobile-only logo */}
-          <div className="login-mobile-logo" style={{ display: 'none', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
-            <img src={logo} alt="TOMAT" style={{ width: 56, height: 56, borderRadius: 14, objectFit: 'cover', marginBottom: 10 }} />
-            <div style={{ fontSize: 22, fontWeight: 900, fontStyle: 'italic', color: '#fff' }}>TOMAT</div>
-            <div style={{ fontSize: 12, color: '#64748B' }}>Tantangan Otak Matematika</div>
-          </div>
-
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 6 }}>Masuk ke Akun</div>
-            <div style={{ fontSize: 14, color: '#94A3B8' }}>Pilih peranmu dan masuk</div>
-          </div>
-
-          {/* Role selector */}
-          {!chosen && (
-            <div style={{ display: 'flex', gap: 14, marginBottom: 24 }}>
-              {[
-                { role: 'siswa', emoji: '⚔️', label: 'Siswa', sub: 'Pejuang Angka', accent: '#10B981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.3)' },
-                { role: 'guru',  emoji: '🔮', label: 'Guru',  sub: 'Arsitek Ilmu',  accent: '#8B5CF6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.3)' },
-              ].map(r => (
+            <label>
+              <span>Kata Sandi</span>
+              <div className="tomat-login__password">
+                <input
+                  required
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                  placeholder="Kata sandi"
+                  autoComplete="current-password"
+                />
                 <button
-                  key={r.role}
-                  onClick={() => decide(r.role)}
-                  style={{
-                    flex: 1, padding: '20px 16px', borderRadius: 16,
-                    background: r.bg, border: `1px solid ${r.border}`,
-                    cursor: 'pointer', textAlign: 'center', fontFamily: 'inherit',
-                    transition: 'transform 0.15s, box-shadow 0.15s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${r.bg}` }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
                 >
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>{r.emoji}</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: r.accent, marginBottom: 2 }}>{r.label}</div>
-                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{r.sub}</div>
+                  {showPassword ? '🙈' : '👁'}
                 </button>
-              ))}
-            </div>
-          )}
-
-          {/* Form */}
-          {chosen && (
-            <div>
-              {/* Role indicator + back */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  background: isSiswa ? 'rgba(16,185,129,0.12)' : 'rgba(139,92,246,0.12)',
-                  border: `1px solid ${isSiswa ? 'rgba(16,185,129,0.3)' : 'rgba(139,92,246,0.3)'}`,
-                  borderRadius: 20, padding: '6px 14px',
-                }}>
-                  <span style={{ fontSize: 16 }}>{isSiswa ? '⚔️' : '🔮'}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: isSiswa ? '#10B981' : '#8B5CF6' }}>
-                    Masuk sebagai {isSiswa ? 'Siswa' : 'Guru'}
-                  </span>
-                </div>
-                <button
-                  onClick={goBack}
-                  style={{
-                    background: 'none', border: '1px solid rgba(255,255,255,0.12)',
-                    color: '#94A3B8', borderRadius: 20, padding: '6px 14px',
-                    fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >← Ganti</button>
               </div>
+            </label>
 
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8', display: 'block', marginBottom: 6 }}>
-                    {isSiswa ? 'NISN atau Username' : 'Email atau Username'}
-                  </label>
-                  <input
-                    required
-                    value={form.username}
-                    onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
-                    placeholder={isSiswa ? 'Masukkan NISN atau username' : 'Masukkan email atau username'}
-                    autoCapitalize="none"
-                    style={{
-                      width: '100%', background: '#1A1D27',
-                      border: `1px solid ${isSiswa ? 'rgba(16,185,129,0.25)' : 'rgba(139,92,246,0.25)'}`,
-                      borderRadius: 12, padding: '14px 16px',
-                      color: '#fff', fontSize: 15, fontFamily: 'inherit',
-                      outline: 'none', boxSizing: 'border-box',
-                      transition: 'border-color 0.2s',
-                    }}
-                    onFocus={e => e.target.style.borderColor = isSiswa ? '#10B981' : '#8B5CF6'}
-                    onBlur={e => e.target.style.borderColor = isSiswa ? 'rgba(16,185,129,0.25)' : 'rgba(139,92,246,0.25)'}
-                  />
-                </div>
+            {error && <div className="tomat-login__error" role="alert">{error}</div>}
 
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8', display: 'block', marginBottom: 6 }}>
-                    Password
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      required
-                      type={showPw ? 'text' : 'password'}
-                      value={form.password}
-                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                      placeholder="••••••••"
-                      style={{
-                        width: '100%', background: '#1A1D27',
-                        border: `1px solid ${isSiswa ? 'rgba(16,185,129,0.25)' : 'rgba(139,92,246,0.25)'}`,
-                        borderRadius: 12, padding: '14px 16px', paddingRight: 48,
-                        color: '#fff', fontSize: 15, fontFamily: 'inherit',
-                        outline: 'none', boxSizing: 'border-box',
-                        transition: 'border-color 0.2s',
-                      }}
-                      onFocus={e => e.target.style.borderColor = isSiswa ? '#10B981' : '#8B5CF6'}
-                      onBlur={e => e.target.style.borderColor = isSiswa ? 'rgba(16,185,129,0.25)' : 'rgba(139,92,246,0.25)'}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPw(v => !v)}
-                      style={{
-                        position: 'absolute', right: 14, top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        fontSize: 16, padding: 4,
-                        color: isSiswa ? 'rgba(16,185,129,0.6)' : 'rgba(139,92,246,0.6)',
-                      }}
-                    >{showPw ? '🙈' : '👁️'}</button>
-                  </div>
-                </div>
+            <button
+              className="tomat-login__submit"
+              type="submit"
+              disabled={loading}
+              style={{ '--submit-start': role === 'siswa' ? '#6366F1' : '#8B5CF6', '--submit-end': role === 'siswa' ? '#4F46E5' : '#7C3AED' }}
+            >
+              {loading ? 'MEMPROSES…' : 'MASUK SEKARANG'}
+            </button>
+          </form>
 
-                {error && (
-                  <div style={{
-                    background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.35)',
-                    borderRadius: 10, padding: '10px 14px', color: '#fca5a5', fontSize: 13,
-                  }}>{error}</div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    marginTop: 6,
-                    height: 52,
-                    background: loading
-                      ? '#1A1D27'
-                      : isSiswa
-                        ? 'linear-gradient(135deg, #10B981, #059669)'
-                        : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
-                    color: '#fff', border: 'none', borderRadius: 14,
-                    fontSize: 15, fontWeight: 800, cursor: loading ? 'default' : 'pointer',
-                    fontFamily: 'inherit',
-                    boxShadow: loading ? 'none' : isSiswa
-                      ? '0 0 24px rgba(16,185,129,0.35)'
-                      : '0 0 24px rgba(139,92,246,0.35)',
-                    transition: 'opacity 0.15s, transform 0.15s',
-                  }}
-                  onMouseEnter={e => { if (!loading) { e.currentTarget.style.opacity = '0.88'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
-                  onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = '' }}
-                >
-                  {loading ? 'Memproses…' : 'MASUK →'}
-                </button>
-              </form>
-
-              <div style={{ marginTop: 20, fontSize: 12, color: '#475569', textAlign: 'center' }}>
-                {isSiswa
-                  ? 'Akun siswa didaftarkan melalui aplikasi BLP.'
-                  : 'Akun guru dibuat oleh admin sekolah melalui BLP.'}
-              </div>
-            </div>
-          )}
+          <button type="button" className="tomat-login__forgot" onClick={() => setError('Hubungi admin sekolah untuk mengatur ulang kata sandi.')}>
+            Lupa kata sandi?
+          </button>
+          <p className="tomat-login__account-note">
+            {role === 'siswa'
+              ? 'Akun siswa didaftarkan melalui aplikasi BLP.'
+              : 'Akun guru dibuat oleh admin sekolah melalui BLP.'}
+          </p>
+          <div className="tomat-login__version">v2.0 · SMP TISA Islamic School</div>
         </div>
-      </div>
+      </section>
 
-      {/* Responsive: hide brand panel & show mobile logo on small screens */}
       <style>{`
-        @media (max-width: 767px) {
-          .login-brand-panel { display: none !important; }
-          .login-mobile-logo { display: flex !important; }
+        .tomat-login {
+          min-height: 100dvh;
+          width: 100%;
+          position: relative;
+          display: flex;
+          overflow: hidden;
+          background: #071321;
+          color: #fff;
+          font-family: inherit;
+        }
+        .tomat-login__glow {
+          position: absolute;
+          pointer-events: none;
+          border-radius: 999px;
+          filter: blur(140px);
+        }
+        .tomat-login__glow--one {
+          width: 700px; height: 700px; top: -260px; left: -240px;
+          background: rgba(79,70,229,0.10);
+        }
+        .tomat-login__glow--two {
+          width: 700px; height: 700px; right: -260px; bottom: -260px;
+          background: rgba(139,92,246,0.08);
+        }
+        .tomat-login__glow--three {
+          width: 500px; height: 500px; top: 30%; left: 40%;
+          background: rgba(6,182,212,0.04);
+        }
+        .tomat-login__brand {
+          position: relative;
+          z-index: 1;
+          width: 55%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 64px;
+          background: linear-gradient(135deg, #0E1830 0%, #071321 100%);
+          border-right: 1px solid rgba(99,102,241,0.10);
+        }
+        .tomat-login__brand-inner {
+          max-width: 560px;
+          text-align: center;
+        }
+        .tomat-login__tomato {
+          width: 112px;
+          height: 112px;
+          margin: 0 auto 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 32px;
+          background: linear-gradient(135deg, #6366F1, #7C3AED);
+          box-shadow: 0 20px 60px rgba(99,102,241,0.40);
+          font-size: 52px;
+        }
+        .tomat-login__brand h1,
+        .tomat-login__mobile-brand h1 {
+          margin: 0;
+          font-size: 48px;
+          line-height: 1;
+          font-weight: 950;
+          letter-spacing: .18em;
+        }
+        .tomat-login__tagline {
+          margin: 12px 0 24px;
+          color: #A5B4FC;
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: .25em;
+          text-transform: uppercase;
+        }
+        .tomat-login__description {
+          margin: 0;
+          color: #4B6480;
+          font-size: 15px;
+          line-height: 1.65;
+        }
+        .tomat-login__features {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 12px;
+          margin-top: 40px;
+        }
+        .tomat-login__features span {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          border: 1px solid rgba(99,102,241,0.20);
+          border-radius: 999px;
+          background: rgba(99,102,241,0.06);
+          color: #C7D2FE;
+          font-size: 12px;
+          font-weight: 700;
+        }
+        .tomat-login__form-panel {
+          position: relative;
+          z-index: 1;
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 48px 64px;
+        }
+        .tomat-login__form-wrap {
+          width: 100%;
+          max-width: 430px;
+        }
+        .tomat-login__mobile-brand { display: none; }
+        .tomat-login__heading { margin-bottom: 28px; }
+        .tomat-login__heading h2 {
+          margin: 0 0 8px;
+          font-size: 28px;
+          line-height: 1.15;
+          font-weight: 900;
+        }
+        .tomat-login__heading p {
+          margin: 0;
+          color: #4B6480;
+          font-size: 14px;
+        }
+        .tomat-login__roles {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 16px;
+          margin-bottom: 24px;
+        }
+        .tomat-login__role {
+          min-height: 142px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 18px;
+          border: 1px solid rgba(99,102,241,0.15);
+          border-radius: 20px;
+          background: #0E1E35;
+          color: rgba(255,255,255,0.60);
+          cursor: pointer;
+          font-family: inherit;
+          transition: .2s ease;
+        }
+        .tomat-login__role:hover { transform: translateY(-2px); color: #fff; }
+        .tomat-login__role.is-active {
+          border-color: var(--role-border);
+          background: var(--role-soft);
+          color: #fff;
+          box-shadow: 0 0 32px rgba(99,102,241,0.12);
+        }
+        .tomat-login__role-icon { font-size: 28px; line-height: 1; }
+        .tomat-login__role strong { font-size: 15px; }
+        .tomat-login__role small { color: #4B6480; font-size: 11px; font-weight: 700; }
+        .tomat-login__fields { display: flex; flex-direction: column; gap: 16px; }
+        .tomat-login__fields label > span {
+          display: block;
+          margin-bottom: 8px;
+          color: #4B6480;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: .10em;
+          text-transform: uppercase;
+        }
+        .tomat-login__fields input {
+          width: 100%;
+          box-sizing: border-box;
+          border: 1px solid rgba(99,102,241,0.15);
+          border-radius: 14px;
+          background: #0E1E35;
+          padding: 14px 18px;
+          color: #fff;
+          outline: none;
+          font: inherit;
+          font-size: 14px;
+          transition: .2s ease;
+        }
+        .tomat-login__fields input::placeholder { color: #4B6480; }
+        .tomat-login__fields input:focus {
+          border-color: rgba(129,140,248,0.60);
+          box-shadow: 0 0 0 3px rgba(99,102,241,0.14);
+        }
+        .tomat-login__password { position: relative; }
+        .tomat-login__password input { padding-right: 52px; }
+        .tomat-login__password button {
+          position: absolute;
+          top: 50%;
+          right: 12px;
+          transform: translateY(-50%);
+          border: 0;
+          background: transparent;
+          color: #64748B;
+          font-size: 17px;
+          cursor: pointer;
+        }
+        .tomat-login__error {
+          padding: 11px 14px;
+          border: 1px solid rgba(248,113,113,0.35);
+          border-radius: 12px;
+          background: rgba(220,38,38,0.12);
+          color: #FCA5A5;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .tomat-login__submit {
+          width: 100%;
+          height: 54px;
+          margin-top: 8px;
+          border: 0;
+          border-radius: 14px;
+          background: linear-gradient(135deg, var(--submit-start), var(--submit-end));
+          color: #fff;
+          box-shadow: 0 6px 32px rgba(99,102,241,0.35);
+          cursor: pointer;
+          font: inherit;
+          font-size: 15px;
+          font-weight: 950;
+          letter-spacing: .02em;
+          transition: .2s ease;
+        }
+        .tomat-login__submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(99,102,241,0.50); }
+        .tomat-login__submit:disabled { cursor: wait; opacity: .65; }
+        .tomat-login__forgot {
+          display: block;
+          width: 100%;
+          margin-top: 18px;
+          border: 0;
+          background: transparent;
+          color: rgba(129,140,248,0.72);
+          cursor: pointer;
+          font: inherit;
+          font-size: 13px;
+        }
+        .tomat-login__forgot:hover { color: #818CF8; }
+        .tomat-login__account-note {
+          margin: 18px 0 0;
+          color: #4B6480;
+          font-size: 12px;
+          line-height: 1.5;
+          text-align: center;
+        }
+        .tomat-login__version {
+          margin-top: 34px;
+          color: #4B6480;
+          font-size: 11px;
+          text-align: center;
+        }
+        @media (max-width: 900px) {
+          .tomat-login__brand { display: none; }
+          .tomat-login__form-panel { padding: 36px 24px 70px; }
+          .tomat-login__mobile-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 34px;
+            text-align: center;
+          }
+          .tomat-login__tomato--small {
+            width: 80px; height: 80px; margin-bottom: 16px;
+            border-radius: 24px; font-size: 34px;
+          }
+          .tomat-login__mobile-brand h1 { font-size: 36px; letter-spacing: .16em; }
+          .tomat-login__mobile-brand p {
+            margin: 6px 0 0;
+            color: #A5B4FC;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .20em;
+            text-transform: uppercase;
+          }
+          .tomat-login__mobile-brand span { margin-top: 10px; color: #4B6480; font-size: 11px; }
+        }
+        @media (max-width: 430px) {
+          .tomat-login__form-panel { padding-inline: 24px; }
+          .tomat-login__heading h2 { font-size: 24px; }
+          .tomat-login__roles { gap: 10px; }
+          .tomat-login__role { min-height: 116px; padding: 12px; border-radius: 18px; }
+          .tomat-login__role-icon { font-size: 24px; }
+          .tomat-login__role strong { font-size: 13px; }
+          .tomat-login__role small { font-size: 9px; }
+          .tomat-login__version { margin-top: 28px; }
         }
       `}</style>
-    </div>
+    </main>
   )
 }

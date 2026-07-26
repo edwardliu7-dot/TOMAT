@@ -22,17 +22,17 @@ function useIsDesktop() {
 export function TopBar({ title, onBack, accentColor = '#67E8F9', rightElement }) {
   const isDesktop = useIsDesktop()
   return (
-    <div style={{ display: 'flex', alignItems: 'center', padding: isDesktop ? '8px 16px' : '16px', gap: 12, minHeight: isDesktop ? 52 : 'auto' }}>
+    <div style={{ display: 'flex', alignItems: 'center', padding: isDesktop ? '14px 20px' : '16px', gap: 12, minHeight: isDesktop ? 58 : 'auto', background: 'rgba(7,19,33,0.72)', borderBottom: '1px solid rgba(99,102,241,0.1)', backdropFilter: 'blur(14px)' }}>
       <button onClick={onBack} style={{
-        background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff',
-        width: 36, height: 36, borderRadius: 10, cursor: 'pointer', fontSize: 18,
+        background: '#0E1E35', border: '1px solid rgba(99,102,241,0.18)', color: '#C4B5FD',
+        width: 38, height: 38, borderRadius: 11, cursor: 'pointer', fontSize: 19,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         transition: 'background 0.15s',
       }}
         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)' }}
         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
       >←</button>
-      <h2 style={{ color: '#fff', fontSize: isDesktop ? 16 : 18, fontWeight: 700, flex: 1 }}>{title}</h2>
+      <h2 style={{ color: '#fff', fontSize: isDesktop ? 15 : 16, fontWeight: 800, flex: 1, margin: 0 }}>{title}</h2>
       {rightElement}
     </div>
   )
@@ -1071,8 +1071,9 @@ export function Card({ children, style = {}, border = 'rgba(255,255,255,0.08)', 
     <div
       onClick={onClick}
       style={{
-        background: '#1E2128', borderRadius: 16, border: `1px solid ${border}`,
+        background: '#0E1E35', borderRadius: 22, border: `1px solid ${border}`,
         padding: '16px', cursor: onClick ? 'pointer' : 'default',
+        boxShadow: '0 8px 28px rgba(0,0,0,0.22)',
         transition: onClick ? 'border-color 0.2s, box-shadow 0.2s, transform 0.15s' : undefined,
         ...style,
       }}
@@ -1095,11 +1096,12 @@ export function Card({ children, style = {}, border = 'rgba(255,255,255,0.08)', 
 export function Btn({ children, onClick, disabled, color = '#6366F1', textColor = '#fff', style = {} }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
-      background: disabled ? '#374151' : color,
+      background: disabled ? '#374151' : `linear-gradient(135deg, ${color}, #4F46E5)`,
       color: disabled ? '#6B7280' : textColor,
-      border: 'none', borderRadius: 12, padding: '14px 20px',
+      border: '1px solid rgba(255,255,255,0.08)', borderRadius: 15, padding: '15px 20px',
       fontSize: 15, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer',
       width: '100%', fontFamily: 'inherit', transition: 'opacity 0.15s, transform 0.15s',
+      boxShadow: disabled ? 'none' : '0 6px 24px rgba(79,70,229,0.28)',
       opacity: disabled ? 0.6 : 1, ...style,
     }}
       onMouseEnter={e => { if (!disabled) { e.currentTarget.style.opacity = '0.85'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
@@ -1154,12 +1156,12 @@ export function FeedbackBanner({ message, isCorrect, extras, correct, answer, on
   return (
     <>
       <div style={{
-        padding: '14px 16px', borderRadius: 12, marginTop: 16,
+        padding: '16px', borderRadius: 16, marginTop: 16,
         background: resolvedIsCorrect ? 'rgba(22,163,74,0.15)' : 'rgba(220,38,38,0.15)',
         border: `1px solid ${resolvedIsCorrect ? '#16a34a' : '#dc2626'}`,
         textAlign: 'center',
       }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: resolvedIsCorrect ? '#4ade80' : '#f87171' }}>{resolvedMessage}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: resolvedIsCorrect ? '#4ade80' : '#f87171' }}>{resolvedMessage}</div>
         {resolvedIsCorrect && extras && <div style={{ fontSize: 14, color: '#EAB308', marginTop: 4 }}>{extras}</div>}
         {resolvedIsCorrect && !extras && onNext && <div style={{ fontSize: 14, color: '#EAB308', marginTop: 4 }}>+50 Koin | +100 EXP</div>}
       </div>
