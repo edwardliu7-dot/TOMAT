@@ -5,6 +5,7 @@ import { PlayerProvider } from './PlayerContext'
 import { TaskProvider } from './TaskContext'
 import { BabLockProvider } from './BabLockContext'
 import { useAuth } from './AuthContext'
+import AppShell from './components/AppShell'
 import LoginScreen from './screens/LoginScreen'
 import GuruDashboardScreen from './screens/GuruDashboardScreen'
 import HomeScreen from './screens/HomeScreen'
@@ -177,6 +178,7 @@ const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grad
 // Shared game-playing shell. Used for students (normal play with tasks/nilai) and for
 // teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
+  const { user, logout } = useAuth()
   const [history, setHistory] = useState(['home'])
   const [pendingGame, setPendingGame] = useState(null) // { key, name, emoji }
   const [pendingTaskId, setPendingTaskId] = useState(null)
@@ -462,6 +464,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       <PetProvider>
         <TaskProvider onTaskComplete={handleTaskComplete}>
           <BabLockProvider>
+            <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
               <ErrorBoundary key={current} onReset={goBack}>
                 {renderScreen()}
@@ -503,6 +506,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
                 />
               )}
             </div>
+            </AppShell>
           </BabLockProvider>
         </TaskProvider>
       </PetProvider>
@@ -511,7 +515,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 }
 
 export default function App() {
-  const { user, checking } = useAuth()
+  const { user, logout, checking } = useAuth()
   const [guruPracticeMode, setGuruPracticeMode] = useState(false)
 
   // Hide the inline HTML splash once React has mounted and auth check is done
@@ -540,12 +544,17 @@ export default function App() {
         </div>
       )
     }
+    const guruNavigate = (key) => {
+      window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
+    }
     return (
-      <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
-        <ErrorBoundary onReset={() => {}}>
-          <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
-        </ErrorBoundary>
-      </div>
+      <AppShell user={user} navigate={guruNavigate} currentScreen="guruDashboard" onLogout={logout}>
+        <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
+          <ErrorBoundary onReset={() => {}}>
+            <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
+          </ErrorBoundary>
+        </div>
+      </AppShell>
     )
   }
 
