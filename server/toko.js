@@ -69,6 +69,17 @@ router.post('/beli', async (req, res) => {
       await client.query('rollback')
       return res.status(409).json({ error: 'Item ini sudah kamu miliki.' })
     }
+    const prerequisitePetId = item.visual?.prerequisitePetId
+    if (item.kategori === 'pet_skin' && prerequisitePetId) {
+      const { rows: prerequisiteRows } = await client.query(
+        'select 1 from student_inventory where student_id = $1 and item_id = $2',
+        [req.session.user.id, prerequisitePetId]
+      )
+      if (prerequisiteRows.length === 0) {
+        await client.query('rollback')
+        return res.status(403).json({ error: 'Kamu harus memiliki pet dasarnya terlebih dahulu.' })
+      }
+    }
     const { rows: studentRows } = await client.query(
       'select coins from students where id = $1 for update',
       [req.session.user.id]
@@ -156,6 +167,16 @@ router.post('/pakai', async (req, res) => {
         [req.session.user.id, targetItemId]
       )
       if (ownedRows.length === 0) return res.status(403).json({ error: 'Kamu belum memiliki item ini.' })
+      const prerequisitePetId = item.visual?.prerequisitePetId
+      if (item.kategori === 'pet_skin' && prerequisitePetId) {
+        const { rows: prerequisiteRows } = await pool.query(
+          'select 1 from student_inventory where student_id = $1 and item_id = $2',
+          [req.session.user.id, prerequisitePetId]
+        )
+        if (prerequisiteRows.length === 0) {
+          return res.status(403).json({ error: 'Kamu harus memiliki pet dasarnya terlebih dahulu.' })
+        }
+      }
       targetKategori = item.kategori
     }
 

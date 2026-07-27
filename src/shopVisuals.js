@@ -66,6 +66,36 @@ export const PET_SKIN_INFO = {
     desc: 'Naga abadi berkuasa. Matanya menyala, sayapnya menggelegar, api di mulutnya.',
     glow: 'rgba(251,146,60,0.50)',
   },
+  pet_kelinsay_senja: {
+    nama: 'Kelinsay Senja', tier: 'UMUM+', tierColor: '#FB923C',
+    desc: 'Bulu hangat warna senja. Muncul saat matahari terbenam, membawa ketenangan dan semangat belajar.',
+    glow: 'rgba(249,115,22,0.38)', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
+  },
+  pet_kelinsay_malam: {
+    nama: 'Kelinsay Malam', tier: 'PREMIUM', tierColor: '#A78BFA',
+    desc: 'Bulu malam bertabur bintang. Pendiam, elegan, dan selalu ditemani cahaya bulan.',
+    glow: 'rgba(99,102,241,0.42)', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
+  },
+  pet_monyong_raja: {
+    nama: 'Monyong Raja', tier: 'EPIC', tierColor: '#D4AF37',
+    desc: 'Mahkota emas bertahta di kepalanya. Monyong Raja memerintah leaderboard dengan senyum lebarnya.',
+    glow: 'rgba(212,175,55,0.42)', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
+  },
+  pet_monyong_kosmik: {
+    nama: 'Monyong Kosmik', tier: 'EPIC', tierColor: '#C084FC',
+    desc: 'Monyet penjelajah galaksi dengan bulu nebula dan bintang-bintang yang berkilau di sekelilingnya.',
+    glow: 'rgba(168,85,247,0.48)', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
+  },
+  pet_nananaga_merah: {
+    nama: 'Nananaga Merah', tier: 'LANGKA', tierColor: '#F87171',
+    desc: 'Naga api merah menyala. Sisiknya membara dan napasnya meninggalkan jejak bara.',
+    glow: 'rgba(239,68,68,0.48)', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
+  },
+  pet_nananaga_es: {
+    nama: 'Nananaga Es', tier: 'LANGKA', tierColor: '#7DD3FC',
+    desc: 'Naga es dari puncak gunung beku. Napasnya membekukan segalanya, matanya biru seperti samudra arktik.',
+    glow: 'rgba(56,189,248,0.45)', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
+  },
 }
 
 // Hardcoded food catalog for shop display (matches server/pet.js PET_FOODS)

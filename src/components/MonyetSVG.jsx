@@ -3,12 +3,17 @@ import React, { useState } from 'react'
 
 let _mk = 0
 
-export default function MonyetSVG({ state = 'idle', size = 100 }) {
+export default function MonyetSVG({ state = 'idle', size = 100, variant = 'pet_monyong' }) {
   const [uid] = useState(() => `mk${++_mk}`)
   const sleeping = state === 'sleeping'
   const hungry   = state === 'hungry'
   const happy    = state === 'happy'
   const dead     = state === 'dead'
+  const isRaja = variant === 'pet_monyong_raja'
+  const isKosmik = variant === 'pet_monyong_kosmik'
+  const variantFilter = isRaja
+    ? 'saturate(1.18) sepia(.25) hue-rotate(345deg)'
+    : isKosmik ? 'saturate(1.65) hue-rotate(210deg) brightness(.92)' : undefined
 
   const css = `
     @keyframes ${uid}-tail-swing {
@@ -41,7 +46,7 @@ export default function MonyetSVG({ state = 'idle', size = 100 }) {
       width={size}
       height={size * 1.1176}
       viewBox="0 0 170 190"
-      style={{ overflow: 'visible', display: 'block' }}
+      style={{ overflow: 'visible', display: 'block', filter: variantFilter }}
     >
       <style>{css}</style>
       <defs>
@@ -67,6 +72,24 @@ export default function MonyetSVG({ state = 'idle', size = 100 }) {
           <feGaussianBlur stdDeviation="1.5"/>
         </filter>
       </defs>
+
+      {isKosmik && !dead && (
+        <>
+          <circle cx="24" cy="47" r="2" fill="#E9D5FF" opacity=".9"/>
+          <circle cx="150" cy="54" r="1.6" fill="#C4B5FD" opacity=".8"/>
+          <circle cx="143" cy="133" r="1.8" fill="#F0ABFC" opacity=".75"/>
+        </>
+      )}
+
+      {isRaja && !dead && (
+        <g>
+          <path d="M 66 55 L 70 35 L 78 49 L 85 30 L 92 49 L 100 35 L 104 55 Z"
+            fill="#D4AF37" stroke="#92400E" strokeWidth="1"/>
+          <circle cx="85" cy="42" r="3" fill="#60A5FA"/>
+          <circle cx="70" cy="46" r="2.5" fill="#EF4444"/>
+          <circle cx="100" cy="46" r="2.5" fill="#34D399"/>
+        </g>
+      )}
 
       {/* Epic aura glow (only when alive) */}
       {!dead && <ellipse cx="85" cy="170" rx="45" ry="10" fill="rgba(168,85,247,0.2)" filter={`url(#${uid}-soft)`}/>}

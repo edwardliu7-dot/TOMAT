@@ -98,9 +98,11 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
   const info = PET_SKIN_INFO[skinId]
   if (!info) return null
   const owned = skinId === 'golden' || data.ownedItemIds.includes(skinId)
+  const prerequisiteOwned = !info.prerequisitePetId || data.ownedItemIds.includes(info.prerequisitePetId)
   const equipped = equippedSkin === skinId
   const shopItem = data.items.find(it => it.id === skinId)
   const affordable = skinId === 'golden' || (shopItem && data.coins >= shopItem.harga)
+  const canBuy = prerequisiteOwned && affordable
   const busy = busyId === skinId
   return (
     <div style={{
@@ -131,8 +133,8 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
             ) : owned ? (
               <button onClick={() => onBuyEquip(skinId)} disabled={busy} style={{ padding: '8px 20px', borderRadius: 10, background: '#334155', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{busy ? '…' : 'Pakai'}</button>
             ) : (
-              <button onClick={() => onBuyEquip(skinId)} disabled={!affordable || busy} style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: affordable ? `linear-gradient(135deg,${info.tierColor},${info.tierColor}cc)` : 'rgba(248,113,113,0.15)', color: affordable ? (info.tierColor === '#34D399' ? '#000' : '#fff') : '#F87171' }}>
-                {busy ? '…' : affordable ? `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
+              <button onClick={() => onBuyEquip(skinId)} disabled={!canBuy || busy} title={!prerequisiteOwned ? `Miliki ${PET_SKIN_INFO[info.prerequisitePetId]?.nama || 'pet dasar'} terlebih dahulu` : undefined} style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: canBuy ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: canBuy ? `linear-gradient(135deg,${info.tierColor},${info.tierColor}cc)` : 'rgba(248,113,113,0.15)', color: canBuy ? (info.tierColor === '#34D399' ? '#000' : '#fff') : '#F87171' }}>
+                {busy ? '…' : !prerequisiteOwned ? `🔒 Miliki ${PET_SKIN_INFO[info.prerequisitePetId]?.nama || 'pet dasar'} dulu` : canBuy ? `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
               </button>
             )}
           </div>
@@ -144,8 +146,8 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
         ) : owned ? (
           <button onClick={() => onBuyEquip(skinId)} disabled={busy} style={{ width: '100%', padding: '8px', borderRadius: 10, background: '#334155', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{busy ? '…' : 'Pakai'}</button>
         ) : (
-          <button onClick={() => onBuyEquip(skinId)} disabled={!affordable || busy} style={{ width: '100%', padding: '8px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: affordable ? '#6366F1' : 'rgba(248,113,113,0.15)', color: affordable ? '#fff' : '#F87171' }}>
-            {busy ? '…' : affordable ? `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
+          <button onClick={() => onBuyEquip(skinId)} disabled={!canBuy || busy} title={!prerequisiteOwned ? `Miliki ${PET_SKIN_INFO[info.prerequisitePetId]?.nama || 'pet dasar'} terlebih dahulu` : undefined} style={{ width: '100%', padding: '8px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: canBuy ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: canBuy ? '#6366F1' : 'rgba(248,113,113,0.15)', color: canBuy ? '#fff' : '#F87171' }}>
+            {busy ? '…' : !prerequisiteOwned ? `🔒 Miliki ${PET_SKIN_INFO[info.prerequisitePetId]?.nama || 'pet dasar'} dulu` : canBuy ? `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
           </button>
         )
       )}
@@ -162,7 +164,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
 
   const tomiSkins  = ['golden', 'pet_skin_silver', 'pet_skin_cosmic', 'pet_skin_void']
   const newPets    = ['pet_kelinsay', 'pet_monyong', 'pet_nananaga']
-  const skinOrder  = [...tomiSkins, ...newPets]
+  const kelinsaySkins = ['pet_kelinsay_senja', 'pet_kelinsay_malam']
   const equippedSkin = data.equipped.pet_skin || 'golden'
   const activePetName = getPetName(equippedSkin)
 
@@ -237,6 +239,13 @@ function PetTokoTab({ data, onRefresh, setError }) {
       <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Ganti petmu dengan hewan lain! Membeli pet baru tidak menghapus Tomi — kamu bisa ganti kapan saja.</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
         {newPets.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
+      </div>
+
+      {/* ── Kelinsay skins ── */}
+      <div style={{ fontSize: 11, color: '#FB923C', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>🌅 Skin Kelinsay</div>
+      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Skin khusus Kelinsay hanya terbuka setelah kamu memiliki pet Kelinsay.</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
+        {kelinsaySkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
       </div>
 
       {pet.isDead && (

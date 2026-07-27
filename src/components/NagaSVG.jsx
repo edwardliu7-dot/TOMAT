@@ -3,12 +3,17 @@ import React, { useState } from 'react'
 
 let _ng = 0
 
-export default function NagaSVG({ state = 'idle', size = 100 }) {
+export default function NagaSVG({ state = 'idle', size = 100, variant = 'pet_nananaga' }) {
   const [uid] = useState(() => `ng${++_ng}`)
   const sleeping = state === 'sleeping'
   const hungry   = state === 'hungry'
   const happy    = state === 'happy'
   const dead     = state === 'dead'
+  const isMerah = variant === 'pet_nananaga_merah'
+  const isEs = variant === 'pet_nananaga_es'
+  const variantFilter = isMerah
+    ? 'saturate(1.55) sepia(.2) hue-rotate(305deg) brightness(.98)'
+    : isEs ? 'saturate(1.5) hue-rotate(155deg) brightness(1.08)' : undefined
 
   const css = `
     @keyframes ${uid}-wing-l {
@@ -59,7 +64,7 @@ export default function NagaSVG({ state = 'idle', size = 100 }) {
       width={size}
       height={size * 0.975}
       viewBox="0 0 200 195"
-      style={{ overflow: 'visible', display: 'block' }}
+      style={{ overflow: 'visible', display: 'block', filter: variantFilter }}
     >
       <style>{css}</style>
       <defs>
@@ -102,6 +107,14 @@ export default function NagaSVG({ state = 'idle', size = 100 }) {
           <feGaussianBlur stdDeviation="2"/>
         </filter>
       </defs>
+
+      {isEs && !dead && (
+        <>
+          <circle cx="22" cy="55" r="2" fill="#E0F2FE" opacity=".9"/>
+          <circle cx="176" cy="68" r="1.8" fill="#BAE6FD" opacity=".85"/>
+          <text x="28" y="118" fontSize="9" fill="#BAE6FD" opacity=".75">❄</text>
+        </>
+      )}
 
       {/* Aura ring */}
       {!dead && (

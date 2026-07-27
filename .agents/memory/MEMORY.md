@@ -15,6 +15,7 @@
 - [TOMAT message delivery status](tomat-message-delivery-status.md) — private messages progress from sent to delivered when recipient loads the chat, then read when the conversation is opened.
 - [TOMAT demo showcase account](tomat-demo-account.md) — tomat_demo is kelas 'IX Al Khawarizmi' (Grade 9, updated in schema ON CONFLICT), owns full luxury catalog, hidden from student views.
 - [TOMAT pet revive mechanic](tomat-pet-revive.md) — when isDead=true, student cannot feed Tomi; must POST /api/siswa/pet/revive (300 coins) to adopt new pet; revivePet() in PetContext; ShopScreen PetTokoTab shows adopt card and hides food.
+- [TOMAT pet skin prerequisites](tomat-pet-skin-prerequisites.md) — animal skins require ownership of the matching base pet in both shop UI and server purchase/equip validation.
 - [TOMAT G8 Bab2 duel support](tomat-g8bab2-duel.md) — 6 Pythagoras games (g8trebuchet/perisai/hartakarun/inspeksisudut/petaradar/taligantung) added to DUEL_GAME_KEYS and tournament-questions.js generators.
 - [TOMAT multi-grade leaderboard](tomat-leaderboard-grades.md) — GET /api/siswa/papan-peringkat/kelas/:gradeNum returns all-grade ranking by prefix (VII/VIII/IX); LeaderboardScreen has 3 tabs: Kelasku/Kelas 8/Kelas 9.
 - [TOMAT multiplayer duel](tomat-multiplayer.md) — Socket.io on http.createServer; server-authoritative Katak questions; lobby rooms in-memory Map; stale-closure fix via refs in LobbyScreen.

@@ -306,6 +306,31 @@ export async function ensureSchema() {
     ['pet_kelinsay', 'pet_skin', 'Kelinsay',  3000, { tier: 'umum',   baseAnimal: 'kelinci', desc: 'Kelinci putih lembut berhati hangat. Telinganya panjang, selalu mendengarkan.' }, 4],
     ['pet_monyong',  'pet_skin', 'Monyong',   8000, { tier: 'epic',   baseAnimal: 'monyet',  desc: 'Monyet ceria penuh ekspresi. Ekornya selalu berayun dan senyumnya lebar!' }, 5],
     ['pet_nananaga', 'pet_skin', 'Nananaga', 15000, { tier: 'langka', baseAnimal: 'naga',    desc: 'Naga abadi berkuasa. Matanya menyala, sayapnya menggelegar, api di mulutnya.' }, 6],
+    // Animal skins — locked until the matching base pet is owned.
+    ['pet_kelinsay_senja', 'pet_skin', 'Kelinsay Senja', 2000, {
+      tier: 'umum+', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
+      desc: 'Bulu hangat warna senja. Muncul saat matahari terbenam, membawa ketenangan dan semangat belajar.'
+    }, 7],
+    ['pet_kelinsay_malam', 'pet_skin', 'Kelinsay Malam', 4500, {
+      tier: 'premium', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
+      desc: 'Bulu malam bertabur bintang. Pendiam, elegan, dan selalu ditemani cahaya bulan.'
+    }, 8],
+    ['pet_monyong_raja', 'pet_skin', 'Monyong Raja', 12000, {
+      tier: 'epic', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
+      desc: 'Mahkota emas bertahta di kepalanya. Monyong Raja memerintah leaderboard dengan senyum lebarnya.'
+    }, 9],
+    ['pet_monyong_kosmik', 'pet_skin', 'Monyong Kosmik', 10000, {
+      tier: 'epic', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
+      desc: 'Monyet penjelajah galaksi dengan bulu nebula dan bintang-bintang yang berkilau di sekelilingnya.'
+    }, 10],
+    ['pet_nananaga_merah', 'pet_skin', 'Nananaga Merah', 18000, {
+      tier: 'langka', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
+      desc: 'Naga api merah menyala. Sisiknya membara dan napasnya meninggalkan jejak bara.'
+    }, 11],
+    ['pet_nananaga_es', 'pet_skin', 'Nananaga Es', 20000, {
+      tier: 'langka', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
+      desc: 'Naga es dari puncak gunung beku. Napasnya membekukan segalanya, matanya biru seperti samudra arktik.'
+    }, 12],
     // Stiker — placed freely on banner canvas
     ['stiker_roket',   'stiker', 'Roket Belajar',  200,  { emoji: '🚀', tier: 'common' }, 1],
     ['stiker_api',     'stiker', 'Api Semangat',   200,  { emoji: '🔥', tier: 'common' }, 2],
