@@ -40,7 +40,7 @@ router.post('/boss-raid', async (req, res) => {
     const safeRewardAmount = Math.min(1000, Math.max(0, Number(rewardAmount) || 0))
     const raid = createBossRaid({
       kelas, guruId: req.session.user.id,
-      guruName: req.session.user.nama || req.session.user.username,
+      guruName: req.session.user.name,
       maxHp: Math.min(5000, Math.max(100, Number(maxHp) || 1000)),
       bossName: String(bossName).slice(0, 50),
       bossEmoji: String(bossEmoji).slice(0, 4),

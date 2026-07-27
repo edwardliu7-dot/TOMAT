@@ -110,7 +110,7 @@ export default function LobbyScreen({ goBack, onStart, initialCode, gameKey = 'k
   useEffect(() => {
     if (!initialCode) return
     const t = setTimeout(() => {
-      connectSocket().emit('duel:join', { code: initialCode, avatar: user?.profilePhoto || null })
+      connectSocket().emit('duel:join', { code: initialCode, avatar: user?.photoUrl ?? user?.photo_url ?? null })
     }, 300)
     return () => clearTimeout(t)
   }, [initialCode])
@@ -189,14 +189,14 @@ export default function LobbyScreen({ goBack, onStart, initialCode, gameKey = 'k
   // ── Actions ────────────────────────────────────────────────────────────────
   const createRoom = useCallback(() => {
     setError(null)
-    connectSocket().emit('duel:create', { avatar: user?.profilePhoto || null, gameKey: selectedGameKey })
+    connectSocket().emit('duel:create', { avatar: user?.photoUrl ?? user?.photo_url ?? null, gameKey: selectedGameKey })
   }, [user, selectedGameKey])
 
   const joinRoom = useCallback(() => {
     const trimmed = codeInput.trim().toUpperCase()
     if (!trimmed) { setError('Masukkan kode ruangan dulu.'); return }
     setError(null)
-    connectSocket().emit('duel:join', { code: trimmed, avatar: user?.profilePhoto || null })
+    connectSocket().emit('duel:join', { code: trimmed, avatar: user?.photoUrl ?? user?.photo_url ?? null })
   }, [codeInput, user])
 
   const startGame = useCallback(() => {
