@@ -379,9 +379,9 @@ export async function ensureSchema() {
   await pool.query(`
     update students
     set coins = 999999,
-        equipped_bingkai = 'bingkai_aurum_sovereign',
-        equipped_spanduk = 'spanduk_celestia_relic',
-        equipped_pet_skin = 'pet_skin_void'
+        equipped_bingkai  = coalesce(nullif(equipped_bingkai, ''),  'bingkai_aurum_sovereign'),
+        equipped_spanduk  = coalesce(nullif(equipped_spanduk, ''),  'spanduk_celestia_relic'),
+        equipped_pet_skin = coalesce(nullif(equipped_pet_skin, ''), 'pet_skin_void')
     where id = 'tomat-demo'
   `)
 
