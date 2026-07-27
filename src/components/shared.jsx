@@ -5,6 +5,7 @@ import { useTask, TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import { BINGKAI_VISUALS, SPANDUK_VISUALS, STIKER_VISUALS } from '../shopVisuals'
 import TomiSVG from './TomiSVG'
+import PetSVG from './PetSVG'
 import { useAppNotifications, usePushNotifications } from '../notifications'
 
 function useIsDesktop() {
@@ -504,7 +505,7 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
               {/* Pet — shown to the left of the avatar */}
               {profile.equippedPetSkin && profile.role === 'siswa' ? (
                 <div style={{ animation: 'tomi-idle 2.4s ease-in-out infinite', transformOrigin: 'center bottom', marginBottom: 4 }}>
-                  <TomiSVG state="happy" skinId={profile.equippedPetSkin} size={64} />
+                  <PetSVG state="happy" skinId={profile.equippedPetSkin} size={64} />
                 </div>
               ) : (
                 <div style={{ width: 64 }} />

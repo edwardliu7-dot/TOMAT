@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { TopBar, UserAvatar, LuxuryAvatarFrame, CelestiaParticles, RoyalShimmer, ensureLuxuryStyles } from '../components/shared'
 import { BINGKAI_VISUALS, SPANDUK_VISUALS } from '../shopVisuals'
 import TomiSVG, { PET_CSS } from '../components/TomiSVG'
+import PetSVG from '../components/PetSVG'
 import { useAuth } from '../AuthContext'
 
 function useIsDesktop() {
@@ -76,7 +77,7 @@ export default function PublicProfileScreen({ profile, goBack, onInviteDuel }) {
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', marginTop: overlap, marginBottom: 10, position: 'relative', zIndex: 2, gap: 8 }}>
       {profile.equippedPetSkin && profile.role === 'siswa' ? (
         <div style={{ animation: 'tomi-idle 2.4s ease-in-out infinite', transformOrigin: 'center bottom', marginBottom: 4 }}>
-          <TomiSVG state="happy" skinId={profile.equippedPetSkin} size={64} />
+          <PetSVG state="happy" skinId={profile.equippedPetSkin} size={64} />
         </div>
       ) : <div style={{ width: 64 }} />}
       {isLuxuryFrame ? <LuxuryAvatarFrame user={profile} size={size} bingkai={bingkai} bingkaiId={bingkaiId} /> : <UserAvatar user={profile} size={size} />}
@@ -184,7 +185,7 @@ export default function PublicProfileScreen({ profile, goBack, onInviteDuel }) {
             {isLuxuryFrame ? <LuxuryAvatarFrame user={profile} size={96} bingkai={bingkai} bingkaiId={bingkaiId} /> : <UserAvatar user={profile} size={96} />}
             {profile.equippedPetSkin && profile.role === 'siswa' && (
               <div style={{ position: 'absolute', left: 10, bottom: 100, animation: 'tomi-idle 2.4s ease-in-out infinite', transformOrigin: 'center bottom' }}>
-                <TomiSVG state="happy" skinId={profile.equippedPetSkin} size={52} />
+                <PetSVG state="happy" skinId={profile.equippedPetSkin} size={52} />
               </div>
             )}
             <div style={{ textAlign: 'center' }}>

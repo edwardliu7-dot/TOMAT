@@ -166,6 +166,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const newPets    = ['pet_kelinsay', 'pet_monyong', 'pet_nananaga']
   const kelinsaySkins = ['pet_kelinsay_senja', 'pet_kelinsay_malam']
   const monyongSkins = ['pet_monyong_raja', 'pet_monyong_kosmik']
+  const nananagaSkins = ['pet_nananaga_merah', 'pet_nananaga_es']
   const equippedSkin = data.equipped.pet_skin || 'golden'
   const activePetName = getPetName(equippedSkin)
 
@@ -254,6 +255,13 @@ function PetTokoTab({ data, onRefresh, setError }) {
       <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Skin khusus Monyong hanya terbuka setelah kamu memiliki pet Monyong.</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
         {monyongSkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
+      </div>
+
+      {/* ── Nananaga skins ── */}
+      <div style={{ fontSize: 11, color: '#38BDF8', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>🔥 Skin Nananaga</div>
+      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Skin khusus Nananaga hanya terbuka setelah kamu memiliki pet Nananaga.</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
+        {nananagaSkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
       </div>
 
       {pet.isDead && (

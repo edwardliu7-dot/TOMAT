@@ -6,6 +6,7 @@ import { useAuth } from '../AuthContext'
 import { usePlayer } from '../PlayerContext'
 import { usePet } from '../PetContext'
 import TomiSVG, { PET_CSS, STATE_ANIMS } from '../components/TomiSVG'
+import PetSVG from '../components/PetSVG'
 import { readFileAsDataUrl, getCroppedImage, compressDataUrlToLimit } from '../utils/imageUtils'
 
 async function apiGet(path) {
@@ -220,7 +221,7 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
           <div style={{ position: 'relative', marginBottom: -8 }}>
             <div style={{ position: 'absolute', right: -2, top: -12, fontSize: 13, color: '#FF6B9D', animation: 'tomi-heart-pop 1.8s ease-in-out infinite' }}>♥</div>
             <div style={{ animation: 'tomi-idle 2.4s ease-in-out infinite', transformOrigin: 'center bottom' }}>
-              <TomiSVG state={pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'happy'} skinId={pet.skin} size={80} />
+              <PetSVG state={pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'happy'} skinId={pet.skin} size={80} />
             </div>
           </div>
         )}
