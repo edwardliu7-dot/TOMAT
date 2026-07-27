@@ -7,4 +7,4 @@ Pet skins for an animal must require ownership of that animal's base pet before 
 
 **Why:** A skin is a cosmetic variant, not a standalone pet; allowing it before the base pet creates an inconsistent collection and bypasses the intended progression.
 
-**How to apply:** Store the prerequisite in shop-item metadata, check it in both buy and equip endpoints, and mirror the ownership check in the shop card UI.
+**How to apply:** Store the prerequisite in shop-item metadata, check it in both buy and equip endpoints, and mirror the ownership check in the shop card UI. Apply this consistently to every future animal skin family.
