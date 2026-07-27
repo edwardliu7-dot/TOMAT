@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
+import React, { useState, useCallback, useMemo } from 'react'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen, randomSliderRange } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
@@ -23,10 +23,22 @@ export default function BentengPertahananGame({ goBack, difficulty = 'medium', s
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
-  const [days, setDays] = useState(1)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setDays(1); setFeedback(null) }, [effectiveDifficulty])
+  const sliderRange = useMemo(() => {
+    const { min, max } = randomSliderRange([1, q.answer], { step: 1, minPad: 2, maxPad: 12 })
+    return { min: Math.max(1, min), max }
+  }, [q.answer])
+
+  const [days, setDays] = useState(sliderRange.min)
+
+  const newQ = useCallback(() => {
+    const nextQ = genQ(effectiveDifficulty)
+    const { min, max } = randomSliderRange([1, nextQ.answer], { step: 1, minPad: 2, maxPad: 12 })
+    setQ(nextQ)
+    setDays(Math.max(1, min))
+    setFeedback(null)
+  }, [effectiveDifficulty])
 
   const product1 = q.w1 * q.d1
   const product2 = q.w2 * days
@@ -43,8 +55,6 @@ export default function BentengPertahananGame({ goBack, difficulty = 'medium', s
   if (survival && survivalState.gameOver) {
     return <SurvivalOverScreen streak={survivalState.streak} onRetry={() => { survivalState.reset(); newQ() }} goBack={goBack} />
   }
-
-  const maxDays = q.answer * 3
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A2647 0%, #0d1f3c 100%)' }}>
@@ -89,8 +99,8 @@ export default function BentengPertahananGame({ goBack, difficulty = 'medium', s
 
           <SliderInput
             value={days}
-            min={1}
-            max={maxDays}
+            min={sliderRange.min}
+            max={sliderRange.max}
             onChange={setDays}
             disabled={feedback !== null}
             accentColor={isBalanced ? '#34D399' : '#f59e0b'}

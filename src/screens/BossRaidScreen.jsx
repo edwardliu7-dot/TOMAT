@@ -192,12 +192,13 @@ export default function BossRaidScreen({ goBack }) {
   }, [user, spawnFloat, startCooldown])
 
   const handleAttack = () => {
-    if (cooldownSec > 0) return
-    connectSocket().emit('boss:attack', { kelas: user?.kelas })
+    if (cooldownSec > 0 || !user?.kelas) return
+    connectSocket().emit('boss:attack', { kelas: user.kelas })
   }
 
   const handleAnswer = () => {
-    connectSocket().emit('boss:answer', { kelas: user?.kelas, value: sliderVal })
+    if (!user?.kelas) return
+    connectSocket().emit('boss:answer', { kelas: user.kelas, value: sliderVal })
   }
 
   const dismissResult = () => {

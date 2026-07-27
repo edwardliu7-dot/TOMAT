@@ -61,7 +61,15 @@ export function PlayerProvider({ children }) {
   const addCoins = useCallback((amount) => {
     const reward = amount === 50 ? CORRECT_ANSWER_COIN_REWARD : amount
     setPlayer(p => ({ ...p, coins: p.coins + reward }))
-    if (isSiswa) persistGain(reward, 0)
+    if (isSiswa) {
+      persistGain(reward, 0).then(data => {
+        if (data?.player) {
+          // Reconcile with server's authoritative coin balance to prevent drift.
+          setPlayer(p => ({ ...p, coins: data.player.coins, level: data.player.level, exp: data.player.exp, maxExp: data.player.maxExp }))
+        }
+        if (data?.newBadges?.length) setNewBadges(b => [...b, ...data.newBadges])
+      })
+    }
   }, [isSiswa])
 
   const addExp = useCallback((amount) => {

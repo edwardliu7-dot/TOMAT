@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react'
-import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen } from '../components/shared'
+import React, { useState, useCallback, useMemo } from 'react'
+import { TopBar, PlayerHeader, Card, Btn, FeedbackBanner, SliderInput, DifficultyBadge, SurvivalOverScreen, randomSliderRange } from '../components/shared'
 import { usePlayer } from '../PlayerContext'
 import { poolForDifficulty, pickFrom, useSurvival } from '../difficulty'
 
@@ -25,10 +25,22 @@ export default function TimbanganEmasGame({ goBack, difficulty = 'medium', survi
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
-  const [selectedVal, setSelectedVal] = useState(0)
   const [feedback, setFeedback] = useState(null)
 
-  const newQ = useCallback(() => { setQ(genQ(effectiveDifficulty)); setSelectedVal(0); setFeedback(null) }, [effectiveDifficulty])
+  const sliderRange = useMemo(() => {
+    const { min, max } = randomSliderRange([q.answer], { step: 0.05, minPad: 0.5, maxPad: 2.0 })
+    return { min: Math.max(0, parseFloat(min.toFixed(2))), max: parseFloat(max.toFixed(2)) }
+  }, [q.answer])
+
+  const [selectedVal, setSelectedVal] = useState(sliderRange.min)
+
+  const newQ = useCallback(() => {
+    const nextQ = genQ(effectiveDifficulty)
+    const { min, max } = randomSliderRange([nextQ.answer], { step: 0.05, minPad: 0.5, maxPad: 2.0 })
+    setQ(nextQ)
+    setSelectedVal(Math.max(0, parseFloat(min.toFixed(2))))
+    setFeedback(null)
+  }, [effectiveDifficulty])
 
   const confirm = () => {
     if (feedback !== null) return
@@ -92,8 +104,8 @@ export default function TimbanganEmasGame({ goBack, difficulty = 'medium', survi
 
           <SliderInput
             value={selectedVal}
-            min={0}
-            max={10}
+            min={sliderRange.min}
+            max={sliderRange.max}
             step={0.05}
             onChange={setSelectedVal}
             disabled={feedback !== null}
