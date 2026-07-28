@@ -68,10 +68,11 @@ function ItemVisual({ item }) {
   if (item.kategori === 'bingkai') {
     const v = item.visual || {}
     if (v.image) {
+      const avatarSz = 58, sp = Math.round(avatarSz * 0.45), outer = avatarSz + sp * 2
       return (
-        <div style={{ position: 'relative', width: 76, height: 76, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: 58, height: 58, borderRadius: '50%', background: '#1E2128', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>🧑‍🎓</div>
-          <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: -10, width: 96, height: 96, objectFit: 'contain', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', width: outer, height: outer, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: avatarSz, height: avatarSz, borderRadius: '50%', background: '#1E2128', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, position: 'relative', zIndex: 1 }}>🧑‍🎓</div>
+          <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 3, filter: v.glow ? `drop-shadow(0 0 6px ${v.border}bb)` : 'none' }} />
         </div>
       )
     }

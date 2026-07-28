@@ -50,10 +50,15 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
   React.useEffect(() => { setImageFailed(false) }, [photoUrl])
   const showPhoto = Boolean(photoUrl) && !imageFailed
   const useImageFrame = Boolean(bingkai?.image)
-  const spread = useImageFrame ? Math.round(size * 0.22) : 0
+  // Spread: frame image extends 45% beyond the avatar on each side so it
+  // visually wraps the photo. The outer wrapper grows to contain the full frame.
+  const spread = useImageFrame ? Math.round(size * 0.45) : 0
   const avatarDiv = (
     <div style={{
-      width: size, height: size, borderRadius: size * 0.3, flexShrink: 0,
+      width: size, height: size,
+      // Circular avatar when using an image frame (frames are designed for circles)
+      borderRadius: useImageFrame ? '50%' : size * 0.3,
+      flexShrink: 0,
       background: showPhoto
         ? `url(${photoUrl}) center/cover no-repeat`
         : user?.role === 'guru'
@@ -63,9 +68,11 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
       fontSize: size * 0.38, fontWeight: 900, color: '#fff',
       border: (bingkai && !useImageFrame)
         ? `${Math.max(2, Math.round(size / 16))}px ${bingkai.style} ${bingkai.border}`
+        : useImageFrame ? 'none'
         : `${Math.max(2, Math.round(size / 20))}px solid rgba(255,255,255,0.16)`,
       boxSizing: 'border-box',
       boxShadow: (bingkai && !useImageFrame && bingkai.glow) ? `0 0 ${Math.max(8, Math.round(size / 3))}px ${bingkai.border}88` : 'none',
+      position: 'relative', zIndex: 1,
     }}>
       {showPhoto && (
         <img
@@ -79,17 +86,27 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
       {!showPhoto && initial}
     </div>
   )
+  // Outer wrapper is large enough to contain the frame image fully — no clipping.
   const content = useImageFrame ? (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0, display: 'inline-flex' }}>
+    <div style={{
+      position: 'relative',
+      width: size + spread * 2,
+      height: size + spread * 2,
+      flexShrink: 0,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
       {avatarDiv}
       <img src={bingkai.image} alt="" aria-hidden="true" style={{
         position: 'absolute',
-        inset: -spread,
-        width: size + spread * 2,
-        height: size + spread * 2,
+        inset: 0,
+        width: '100%',
+        height: '100%',
         pointerEvents: 'none',
         zIndex: 3,
         objectFit: 'contain',
+        filter: bingkai.glow ? `drop-shadow(0 0 ${Math.round(size * 0.1)}px ${bingkai.border}bb)` : 'none',
       }} />
     </div>
   ) : avatarDiv
