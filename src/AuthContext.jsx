@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { resetSocket } from './socket'
 
 export const AuthContext = createContext(null)
 
@@ -50,6 +51,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = useCallback(async ({ role, username, password }) => {
+    // Reset any stale socket from a previous user before establishing a new session
+    resetSocket()
     const data = await apiCall('/login', { method: 'POST', body: { role, username, password } })
     setUser(data.user)
     return data.user
@@ -70,6 +73,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(async () => {
+    resetSocket()
     await apiCall('/logout', { method: 'POST' })
     setUser(null)
   }, [])
