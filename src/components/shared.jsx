@@ -52,7 +52,7 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
   const useImageFrame = Boolean(bingkai?.image)
   // Spread: frame image extends 45% beyond the avatar on each side so it
   // visually wraps the photo. The outer wrapper grows to contain the full frame.
-  const spread = useImageFrame ? Math.round(size * 0.45) : 0
+  const spread = useImageFrame ? Math.round(size * (bingkai.spread ?? 0.45)) : 0
   const avatarDiv = (
     <div style={{
       width: size, height: size,
