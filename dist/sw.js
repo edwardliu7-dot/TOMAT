@@ -1,6 +1,6 @@
 /* TOMAT Service Worker — caching + push notifications */
 
-const BUILD_VERSION = 'dbfd79fcdd92'
+const BUILD_VERSION = '49cebb1bee1a'
 const CACHE_NAME = `tomat-${BUILD_VERSION}`
 
 // Pola URL yang TIDAK di-cache (selalu network)
