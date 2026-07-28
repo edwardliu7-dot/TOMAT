@@ -22,9 +22,12 @@ export function computeHunger(petHungerUntil) {
 
 export async function isStudentPetDead(pool, studentId) {
   const { rows } = await pool.query(
-    'select pet_hunger_until from students where id = $1',
+    'select pet_hunger_map, equipped_pet_skin from students where id = $1',
     [studentId],
   )
   if (!rows[0]) return true
-  return computeHunger(rows[0].pet_hunger_until).isDead
+  const { pet_hunger_map, equipped_pet_skin } = rows[0]
+  const skinId = equipped_pet_skin || 'golden'
+  const hungerUntil = (pet_hunger_map || {})[skinId] || null
+  return computeHunger(hungerUntil).isDead
 }

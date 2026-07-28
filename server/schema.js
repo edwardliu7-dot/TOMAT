@@ -194,11 +194,22 @@ export async function ensureSchema() {
   await pool.query(`
     alter table students add column if not exists pet_hunger_until timestamptz;
     alter table students add column if not exists equipped_pet_skin text not null default 'golden';
+    alter table students add column if not exists pet_hunger_map jsonb default '{}';
   `)
   // Initialise hunger for any existing students who never had a pet yet
   await pool.query(`
     update students set pet_hunger_until = now() + interval '24 hours'
     where pet_hunger_until is null;
+  `)
+  // Migrate existing pet_hunger_until into per-skin map (runs once per student; skips if map already populated)
+  await pool.query(`
+    update students
+    set pet_hunger_map = jsonb_build_object(
+      coalesce(nullif(equipped_pet_skin, ''), 'golden'),
+      to_jsonb(pet_hunger_until::text)
+    )
+    where pet_hunger_until is not null
+      and (pet_hunger_map is null or pet_hunger_map = '{}');
   `)
 
   // --- Gamifikasi: coins/level/exp persistence, toko kosmetik, lencana pencapaian ---

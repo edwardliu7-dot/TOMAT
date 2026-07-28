@@ -5,6 +5,17 @@ import { useAuth } from '../AuthContext'
 import { usePet } from '../PetContext'
 import { UserAvatar } from '../components/shared'
 import { getAccessibleGradesForUser } from '../kelasUtils'
+import { getPetName } from '../components/PetSVG'
+
+function getPetEmoji(skinId, isDead, isStarving) {
+  if (isDead) return '💀'
+  if (isStarving) return '😩'
+  if (!skinId || skinId === 'golden' || skinId.startsWith('pet_skin_')) return '🐹'
+  if (skinId.startsWith('pet_monyong')) return '🐒'
+  if (skinId.startsWith('pet_kelinsay')) return '🐰'
+  if (skinId.startsWith('pet_nananaga')) return '🐲'
+  return '🐾'
+}
 
 const ZONES = [
   {
@@ -245,9 +256,9 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode }) {
               ))}
             </section>
             <section className="home-pet">
-              <span className="home-pet__emoji">{pet.isDead ? '💀' : pet.isStarving ? '😩' : '🐹'}</span>
-              <div><strong>Tomi — {pet.isDead ? 'Perlu dihidupkan kembali' : pet.isStarving ? 'Lapar' : 'Kenyang'}</strong><div className="home-pet__bar"><i style={{ width: `${pet.hunger}%` }} /></div></div>
-              <button type="button" onClick={() => navigate('toko')}>{pet.isDead ? 'Adopsi' : 'Beri Makan'}</button>
+              <span className="home-pet__emoji">{getPetEmoji(pet.skin, pet.isDead, pet.isStarving)}</span>
+              <div><strong>{getPetName(pet.skin || 'golden')} — {pet.isDead ? 'Perlu dihidupkan kembali' : pet.isStarving ? 'Lapar' : 'Kenyang'}</strong><div className="home-pet__bar"><i style={{ width: `${pet.hunger}%` }} /></div></div>
+              <button type="button" onClick={pet.isDead && openPetShop ? openPetShop : () => navigate('toko')}>{pet.isDead ? 'Adopsi' : 'Beri Makan'}</button>
             </section>
           </>
         )}
@@ -258,6 +269,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode }) {
           {[
             ['home', '🏠', 'Beranda'],
             [zones.find(zone => !zone.locked)?.id || 'grade7', '🗺️', 'Zona'],
+            ['toko', '🛒', 'Toko'],
             ['papanperingkat', '🏆', 'Peringkat'],
             ['profile', '👤', 'Profil'],
           ].map(([id, icon, label]) => (
