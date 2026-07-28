@@ -1,4 +1,96 @@
-/* TOMAT Web Push service worker */
+/* TOMAT Service Worker — caching + push notifications */
+
+const BUILD_VERSION = 'dbfd79fcdd92'
+const CACHE_NAME = `tomat-${BUILD_VERSION}`
+
+// Pola URL yang TIDAK di-cache (selalu network)
+const NETWORK_ONLY = ['/api/', '/socket.io/']
+
+function isNetworkOnly(url) {
+  const path = new URL(url).pathname
+  return NETWORK_ONLY.some(p => path.startsWith(p))
+}
+
+function isAsset(url) {
+  // File dengan hash di nama (Vite output) → cache agresif
+  return /\/assets\/[^/]+\.(js|css|png|webp|jpg|jpeg|gif|svg|woff2?)(\?.*)?$/.test(new URL(url).pathname)
+}
+
+// ─── Install: skip waiting agar SW langsung aktif ──────────────────────────
+self.addEventListener('install', event => {
+  self.skipWaiting()
+})
+
+// ─── Activate: hapus cache lama ────────────────────────────────────────────
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(k => k.startsWith('tomat-') && k !== CACHE_NAME)
+          .map(k => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
+  )
+})
+
+// ─── Fetch: strategi per tipe request ──────────────────────────────────────
+self.addEventListener('fetch', event => {
+  const { request } = event
+  if (request.method !== 'GET') return
+
+  const url = request.url
+
+  // API & socket.io → network only, jangan cache
+  if (isNetworkOnly(url)) return
+
+  // Aset dengan hash (JS, CSS, gambar) → cache-first
+  // File ini tidak pernah berubah namanya kalau kontennya sama,
+  // jadi aman di-cache selamanya
+  if (isAsset(url)) {
+    event.respondWith(cacheFirst(request))
+    return
+  }
+
+  // HTML & file lain → network-first, fallback cache
+  // Ini yang memastikan update terdeteksi: browser ambil HTML baru dari server,
+  // HTML baru referensi asset baru (nama berbeda), asset baru di-fetch & cached
+  event.respondWith(networkFirst(request))
+})
+
+async function cacheFirst(request) {
+  const cached = await caches.match(request)
+  if (cached) return cached
+  try {
+    const response = await fetch(request)
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME)
+      cache.put(request, response.clone())
+    }
+    return response
+  } catch {
+    return cached || new Response('Offline', { status: 503 })
+  }
+}
+
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request)
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME)
+      cache.put(request, response.clone())
+    }
+    return response
+  } catch {
+    const cached = await caches.match(request)
+    return cached || new Response('Offline — buka TOMAT saat ada koneksi internet.', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    })
+  }
+}
+
+// ─── Push Notifications (tetap seperti semula) ────────────────────────────
 self.addEventListener('push', event => {
   let data = {}
   try { data = event.data ? event.data.json() : {} } catch { data = {} }
