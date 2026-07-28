@@ -26,7 +26,7 @@ export const KATEGORI_LABELS = {
   bingkai:  'Bingkai',
   spanduk:  'Spanduk',
   tema:     'Tema',
-  pet_skin: '🐹 Tomi',
+  pet_skin: '🐾 Pet',
 }
 
 // Pet skin metadata — mirrors shop_items seed in server/schema.js

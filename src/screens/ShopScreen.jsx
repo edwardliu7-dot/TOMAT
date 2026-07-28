@@ -269,7 +269,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
       )}
 
       {/* ── Tomi skins ── */}
-      <div style={{ fontSize: 11, color: '#F5A623', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🎨 Kostum Tomi</div>
+      <div style={{ fontSize: 11, color: '#F5A623', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🐹 Tomi &amp; Kostum</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: 28 }}>
         {tomiSkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} />)}
       </div>
