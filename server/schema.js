@@ -288,7 +288,7 @@ export async function ensureSchema() {
     ['bingkai_api',    'bingkai', 'Api Abadi',    800,  { image: '/bingkai-api.png',    border: '#F87171', mixBlend: 'screen', spread: 0.30 }, 2],
     ['bingkai_es',     'bingkai', 'Ice Crystal',  1200, { image: '/bingkai-es.png',     border: '#67E8F9', mixBlend: 'screen', spread: 0.30 }, 3],
     ['bingkai_sakura', 'bingkai', 'Sakura Petal', 950,  { image: '/bingkai-sakura.png', border: '#F9A8D4', mixBlend: 'screen', spread: 0.38 }, 4],
-    ['bingkai_emas', 'bingkai', 'Golden Halo', 2000, { border: '#EAB308', style: 'solid', glow: true }, 5],
+    ['bingkai_emas', 'bingkai', 'Golden Halo', 2000, { image: '/bingkai-emas.png', border: '#EAB308', mixBlend: 'screen', spread: 0.32, glow: true }, 5],
     ['bingkai_void', 'bingkai', 'Void King', 3000, { border: '#A855F7', style: 'solid', glow: true }, 6],
     ['bingkai_aurum_sovereign', 'bingkai', 'Aurum Sovereign', 12000, {
       border: '#D4AF37', style: 'double', glow: true, limited: true, edition: '01 / 25',
