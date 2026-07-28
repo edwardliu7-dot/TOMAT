@@ -134,6 +134,35 @@
         var s = document.getElementById('splash');
         if (s) { s.classList.add('hidden'); setTimeout(function(){ s.remove(); }, 300); }
       };
+
+      // Fullscreen API — sembunyikan Android nav bar tanpa perlu install PWA.
+      // Browser mengharuskan gesture user (tap/click) sebelum requestFullscreen bisa dipanggil.
+      (function() {
+        var el = document.documentElement;
+        var isStandalone = window.matchMedia('(display-mode: fullscreen)').matches
+                        || window.matchMedia('(display-mode: standalone)').matches
+                        || window.navigator.standalone;
+
+        function goFullscreen() {
+          if (isStandalone) return; // sudah fullscreen via PWA install, tidak perlu
+          if (document.fullscreenElement) return;
+          var req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+          if (req) req.call(el).catch(function(){});
+        }
+
+        // Re-enter fullscreen jika user keluar (e.g. notifikasi, alt-tab)
+        document.addEventListener('fullscreenchange', function() {
+          if (!document.fullscreenElement && !isStandalone) {
+            // Jangan langsung re-request tanpa gesture — tunggu tap berikutnya
+            document.addEventListener('click', goFullscreen, { once: true });
+            document.addEventListener('touchstart', goFullscreen, { once: true });
+          }
+        });
+
+        // Request saat tap pertama
+        document.addEventListener('click', goFullscreen, { once: true });
+        document.addEventListener('touchstart', goFullscreen, { once: true });
+      })();
     </script>
   </body>
 </html>
