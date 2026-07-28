@@ -50,14 +50,16 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
   React.useEffect(() => { setImageFailed(false) }, [photoUrl])
   const showPhoto = Boolean(photoUrl) && !imageFailed
   const useImageFrame = Boolean(bingkai?.image)
-  // Spread: frame image extends 45% beyond the avatar on each side so it
-  // visually wraps the photo. The outer wrapper grows to contain the full frame.
-  const spread = useImageFrame ? Math.round(size * (bingkai.spread ?? 0.45)) : 0
+  // Outer container is ALWAYS exactly `size`. For image frames, the photo is
+  // scaled down so the frame ring fits within the same fixed footprint —
+  // framed and plain avatars occupy identical space in every list/row.
+  const spreadFactor = useImageFrame ? (bingkai.spread ?? 0.45) : 0
+  const innerRatio = useImageFrame ? 1 / (1 + 2 * spreadFactor) : 1
+  const photoSize = Math.round(size * innerRatio)
   const avatarDiv = (
     <div style={{
-      width: size, height: size,
-      // Circular avatar when using an image frame (frames are designed for circles)
-      borderRadius: useImageFrame ? '50%' : size * 0.3,
+      width: photoSize, height: photoSize,
+      borderRadius: useImageFrame ? '50%' : photoSize * 0.3,
       flexShrink: 0,
       background: showPhoto
         ? `url(${photoUrl}) center/cover no-repeat`
@@ -65,7 +67,7 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
           ? 'linear-gradient(135deg, #8B5CF6, #6366F1)'
           : 'linear-gradient(135deg, #0891B2, #2563EB)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.38, fontWeight: 900, color: '#fff',
+      fontSize: photoSize * 0.38, fontWeight: 900, color: '#fff',
       border: (bingkai && !useImageFrame)
         ? `${Math.max(2, Math.round(size / 16))}px ${bingkai.style} ${bingkai.border}`
         : useImageFrame ? 'none'
@@ -86,12 +88,13 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
       {!showPhoto && initial}
     </div>
   )
-  // Outer wrapper is large enough to contain the frame image fully — no clipping.
+  // Outer wrapper is always exactly `size × size` — no layout shift between
+  // framed and plain avatars; the frame image fills the full outer box.
   const content = useImageFrame ? (
     <div style={{
       position: 'relative',
-      width: size + spread * 2,
-      height: size + spread * 2,
+      width: size,
+      height: size,
       flexShrink: 0,
       display: 'inline-flex',
       alignItems: 'center',

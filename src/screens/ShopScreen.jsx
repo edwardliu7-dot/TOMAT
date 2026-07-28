@@ -90,10 +90,12 @@ function ItemVisual({ item }) {
   if (item.kategori === 'bingkai') {
     const v = item.visual || {}
     if (v.image) {
-      const avatarSz = 58, sp = Math.round(avatarSz * (v.spread ?? 0.45)), outer = avatarSz + sp * 2
+      const outer = 80
+      const sf = v.spread ?? 0.45
+      const photoSz = Math.round(outer / (1 + 2 * sf))
       return (
         <div style={{ position: 'relative', width: outer, height: outer, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: avatarSz, height: avatarSz, borderRadius: '50%', background: '#1E2128', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, position: 'relative', zIndex: 1 }}>🧑‍🎓</div>
+          <div style={{ width: photoSz, height: photoSz, borderRadius: '50%', background: '#1E2128', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(photoSz * 0.45), position: 'relative', zIndex: 1 }}>🧑‍🎓</div>
           <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 3, mixBlendMode: v.mixBlend ?? 'normal', filter: v.glow ? `drop-shadow(0 0 6px ${v.border}bb)` : 'none' }} />
         </div>
       )
