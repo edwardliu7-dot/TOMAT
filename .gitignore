@@ -1,18 +1,19 @@
-*.iml
-.gradle
-.kotlin
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+node_modules/
+dist/
 .env
-debug.keystore
+*.local
+
+# Android build artifacts (keep source, ignore generated builds)
+android/app/build/
+android/.gradle/
+android/build/
+
+# Replit
+.replit
+replit.nix
+.upm/
+.config/
+
+# OS
+.DS_Store
+Thumbs.db

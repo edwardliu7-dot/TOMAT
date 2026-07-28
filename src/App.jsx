@@ -31,6 +31,8 @@ import PublicProfileScreen from './screens/PublicProfileScreen'
 import DuelInviteBanner from './components/DuelInviteBanner'
 import { connectSocket } from './socket'
 import { DUEL_GAME_KEYS } from './gamesCatalog'
+import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
+import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 
 const DUEL_INVITE_GAMES = [
   { key: 'katak',       emoji: '🐸', name: 'Katak Pelompat' },
@@ -623,13 +625,14 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 export default function App() {
   const { user, logout, checking } = useAuth()
   const [guruPracticeMode, setGuruPracticeMode] = useState(false)
+  const { checking: checkingUpdate, updateRequired, downloadUrl } = useAppUpdateCheck()
 
   // Hide the inline HTML splash once React has mounted and auth check is done
   useEffect(() => {
-    if (!checking) {
+    if (!checking && !checkingUpdate) {
       window.__hideSplash?.()
     }
-  }, [checking])
+  }, [checking, checkingUpdate])
 
   // Update tab title for guru dashboard and login screen
   useEffect(() => {
@@ -641,9 +644,13 @@ export default function App() {
     }
   }, [user, guruPracticeMode, checking])
 
-  if (checking) {
+  if (checking || checkingUpdate) {
     // Splash is still visible — render nothing so there's no flash
     return null
+  }
+
+  if (updateRequired) {
+    return <UpdateRequiredScreen downloadUrl={downloadUrl} />
   }
 
   if (!user) {
