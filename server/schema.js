@@ -298,6 +298,10 @@ export async function ensureSchema() {
       border: '#6366F1', style: 'solid', glow: true, limited: true, edition: '03 / 13',
       description: 'Akuisisi langka dari singgasana kehampaan.', luxury: 'void'
     }, 8],
+    ['bingkai_petal_rose', 'bingkai', 'Petal Rose', 600, {
+      image: '/petal-rose.png', border: '#F9A8D4', style: 'solid',
+      description: 'Mahkota kelopak mawar yang lembut dan elegan.'
+    }, 9],
     ['spanduk_galaksi', 'spanduk', 'Galaksi', 1000, { gradient: 'linear-gradient(90deg,#312e81,#581c87,#000)' }, 1],
     ['spanduk_hutan', 'spanduk', 'Hutan Ajaib', 1200, { gradient: 'linear-gradient(90deg,#064e3b,#134e4a)' }, 2],
     ['spanduk_retro', 'spanduk', 'Retro 8-bit', 2500, { gradient: 'linear-gradient(90deg,#374151,#111827)' }, 3],

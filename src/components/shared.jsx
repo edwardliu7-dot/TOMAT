@@ -49,7 +49,9 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
   const [imageFailed, setImageFailed] = React.useState(false)
   React.useEffect(() => { setImageFailed(false) }, [photoUrl])
   const showPhoto = Boolean(photoUrl) && !imageFailed
-  const content = (
+  const useImageFrame = Boolean(bingkai?.image)
+  const spread = useImageFrame ? Math.round(size * 0.22) : 0
+  const avatarDiv = (
     <div style={{
       width: size, height: size, borderRadius: size * 0.3, flexShrink: 0,
       background: showPhoto
@@ -59,11 +61,11 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
           : 'linear-gradient(135deg, #0891B2, #2563EB)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: size * 0.38, fontWeight: 900, color: '#fff',
-      border: bingkai
+      border: (bingkai && !useImageFrame)
         ? `${Math.max(2, Math.round(size / 16))}px ${bingkai.style} ${bingkai.border}`
         : `${Math.max(2, Math.round(size / 20))}px solid rgba(255,255,255,0.16)`,
       boxSizing: 'border-box',
-      boxShadow: bingkai?.glow ? `0 0 ${Math.max(8, Math.round(size / 3))}px ${bingkai.border}88` : 'none',
+      boxShadow: (bingkai && !useImageFrame && bingkai.glow) ? `0 0 ${Math.max(8, Math.round(size / 3))}px ${bingkai.border}88` : 'none',
     }}>
       {showPhoto && (
         <img
@@ -77,6 +79,20 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
       {!showPhoto && initial}
     </div>
   )
+  const content = useImageFrame ? (
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0, display: 'inline-flex' }}>
+      {avatarDiv}
+      <img src={bingkai.image} alt="" aria-hidden="true" style={{
+        position: 'absolute',
+        inset: -spread,
+        width: size + spread * 2,
+        height: size + spread * 2,
+        pointerEvents: 'none',
+        zIndex: 3,
+        objectFit: 'contain',
+      }} />
+    </div>
+  ) : avatarDiv
   if (!onClick) return content
   return (
     <button onClick={onClick} title={title || 'Lihat profil'} aria-label={title || `Lihat profil ${user?.name || ''}`} style={{

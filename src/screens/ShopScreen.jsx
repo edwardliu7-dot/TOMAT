@@ -67,6 +67,14 @@ function ItemVisual({ item }) {
   }
   if (item.kategori === 'bingkai') {
     const v = item.visual || {}
+    if (v.image) {
+      return (
+        <div style={{ position: 'relative', width: 76, height: 76, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 58, height: 58, borderRadius: '50%', background: '#1E2128', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>🧑‍🎓</div>
+          <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: -10, width: 96, height: 96, objectFit: 'contain', pointerEvents: 'none' }} />
+        </div>
+      )
+    }
     return (
       <div style={{ width: 76, height: 76, borderRadius: '50%', border: `4px ${v.style || 'solid'} ${v.border || '#67E8F9'}`, boxShadow: v.glow ? `0 0 16px ${v.border}88` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)' }}>
         <div style={{ width: 58, height: 58, borderRadius: '50%', background: '#1E2128', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>🧑‍🎓</div>
