@@ -7,9 +7,9 @@ export const BINGKAI_VISUALS = {
   bingkai_es:     { image: '/bingkai-es.png',     border: '#67E8F9', mixBlend: 'screen', spread: 0.30 },
   bingkai_sakura: { image: '/bingkai-sakura.png', border: '#F9A8D4', mixBlend: 'screen', spread: 0.38 },
   bingkai_emas: { image: '/bingkai-emas.png', border: '#EAB308', mixBlend: 'screen', spread: 0.32, glow: true },
-  bingkai_void: { border: '#A855F7', style: 'solid', glow: true },
-  bingkai_aurum_sovereign: { border: '#D4AF37', style: 'double', glow: true, luxury: 'aurum' },
-  bingkai_void_monarch: { border: '#6366F1', style: 'solid', glow: true, luxury: 'void' },
+  bingkai_void: { image: '/bingkai-void-king.png', border: '#A855F7', mixBlend: 'screen', spread: 0.30, glow: true },
+  bingkai_aurum_sovereign: { image: '/bingkai-aurum-sovereign.png', border: '#D4AF37', mixBlend: 'screen', spread: 0.30, glow: true, limited: true, luxury: 'aurum' },
+  bingkai_void_monarch: { image: '/bingkai-void-monarch.png', border: '#6366F1', mixBlend: 'screen', spread: 0.30, glow: true, limited: true, luxury: 'void' },
   bingkai_petal_rose: { image: '/petal-rose.png', border: '#F9A8D4', style: 'solid', spread: 0.25 },
   bingkai_garuda: { image: '/garuda.gif', border: '#F59E0B', style: 'solid', glow: true, spread: 0.55 },
 }

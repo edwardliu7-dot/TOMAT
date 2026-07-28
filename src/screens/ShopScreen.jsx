@@ -54,8 +54,32 @@ const RARITY_BADGE_BG = {
 
 function ItemVisual({ item }) {
   const luxury = item.visual?.luxury
-  if (luxury === 'aurum') {
+  // For luxury frames that now have a PNG image, use the shared image-frame renderer
+  if ((luxury === 'aurum' || luxury === 'void') && item.visual?.image) {
+    const v = item.visual
+    const outer = 110
+    const sf = v.spread ?? 0.30
+    const photoSz = Math.round(outer / (1 + 2 * sf))
+    const isEpic = Boolean(v.limited)
+    const glowFilter = `drop-shadow(0 0 ${Math.round(outer * 0.16)}px ${v.border}ee) drop-shadow(0 0 ${Math.round(outer * 0.07)}px ${v.border}88)`
     return (
+      <div style={{ width: '100%', height: 150, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: luxury === 'aurum' ? 'radial-gradient(circle at 50% 40%,rgba(212,175,55,0.12),transparent 60%),#0a0906' : 'radial-gradient(circle at 50% 40%,rgba(99,102,241,0.14),transparent 60%),#04040a', position: 'relative', overflow: 'hidden' }}>
+        {isEpic && (
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 8, boxShadow: `inset 0 0 40px ${v.border}22`, pointerEvents: 'none' }} />
+        )}
+        <div style={{ position: 'relative', width: outer, height: outer, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {isEpic && (
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', boxShadow: `0 0 ${Math.round(outer * 0.25)}px ${v.border}55`, animation: 'tomat-frame-glow-pulse 2.4s ease-in-out infinite', pointerEvents: 'none' }} />
+          )}
+          <div style={{ width: photoSz, height: photoSz, borderRadius: '50%', background: 'linear-gradient(135deg,#1a1a2e,#0d0d1a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(photoSz * 0.45), position: 'relative', zIndex: 1 }}>🧑‍🎓</div>
+          <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 5, mixBlendMode: v.mixBlend ?? 'normal', filter: glowFilter }} />
+        </div>
+      </div>
+    )
+  }
+  if ((luxury === 'aurum' || luxury === 'void') && !item.visual?.image) {
+    const isAurum = luxury === 'aurum'
+    return isAurum ? (
       <div style={{ width: '100%', height: 150, borderRadius: 8, padding: 1, background: 'linear-gradient(145deg,#fff5b8,#d4af37 22%,#2a220b 52%,#aa7c11)', boxShadow: '0 12px 26px rgba(212,175,55,0.18)' }}>
         <div style={{ height: '100%', borderRadius: 7, background: 'radial-gradient(circle at 50% 32%,rgba(212,175,55,.28),transparent 45%),#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#e8d08c', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 10, border: '1px solid rgba(212,175,55,.45)' }} />
@@ -63,10 +87,7 @@ function ItemVisual({ item }) {
           <div style={{ marginTop: 10, fontSize: 9, letterSpacing: 2.2, fontWeight: 800 }}>AURUM SOVEREIGN</div>
         </div>
       </div>
-    )
-  }
-  if (luxury === 'void') {
-    return (
+    ) : (
       <div style={{ width: '100%', height: 150, borderRadius: 8, background: 'radial-gradient(circle at 50% 22%,rgba(79,70,229,.24),transparent 46%),#040406', border: '1px solid #2a2a3a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#a5b4fc', boxShadow: '0 12px 30px rgba(49,46,129,.2)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', width: 112, height: 112, border: '1px dashed rgba(99,102,241,.35)', borderRadius: '50%' }} />
         <div style={{ position: 'absolute', width: 78, height: 78, border: '1px solid rgba(129,140,248,.3)', borderRadius: '50%' }} />

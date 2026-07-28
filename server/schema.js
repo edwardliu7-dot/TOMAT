@@ -289,13 +289,13 @@ export async function ensureSchema() {
     ['bingkai_es',     'bingkai', 'Ice Crystal',  1200, { image: '/bingkai-es.png',     border: '#67E8F9', mixBlend: 'screen', spread: 0.30 }, 3],
     ['bingkai_sakura', 'bingkai', 'Sakura Petal', 950,  { image: '/bingkai-sakura.png', border: '#F9A8D4', mixBlend: 'screen', spread: 0.38 }, 4],
     ['bingkai_emas', 'bingkai', 'Golden Halo', 2000, { image: '/bingkai-emas.png', border: '#EAB308', mixBlend: 'screen', spread: 0.32, glow: true }, 5],
-    ['bingkai_void', 'bingkai', 'Void King', 3000, { border: '#A855F7', style: 'solid', glow: true }, 6],
+    ['bingkai_void', 'bingkai', 'Void King', 3000, { image: '/bingkai-void-king.png', border: '#A855F7', mixBlend: 'screen', spread: 0.30, glow: true }, 6],
     ['bingkai_aurum_sovereign', 'bingkai', 'Aurum Sovereign', 12000, {
-      border: '#D4AF37', style: 'double', glow: true, limited: true, edition: '01 / 25',
+      image: '/bingkai-aurum-sovereign.png', border: '#D4AF37', mixBlend: 'screen', spread: 0.30, glow: true, limited: true, edition: '01 / 25',
       description: 'Warisan mahkota bagi penguasa rasio.', luxury: 'aurum'
     }, 7],
     ['bingkai_void_monarch', 'bingkai', 'Void Monarch', 18000, {
-      border: '#6366F1', style: 'solid', glow: true, limited: true, edition: '03 / 13',
+      image: '/bingkai-void-monarch.png', border: '#6366F1', mixBlend: 'screen', spread: 0.30, glow: true, limited: true, edition: '03 / 13',
       description: 'Akuisisi langka dari singgasana kehampaan.', luxury: 'void'
     }, 8],
     ['bingkai_petal_rose', 'bingkai', 'Petal Rose', 600, {

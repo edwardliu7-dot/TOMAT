@@ -39,6 +39,61 @@ export function TopBar({ title, onBack, accentColor = '#67E8F9', rightElement })
   )
 }
 
+// Sparkle particles that orbit within the ring band of an image frame (epic tier).
+function EpicFrameSparkles({ size, photoSize, color }) {
+  React.useEffect(() => { ensureLuxuryStyles() }, [])
+  const ringR = (size / 2 + photoSize / 2) / 2
+  const COUNT = 7
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 4 }}>
+      {/* Primary orbit ring */}
+      <div style={{ position: 'absolute', inset: 0, animation: 'tomat-spin-cw 10s linear infinite' }}>
+        {Array.from({ length: COUNT }).map((_, i) => {
+          const angleDeg = (i / COUNT) * 360
+          const rad = angleDeg * Math.PI / 180
+          const cx = size / 2 + ringR * Math.sin(rad) - 2
+          const cy = size / 2 - ringR * Math.cos(rad) - 2
+          const delay = `${((i / COUNT) * 1.8).toFixed(2)}s`
+          return (
+            <div key={i} style={{
+              position: 'absolute',
+              left: cx, top: cy,
+              width: Math.max(3, Math.round(size * 0.04)),
+              height: Math.max(3, Math.round(size * 0.04)),
+              borderRadius: '50%',
+              background: color,
+              boxShadow: `0 0 ${Math.round(size * 0.06)}px ${color}, 0 0 ${Math.round(size * 0.03)}px ${color}99`,
+              animation: `tomat-sparkle-fade 1.8s ease-in-out ${delay} infinite`,
+            }} />
+          )
+        })}
+      </div>
+      {/* Counter-orbit ring (fewer, larger dots) */}
+      <div style={{ position: 'absolute', inset: 0, animation: 'tomat-spin-ccw 16s linear infinite' }}>
+        {Array.from({ length: 4 }).map((_, i) => {
+          const angleDeg = (i / 4) * 360 + 22
+          const rad = angleDeg * Math.PI / 180
+          const cx = size / 2 + ringR * Math.sin(rad) - 3
+          const cy = size / 2 - ringR * Math.cos(rad) - 3
+          const delay = `${((i / 4) * 2.4).toFixed(2)}s`
+          return (
+            <div key={i} style={{
+              position: 'absolute',
+              left: cx, top: cy,
+              width: Math.max(4, Math.round(size * 0.055)),
+              height: Math.max(4, Math.round(size * 0.055)),
+              borderRadius: '50%',
+              background: `${color}cc`,
+              boxShadow: `0 0 ${Math.round(size * 0.09)}px ${color}dd`,
+              animation: `tomat-sparkle-fade 2.4s ease-in-out ${delay} infinite`,
+            }} />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // WhatsApp-style public user identity: photo/initial inside the equipped frame.
 // Accepts both API snake_case fields and the AuthContext camelCase fields.
 export function UserAvatar({ user, size = 40, onClick, title }) {
@@ -56,6 +111,14 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
   const spreadFactor = useImageFrame ? (bingkai.spread ?? 0.45) : 0
   const innerRatio = useImageFrame ? 1 / (1 + 2 * spreadFactor) : 1
   const photoSize = Math.round(size * innerRatio)
+  // Tier-based effects for image frames
+  const isEpic = useImageFrame && Boolean(bingkai?.limited)
+  const isRare = useImageFrame && Boolean(bingkai?.glow) && !isEpic
+  const frameGlow = isEpic
+    ? `drop-shadow(0 0 ${Math.round(size * 0.16)}px ${bingkai.border}ee) drop-shadow(0 0 ${Math.round(size * 0.07)}px ${bingkai.border}88)`
+    : isRare
+      ? `drop-shadow(0 0 ${Math.round(size * 0.10)}px ${bingkai.border}cc)`
+      : 'none'
   const avatarDiv = (
     <div style={{
       width: photoSize, height: photoSize,
@@ -100,17 +163,28 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
       alignItems: 'center',
       justifyContent: 'center',
     }}>
+      {/* Epic: animated glow pulse layer behind frame */}
+      {isEpic && (
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: '50%',
+          boxShadow: `0 0 ${Math.round(size * 0.25)}px ${bingkai.border}55`,
+          animation: 'tomat-frame-glow-pulse 2.4s ease-in-out infinite',
+          pointerEvents: 'none', zIndex: 0,
+        }} />
+      )}
       {avatarDiv}
+      {/* Sparkle overlay for epic frames */}
+      {isEpic && <EpicFrameSparkles size={size} photoSize={photoSize} color={bingkai.border} />}
       <img src={bingkai.image} alt="" aria-hidden="true" style={{
         position: 'absolute',
         inset: 0,
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: 3,
+        zIndex: 5,
         objectFit: 'contain',
         mixBlendMode: bingkai.mixBlend ?? 'normal',
-        filter: bingkai.glow ? `drop-shadow(0 0 ${Math.round(size * 0.1)}px ${bingkai.border}bb)` : 'none',
+        filter: frameGlow,
       }} />
     </div>
   ) : avatarDiv
@@ -167,6 +241,8 @@ const LUXURY_KEYFRAMES = `
 @keyframes tomat-float-a  { 0%,100% { transform:translateY(0px) } 50% { transform:translateY(-6px) } }
 @keyframes tomat-float-b  { 0%,100% { transform:translateY(0px) } 50% { transform:translateY(5px) } }
 @keyframes tomat-shimmer  { 0% { left:-60% } 100% { left:160% } }
+@keyframes tomat-sparkle-fade { 0%,100% { opacity:0; transform:scale(0.4) } 45%,55% { opacity:1; transform:scale(1) } }
+@keyframes tomat-frame-glow-pulse { 0%,100% { opacity:0.55 } 50% { opacity:1 } }
 `
 let _luxuryStyleInjected = false
 export function ensureLuxuryStyles() {
@@ -234,9 +310,18 @@ export function ProfileBanner({ user, height = 92 }) {
   )
 }
 
-// Avatar wrapped with animated luxury frame rings (for Aurum/Void Monarch).
+// Avatar wrapped with animated luxury frame rings.
+// When bingkai has an image, delegates to UserAvatar (which handles tier effects).
+// Falls back to the old CSS-ring approach for any non-image luxury frame.
 export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
   React.useEffect(() => { ensureLuxuryStyles() }, [])
+
+  // If the luxury frame now has a real image, UserAvatar handles all rendering + effects.
+  if (bingkai?.image) {
+    return <UserAvatar user={user} size={size} />
+  }
+
+  // ── Legacy CSS-ring fallback (kept for any future CSS-only luxury frames) ──
   const photoUrl = user?.photoUrl ?? user?.photo_url
   const [imageFailed, setImageFailed] = React.useState(false)
   React.useEffect(() => { setImageFailed(false) }, [photoUrl])
@@ -245,7 +330,6 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
   const isVoid  = bingkai?.luxury === 'void'
   const ringColor = bingkai?.border || '#D4AF37'
 
-  // Diamond dot at each cardinal position of the rotating ring
   const DiamondDot = ({ angle }) => (
     <div style={{
       position: 'absolute',
@@ -261,11 +345,8 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
 
   return (
     <div style={{ position: 'relative', width: size, height: size }}>
-      {/* Outer rotating ring */}
       <div style={{
-        position: 'absolute',
-        inset: -14,
-        borderRadius: '50%',
+        position: 'absolute', inset: -14, borderRadius: '50%',
         border: `1px solid ${ringColor}44`,
         animation: 'tomat-spin-cw 18s linear infinite',
       }}>
@@ -274,19 +355,14 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
         <DiamondDot angle={180} />
         <DiamondDot angle={270} />
       </div>
-      {/* Inner dashed ring */}
       <div style={{
-        position: 'absolute',
-        inset: -6,
-        borderRadius: '50%',
+        position: 'absolute', inset: -6, borderRadius: '50%',
         border: `1.5px dashed ${ringColor}55`,
         animation: 'tomat-spin-ccw 12s linear infinite',
       }} />
-      {/* Glow pulse */}
       {isAurum && (
         <div style={{
-          position: 'absolute', inset: 0,
-          borderRadius: size * 0.3,
+          position: 'absolute', inset: 0, borderRadius: size * 0.3,
           boxShadow: `0 0 22px 6px ${ringColor}55`,
           animation: 'tomat-pulse-g 2.8s ease-in-out infinite',
           pointerEvents: 'none',
@@ -295,21 +371,18 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
       {isVoid && (
         <>
           <div style={{
-            position: 'absolute', inset: -9,
-            borderRadius: '50%',
+            position: 'absolute', inset: -9, borderRadius: '50%',
             border: `1px solid ${ringColor}66`,
             animation: 'tomat-spin-cw 30s linear infinite',
           }} />
           <div style={{
-            position: 'absolute', inset: 0,
-            borderRadius: size * 0.3,
+            position: 'absolute', inset: 0, borderRadius: size * 0.3,
             boxShadow: `0 0 28px 8px ${ringColor}44`,
             animation: 'tomat-pulse-g 3.5s ease-in-out infinite',
             pointerEvents: 'none',
           }} />
         </>
       )}
-      {/* Avatar itself */}
       <div style={{
         width: size, height: size, borderRadius: size * 0.3, flexShrink: 0,
         background: showPhoto
@@ -319,18 +392,12 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
             : 'linear-gradient(135deg, #0891B2, #2563EB)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: size * 0.38, fontWeight: 900, color: '#fff',
-        border: `${Math.max(2, Math.round(size / 16))}px ${bingkai.style} ${ringColor}`,
+        border: `${Math.max(2, Math.round(size / 16))}px ${bingkai.style || 'solid'} ${ringColor}`,
         boxSizing: 'border-box',
         position: 'relative', zIndex: 1,
       }}>
         {showPhoto && (
-          <img
-            src={photoUrl}
-            alt=""
-            aria-hidden="true"
-            onError={() => setImageFailed(true)}
-            style={{ display: 'none' }}
-          />
+          <img src={photoUrl} alt="" aria-hidden="true" onError={() => setImageFailed(true)} style={{ display: 'none' }} />
         )}
         {!showPhoto && (user?.name || '?')[0]?.toUpperCase()}
       </div>
