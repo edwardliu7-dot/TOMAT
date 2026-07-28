@@ -4,10 +4,15 @@ import { pool } from './db.js'
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || ''
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || ''
 const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@tomat.app'
-const pushEnabled = Boolean(vapidPublicKey && vapidPrivateKey)
+let pushEnabled = Boolean(vapidPublicKey && vapidPrivateKey)
 
 if (pushEnabled) {
-  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
+  try {
+    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey)
+  } catch (err) {
+    console.warn('Web Push disabled: VAPID key validation failed —', err.message)
+    pushEnabled = false
+  }
 }
 
 export function getPushConfig() {

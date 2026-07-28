@@ -12,9 +12,15 @@
     "dev": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "NODE_ENV=production node server/index.js"
+    "start": "NODE_ENV=production node server/index.js",
+    "cap:sync": "vite build && npx cap sync android",
+    "cap:set-url": "node scripts/set-server-url.js",
+    "cap:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
     "bcryptjs": "^3.0.3",
     "connect-pg-simple": "^10.0.0",
     "express": "^5.2.1",
