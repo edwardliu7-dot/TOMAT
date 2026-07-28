@@ -30,6 +30,28 @@ async function apiCall(path, options = {}) {
 
 const TABS = ['bingkai', 'spanduk', 'tema', 'stiker', 'pet_skin']
 
+// ── Rarity helpers ────────────────────────────────────────────────────────────
+function getItemRarity(item) {
+  const v = item.visual || {}
+  if (item.kategori === 'stiker') {
+    if (v.tier === 'epic')  return 'epik'
+    if (v.tier === 'rare')  return 'langka'
+    return 'umum'
+  }
+  if (v.limited) return 'epik'
+  if (v.glow)    return 'langka'
+  return 'umum'
+}
+const RARITY_ORDER  = ['umum', 'langka', 'epik']
+const RARITY_LABEL  = { umum: 'Umum', langka: 'Langka', epik: 'Epik' }
+const RARITY_COLOR  = { umum: '#94A3B8', langka: '#60A5FA', epik: '#C084FC' }
+const RARITY_ICON   = { umum: '◆', langka: '◈', epik: '★' }
+const RARITY_BADGE_BG = {
+  umum:   'rgba(148,163,184,0.12)',
+  langka: 'rgba(96,165,250,0.12)',
+  epik:   'rgba(192,132,252,0.14)',
+}
+
 function ItemVisual({ item }) {
   const luxury = item.visual?.luxury
   if (luxury === 'aurum') {
@@ -499,21 +521,53 @@ export default function ShopScreen({ goBack, initialTab }) {
   )
 
   // ── Item grid ──
-  const ItemGrid = () => (
-    tab === 'pet_skin' ? (
-      <PetTokoTab data={data} onRefresh={refresh} setError={setError} />
-    ) : items.length === 0 ? (
+  const ItemGrid = () => {
+    if (tab === 'pet_skin') return <PetTokoTab data={data} onRefresh={refresh} setError={setError} />
+    if (items.length === 0) return (
       <div style={{ textAlign: 'center', padding: '40px 16px', color: '#6B7280' }}>
         <div style={{ fontSize: 32, marginBottom: 10 }}>✨</div>
         <div style={{ fontWeight: 700, color: '#94A3B8' }}>Segera Hadir</div>
         <div style={{ fontSize: 13, marginTop: 4 }}>Item baru untuk kategori ini sedang disiapkan.</div>
       </div>
-    ) : (
-      <div style={{ display: 'grid', gridTemplateColumns: tab === 'spanduk' ? '1fr' : isDesktop ? 'repeat(3,1fr)' : 'repeat(2,1fr)', gap: 12 }}>
-        {items.map(item => <ItemCard key={item.id} item={item} data={data} onBuy={buy} onEquip={equip} busyId={busyId} />)}
+    )
+
+    // Group and sort items by rarity
+    const grouped = {}
+    for (const r of RARITY_ORDER) grouped[r] = []
+    for (const item of items) grouped[getItemRarity(item)].push(item)
+    const activeRarities = RARITY_ORDER.filter(r => grouped[r].length > 0)
+
+    const cols = tab === 'spanduk' ? '1fr' : isDesktop ? 'repeat(3,1fr)' : 'repeat(2,1fr)'
+
+    return (
+      <div>
+        {activeRarities.map(rarity => (
+          <div key={rarity} style={{ marginBottom: 28 }}>
+            {/* Section header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                background: RARITY_BADGE_BG[rarity],
+                border: `1px solid ${RARITY_COLOR[rarity]}44`,
+                borderRadius: 99, padding: '3px 10px',
+              }}>
+                <span style={{ fontSize: 10, color: RARITY_COLOR[rarity] }}>{RARITY_ICON[rarity]}</span>
+                <span style={{ fontSize: 10, fontWeight: 900, color: RARITY_COLOR[rarity], letterSpacing: '0.15em', textTransform: 'uppercase' }}>{RARITY_LABEL[rarity]}</span>
+              </div>
+              <div style={{ flex: 1, height: 1, background: `${RARITY_COLOR[rarity]}2a` }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: RARITY_COLOR[rarity] + '88' }}>{grouped[rarity].length} item</span>
+            </div>
+            {/* Item cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 12 }}>
+              {grouped[rarity].map(item => (
+                <ItemCard key={item.id} item={item} data={data} onBuy={buy} onEquip={equip} busyId={busyId} />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     )
-  )
+  }
 
   if (isDesktop) {
     return (
