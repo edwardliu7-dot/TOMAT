@@ -264,21 +264,6 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
         )}
       </div>
 
-      {!isDesktop && (
-        <nav className="home-bottom-nav">
-          {[
-            ['home', '🏠', 'Beranda'],
-            [zones.find(zone => !zone.locked)?.id || 'grade7', '🗺️', 'Zona'],
-            ['toko', '🛒', 'Toko'],
-            ['papanperingkat', '🏆', 'Peringkat'],
-            ['profile', '👤', 'Profil'],
-          ].map(([id, icon, label]) => (
-            <button type="button" key={label} className={id === 'home' ? 'is-active' : ''} onClick={() => navigate(id)}>
-              <span>{icon}</span><small>{label}</small>
-            </button>
-          ))}
-        </nav>
-      )}
 
       {notice && <div className="home-notice">✦ {notice}<button type="button" onClick={() => setNotice('')}>×</button></div>}
 
@@ -378,7 +363,6 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
         .home-bottom-nav { display:none; }
         @media (max-width:1100px) and (min-width:901px) { .home-content { padding-inline:24px; } .home-topbar { padding-inline:24px; } }
         @media (max-width:900px) {
-          .home-screen { padding-bottom:84px; }
           .home-topbar { position:fixed; top:0; left:0; right:0; z-index:10; min-height:62px; padding:10px 16px; }
           .home-topbar__date { display:none; }
           .home-topbar__actions { width:100%; justify-content:flex-end; }
@@ -416,13 +400,6 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
           .home-quick-links { grid-template-columns:repeat(2,1fr); gap:10px; }
           .home-quick-links button { padding:10px; }
           .home-pet { max-width:none; }
-          .home-bottom-nav { position:fixed; z-index:10; display:flex; left:0; right:0; bottom:0; justify-content:space-around; padding:10px 16px 22px; border-top:1px solid rgba(99,102,241,.10); background:rgba(7,19,33,.96); backdrop-filter:blur(16px); }
-          .home-bottom-nav button { position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; width:64px; border:0; background:none; color:#4B6480; cursor:pointer; font:inherit; }
-          .home-bottom-nav button span { font-size:20px; opacity:.55; }
-          .home-bottom-nav button small { font-size:10px; }
-          .home-bottom-nav button.is-active { color:#818CF8; font-weight:800; }
-          .home-bottom-nav button.is-active span { opacity:1; }
-          .home-bottom-nav button.is-active::before { content:''; position:absolute; top:-10px; width:20px; height:3px; border-radius:99px; background:#818CF8; }
         }
         @media (max-width:430px) { .home-topbar__actions { gap:6px; } .home-coins { padding-inline:9px; } .home-level { padding:10px 12px; } .home-level__xp { text-align:right; } }
       `}</style>
