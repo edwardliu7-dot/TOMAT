@@ -260,6 +260,8 @@ export function ProfileBanner({ user, height = 92 }) {
   if (!spanduk) return null
   const isCelestia = spanduk.luxury === 'celestia'
   const isRoyal = spanduk.luxury === 'royal'
+  const isEpic = isCelestia || isRoyal
+  React.useEffect(() => { if (isEpic) ensureLuxuryStyles() }, [isEpic])
   return (
     <div
       aria-label={`Spanduk ${spandukId}`}
@@ -269,15 +271,18 @@ export function ProfileBanner({ user, height = 92 }) {
         borderRadius: 18,
         overflow: 'hidden',
         position: 'relative',
-        background: spanduk.gradient,
-        border: `1px solid ${isRoyal ? 'rgba(212,175,55,0.5)' : isCelestia ? 'rgba(147,197,253,0.42)' : 'rgba(255,255,255,0.12)'}`,
+        background: spanduk.image
+          ? `url(${spanduk.image}) right center / auto 100% no-repeat, ${spanduk.gradient}`
+          : spanduk.gradient,
+        border: `1px solid ${isRoyal ? 'rgba(212,175,55,0.55)' : isCelestia ? 'rgba(147,197,253,0.50)' : 'rgba(255,255,255,0.12)'}`,
         boxShadow: isRoyal
-          ? '0 0 28px rgba(212,175,55,0.16)'
+          ? '0 0 0 1px rgba(212,175,55,0.18), 0 0 32px rgba(212,175,55,0.30), 0 4px 50px rgba(212,175,55,0.14)'
           : isCelestia
-            ? '0 0 28px rgba(96,165,250,0.16)'
+            ? '0 0 0 1px rgba(96,165,250,0.18), 0 0 32px rgba(96,165,250,0.30), 0 4px 50px rgba(96,165,250,0.14)'
             : 'none',
       }}
     >
+      {/* Glow overlay */}
       <div style={{
         position: 'absolute', inset: 0,
         background: isCelestia
@@ -285,12 +290,22 @@ export function ProfileBanner({ user, height = 92 }) {
           : isRoyal
             ? 'radial-gradient(circle at 50% 0%, rgba(212,175,55,0.2), transparent 45%), linear-gradient(90deg, transparent, rgba(212,175,55,0.08), transparent)'
             : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)',
+        pointerEvents: 'none',
       }} />
+      {/* Epic sparkle particles */}
+      {isEpic && (
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          <BannerSparkles color={isCelestia ? '#93c5fd' : '#d4af37'} count={12} />
+        </div>
+      )}
+      {/* Inner border inset */}
       <div style={{
         position: 'absolute', inset: 12,
         border: `1px solid ${isRoyal ? 'rgba(212,175,55,0.28)' : isCelestia ? 'rgba(147,197,253,0.24)' : 'rgba(255,255,255,0.12)'}`,
         borderRadius: 12,
+        pointerEvents: 'none',
       }} />
+      {/* Label */}
       <div style={{
         position: 'absolute', left: 18, bottom: 12,
         color: isRoyal ? '#f5e7b2' : isCelestia ? '#dbeafe' : '#fff',
@@ -299,6 +314,7 @@ export function ProfileBanner({ user, height = 92 }) {
       }}>
         {isRoyal ? 'Royal Mathematician' : isCelestia ? 'Celestia Relic' : 'Spanduk Profil'}
       </div>
+      {/* Decorative icon */}
       <div style={{
         position: 'absolute', right: 18, top: 12,
         color: isRoyal ? '#d4af37' : isCelestia ? '#93c5fd' : '#cbd5e1',
@@ -452,6 +468,35 @@ export function RoyalShimmer() {
   )
 }
 
+// Twinkling sparkle dots for epic banner tiers — reuses tomat-sparkle-fade animation
+export function BannerSparkles({ color = '#93c5fd', count = 14 }) {
+  React.useEffect(() => { ensureLuxuryStyles() }, [])
+  const sizes = [2, 3, 2, 4, 2, 3, 3, 2, 4, 2, 3, 2, 4, 3]
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => {
+        const size = sizes[i % sizes.length]
+        const top  = `${8  + (i * 19 + i * 7)  % 82}%`
+        const left = `${3  + (i * 13 + i * 11) % 94}%`
+        const dur  = `${1.6 + (i % 5) * 0.5}s`
+        const del  = `-${(i * 0.38).toFixed(2)}s`
+        return (
+          <div key={i} style={{
+            position: 'absolute',
+            top, left,
+            width: size, height: size,
+            borderRadius: '50%',
+            background: color,
+            boxShadow: `0 0 ${size * 3}px ${size}px ${color}88`,
+            animation: `tomat-sparkle-fade ${dur} ease-in-out ${del} infinite`,
+            pointerEvents: 'none',
+          }} />
+        )
+      })}
+    </>
+  )
+}
+
 export function PublicProfileModal({ profile, loading, error, onClose }) {
   const { user: currentUser } = useAuth()
 
@@ -507,7 +552,9 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
               position: 'relative',
               height: 140,
               background: spanduk
-                ? spanduk.gradient
+                ? (spanduk.image
+                    ? `url(${spanduk.image}) right center / auto 100% no-repeat, ${spanduk.gradient}`
+                    : spanduk.gradient)
                 : 'linear-gradient(160deg,#0c1a2e,#111827)',
               overflow: 'hidden',
             }}>
@@ -522,11 +569,11 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
                 pointerEvents: 'none',
               }} />
 
-              {/* Celestia animated orbiting particles */}
+              {/* Celestia: orbiting particles + star dots + sparkles */}
               {isCelestia && (
                 <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
                   <CelestiaParticles />
-                  {/* Static star dots */}
+                  <BannerSparkles color="#93c5fd" count={16} />
                   {[...Array(18)].map((_, i) => (
                     <div key={i} style={{
                       position: 'absolute',
@@ -544,7 +591,12 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
                 </div>
               )}
 
-              {/* Royal shimmer */}
+              {/* Royal: gold sparkles + shimmer */}
+              {isRoyal && (
+                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                  <BannerSparkles color="#d4af37" count={16} />
+                </div>
+              )}
               {isRoyal && <RoyalShimmer />}
 
               {/* Item label bottom-left */}
@@ -585,19 +637,6 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
                 background: 'linear-gradient(to bottom, transparent, #0f172a)',
                 pointerEvents: 'none',
               }} />
-
-              {/* ── Placed stickers (read-only) ── */}
-              {(profile.stikerLayout || []).map(s => (
-                <div key={s.uid} style={{
-                  position: 'absolute',
-                  left: `${s.x}%`, top: `${s.y}%`,
-                  fontSize: s.size, lineHeight: 1,
-                  transform: 'translate(-50%,-50%)',
-                  pointerEvents: 'none',
-                  zIndex: 12,
-                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
-                }}>{s.emoji}</div>
-              ))}
             </div>
 
             {/* ── AVATAR (overlapping banner bottom) ── */}
