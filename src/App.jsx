@@ -31,6 +31,62 @@ import PublicProfileScreen from './screens/PublicProfileScreen'
 import DuelInviteBanner from './components/DuelInviteBanner'
 import { connectSocket } from './socket'
 import { DUEL_GAME_KEYS } from './gamesCatalog'
+
+const DUEL_INVITE_GAMES = [
+  { key: 'katak',       emoji: '🐸', name: 'Katak Pelompat' },
+  { key: 'termometer',  emoji: '🌡️', name: 'Termometer' },
+  { key: 'pabrikrobot', emoji: '🤖', name: 'Pabrik Robot' },
+  { key: 'gembok',      emoji: '⚙️', name: 'Gembok FPB' },
+  { key: 'mercusuar',   emoji: '🏮', name: 'Mercusuar KPK' },
+  { key: 'scanner',     emoji: '💎', name: 'Scanner Prima' },
+]
+
+function DuelGamePickerModal({ target, onPick, onCancel }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10001,
+      background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      padding: '0 0 24px',
+    }}>
+      <div style={{
+        width: '100%', maxWidth: 480,
+        background: 'linear-gradient(135deg,#0e1a2e,#0d1f3c)',
+        border: '2px solid rgba(99,102,241,0.55)',
+        borderRadius: 24, padding: '24px 20px 20px',
+        boxShadow: '0 0 60px rgba(99,102,241,0.25)',
+      }}>
+        <div style={{ fontSize: 11, color: '#818CF8', fontWeight: 800, letterSpacing: 1.5, marginBottom: 4 }}>PILIH GAME DUEL</div>
+        <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 4 }}>Ajak {target.name}</div>
+        <div style={{ fontSize: 12, color: '#64748B', marginBottom: 18 }}>Pilih game yang akan dimainkan dalam duel ini</div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, marginBottom: 16 }}>
+          {DUEL_INVITE_GAMES.map(g => (
+            <button key={g.key} onClick={() => onPick(g.key)} style={{
+              background: 'rgba(99,102,241,0.08)', border: '1.5px solid rgba(99,102,241,0.25)',
+              borderRadius: 14, padding: '14px 10px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.18)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.25)' }}
+            >
+              <span style={{ fontSize: 28 }}>{g.emoji}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#C4B5FD', textAlign: 'center', lineHeight: 1.3 }}>{g.name}</span>
+            </button>
+          ))}
+        </div>
+
+        <button onClick={onCancel} style={{
+          width: '100%', background: 'transparent', border: 'none',
+          color: '#475569', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: '8px',
+        }}>
+          Batal
+        </button>
+      </div>
+    </div>
+  )
+}
 import GameDesktopWrapper from './components/GameDesktopWrapper'
 import { fetchPublicProfile, normalizeProfileTarget } from './components/shared'
 
@@ -213,9 +269,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [activeTournamentId,  setActiveTournamentId]  = useState(null)  // when we are spectating bracket
   const [publicProfileData, setPublicProfileData]   = useState(null)   // { ...profile }
   const [publicProfileError, setPublicProfileError] = useState('')
-  const [duelInvite, setDuelInvite]                 = useState(null)   // { code, from: { userId, name } }
+  const [duelInvite, setDuelInvite]                 = useState(null)   // { code, gameKey, from: { userId, name } }
   const [duelInviteCode, setDuelInviteCode]         = useState(null)   // auto-join code for LobbyScreen
   const [tokoInitialTab, setTokoInitialTab]         = useState(null)   // pre-select shop tab on open
+  const [duelInvitePending, setDuelInvitePending]   = useState(null)   // { id, role, name } — waiting for game pick
 
   // Update browser tab title whenever the active screen changes
   useEffect(() => {
@@ -278,13 +335,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     const onInviteDuel = e => {
       const target = e.detail
       if (!target?.id) return
-      const socket = connectSocket()
-      socket.emit('duel:invite', {
-        targetUserId: target.id,
-        targetRole: target.role || 'siswa',
-        avatar: null,
-      })
-      navigate('duel-lobby')
+      setDuelInvitePending({ id: target.id, role: target.role || 'siswa', name: target.name || 'Siswa' })
     }
     window.addEventListener('tomat:visit-profile', onVisitProfile)
     window.addEventListener('tomat:invite-duel', onInviteDuel)
@@ -370,13 +421,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           profile={publicProfileData}
           goBack={goBack}
           onInviteDuel={(profile) => {
-            const socket = connectSocket()
-            socket.emit('duel:invite', {
-              targetUserId: profile.id,
-              targetRole: profile.role || 'siswa',
-              avatar: null,
-            })
-            navigate('duel-lobby')
+            setDuelInvitePending({ id: profile.id, role: profile.role || 'siswa', name: profile.name || 'Siswa' })
           }}
         />
       )
@@ -529,6 +574,25 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
                     navigate('tournament-match')
                   }}
                   onDismiss={() => setTournamentBanner(null)}
+                />
+              )}
+              {/* Duel game picker — shown before sending a direct invite */}
+              {duelInvitePending && (
+                <DuelGamePickerModal
+                  target={duelInvitePending}
+                  onPick={(gameKey) => {
+                    const t = duelInvitePending
+                    setDuelInvitePending(null)
+                    const socket = connectSocket()
+                    socket.emit('duel:invite', {
+                      targetUserId: t.id,
+                      targetRole: t.role,
+                      avatar: null,
+                      gameKey,
+                    })
+                    navigate('duel-lobby')
+                  }}
+                  onCancel={() => setDuelInvitePending(null)}
                 />
               )}
               {/* Duel invite banner */}

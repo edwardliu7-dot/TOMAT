@@ -326,7 +326,7 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // ── INVITE (kirim undangan duel langsung ke user lain) ───────────────────
-    socket.on('duel:invite', async ({ targetUserId, targetRole, avatar } = {}) => {
+    socket.on('duel:invite', async ({ targetUserId, targetRole, avatar, gameKey: inviteGameKey } = {}) => {
       if (!(await canPlayStudentMode(socket, 'duel:error'))) return
       if (user.role !== 'siswa' || targetRole !== 'siswa') {
         socket.emit('duel:error', { message: 'Undangan duel hanya antar siswa.' })
@@ -337,12 +337,14 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
         return
       }
 
+      const chosenGameKey = inviteGameKey || 'katak'
+
       leaveAllRooms(socket, io)
       const code = genCode()
       const player = makePlayer(avatar)
       const room = {
         code,
-        gameKey: 'katak',   // direct invites have no game context — default katak
+        gameKey: chosenGameKey,
         players: [player],
         status: 'waiting',
         createdAt: Date.now(),
@@ -351,10 +353,11 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       }
       rooms.set(code, room)
       socket.join(code)
-      socket.emit('duel:created', { code, player: safePlayer(player) })
+      socket.emit('duel:created', { code, player: safePlayer(player), gameKey: chosenGameKey })
 
       const invitePayload = {
         code,
+        gameKey: chosenGameKey,
         from: { userId: user.id, name: player.name },
       }
 

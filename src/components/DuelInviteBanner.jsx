@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { usePet } from '../PetContext'
 
+const GAME_LABELS = {
+  katak:       { emoji: '🐸', name: 'Katak Pelompat' },
+  termometer:  { emoji: '🌡️', name: 'Termometer' },
+  pabrikrobot: { emoji: '🤖', name: 'Pabrik Robot' },
+  gembok:      { emoji: '⚙️', name: 'Gembok FPB' },
+  mercusuar:   { emoji: '🏮', name: 'Mercusuar KPK' },
+  scanner:     { emoji: '💎', name: 'Scanner Prima' },
+}
+
 /**
  * Overlay banner when a siswa receives a 'duel:incoming-invite' socket event.
  * Props:
@@ -91,7 +100,10 @@ export default function DuelInviteBanner({ invite, onAccept, onDecline }) {
             {/* VS */}
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 24, fontWeight: 900, color: '#6366F1' }}>VS</div>
-              <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>7 soal Katak</div>
+              {(() => {
+                const g = GAME_LABELS[invite.gameKey] || GAME_LABELS.katak
+                return <div style={{ fontSize: 10, color: '#818CF8', marginTop: 2, fontWeight: 700 }}>{g.emoji} {g.name}</div>
+              })()}
             </div>
             {/* Me */}
             <div style={{ textAlign: 'center' }}>
