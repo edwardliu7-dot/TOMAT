@@ -1605,7 +1605,7 @@ function GuruActionCard({ eyebrow, icon, title, body, action, isEmerald, onClick
   )
 }
 
-function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSelectTab }) {
+function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSelectTab, hideHeader = false }) {
   const [tugas, setTugas]       = useState([])
   const [students, setStudents] = useState([])
   const [nilaiList, setNilai]   = useState([])
@@ -1662,8 +1662,8 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
 
       <div style={{ position: 'relative', zIndex: 1, maxWidth: 1500, margin: '0 auto', padding: '0 clamp(20px,4vw,48px)' }}>
 
-        {/* ── Header ── */}
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '20px 0' }}>
+        {/* ── Header (hidden on mobile when inside shell) ── */}
+        <header style={{ display: hideHeader ? 'none' : 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '20px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => notify('Kamu sudah berada di beranda TOMAT')} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
               <span style={{ width: 40, height: 40, borderRadius: 14, background: '#9fe3bd', color: '#0b2c2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 11, letterSpacing: '-0.1em', boxShadow: '0 0 0 5px rgba(159,227,189,0.08)' }}>TM</span>
@@ -1970,6 +1970,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   const [view, setView] = useState('dashboard')
   const [komunikasiTarget, setKomunikasiTarget] = useState(null)
   const [visitedProfile, setVisitedProfile] = useState(null)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
   const publicProfile = usePublicProfile()
   const isDesktop = useIsDesktop()
   const kelasDiampu = user?.kelas || []
@@ -2034,30 +2035,9 @@ export default function GuruDashboardScreen({ onPlayGames }) {
     return <PublicProfileScreen profile={visitedProfile} goBack={() => setVisitedProfile(null)} />
   }
 
-  // ── Home tab renders as a full standalone page ──
-  if (tab === 'home') {
-    return (
-      <>
-        <GuruHomeTab
-          kelasDiampu={kelasDiampu}
-          user={user}
-          logout={logout}
-          onPlayGames={onPlayGames}
-          onGoProfile={() => setView('profile')}
-          onSelectTab={selectTab}
-        />
-        <PublicProfileModal
-          profile={publicProfile.profile}
-          loading={publicProfile.loading}
-          error={publicProfile.error}
-          onClose={publicProfile.closeProfile}
-        />
-      </>
-    )
-  }
-
   const tabContent = (
     <>
+      {tab === 'home'       && <GuruHomeTab kelasDiampu={kelasDiampu} user={user} logout={logout} onPlayGames={onPlayGames} onGoProfile={() => setView('profile')} onSelectTab={selectTab} hideHeader={!isDesktop} />}
       {tab === 'tugas'      && <TugasTab kelasDiampu={kelasDiampu} />}
       {tab === 'hafalan'    && <GuruHafalanScreen />}
       {tab === 'nilai'      && <NilaiTab onProfileClick={publicProfile.openProfile} />}
@@ -2070,99 +2050,206 @@ export default function GuruDashboardScreen({ onPlayGames }) {
     </>
   )
 
+  // ── shared bottom-nav data ──
+  const PRIMARY_TABS = [
+    { id: 'home',       icon: '🏠', label: 'Beranda' },
+    { id: 'tugas',      icon: '📋', label: 'Tugas' },
+    { id: 'komunikasi', icon: '💬', label: 'Chat' },
+    { id: 'siswa',      icon: '👥', label: 'Siswa' },
+  ]
+  const MORE_TABS = [
+    { id: 'hafalan',  icon: '🧮', label: 'Hafalan' },
+    { id: 'nilai',    icon: '📊', label: 'Nilai' },
+    { id: 'kunci',    icon: '🔒', label: 'Kunci Bab' },
+    { id: 'raid',     icon: '⚔️',  label: 'Boss Raid' },
+    { id: 'turnamen', icon: '🏆', label: 'Turnamen' },
+    { id: 'insight',  icon: '🎮', label: 'Insight' },
+  ]
+  const isMoreTab = MORE_TABS.some(t => t.id === tab)
+
+  // ── Desktop layout ──
+  if (isDesktop) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0A0B14', position: 'relative' }}>
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
+          <div style={{ position: 'absolute', top: '-10%', right: '-15%', width: '60%', height: '45%', borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(100px)' }} />
+          <div style={{ position: 'absolute', bottom: '20%', left: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(16,185,129,0.08)', filter: 'blur(100px)' }} />
+        </div>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* Desktop topbar */}
+          <div style={{
+            padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(10,11,20,0.92)', backdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            position: 'sticky', top: 0, zIndex: 50,
+          }}>
+            <button onClick={() => selectTab('home')} style={{
+              background: 'rgba(159,227,189,0.1)', border: '1px solid rgba(159,227,189,0.25)',
+              color: '#9fe3bd', borderRadius: 10, padding: '6px 12px', cursor: 'pointer',
+              fontSize: 12, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}>← Beranda</button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {TABS.find(t => t.id === tab)?.label} {TABS.find(t => t.id === tab)?.text}
+              </div>
+              <div style={{ fontSize: 10, color: '#A78BFA', fontWeight: 600, marginTop: 1 }}>
+                {user?.name} · {kelasDiampu.join(', ') || 'Guru'}
+              </div>
+            </div>
+            <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} suppress={tab === 'komunikasi'} />
+            <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} />
+            <button onClick={onPlayGames} style={{
+              background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)',
+              color: '#34D399', borderRadius: 20, padding: '8px 14px', cursor: 'pointer',
+              fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+            }}>🎮 Media Ajar</button>
+            <button onClick={logout} style={{
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
+              color: '#64748B', width: 36, height: 36, borderRadius: 10, cursor: 'pointer', fontSize: 16,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>⏻</button>
+          </div>
+          <div style={{ display: 'flex', minHeight: 'calc(100vh - 65px)' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', maxWidth: 1100 }}>
+              {tabContent}
+            </div>
+          </div>
+        </div>
+        <PublicProfileModal profile={publicProfile.profile} loading={publicProfile.loading} error={publicProfile.error} onClose={publicProfile.closeProfile} />
+      </div>
+    )
+  }
+
+  // ── Mobile layout — fixed shell: topbar + scroll area + bottom nav ──
   return (
-    <div style={{ minHeight: '100vh', background: '#0A0B14', position: 'relative' }}>
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: '#0A0B14', overflow: 'hidden' }}>
       {/* Background blobs */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
         <div style={{ position: 'absolute', top: '-10%', right: '-15%', width: '60%', height: '45%', borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(100px)' }} />
         <div style={{ position: 'absolute', bottom: '20%', left: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(16,185,129,0.08)', filter: 'blur(100px)' }} />
       </div>
 
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* ── Sticky Topbar ── */}
-        <div style={{
-          padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10,
-          background: 'rgba(10,11,20,0.92)', backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
-          position: 'sticky', top: 0, zIndex: 50,
-        }}>
-          {/* Back to home button */}
-          <button onClick={() => selectTab('home')} style={{
-            background: 'rgba(159,227,189,0.1)', border: '1px solid rgba(159,227,189,0.25)',
-            color: '#9fe3bd', borderRadius: 10, padding: '6px 12px', cursor: 'pointer',
-            fontSize: 12, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
-            display: 'flex', alignItems: 'center', gap: 5,
-          }}>← Beranda</button>
+      {/* ── Fixed Topbar ── */}
+      <div style={{
+        flexShrink: 0, position: 'relative', zIndex: 10,
+        padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8,
+        background: 'rgba(10,11,20,0.97)', backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+      }}>
+        {/* Logo */}
+        <span style={{
+          width: 34, height: 34, borderRadius: 10, background: '#9fe3bd', color: '#0b2c2a',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontWeight: 900, fontSize: 10, letterSpacing: '-0.05em', flexShrink: 0,
+        }}>TM</span>
 
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {TABS.find(t => t.id === tab)?.label} {TABS.find(t => t.id === tab)?.text}
-            </div>
-            <div style={{ fontSize: 10, color: '#A78BFA', fontWeight: 600, marginTop: 1 }}>
-              {user?.name} · {kelasDiampu.join(', ') || 'Guru'}
-            </div>
+        {/* Tab title */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {tab === 'home' ? 'Dashboard Guru' : `${TABS.find(t => t.id === tab)?.label} ${TABS.find(t => t.id === tab)?.text}`}
           </div>
-
-          <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} suppress={tab === 'komunikasi'} />
-          <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} />
-
-          <button onClick={onPlayGames} style={{
-            background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)',
-            color: '#34D399', borderRadius: 20, padding: '8px 14px', cursor: 'pointer',
-            fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-          }}>🎮 Media Ajar</button>
-
-          <button onClick={logout} style={{
-            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
-            color: '#64748B', width: 36, height: 36, borderRadius: 10, cursor: 'pointer', fontSize: 16,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>⏻</button>
+          <div style={{ fontSize: 10, color: '#A78BFA', fontWeight: 600, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {user?.name} · {kelasDiampu.join(', ') || 'Guru'}
+          </div>
         </div>
 
-        {/* ── Body ── */}
-        {isDesktop ? (
-          /* ── Desktop: vertical sidebar + scrollable content ── */
-           <div style={{ display: 'flex', minHeight: 'calc(100vh - 65px)' }}>
-             {/* Main content area. Desktop navigation lives in AppShell/Sidebar. */}
-             <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', maxWidth: 1100 }}>
-              {tabContent}
-            </div>
-          </div>
-        ) : (
-          /* ── Mobile: horizontal scroll tab bar + content ── */
-          <>
-            <div style={{ display: 'flex', gap: 4, padding: '12px 16px 0', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-               {TABS.filter(t => t.id !== 'home').map(t => {
-                const active = tab === t.id
-                 return (
-                   <button key={t.id} data-tab={t.id} onClick={() => selectTab(t.id)} style={{
-                    flex: '0 0 auto', padding: '8px 14px', borderRadius: 10, border: 'none',
-                    cursor: 'pointer', fontSize: 12, fontWeight: 800, fontFamily: 'inherit',
-                    whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5,
-                    background: active ? 'rgba(52,211,153,0.12)' : 'transparent',
-                    color: active ? '#34D399' : '#4B5563',
-                    borderBottom: active ? '2px solid #34D399' : '2px solid transparent',
-                    marginBottom: -1,
-                    boxShadow: active ? '0 0 12px rgba(52,211,153,0.15)' : 'none',
+        <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} suppress={tab === 'komunikasi'} />
+        <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} />
+
+        <button onClick={onPlayGames} style={{
+          background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)',
+          color: '#34D399', borderRadius: 16, padding: '6px 10px', cursor: 'pointer',
+          fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
+        }}>🎮</button>
+      </div>
+
+      {/* ── Scrollable Content ── */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', zIndex: 1, WebkitOverflowScrolling: 'touch' }}>
+        {tabContent}
+        <PublicProfileModal profile={publicProfile.profile} loading={publicProfile.loading} error={publicProfile.error} onClose={publicProfile.closeProfile} />
+      </div>
+
+      {/* ── Fixed Bottom Nav ── */}
+      <nav style={{
+        flexShrink: 0, position: 'relative', zIndex: 10,
+        display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
+        padding: '6px 4px 18px',
+        background: 'rgba(10,11,20,0.97)', backdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+      }}>
+        {PRIMARY_TABS.map(({ id, icon, label }) => {
+          const active = tab === id
+          return (
+            <button key={id} onClick={() => { selectTab(id); setShowMoreMenu(false) }} style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              gap: 3, border: 'none', background: 'none', cursor: 'pointer',
+              color: active ? '#34D399' : '#4B5563', fontFamily: 'inherit',
+              padding: '6px 2px', position: 'relative',
+            }}>
+              {active && <span style={{
+                position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                width: 20, height: 3, borderRadius: 99, background: '#34D399',
+              }} />}
+              <span style={{ fontSize: 20, opacity: active ? 1 : 0.5 }}>{icon}</span>
+              <small style={{ fontSize: 9, fontWeight: active ? 800 : 500 }}>{label}</small>
+            </button>
+          )
+        })}
+
+        {/* Lainnya */}
+        <button onClick={() => setShowMoreMenu(v => !v)} style={{
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          gap: 3, border: 'none', background: 'none', cursor: 'pointer',
+          color: showMoreMenu || isMoreTab ? '#A78BFA' : '#4B5563',
+          fontFamily: 'inherit', padding: '6px 2px', position: 'relative',
+        }}>
+          {(showMoreMenu || isMoreTab) && (
+            <span style={{
+              position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+              width: 20, height: 3, borderRadius: 99, background: '#A78BFA',
+            }} />
+          )}
+          <span style={{ fontSize: 20, opacity: showMoreMenu || isMoreTab ? 1 : 0.5 }}>☰</span>
+          <small style={{ fontSize: 9, fontWeight: showMoreMenu || isMoreTab ? 800 : 500 }}>Lainnya</small>
+        </button>
+      </nav>
+
+      {/* ── More Menu Sheet ── */}
+      {showMoreMenu && (
+        <>
+          <div onClick={() => setShowMoreMenu(false)} style={{
+            position: 'fixed', inset: 0, zIndex: 11, background: 'rgba(0,0,0,0.55)',
+          }} />
+          <div style={{
+            position: 'fixed', bottom: 72, left: 8, right: 8, zIndex: 12,
+            background: '#12131f', borderRadius: 20,
+            border: '1px solid rgba(255,255,255,0.09)',
+            padding: '16px 12px',
+            boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
+          }}>
+            <div style={{ fontSize: 10, color: '#4B5563', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12, paddingLeft: 6 }}>Menu Lainnya</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              {MORE_TABS.map(({ id, icon, label }) => {
+                const active = tab === id
+                return (
+                  <button key={id} onClick={() => { selectTab(id); setShowMoreMenu(false) }} style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                    padding: '14px 8px', borderRadius: 14,
+                    border: active ? '1px solid rgba(167,139,250,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                    background: active ? 'rgba(167,139,250,0.12)' : 'rgba(255,255,255,0.03)',
+                    color: active ? '#A78BFA' : '#94A3B8',
+                    cursor: 'pointer', fontFamily: 'inherit',
                   }}>
-                    {t.label} {t.text}
+                    <span style={{ fontSize: 22 }}>{icon}</span>
+                    <small style={{ fontSize: 10, fontWeight: 700 }}>{label}</small>
                   </button>
                 )
               })}
             </div>
-            <div style={{ padding: 16, maxWidth: 'var(--content-max)', margin: '0 auto' }}>
-              {tabContent}
-            </div>
-          </>
-        )}
-
-        <PublicProfileModal
-          profile={publicProfile.profile}
-          loading={publicProfile.loading}
-          error={publicProfile.error}
-          onClose={publicProfile.closeProfile}
-        />
-      </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
