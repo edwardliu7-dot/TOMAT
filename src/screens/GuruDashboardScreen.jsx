@@ -1014,6 +1014,13 @@ const TOURNAMENT_GAMES = [
   { key: 'g8fusienergi',   label: '⚗️ Fusi Energi Alkemis',         desc: 'Pangkat pecahan (b^(p/q))' },
   { key: 'g8mantraakar',   label: '✨ Penyederhanaan Mantra Akar',   desc: 'Menyederhanakan bentuk akar (√a + √b)' },
   { key: 'g8geolog',       label: '⛏️ Ekspedisi Geolog Kerajaan',    desc: 'Pertumbuhan berlapis (p₀ × bⁿ)' },
+  // ── Kelas 8 BAB II — Teorema Pythagoras ────────────────────────────────────
+  { key: 'g8trebuchet',    label: '⚔️ Bidikan Tepat Trebuchet',      desc: 'Hipotenusa segitiga siku-siku (c = √(a²+b²))' },
+  { key: 'g8perisai',      label: '🛡️ Restorasi Perisai Kerajaan',   desc: 'Diagonal belah ketupat (d2 = 2√(s²−(d1/2)²))' },
+  { key: 'g8hartakarun',   label: '💰 Harta Karun di Sudut Ruangan', desc: 'Diagonal ruang balok (d = √(P²+L²+T²))' },
+  { key: 'g8inspeksisudut',label: '🗼 Inspeksi Sudut Menara',         desc: 'Menghitung a² + b² dari dua sisi' },
+  { key: 'g8petaradar',    label: '📡 Peta Radar Pengintai',          desc: 'Jarak dua titik pada koordinat (d = √(Δx²+Δy²))' },
+  { key: 'g8taligantung',  label: '🪢 Misi Penyelamatan Tali Gantung',desc: 'Panjang tali/hipotenusa (c = √(a²+b²))' },
 ]
 
 const MATCH_STATUS_BADGE = {

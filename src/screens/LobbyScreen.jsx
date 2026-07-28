@@ -18,12 +18,27 @@ function useIsMd() {
 
 // Games available for duel (shown in the selector grid)
 const DUEL_GAMES = [
-  { key: 'katak',       emoji: '🐸', name: 'Katak Pelompat' },
-  { key: 'termometer',  emoji: '🌡️', name: 'Termometer' },
-  { key: 'pabrikrobot', emoji: '🤖', name: 'Pabrik Robot' },
-  { key: 'gembok',      emoji: '⚙️', name: 'Gembok FPB' },
-  { key: 'mercusuar',   emoji: '🏮', name: 'Mercusuar KPK' },
-  { key: 'scanner',     emoji: '💎', name: 'Scanner Prima' },
+  // ── Kelas 7 BAB I ──────────────────────────────────────────────────────────
+  { key: 'katak',            emoji: '🐸', name: 'Katak Pelompat',            group: 'Kelas 7' },
+  { key: 'termometer',       emoji: '🌡️', name: 'Termometer',                group: 'Kelas 7' },
+  { key: 'pabrikrobot',      emoji: '🤖', name: 'Pabrik Robot',              group: 'Kelas 7' },
+  { key: 'gembok',           emoji: '⚙️', name: 'Gembok FPB',                group: 'Kelas 7' },
+  { key: 'mercusuar',        emoji: '🏮', name: 'Mercusuar KPK',             group: 'Kelas 7' },
+  { key: 'scanner',          emoji: '💎', name: 'Scanner Prima',             group: 'Kelas 7' },
+  // ── Kelas 8 BAB I — Bilangan Berpangkat ────────────────────────────────────
+  { key: 'g8selramuan',      emoji: '🧪', name: 'Sel Ramuan',                group: 'Kelas 8 — Bab I' },
+  { key: 'g8racunminiatur',  emoji: '☠️', name: 'Racun Miniatur',            group: 'Kelas 8 — Bab I' },
+  { key: 'g8kristal',        emoji: '💎', name: 'Kristal',                   group: 'Kelas 8 — Bab I' },
+  { key: 'g8fusienergi',     emoji: '⚗️', name: 'Fusi Energi',              group: 'Kelas 8 — Bab I' },
+  { key: 'g8mantraakar',     emoji: '✨', name: 'Mantra Akar',               group: 'Kelas 8 — Bab I' },
+  { key: 'g8geolog',         emoji: '⛏️', name: 'Ekspedisi Geolog',          group: 'Kelas 8 — Bab I' },
+  // ── Kelas 8 BAB II — Teorema Pythagoras ────────────────────────────────────
+  { key: 'g8trebuchet',      emoji: '⚔️', name: 'Trebuchet',                 group: 'Kelas 8 — Bab II' },
+  { key: 'g8perisai',        emoji: '🛡️', name: 'Perisai Kerajaan',          group: 'Kelas 8 — Bab II' },
+  { key: 'g8hartakarun',     emoji: '💰', name: 'Harta Karun',               group: 'Kelas 8 — Bab II' },
+  { key: 'g8inspeksisudut',  emoji: '🗼', name: 'Inspeksi Sudut',            group: 'Kelas 8 — Bab II' },
+  { key: 'g8petaradar',      emoji: '📡', name: 'Peta Radar',                group: 'Kelas 8 — Bab II' },
+  { key: 'g8taligantung',    emoji: '🪢', name: 'Tali Gantung',              group: 'Kelas 8 — Bab II' },
 ]
 
 // ─── Avatar bubble ────────────────────────────────────────────────────────────
@@ -269,30 +284,44 @@ export default function LobbyScreen({ goBack, onStart, initialCode, gameKey = 'k
         {/* ── MENU ── */}
         {phase === 'menu' && (
           <>
-            {/* Game selector */}
+            {/* Game selector — grouped by bab */}
             <div style={{ padding: '16px 0 4px' }}>
-              <div style={{ fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 1.5, marginBottom: 10 }}>PILIH GAME DUEL</div>
-              <div style={isMd ? {
-                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10,
-              } : { display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
-                {DUEL_GAMES.map(g => {
-                  const active = selectedGameKey === g.key
+              <div style={{ fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 1.5, marginBottom: 12 }}>PILIH GAME DUEL</div>
+              {(() => {
+                // Build ordered group list preserving insertion order
+                const groups = []
+                const seen = {}
+                DUEL_GAMES.forEach(g => {
+                  if (!seen[g.group]) { seen[g.group] = true; groups.push(g.group) }
+                })
+                return groups.map(grp => {
+                  const games = DUEL_GAMES.filter(g => g.group === grp)
                   return (
-                    <button key={g.key} onClick={() => setSelectedGameKey(g.key)} style={{
-                      flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                      width: isMd ? '100%' : 72, padding: '10px 6px',
-                      background: active ? 'rgba(103,232,249,0.08)' : 'rgba(255,255,255,0.03)',
-                      border: `2px solid ${active ? 'rgba(103,232,249,0.6)' : 'rgba(255,255,255,0.08)'}`,
-                      borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
-                      boxShadow: active ? '0 0 14px rgba(103,232,249,0.2)' : 'none',
-                      transition: 'all 0.18s',
-                    }}>
-                      <span style={{ fontSize: 26 }}>{g.emoji}</span>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: active ? '#67E8F9' : '#475569', textAlign: 'center', lineHeight: 1.3 }}>{g.name}</span>
-                    </button>
+                    <div key={grp} style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 9, color: '#475569', fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase', marginBottom: 8 }}>{grp}</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {games.map(g => {
+                          const active = selectedGameKey === g.key
+                          return (
+                            <button key={g.key} onClick={() => setSelectedGameKey(g.key)} style={{
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                              width: 70, padding: '9px 4px',
+                              background: active ? 'rgba(103,232,249,0.10)' : 'rgba(255,255,255,0.03)',
+                              border: `2px solid ${active ? 'rgba(103,232,249,0.65)' : 'rgba(255,255,255,0.07)'}`,
+                              borderRadius: 13, cursor: 'pointer', fontFamily: 'inherit',
+                              boxShadow: active ? '0 0 14px rgba(103,232,249,0.2)' : 'none',
+                              transition: 'all 0.15s',
+                            }}>
+                              <span style={{ fontSize: 24 }}>{g.emoji}</span>
+                              <span style={{ fontSize: 8, fontWeight: 700, color: active ? '#67E8F9' : '#475569', textAlign: 'center', lineHeight: 1.3 }}>{g.name}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
                   )
-                })}
-              </div>
+                })
+              })()}
             </div>
 
             {/* Buat Ruangan + Masuk — side by side on desktop */}
