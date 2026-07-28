@@ -283,7 +283,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
       {notice && <div className="home-notice">✦ {notice}<button type="button" onClick={() => setNotice('')}>×</button></div>}
 
       <style>{`
-        .home-screen { min-height: 100vh; position: relative; overflow: hidden; background: #071321; color: #F1F5F9; }
+        .home-screen { min-height: 100vh; position: relative; overflow-x: hidden; background: #071321; color: #F1F5F9; }
         .home-screen__glow { position: fixed; pointer-events: none; border-radius: 50%; filter: blur(130px); z-index: 0; }
         .home-screen__glow--one { width: 520px; height: 520px; left: -180px; top: -160px; background: rgba(6,182,212,.08); }
         .home-screen__glow--two { width: 580px; height: 580px; right: -180px; top: 38%; background: rgba(99,102,241,.10); }
@@ -379,12 +379,12 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
         @media (max-width:1100px) and (min-width:901px) { .home-content { padding-inline:24px; } .home-topbar { padding-inline:24px; } }
         @media (max-width:900px) {
           .home-screen { padding-bottom:84px; }
-          .home-topbar { min-height:62px; padding:10px 16px; }
+          .home-topbar { position:fixed; top:0; left:0; right:0; z-index:10; min-height:62px; padding:10px 16px; }
           .home-topbar__date { display:none; }
           .home-topbar__actions { width:100%; justify-content:flex-end; }
           .home-profile-button > span, .home-profile-button > b { display:none; }
           .home-profile-button { padding:3px; border-radius:12px; }
-          .home-content { padding:20px 16px 20px; }
+          .home-content { padding:82px 16px 20px; }
           .home-greeting { display:block; margin-bottom:18px; }
           .home-eyebrow { font-size:9px; letter-spacing:.16em; }
           .home-greeting h1 { margin-top:6px; font-size:26px; }
