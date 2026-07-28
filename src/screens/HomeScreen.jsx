@@ -100,7 +100,7 @@ function ZoneCard({ zone, locked, selected, onClick }) {
   )
 }
 
-export default function HomeScreen({ navigate, guruMode, onExitGuruMode }) {
+export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop }) {
   const { player } = usePlayer()
   const { tasks, grades } = useTask()
   const { user } = useAuth()
