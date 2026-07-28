@@ -11,6 +11,7 @@ export const BINGKAI_VISUALS = {
   bingkai_aurum_sovereign: { border: '#D4AF37', style: 'double', glow: true, luxury: 'aurum' },
   bingkai_void_monarch: { border: '#6366F1', style: 'solid', glow: true, luxury: 'void' },
   bingkai_petal_rose: { image: '/petal-rose.png', border: '#F9A8D4', style: 'solid' },
+  bingkai_garuda: { image: '/garuda.gif', border: '#F59E0B', style: 'solid', glow: true },
 }
 
 export const SPANDUK_VISUALS = {

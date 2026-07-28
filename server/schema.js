@@ -302,6 +302,10 @@ export async function ensureSchema() {
       image: '/petal-rose.png', border: '#F9A8D4', style: 'solid',
       description: 'Mahkota kelopak mawar yang lembut dan elegan.'
     }, 9],
+    ['bingkai_garuda', 'bingkai', 'Garuda Agung', 4500, {
+      image: '/garuda.gif', border: '#F59E0B', style: 'solid', glow: true,
+      description: 'Bingkai animasi Garuda — simbol keagungan dan semangat juang.'
+    }, 10],
     ['spanduk_galaksi', 'spanduk', 'Galaksi', 1000, { gradient: 'linear-gradient(90deg,#312e81,#581c87,#000)' }, 1],
     ['spanduk_hutan', 'spanduk', 'Hutan Ajaib', 1200, { gradient: 'linear-gradient(90deg,#064e3b,#134e4a)' }, 2],
     ['spanduk_retro', 'spanduk', 'Retro 8-bit', 2500, { gradient: 'linear-gradient(90deg,#374151,#111827)' }, 3],
