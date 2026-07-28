@@ -57,3 +57,9 @@ build = ["npm", "run", "build"]
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 120000
+
+[userenv]
+
+[userenv.shared]
+APP_DOWNLOAD_URL = ""
+MIN_APP_VERSION_CODE = "1"

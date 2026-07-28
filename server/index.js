@@ -73,6 +73,13 @@ async function createServer() {
   app.use('/api/notifikasi', notifikasiRouter)
   app.use('/api/siswa/pet', petRouter)
 
+  // Endpoint publik — cek versi APK, tidak perlu login
+  app.get('/api/app/version-check', (req, res) => {
+    const minVersionCode = parseInt(process.env.MIN_APP_VERSION_CODE || '1', 10)
+    const downloadUrl = process.env.APP_DOWNLOAD_URL || ''
+    res.json({ minVersionCode, downloadUrl })
+  })
+
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite')
     const vite = await createViteServer({
