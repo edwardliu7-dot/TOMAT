@@ -363,7 +363,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
         .home-bottom-nav { display:none; }
         @media (max-width:1100px) and (min-width:901px) { .home-content { padding-inline:24px; } .home-topbar { padding-inline:24px; } }
         @media (max-width:900px) {
-          .home-topbar { position:fixed; top:0; left:0; right:0; z-index:10; min-height:62px; padding:10px 16px; }
+          .home-topbar { position:fixed; top:0; left:0; right:0; z-index:10; min-height:62px; padding:calc(10px + env(safe-area-inset-top, 0px)) 16px 10px; }
           .home-topbar__date { display:none; }
           .home-topbar__actions { width:100%; justify-content:flex-end; }
           .home-profile-button > span, .home-profile-button > b { display:none; }

@@ -2,10 +2,11 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>TOMAT – Tantangan Otak Matematika</title>
     <meta name="description" content="TOMAT - Platform gamifikasi matematika SMP dengan duel real-time, turnamen, dan sistem reward." />
-    <meta name="theme-color" content="#0F1115" />
+    <meta name="theme-color" content="#071321" />
     <meta property="og:title" content="TOMAT — Tantangan Otak Matematika" />
     <meta property="og:description" content="Belajar matematika SMP dengan cara yang menyenangkan. Duel teman, ikut turnamen, kumpulkan reward!" />
     <meta property="og:type" content="website" />
@@ -55,7 +56,12 @@
         :root { --content-max: 1100px; }
       }
       html { font-size: calc(16px * var(--fs-scale)); }
-      body { font-family: 'Inter', sans-serif; background: #0F1115; color: #E2E2E6; min-height: 100vh; }
+      body { font-family: 'Inter', sans-serif; background: #0F1115; color: #E2E2E6; min-height: 100vh;
+        padding-top: env(safe-area-inset-top);
+        padding-right: env(safe-area-inset-right);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+      }
       #root { min-height: 100vh; }
 
       /* Sidebar offset untuk konten utama */

@@ -36,7 +36,9 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, chil
           position: fixed; z-index: 100;
           display: flex; left: 0; right: 0; bottom: 0;
           justify-content: space-around;
-          padding: 10px 16px 22px;
+          padding: 10px 16px calc(22px + env(safe-area-inset-bottom, 0px));
+          padding-left: calc(16px + env(safe-area-inset-left, 0px));
+          padding-right: calc(16px + env(safe-area-inset-right, 0px));
           border-top: 1px solid rgba(99,102,241,.10);
           background: rgba(7,19,33,.96);
           backdrop-filter: blur(16px);
