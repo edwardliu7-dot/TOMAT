@@ -1970,6 +1970,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   const [view, setView] = useState('dashboard')
   const [komunikasiTarget, setKomunikasiTarget] = useState(null)
   const [visitedProfile, setVisitedProfile] = useState(null)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
   const publicProfile = usePublicProfile()
   const isDesktop = useIsDesktop()
   const kelasDiampu = user?.kelas || []
@@ -2086,13 +2087,15 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           borderBottom: '1px solid rgba(255,255,255,0.07)',
           position: 'sticky', top: 0, zIndex: 50,
         }}>
-          {/* Back to home button */}
-          <button onClick={() => selectTab('home')} style={{
-            background: 'rgba(159,227,189,0.1)', border: '1px solid rgba(159,227,189,0.25)',
-            color: '#9fe3bd', borderRadius: 10, padding: '6px 12px', cursor: 'pointer',
-            fontSize: 12, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
-            display: 'flex', alignItems: 'center', gap: 5,
-          }}>← Beranda</button>
+          {/* Back to home button — hanya desktop */}
+          {isDesktop && (
+            <button onClick={() => selectTab('home')} style={{
+              background: 'rgba(159,227,189,0.1)', border: '1px solid rgba(159,227,189,0.25)',
+              color: '#9fe3bd', borderRadius: 10, padding: '6px 12px', cursor: 'pointer',
+              fontSize: 12, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}>← Beranda</button>
+          )}
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -2129,30 +2132,106 @@ export default function GuruDashboardScreen({ onPlayGames }) {
             </div>
           </div>
         ) : (
-          /* ── Mobile: horizontal scroll tab bar + content ── */
+          /* ── Mobile: content + sticky bottom nav ── */
           <>
-            <div style={{ display: 'flex', gap: 4, padding: '12px 16px 0', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-               {TABS.filter(t => t.id !== 'home').map(t => {
-                const active = tab === t.id
-                 return (
-                   <button key={t.id} data-tab={t.id} onClick={() => selectTab(t.id)} style={{
-                    flex: '0 0 auto', padding: '8px 14px', borderRadius: 10, border: 'none',
-                    cursor: 'pointer', fontSize: 12, fontWeight: 800, fontFamily: 'inherit',
-                    whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5,
-                    background: active ? 'rgba(52,211,153,0.12)' : 'transparent',
-                    color: active ? '#34D399' : '#4B5563',
-                    borderBottom: active ? '2px solid #34D399' : '2px solid transparent',
-                    marginBottom: -1,
-                    boxShadow: active ? '0 0 12px rgba(52,211,153,0.15)' : 'none',
+            <div style={{ padding: '16px 16px 90px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
+              {tabContent}
+            </div>
+
+            {/* ── Bottom Nav ── */}
+            <nav style={{
+              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+              display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
+              padding: '8px 8px 18px',
+              background: 'rgba(10,11,20,0.97)', backdropFilter: 'blur(20px)',
+              borderTop: '1px solid rgba(255,255,255,0.07)',
+            }}>
+              {[
+                { id: 'home',       icon: '🏠', label: 'Beranda' },
+                { id: 'tugas',      icon: '📋', label: 'Tugas' },
+                { id: 'komunikasi', icon: '💬', label: 'Chat' },
+                { id: 'siswa',      icon: '👥', label: 'Siswa' },
+              ].map(({ id, icon, label }) => {
+                const active = tab === id
+                return (
+                  <button key={id} onClick={() => { selectTab(id); setShowMoreMenu(false) }} style={{
+                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                    gap: 3, border: 'none', background: 'none', cursor: 'pointer',
+                    color: active ? '#34D399' : '#4B5563', fontFamily: 'inherit',
+                    padding: '6px 4px', position: 'relative',
                   }}>
-                    {t.label} {t.text}
+                    {active && <span style={{
+                      position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                      width: 20, height: 3, borderRadius: 99, background: '#34D399',
+                    }} />}
+                    <span style={{ fontSize: 20, opacity: active ? 1 : 0.5 }}>{icon}</span>
+                    <small style={{ fontSize: 10, fontWeight: active ? 800 : 500 }}>{label}</small>
                   </button>
                 )
               })}
-            </div>
-            <div style={{ padding: 16, maxWidth: 'var(--content-max)', margin: '0 auto' }}>
-              {tabContent}
-            </div>
+
+              {/* Lainnya */}
+              <button onClick={() => setShowMoreMenu(v => !v)} style={{
+                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                gap: 3, border: 'none', background: 'none', cursor: 'pointer',
+                color: showMoreMenu || ['hafalan','nilai','kunci','raid','turnamen','insight'].includes(tab) ? '#A78BFA' : '#4B5563',
+                fontFamily: 'inherit', padding: '6px 4px', position: 'relative',
+              }}>
+                {(showMoreMenu || ['hafalan','nilai','kunci','raid','turnamen','insight'].includes(tab)) && (
+                  <span style={{
+                    position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                    width: 20, height: 3, borderRadius: 99, background: '#A78BFA',
+                  }} />
+                )}
+                <span style={{ fontSize: 20, opacity: showMoreMenu || ['hafalan','nilai','kunci','raid','turnamen','insight'].includes(tab) ? 1 : 0.5 }}>☰</span>
+                <small style={{ fontSize: 10, fontWeight: showMoreMenu || ['hafalan','nilai','kunci','raid','turnamen','insight'].includes(tab) ? 800 : 500 }}>Lainnya</small>
+              </button>
+            </nav>
+
+            {/* ── More Menu Sheet ── */}
+            {showMoreMenu && (
+              <>
+                {/* Backdrop */}
+                <div onClick={() => setShowMoreMenu(false)} style={{
+                  position: 'fixed', inset: 0, zIndex: 48, background: 'rgba(0,0,0,0.5)',
+                }} />
+                {/* Sheet */}
+                <div style={{
+                  position: 'fixed', bottom: 72, left: 8, right: 8, zIndex: 49,
+                  background: '#12131f', borderRadius: 20,
+                  border: '1px solid rgba(255,255,255,0.09)',
+                  padding: '16px 12px',
+                  boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
+                }}>
+                  <div style={{ fontSize: 10, color: '#4B5563', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12, paddingLeft: 6 }}>Menu Lainnya</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    {[
+                      { id: 'hafalan',  icon: '🧮', label: 'Hafalan' },
+                      { id: 'nilai',    icon: '📊', label: 'Nilai' },
+                      { id: 'kunci',    icon: '🔒', label: 'Kunci Bab' },
+                      { id: 'raid',     icon: '⚔️',  label: 'Boss Raid' },
+                      { id: 'turnamen', icon: '🏆', label: 'Turnamen' },
+                      { id: 'insight',  icon: '🎮', label: 'Insight' },
+                    ].map(({ id, icon, label }) => {
+                      const active = tab === id
+                      return (
+                        <button key={id} onClick={() => { selectTab(id); setShowMoreMenu(false) }} style={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                          padding: '14px 8px', borderRadius: 14,
+                          border: active ? '1px solid rgba(167,139,250,0.4)' : '1px solid rgba(255,255,255,0.06)',
+                          background: active ? 'rgba(167,139,250,0.12)' : 'rgba(255,255,255,0.03)',
+                          color: active ? '#A78BFA' : '#94A3B8',
+                          cursor: 'pointer', fontFamily: 'inherit',
+                        }}>
+                          <span style={{ fontSize: 22 }}>{icon}</span>
+                          <small style={{ fontSize: 10, fontWeight: 700 }}>{label}</small>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
 
