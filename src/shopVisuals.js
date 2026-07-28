@@ -2,10 +2,10 @@
 // Kept here so PlayerHeader can render the equipped bingkai ring instantly from
 // AuthContext's `user.equippedBingkai` id alone, without an extra fetch to the shop API.
 export const BINGKAI_VISUALS = {
-  bingkai_neon: { border: '#34D399', style: 'dashed' },
-  bingkai_api: { border: '#F87171', style: 'double' },
-  bingkai_es: { border: '#67E8F9', style: 'solid' },
-  bingkai_sakura: { border: '#F9A8D4', style: 'dotted' },
+  bingkai_neon:   { image: '/bingkai-neon.png',   border: '#34D399', mixBlend: 'screen', spread: 0.45 },
+  bingkai_api:    { image: '/bingkai-api.png',    border: '#F87171', mixBlend: 'screen', spread: 0.50 },
+  bingkai_es:     { image: '/bingkai-es.png',     border: '#67E8F9', mixBlend: 'screen', spread: 0.52 },
+  bingkai_sakura: { image: '/bingkai-sakura.png', border: '#F9A8D4', mixBlend: 'screen', spread: 0.60 },
   bingkai_emas: { border: '#EAB308', style: 'solid', glow: true },
   bingkai_void: { border: '#A855F7', style: 'solid', glow: true },
   bingkai_aurum_sovereign: { border: '#D4AF37', style: 'double', glow: true, luxury: 'aurum' },

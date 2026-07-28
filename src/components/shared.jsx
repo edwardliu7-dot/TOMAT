@@ -106,6 +106,7 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
         pointerEvents: 'none',
         zIndex: 3,
         objectFit: 'contain',
+        mixBlendMode: bingkai.mixBlend ?? 'normal',
         filter: bingkai.glow ? `drop-shadow(0 0 ${Math.round(size * 0.1)}px ${bingkai.border}bb)` : 'none',
       }} />
     </div>

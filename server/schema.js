@@ -284,10 +284,10 @@ export async function ensureSchema() {
 
   // Seed shop items (idempotent upsert so copy/pricing tweaks can ship via redeploy).
   const shopItems = [
-    ['bingkai_neon', 'bingkai', 'Neon Cyber', 500, { border: '#34D399', style: 'dashed' }, 1],
-    ['bingkai_api', 'bingkai', 'Api Abadi', 800, { border: '#F87171', style: 'double' }, 2],
-    ['bingkai_es', 'bingkai', 'Ice Crystal', 1200, { border: '#67E8F9', style: 'solid' }, 3],
-    ['bingkai_sakura', 'bingkai', 'Sakura Petal', 950, { border: '#F9A8D4', style: 'dotted' }, 4],
+    ['bingkai_neon',   'bingkai', 'Neon Cyber',   500,  { image: '/bingkai-neon.png',   border: '#34D399', mixBlend: 'screen', spread: 0.45 }, 1],
+    ['bingkai_api',    'bingkai', 'Api Abadi',    800,  { image: '/bingkai-api.png',    border: '#F87171', mixBlend: 'screen', spread: 0.50 }, 2],
+    ['bingkai_es',     'bingkai', 'Ice Crystal',  1200, { image: '/bingkai-es.png',     border: '#67E8F9', mixBlend: 'screen', spread: 0.52 }, 3],
+    ['bingkai_sakura', 'bingkai', 'Sakura Petal', 950,  { image: '/bingkai-sakura.png', border: '#F9A8D4', mixBlend: 'screen', spread: 0.60 }, 4],
     ['bingkai_emas', 'bingkai', 'Golden Halo', 2000, { border: '#EAB308', style: 'solid', glow: true }, 5],
     ['bingkai_void', 'bingkai', 'Void King', 3000, { border: '#A855F7', style: 'solid', glow: true }, 6],
     ['bingkai_aurum_sovereign', 'bingkai', 'Aurum Sovereign', 12000, {
