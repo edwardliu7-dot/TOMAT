@@ -315,7 +315,7 @@ export async function ensureSchema() {
     ['pet_skin_void',   'pet_skin', 'Void Emperor',  5000,  { tier: 'legendaris',desc: 'Bulu hitam pekat berpendar emas, mahkota emas. Dominasi leaderboard.' }, 3],
     // New animal pets — different base animal, not a Tomi skin
     ['pet_kelinsay', 'pet_skin', 'Kelinsay',  3000, { tier: 'umum',   baseAnimal: 'kelinci', desc: 'Kelinci putih lembut berhati hangat. Telinganya panjang, selalu mendengarkan.' }, 4],
-    ['pet_monyong',  'pet_skin', 'Monyong',   8000, { tier: 'epic',   baseAnimal: 'monyet',  desc: 'Monyet ceria penuh ekspresi. Ekornya selalu berayun dan senyumnya lebar!' }, 5],
+    ['pet_monyong',  'pet_skin', 'Monyang',   8000, { tier: 'epic',   baseAnimal: 'monyet',  desc: 'Monyet ceria penuh ekspresi. Ekornya selalu berayun dan senyumnya lebar!' }, 5],
     ['pet_nananaga', 'pet_skin', 'Nananaga', 15000, { tier: 'langka', baseAnimal: 'naga',    desc: 'Naga abadi berkuasa. Matanya menyala, sayapnya menggelegar, api di mulutnya.' }, 6],
     // Animal skins — locked until the matching base pet is owned.
     ['pet_kelinsay_senja', 'pet_skin', 'Kelinsay Senja', 2000, {
@@ -326,11 +326,11 @@ export async function ensureSchema() {
       tier: 'premium', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
       desc: 'Bulu malam bertabur bintang. Pendiam, elegan, dan selalu ditemani cahaya bulan.'
     }, 8],
-    ['pet_monyong_raja', 'pet_skin', 'Monyong Raja', 12000, {
+    ['pet_monyong_raja', 'pet_skin', 'Monyang Raja', 12000, {
       tier: 'epic', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
-      desc: 'Mahkota emas bertahta di kepalanya. Monyong Raja memerintah leaderboard dengan senyum lebarnya.'
+      desc: 'Mahkota emas bertahta di kepalanya. Monyang Raja memerintah leaderboard dengan senyum lebarnya.'
     }, 9],
-    ['pet_monyong_kosmik', 'pet_skin', 'Monyong Kosmik', 10000, {
+    ['pet_monyong_kosmik', 'pet_skin', 'Monyang Kosmik', 10000, {
       tier: 'epic', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
       desc: 'Monyet penjelajah galaksi dengan bulu nebula dan bintang-bintang yang berkilau di sekelilingnya.'
     }, 10],

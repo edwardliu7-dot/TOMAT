@@ -250,9 +250,9 @@ function PetTokoTab({ data, onRefresh, setError }) {
         {kelinsaySkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
       </div>
 
-      {/* ── Monyong skins ── */}
-      <div style={{ fontSize: 11, color: '#C084FC', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>👑 Skin Monyong</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Skin khusus Monyong hanya terbuka setelah kamu memiliki pet Monyong.</div>
+      {/* ── Monyang skins ── */}
+      <div style={{ fontSize: 11, color: '#C084FC', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>👑 Skin Monyang</div>
+      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Skin khusus Monyang hanya terbuka setelah kamu memiliki pet Monyang.</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
         {monyongSkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
       </div>

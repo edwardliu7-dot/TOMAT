@@ -1,4 +1,4 @@
-// ── MonyetSVG — Monyong — graduated from canvas mockup ───────────────────────
+// ── MonyetSVG — Monyang — graduated from canvas mockup ───────────────────────
 import React, { useState } from 'react'
 
 let _mk = 0

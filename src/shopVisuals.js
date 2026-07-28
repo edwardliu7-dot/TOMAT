@@ -57,7 +57,7 @@ export const PET_SKIN_INFO = {
     glow: 'rgba(52,211,153,0.30)',
   },
   pet_monyong: {
-    nama: 'Monyong', tier: 'EPIC', tierColor: '#C084FC',
+    nama: 'Monyang', tier: 'EPIC', tierColor: '#C084FC',
     desc: 'Monyet ceria penuh ekspresi. Ekornya selalu berayun dan senyumnya lebar!',
     glow: 'rgba(192,132,252,0.40)',
   },
@@ -77,12 +77,12 @@ export const PET_SKIN_INFO = {
     glow: 'rgba(99,102,241,0.42)', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
   },
   pet_monyong_raja: {
-    nama: 'Monyong Raja', tier: 'EPIC', tierColor: '#D4AF37',
-    desc: 'Mahkota emas bertahta di kepalanya. Monyong Raja memerintah leaderboard dengan senyum lebarnya.',
+    nama: 'Monyang Raja', tier: 'EPIC', tierColor: '#D4AF37',
+    desc: 'Mahkota emas bertahta di kepalanya. Monyang Raja memerintah leaderboard dengan senyum lebarnya.',
     glow: 'rgba(212,175,55,0.42)', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
   },
   pet_monyong_kosmik: {
-    nama: 'Monyong Kosmik', tier: 'EPIC', tierColor: '#C084FC',
+    nama: 'Monyang Kosmik', tier: 'EPIC', tierColor: '#C084FC',
     desc: 'Monyet penjelajah galaksi dengan bulu nebula dan bintang-bintang yang berkilau di sekelilingnya.',
     glow: 'rgba(168,85,247,0.48)', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
   },
