@@ -13,6 +13,15 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Fullscreen: sembunyikan status bar sejak theme load (sebelum Activity ready) -->
+        <item name="android:windowFullscreen">true</item>
+        <!-- Support notch/punch-hole display -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
+    <style name="AppTheme.NoActionBarLaunch.Fullscreen" parent="AppTheme.NoActionBarLaunch">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
 
