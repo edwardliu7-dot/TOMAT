@@ -43,73 +43,87 @@ export const KATEGORI_LABELS = {
 
 // Pet skin metadata — mirrors shop_items seed in server/schema.js
 // rarity: 'umum' | 'langka' | 'epic'  — used by PetTokoTab to group cards
+// story: flavor-text quote shown in the shop card
 export const PET_SKIN_INFO = {
   // ── UMUM ────────────────────────────────────────────────────────────────────
   golden: {
-    nama: 'Golden Marmut', tier: 'STANDAR', tierColor: '#F5A623',
-    desc: 'Marmut emas bawaan TOMAT. Bulu emas mengkilap, rosette khas marmut.',
+    nama: 'Tomi', tier: 'STANDAR', tierColor: '#F5A623',
+    desc: 'Pahlawan muda Negeri TOMAT — bulu emas mengkilap, rosette khas marmut.',
+    story: 'Pahlawan muda Negeri TOMAT yang berhati emas dan bersemangat tinggi! Walaupun badannya mungil, keberanian Tomi siap melindungi setiap jengkal desanya dari kekacauan.',
     free: true, rarity: 'umum',
   },
   pet_skin_silver: {
     nama: 'Silver Fluff', tier: 'PREMIUM', tierColor: '#C0C8D8',
     desc: 'Bulu perak berkilau. Menunjukkan siswa aktif dan rajin mengumpulkan koin.',
+    story: 'Terbalut bulu perak murni yang memantulkan cahaya bulan, Tomi siap bertarung dengan kelincahan secepat kilat perak!',
     glow: 'rgba(192,200,216,0.35)', rarity: 'umum',
   },
   pet_kelinsay: {
     nama: 'Kelinsay', tier: 'UMUM', tierColor: '#34D399',
-    desc: 'Kelinci putih lembut berhati hangat. Telinganya panjang, selalu mendengarkan.',
+    desc: 'Sahabat sejati Tomi — kelinci putih lembut berhati hangat, selalu bisa diandalkan.',
+    story: 'Sahabat sejati Tomi yang selalu bisa diandalkan. Dengan kelincahan luar biasa dan pikiran yang cerdik, Kelinsay adalah kunci keselamatan Tomi di setiap petualangan!',
     glow: 'rgba(52,211,153,0.30)', rarity: 'umum',
   },
   pet_kelinsay_senja: {
     nama: 'Kelinsay Senja', tier: 'UMUM', tierColor: '#FB923C',
     desc: 'Bulu hangat warna senja. Muncul saat matahari terbenam, membawa ketenangan.',
+    story: 'Dihiasi kehangatan warna langit sore, Kelinsay Senja membawa kedamaian dan ketenangan tepat sebelum pertarungan sengit dimulai.',
     glow: 'rgba(249,115,22,0.38)', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay', rarity: 'umum',
   },
   pet_kelinsay_malam: {
     nama: 'Kelinsay Malam', tier: 'LANGKA', tierColor: '#A78BFA',
     desc: 'Bulu malam bertabur bintang. Pendiam, elegan, ditemani cahaya bulan.',
+    story: 'Menjadi satu dengan kegelapan. Dalam balutan gaun malam yang anggun, Kelinsay bergerak cepat bagai bayangan yang tak terdeteksi musuh.',
     glow: 'rgba(99,102,241,0.42)', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay', rarity: 'langka',
   },
   // ── LANGKA ──────────────────────────────────────────────────────────────────
   pet_nananaga: {
     nama: 'Nananaga', tier: 'LANGKA', tierColor: '#FB923C',
-    desc: 'Naga abadi berkuasa. Matanya menyala, sayapnya menggelegar.',
+    desc: 'Makhluk mitologis purba penjaga Negeri TOMAT. Matanya menyala, sayapnya menggelegar.',
+    story: 'Makhluk mitologis purba yang telah menjaga Negeri TOMAT selama ribuan tahun. Kehadirannya membawa kewibawaan dan aura mistis yang luar biasa.',
     glow: 'rgba(251,146,60,0.50)', rarity: 'langka',
   },
   pet_nananaga_merah: {
     nama: 'Nananaga Api', tier: 'LANGKA', tierColor: '#F87171',
     desc: 'Naga api merah menyala. Sisiknya membara, napasnya meninggalkan jejak bara.',
+    story: 'Terlahir kembali dari lahar panas inti bumi Negeri TOMAT. Kobaran api di tubuhnya akan membakar habis siapa saja yang berani mengusik kedamaian!',
     glow: 'rgba(239,68,68,0.48)', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga', rarity: 'langka',
   },
   pet_nananaga_es: {
     nama: 'Nananaga Es', tier: 'LANGKA', tierColor: '#7DD3FC',
-    desc: 'Naga es dari puncak gunung beku. Napasnya membekukan segalanya.',
+    desc: 'Penguasa puncak gunung tertinggi berselimut salju abadi.',
+    story: 'Penguasa puncak gunung tertinggi yang diselimuti salju abadi. Hembusan napas es milik Nananaga mampu membekukan ancaman dalam sekejap.',
     glow: 'rgba(56,189,248,0.45)', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga', rarity: 'langka',
   },
   // ── EPIC ────────────────────────────────────────────────────────────────────
   pet_monyong: {
     nama: 'Monyang', tier: 'EPIC', tierColor: '#C084FC',
-    desc: 'Monyet ceria penuh ekspresi. Ekornya selalu berayun dan senyumnya lebar!',
+    desc: 'Monyet jahil pembuat ulah nomor satu di Negeri TOMAT. Senyumnya tak pernah padam!',
+    story: 'Monyet jahil pembuat ulah nomor satu di Negeri TOMAT! Di mana ada kekacauan, di situ ada Monyang yang sedang tertawa sambil merencanakan keusilan berikutnya.',
     glow: 'rgba(192,132,252,0.40)', rarity: 'epic',
   },
   pet_monyong_raja: {
     nama: 'Monyang Raja', tier: 'EPIC', tierColor: '#D4AF37',
-    desc: 'Mahkota emas bertahta di kepalanya. Memerintah leaderboard dengan senyum lebarnya.',
+    desc: 'Mahkota emas bertahta di kepalanya. Memerintah kerajaan kejahilannya sendiri.',
+    story: 'Sembah Sang Raja Usil! Lengkap dengan jubah mewah dan mahkota emas—yang kemungkinan besar hasil curian—Monyang kini memerintah kerajaan kejahilannya sendiri.',
     glow: 'rgba(212,175,55,0.42)', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong', rarity: 'epic',
   },
   pet_monyong_kosmik: {
     nama: 'Monyang Kosmik', tier: 'LANGKA', tierColor: '#C084FC',
-    desc: 'Monyet penjelajah galaksi dengan bulu nebula dan bintang-bintang yang berkilau.',
+    desc: 'Kejahilan merambah luar angkasa. Mengacak-acak gravitasi dengan kekuatan kosmik.',
+    story: 'Kejahilan Monyang kini merambah hingga ke luar angkasa! Dengan kekuatan kosmik, ia siap mengacak-acak gravitasi dan melemparkan meteor usil ke bumi.',
     glow: 'rgba(168,85,247,0.48)', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong', rarity: 'langka',
   },
   pet_skin_cosmic: {
     nama: 'Cosmic Fluff', tier: 'EPIC', tierColor: '#A78BFA',
     desc: 'Marmut biru galaksi bertabur bintang dengan mahkota kosmik. Mengesankan!',
+    story: 'Menyerap energi bintang dari galaksi jauh, bulu Tomi kini bersinar seperti rasi bintang. Tak ada batas antariksa yang tak bisa ia jelajahi!',
     glow: 'rgba(167,139,250,0.45)', rarity: 'epic',
   },
   pet_skin_void: {
     nama: 'Void Emperor', tier: 'LANGKA', tierColor: '#F59E0B',
     desc: 'Marmut hitam pekat berpendar emas, jubah dan mahkota kerajaan. Dominasi leaderboard.',
+    story: 'Ketika kegelapan kehampaan tunduk pada kebaikan hati Tomi. Berubah menjadi sang penguasa void, tak ada kejahatan yang sanggup berdiri di hadapannya!',
     glow: 'rgba(245,158,11,0.55)', rarity: 'langka',
   },
 }

@@ -194,7 +194,17 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
             <span style={{ fontSize: 10, fontWeight: 800, color: bonus.color, letterSpacing: 0.2 }}>{bonus.label}</span>
           </div>
         )}
-        <div style={{ fontSize: 10, color: '#64748B', marginTop: bonus.label ? 4 : 4, lineHeight: 1.4 }}>{info.desc}</div>
+        {info.story && (
+          <div style={{
+            marginTop: 7,
+            borderLeft: `2px solid ${info.tierColor}55`,
+            paddingLeft: 8,
+            fontSize: 10, fontStyle: 'italic', color: '#94A3B8', lineHeight: 1.55,
+          }}>
+            "{info.story}"
+          </div>
+        )}
+        <div style={{ fontSize: 10, color: '#475569', marginTop: 6, lineHeight: 1.4 }}>{info.desc}</div>
         {wide && (
           <div style={{ marginTop: 10 }}>
             {equipped ? (
