@@ -163,16 +163,18 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
   const affordable = skinId === 'golden' || (shopItem && data.coins >= shopItem.harga)
   const canBuy = prerequisiteOwned && affordable
   const busy = busyId === skinId
+  const isEpic = info.rarity === 'epic'
   return (
     <div style={{
       background: info.glow ? `radial-gradient(ellipse at 50% 0%,${info.glow},transparent 65%),#1A1D27` : '#1A1D27',
-      border: `1.5px solid ${equipped ? info.tierColor : 'rgba(255,255,255,0.07)'}`,
+      border: `1.5px solid ${equipped ? info.tierColor : isEpic ? `${info.tierColor}44` : 'rgba(255,255,255,0.07)'}`,
       borderRadius: 18, padding: wide ? '16px 20px' : '16px 12px',
       display: 'flex', flexDirection: wide ? 'row' : 'column',
       alignItems: 'center', gap: wide ? 16 : 10,
-      position: 'relative',
-      boxShadow: equipped ? `0 0 24px ${info.glow || 'rgba(245,166,35,0.2)'}` : 'none',
+      position: 'relative', overflow: 'hidden',
+      boxShadow: equipped ? `0 0 24px ${info.glow || 'rgba(245,166,35,0.2)'}` : isEpic ? `0 0 14px ${info.glow || 'rgba(192,132,252,0.15)'}` : 'none',
     }}>
+      {isEpic && <EpicSparkle color={info.tierColor} />}
       {equipped && (
         <div style={{ position: 'absolute', top: 0, right: 0, background: info.tierColor, color: ['#F59E0B','#34D399'].includes(info.tierColor) ? '#000' : '#fff', fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: '0 16px 0 10px' }}>
           DIPAKAI
@@ -235,6 +237,7 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
 }
 
 // ── Rarity config for pet grouping ──────────────────────────────────────────
+// ORDER: umum → langka → epic  (epic = rarest & most powerful)
 const PET_RARITY_GROUPS = [
   {
     id: 'umum',
@@ -252,7 +255,7 @@ const PET_RARITY_GROUPS = [
     color: '#FB923C',
     bg: 'rgba(251,146,60,0.10)',
     border: 'rgba(251,146,60,0.22)',
-    skins: ['pet_kelinsay_malam', 'pet_skin_void', 'pet_monyong_kosmik', 'pet_nananaga', 'pet_nananaga_merah', 'pet_nananaga_es'],
+    skins: ['pet_skin_cosmic', 'pet_monyong', 'pet_monyong_raja'],
   },
   {
     id: 'epic',
@@ -261,9 +264,43 @@ const PET_RARITY_GROUPS = [
     color: '#C084FC',
     bg: 'rgba(192,132,252,0.12)',
     border: 'rgba(192,132,252,0.25)',
-    skins: ['pet_skin_cosmic', 'pet_monyong', 'pet_monyong_raja'],
+    skins: ['pet_kelinsay_malam', 'pet_skin_void', 'pet_monyong_kosmik', 'pet_nananaga', 'pet_nananaga_merah', 'pet_nananaga_es'],
   },
 ]
+
+// ── Subtle sparkle overlay for Epic-tier pet cards ────────────────────────────
+const SPARKLE_DOTS = [
+  { top: '10%', left:  '7%', delay: '0.0s', size: 4 },
+  { top: '22%', right: '9%', delay: '0.6s', size: 3 },
+  { top: '60%', left: '12%', delay: '1.1s', size: 3 },
+  { top: '78%', right:'11%', delay: '0.3s', size: 4 },
+  { top: '42%', left: '90%', delay: '1.5s', size: 2 },
+  { top: '88%', left: '45%', delay: '0.8s', size: 3 },
+]
+function EpicSparkle({ color = '#C084FC' }) {
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', borderRadius: 'inherit', zIndex: 10 }}>
+      <style>{`
+        @keyframes pet-sparkle {
+          0%, 100% { opacity: 0;   transform: scale(0.4) rotate(0deg);   }
+          50%       { opacity: 0.85; transform: scale(1.1) rotate(45deg); }
+        }
+      `}</style>
+      {SPARKLE_DOTS.map((d, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          width: d.size, height: d.size,
+          borderRadius: '50%',
+          background: '#fff',
+          top: d.top, left: d.left, right: d.right,
+          boxShadow: `0 0 4px 1px ${color}, 0 0 9px 2px ${color}88`,
+          animation: `pet-sparkle 2.6s ease-in-out ${d.delay} infinite`,
+          opacity: 0,
+        }} />
+      ))}
+    </div>
+  )
+}
 
 function PetTokoTab({ data, onRefresh, setError }) {
   const { pet, feedPet, revivePet, refreshPet } = usePet()
@@ -271,12 +308,12 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const [busyId, setBusyId] = useState(null)
   const [localError, setLocalError] = useState('')
   const [feedSuccess, setFeedSuccess] = useState('')
+  const [subTab, setSubTab] = useState('skin')  // 'skin' | 'makanan'
 
   const equippedSkin  = data.equipped.pet_skin || 'golden'
   const activePetName = getPetName(equippedSkin)
 
   const buyEquipSkin = async (skinId) => {
-    // golden is the built-in base skin — always owned, just equip it
     const isGolden = skinId === 'golden'
     const item = !isGolden ? data.items.find(it => it.id === skinId) : null
     if (!isGolden && !item) return
@@ -308,12 +345,21 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const hungerColor = pet.isDead ? '#EF4444' : pet.hunger < 30 ? '#F59E0B' : '#F5A623'
   const hungerLabel = pet.isDead ? '💀 Mati' : pet.isStarving ? '😩 Lapar sekali' : pet.hunger < 50 ? '😕 Agak lapar' : '😊 Kenyang'
 
+  // ── Sub-tab toggle ──────────────────────────────────────────────────────────
+  const subTabStyle = (active) => ({
+    flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', cursor: 'pointer',
+    fontSize: 12, fontWeight: 800, fontFamily: 'inherit', transition: 'all 0.15s',
+    background: active ? '#6366F1' : 'rgba(255,255,255,0.05)',
+    color: active ? '#fff' : '#64748B',
+    boxShadow: active ? '0 2px 12px rgba(99,102,241,0.3)' : 'none',
+  })
+
   return (
     <div style={{ paddingBottom: 40 }}>
       <style>{PET_CSS}</style>
 
-      {/* ── Active pet status ── */}
-      <div style={{ margin: '0 0 20px', background: 'linear-gradient(160deg,#0d1b2a,#1a0d2e)', border: '1px solid rgba(245,166,35,0.2)', borderRadius: 20, padding: 20, display: 'flex', alignItems: 'flex-end', gap: 16 }}>
+      {/* ── Active pet status card ── */}
+      <div style={{ margin: '0 0 16px', background: 'linear-gradient(160deg,#0d1b2a,#1a0d2e)', border: '1px solid rgba(245,166,35,0.2)', borderRadius: 20, padding: 20, display: 'flex', alignItems: 'flex-end', gap: 16 }}>
         <div style={{ animation: STATE_ANIMS[pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'], transformOrigin: 'center bottom' }}>
           <PetSVG state={pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'} skinId={equippedSkin} size={96} />
         </div>
@@ -332,72 +378,87 @@ function PetTokoTab({ data, onRefresh, setError }) {
         </div>
       </div>
 
+      {/* ── Sub-tabs ── */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <button onClick={() => setSubTab('skin')}    style={subTabStyle(subTab === 'skin')}>🐾 Pet &amp; Skin</button>
+        <button onClick={() => setSubTab('makanan')} style={subTabStyle(subTab === 'makanan')}>🍖 Makanan</button>
+      </div>
+
+      {/* ── Feedback banner ── */}
       {(localError || feedSuccess) && (
         <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 12, fontSize: 13, background: feedSuccess ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', border: `1px solid ${feedSuccess ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, color: feedSuccess ? '#34D399' : '#F87171' }}>
           {feedSuccess || localError}
         </div>
       )}
 
-      {/* ── Rarity groups ── */}
-      {PET_RARITY_GROUPS.map(group => (
-        <div key={group.id} style={{ marginBottom: 28 }}>
-          {/* Section header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: group.bg, border: `1px solid ${group.border}`, borderRadius: 99, padding: '3px 10px' }}>
-              <span style={{ fontSize: 10, color: group.color }}>{group.icon}</span>
-              <span style={{ fontSize: 10, fontWeight: 900, color: group.color, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{group.label}</span>
+      {/* ══════════════ SUB-TAB: PET & SKIN ══════════════ */}
+      {subTab === 'skin' && (
+        <>
+          {/* ── Dead / revive block ── */}
+          {pet.isDead && (
+            <div style={{ marginBottom: 24, borderRadius: 18, background: 'linear-gradient(145deg,#1a0000,#2d0a0a)', border: '2px solid rgba(239,68,68,0.4)', padding: '20px 16px', textAlign: 'center' }}>
+              <div style={{ fontSize: 52, marginBottom: 10 }}>💀</div>
+              <div style={{ fontSize: 17, fontWeight: 900, color: '#F87171', marginBottom: 6 }}>{activePetName} sudah mati!</div>
+              <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 16, lineHeight: 1.6 }}>{activePetName} tidak bisa diberi makan lagi. Kamu perlu mengadopsi pet baru untuk melanjutkan perjalanan!</div>
+              <div style={{ fontSize: 13, color: '#FCA5A5', marginBottom: 16 }}>Biaya adopsi: <strong style={{ color: '#F87171', fontSize: 16 }}>🪙 {REVIVE_COST}</strong>{data.coins < REVIVE_COST && <span style={{ color: '#6B7280', fontSize: 11, display: 'block', marginTop: 4 }}>(Kamu punya 🪙 {data.coins} — perlu {REVIVE_COST - data.coins} lagi)</span>}</div>
+              <button onClick={doRevive} disabled={data.coins < REVIVE_COST || busyId === 'revive'} style={{ width: '100%', padding: '13px', borderRadius: 12, border: 'none', fontSize: 14, fontWeight: 900, cursor: data.coins >= REVIVE_COST ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: data.coins >= REVIVE_COST ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'rgba(248,113,113,0.1)', color: data.coins >= REVIVE_COST ? '#fff' : '#F87171', outline: data.coins >= REVIVE_COST ? 'none' : '1px solid rgba(248,113,113,0.2)' }}>
+                {busyId === 'revive' ? '…' : data.coins >= REVIVE_COST ? '🐾 Adopsi Pet Baru' : '🔒 Koin tidak cukup'}
+              </button>
             </div>
-            <div style={{ flex: 1, height: 1, background: `${group.color}28` }} />
-            <span style={{ fontSize: 10, fontWeight: 700, color: group.color + '88' }}>{group.skins.length} skin</span>
-          </div>
-          {/* Skin cards in 2-column grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-            {group.skins.map(skinId => (
-              <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} />
-            ))}
-          </div>
-        </div>
-      ))}
+          )}
 
-      {/* ── Dead / revive block ── */}
-      {pet.isDead && (
-        <div style={{ marginBottom: 24, borderRadius: 18, background: 'linear-gradient(145deg,#1a0000,#2d0a0a)', border: '2px solid rgba(239,68,68,0.4)', padding: '20px 16px', textAlign: 'center' }}>
-          <div style={{ fontSize: 52, marginBottom: 10 }}>💀</div>
-          <div style={{ fontSize: 17, fontWeight: 900, color: '#F87171', marginBottom: 6 }}>{activePetName} sudah mati!</div>
-          <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 16, lineHeight: 1.6 }}>{activePetName} tidak bisa diberi makan lagi. Kamu perlu mengadopsi pet baru untuk melanjutkan perjalanan!</div>
-          <div style={{ fontSize: 13, color: '#FCA5A5', marginBottom: 16 }}>Biaya adopsi: <strong style={{ color: '#F87171', fontSize: 16 }}>🪙 {REVIVE_COST}</strong>{data.coins < REVIVE_COST && <span style={{ color: '#6B7280', fontSize: 11, display: 'block', marginTop: 4 }}>(Kamu punya 🪙 {data.coins} — perlu {REVIVE_COST - data.coins} lagi)</span>}</div>
-          <button onClick={doRevive} disabled={data.coins < REVIVE_COST || busyId === 'revive'} style={{ width: '100%', padding: '13px', borderRadius: 12, border: 'none', fontSize: 14, fontWeight: 900, cursor: data.coins >= REVIVE_COST ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: data.coins >= REVIVE_COST ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'rgba(248,113,113,0.1)', color: data.coins >= REVIVE_COST ? '#fff' : '#F87171', outline: data.coins >= REVIVE_COST ? 'none' : '1px solid rgba(248,113,113,0.2)' }}>
-            {busyId === 'revive' ? '…' : data.coins >= REVIVE_COST ? '🐾 Adopsi Pet Baru' : '🔒 Koin tidak cukup'}
-          </button>
-        </div>
+          {/* ── Rarity groups ── */}
+          {PET_RARITY_GROUPS.map(group => (
+            <div key={group.id} style={{ marginBottom: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: group.bg, border: `1px solid ${group.border}`, borderRadius: 99, padding: '3px 10px' }}>
+                  <span style={{ fontSize: 10, color: group.color }}>{group.icon}</span>
+                  <span style={{ fontSize: 10, fontWeight: 900, color: group.color, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{group.label}</span>
+                </div>
+                <div style={{ flex: 1, height: 1, background: `${group.color}28` }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: group.color + '88' }}>{group.skins.length} skin</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+                {group.skins.map(skinId => (
+                  <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </>
       )}
 
-      {/* ── Food shop ── */}
-      <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🌾 Toko Makanan Pet</div>
-      {pet.isDead ? (
-        <div style={{ padding: '16px', borderRadius: 14, background: 'rgba(239,68,68,0.07)', border: '1px dashed rgba(239,68,68,0.3)', textAlign: 'center', fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
-          🚫 Makanan tidak bisa diberikan ke pet yang sudah mati.<br />Adopsi dulu pet baru di atas!
-        </div>
-      ) : (
+      {/* ══════════════ SUB-TAB: MAKANAN ══════════════ */}
+      {subTab === 'makanan' && (
         <>
-          <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14 }}>Semakin mahal makanannya, semakin lama {activePetName} kenyang. Memberi makan langsung meningkatkan stamina petmu.</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-            {PET_FOOD_CATALOG.map(food => {
-              const affordable = data.coins >= food.harga
-              const busy = busyId === food.id
-              return (
-                <div key={food.id} style={{ background: '#1A1D27', border: `1px solid ${food.color}22`, borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                  <div style={{ fontSize: 38 }}>{food.emoji}</div>
-                  <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', textAlign: 'center' }}>{food.nama}</div>
-                  <div style={{ fontSize: 11, color: '#64748B' }}>Kenyang {food.dur}</div>
-                  <div style={{ fontWeight: 900, fontSize: 14, color: food.color }}>🪙 {food.harga}</div>
-                  <button onClick={() => buyFood(food.id)} disabled={!affordable || busy} style={{ width: '100%', padding: '8px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: affordable ? `${food.color}22` : 'rgba(248,113,113,0.1)', color: affordable ? food.color : '#F87171', outline: `1px solid ${affordable ? food.color + '44' : 'rgba(248,113,113,0.2)'}` }}>
-                    {busy ? '…' : affordable ? 'Beri Makan' : '🔒 Koin kurang'}
-                  </button>
-                </div>
-              )
-            })}
-          </div>
+          <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🌾 Toko Makanan Pet</div>
+          {pet.isDead ? (
+            <div style={{ padding: '20px 16px', borderRadius: 16, background: 'rgba(239,68,68,0.07)', border: '1px dashed rgba(239,68,68,0.3)', textAlign: 'center', fontSize: 13, color: '#6B7280', lineHeight: 1.7 }}>
+              🚫 Makanan tidak bisa diberikan ke pet yang sudah mati.<br />
+              <span style={{ fontSize: 11 }}>Adopsi pet baru dulu di tab <strong style={{ color: '#94A3B8' }}>🐾 Pet &amp; Skin</strong></span>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: '#64748B', marginBottom: 16, lineHeight: 1.5 }}>Semakin mahal makanannya, semakin lama <strong style={{ color: '#94A3B8' }}>{activePetName}</strong> kenyang.</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+                {PET_FOOD_CATALOG.map(food => {
+                  const affordable = data.coins >= food.harga
+                  const busy = busyId === food.id
+                  return (
+                    <div key={food.id} style={{ background: '#1A1D27', border: `1px solid ${food.color}22`, borderRadius: 16, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontSize: 40 }}>{food.emoji}</div>
+                      <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', textAlign: 'center' }}>{food.nama}</div>
+                      <div style={{ fontSize: 11, color: '#64748B' }}>Kenyang {food.dur}</div>
+                      <div style={{ fontWeight: 900, fontSize: 14, color: food.color }}>🪙 {food.harga}</div>
+                      <button onClick={() => buyFood(food.id)} disabled={!affordable || busy} style={{ width: '100%', padding: '9px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: affordable ? `${food.color}22` : 'rgba(248,113,113,0.1)', color: affordable ? food.color : '#F87171', outline: `1px solid ${affordable ? food.color + '44' : 'rgba(248,113,113,0.2)'}` }}>
+                        {busy ? '…' : affordable ? 'Beri Makan' : '🔒 Koin kurang'}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

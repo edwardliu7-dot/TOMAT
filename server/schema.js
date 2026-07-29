@@ -319,35 +319,35 @@ export async function ensureSchema() {
     }, 5],
     // Pet skins — purchasable once, stored in student_inventory
     ['pet_skin_silver', 'pet_skin', 'Silver Fluff',   800,  { tier: 'premium',   desc: 'Bulu perak berkilau. Menunjukkan siswa aktif dan rajin mengumpulkan koin.' }, 1],
-    ['pet_skin_cosmic', 'pet_skin', 'Cosmic Fluff',  2000,  { tier: 'eksklusif', desc: 'Bulu ungu-biru galaksi dengan bintang berkelip di rosette.' }, 2],
-    ['pet_skin_void',   'pet_skin', 'Void Emperor',  7000,  { tier: 'langka', desc: 'Bulu hitam pekat berpendar emas, jubah dan mahkota kerajaan. Dominasi leaderboard.' }, 3],
+    ['pet_skin_cosmic', 'pet_skin', 'Cosmic Fluff',  3500,  { tier: 'langka', desc: 'Bulu ungu-biru galaksi dengan bintang berkelip di rosette.' }, 2],
+    ['pet_skin_void',   'pet_skin', 'Void Emperor', 11000,  { tier: 'epic',   desc: 'Bulu hitam pekat berpendar emas, jubah dan mahkota kerajaan. Dominasi leaderboard.' }, 3],
     // New animal pets — different base animal, not a Tomi skin
     ['pet_kelinsay', 'pet_skin', 'Kelinsay',  3000, { tier: 'umum',   baseAnimal: 'kelinci', desc: 'Kelinci putih lembut berhati hangat. Telinganya panjang, selalu mendengarkan.' }, 4],
-    ['pet_monyong',  'pet_skin', 'Monyang',   8000, { tier: 'epic',   baseAnimal: 'monyet',  desc: 'Monyet ceria penuh ekspresi. Ekornya selalu berayun dan senyumnya lebar!' }, 5],
-    ['pet_nananaga', 'pet_skin', 'Nananaga', 15000, { tier: 'langka', baseAnimal: 'naga',    desc: 'Naga abadi berkuasa. Matanya menyala, sayapnya menggelegar, api di mulutnya.' }, 6],
+    ['pet_monyong',  'pet_skin', 'Monyang',   6000, { tier: 'langka', baseAnimal: 'monyet',  desc: 'Monyet ceria penuh ekspresi. Ekornya selalu berayun dan senyumnya lebar!' }, 5],
+    ['pet_nananaga', 'pet_skin', 'Nananaga', 15000, { tier: 'epic',   baseAnimal: 'naga',    desc: 'Naga abadi berkuasa. Matanya menyala, sayapnya menggelegar, api di mulutnya.' }, 6],
     // Animal skins — locked until the matching base pet is owned.
     ['pet_kelinsay_senja', 'pet_skin', 'Kelinsay Senja', 2000, {
       tier: 'umum+', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
       desc: 'Bulu hangat warna senja. Muncul saat matahari terbenam, membawa ketenangan dan semangat belajar.'
     }, 7],
-    ['pet_kelinsay_malam', 'pet_skin', 'Kelinsay Malam', 6000, {
-      tier: 'langka', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
+    ['pet_kelinsay_malam', 'pet_skin', 'Kelinsay Malam', 9000, {
+      tier: 'epic', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
       desc: 'Bulu malam bertabur bintang. Pendiam, elegan, dan selalu ditemani cahaya bulan.'
     }, 8],
-    ['pet_monyong_raja', 'pet_skin', 'Monyang Raja', 12000, {
-      tier: 'epic', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
+    ['pet_monyong_raja', 'pet_skin', 'Monyang Raja', 9000, {
+      tier: 'langka', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
       desc: 'Mahkota emas bertahta di kepalanya. Monyang Raja memerintah leaderboard dengan senyum lebarnya.'
     }, 9],
-    ['pet_monyong_kosmik', 'pet_skin', 'Monyang Kosmik', 9000, {
-      tier: 'langka', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
+    ['pet_monyong_kosmik', 'pet_skin', 'Monyang Kosmik', 13000, {
+      tier: 'epic', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
       desc: 'Monyet penjelajah galaksi dengan bulu nebula dan bintang-bintang yang berkilau di sekelilingnya.'
     }, 10],
     ['pet_nananaga_merah', 'pet_skin', 'Nananaga Merah', 18000, {
-      tier: 'langka', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
+      tier: 'epic', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
       desc: 'Naga api merah menyala. Sisiknya membara dan napasnya meninggalkan jejak bara.'
     }, 11],
     ['pet_nananaga_es', 'pet_skin', 'Nananaga Es', 20000, {
-      tier: 'langka', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
+      tier: 'epic', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
       desc: 'Naga es dari puncak gunung beku. Napasnya membekukan segalanya, matanya biru seperti samudra arktik.'
     }, 12],
     // Tema — shifts the game screen color palette + particle overlay

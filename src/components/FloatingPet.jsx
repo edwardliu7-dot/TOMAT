@@ -1,27 +1,29 @@
-// ── FloatingPet — Tomi wanders the screen and follows the cursor ─────────────
+// ── FloatingPet — Pet wanders the full screen in 2D, follows cursor when happy ──
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import PetSVG, { PET_CSS, STATE_ANIMS, getPetName } from './PetSVG'
 import { usePet } from '../PetContext'
 import { useAuth } from '../AuthContext'
 
-function useIsDesktop() {
-  const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
-  React.useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)')
-    setDesk(mq.matches)
-    const h = e => setDesk(e.matches)
-    mq.addEventListener('change', h)
-    return () => mq.removeEventListener('change', h)
-  }, [])
-  return desk
-}
+const PET_SIZE        = 76
+const TICK_MS         = 40      // ~25 fps
+const MAX_SPEED       = 0.016   // normal max fraction/tick
+const HAPPY_SPEED     = 0.060   // fast chase when happy
+const HUNGRY_MULT     = 0.38    // speed multiplier when starving
+const ACCEL           = 0.0014
+const HAPPY_ACCEL     = 0.0070
+const FRICTION        = 0.80
+const COAST_FRIC      = 0.95
+const POS_KEY         = 'tomat_pet_home_pos'  // localStorage — persists dead/sleeping pos
 
-const PET_SIZE   = 76      // px
-const TICK_MS    = 40      // ~25 fps
-const MAX_SPEED  = 0.022   // max fraction-of-screenWidth per tick
-const ACCEL      = 0.0018  // acceleration toward target per tick
-const FRICTION   = 0.82    // velocity multiplied each tick when past target
-const COAST_FRIC = 0.96    // gentle friction when gliding (not near target)
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)) }
+
+function loadSavedPos() {
+  try { const p = JSON.parse(localStorage.getItem(POS_KEY)); if (p?.x != null) return p } catch {}
+  return null
+}
+function savePos(x, y) {
+  try { localStorage.setItem(POS_KEY, JSON.stringify({ x, y })) } catch {}
+}
 
 export default function FloatingPet({ onHungryClick }) {
   const { user } = useAuth()
@@ -31,154 +33,208 @@ export default function FloatingPet({ onHungryClick }) {
 }
 
 function PetWidget({ pet, onHungryClick }) {
-  const isDesktop = useIsDesktop()
+  // ── Compute safe bounds ───────────────────────────────────────────────────
+  const maxX = () => clamp(1 - (PET_SIZE + 8)  / window.innerWidth,  0.5, 0.97)
+  const maxY = () => clamp(1 - (PET_SIZE + 16) / window.innerHeight, 0.5, 0.94)
+  const minY = 0.04
 
-  // ── position state (fraction of screen width, 0–1) ───────────────────────
-  const [xFrac,   setXFrac]   = useState(0.15)
-  const [dir,     setDir]     = useState(1)        // 1=right, -1=left
-  const [petState, setPetState] = useState('walk')
-  const [showBubble, setShowBubble] = useState(false)
+  // ── Position state ────────────────────────────────────────────────────────
+  const initPos = loadSavedPos()
+  const [xFrac,     setXFrac]     = useState(initPos?.x ?? 0.15)
+  const [yFrac,     setYFrac]     = useState(initPos?.y ?? 0.72)
+  const [dir,       setDir]       = useState(1)
+  const [petState,  setPetState]  = useState('walk')
+  const [showBubble,setShowBubble]= useState(false)
 
-  // refs that don't need to re-render
-  const velRef       = useRef(0)               // current velocity (frac/tick)
-  const targetRef    = useRef(0.5)             // target x fraction
-  const cursorRef    = useRef(null)            // { x: frac, active: bool }
-  const xRef         = useRef(0.15)            // mirror of xFrac for tick closure
-  const pauseRef     = useRef(null)            // setTimeout id for pause state
-  const wanderRef    = useRef(null)            // setTimeout id for wander retarget
-  const overrideRef  = useRef(null)            // interaction state override timer
-  const overrideStateRef = useRef(null)        // the override state string
-  const tickRef      = useRef(null)
+  const xRef    = useRef(initPos?.x ?? 0.15)
+  const yRef    = useRef(initPos?.y ?? 0.72)
+  const velX    = useRef(0)
+  const velY    = useRef(0)
+  const tgtX    = useRef(0.50)
+  const tgtY    = useRef(0.70)
 
-  const MAX_X = () => 1 - (PET_SIZE + 16) / window.innerWidth
+  const cursorRef        = useRef(null)   // { x, y } normalised to screen
+  const pauseRef         = useRef(null)
+  const wanderRef        = useRef(null)
+  const overrideRef      = useRef(null)
+  const overrideStateRef = useRef(null)
+  const lockedRef        = useRef(!!pet.isDead)  // no movement when true
+  const petIsDeadRef     = useRef(pet.isDead)
+  const tickRef          = useRef(null)
 
-  // ── Track cursor / touch position ────────────────────────────────────────
+  // Keep dead-flag ref current
+  useEffect(() => {
+    petIsDeadRef.current = pet.isDead
+    if (pet.isDead) {
+      lockedRef.current = true
+      velX.current = 0
+      velY.current = 0
+      savePos(xRef.current, yRef.current)
+    } else if (!overrideStateRef.current) {
+      lockedRef.current = false
+    }
+  }, [pet.isDead])
+
+  // ── Track cursor / touch (anywhere on screen) ─────────────────────────────
   useEffect(() => {
     const onMove = (e) => {
       const cx = (e.touches ? e.touches[0].clientX : e.clientX) / window.innerWidth
       const cy = (e.touches ? e.touches[0].clientY : e.clientY) / window.innerHeight
-      // Only attract when cursor is in bottom 35% of screen
-      cursorRef.current = { x: cx, active: cy > 0.65 }
+      cursorRef.current = { x: cx, y: cy }
     }
     const onLeave = () => { cursorRef.current = null }
-    window.addEventListener('mousemove', onMove, { passive: true })
-    window.addEventListener('touchmove', onMove, { passive: true })
+    window.addEventListener('mousemove',  onMove,  { passive: true })
+    window.addEventListener('touchmove',  onMove,  { passive: true })
     window.addEventListener('mouseleave', onLeave)
     return () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('mousemove',  onMove)
+      window.removeEventListener('touchmove',  onMove)
       window.removeEventListener('mouseleave', onLeave)
     }
   }, [])
 
-  // ── Random wander target ──────────────────────────────────────────────────
-  const scheduleWander = useCallback(() => {
-    if (wanderRef.current) clearTimeout(wanderRef.current)
-    const delay = 2500 + Math.random() * 5000  // wander every 2.5–7.5s
-    wanderRef.current = setTimeout(() => {
-      // Pick a new random target, avoiding corners (<5% and >95%)
-      const newTarget = 0.05 + Math.random() * 0.88
-      targetRef.current = Math.min(newTarget, MAX_X())
-      // Occasionally do a pause (idle) before walking again
-      if (Math.random() < 0.35) {
-        schedulePause()
-      }
-      scheduleWander()
-    }, delay)
-  }, [])
-
+  // ── Pause helper ──────────────────────────────────────────────────────────
   const schedulePause = useCallback(() => {
     if (pauseRef.current) clearTimeout(pauseRef.current)
-    if (overrideStateRef.current) return   // don't overwrite interaction override
+    if (overrideStateRef.current) return
     overrideStateRef.current = 'idle'
     setPetState('idle')
-    velRef.current *= 0.3   // bleed off speed
-    const pauseMs = 800 + Math.random() * 2200
+    velX.current *= 0.3
+    velY.current *= 0.3
     pauseRef.current = setTimeout(() => {
       overrideStateRef.current = null
       pauseRef.current = null
-    }, pauseMs)
+    }, 800 + Math.random() * 2200)
   }, [])
+
+  // ── Random wander scheduler ───────────────────────────────────────────────
+  const scheduleWander = useCallback(() => {
+    if (wanderRef.current) clearTimeout(wanderRef.current)
+    wanderRef.current = setTimeout(() => {
+      if (!lockedRef.current) {
+        tgtX.current = clamp(0.05 + Math.random() * 0.88, 0.01, maxX())
+        tgtY.current = clamp(0.10 + Math.random() * 0.78, minY, maxY())
+        if (Math.random() < 0.35) schedulePause()
+      }
+      scheduleWander()
+    }, 2500 + Math.random() * 5000)
+  }, [schedulePause]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     scheduleWander()
-    return () => {
-      clearTimeout(wanderRef.current)
-      clearTimeout(pauseRef.current)
-    }
+    return () => { clearTimeout(wanderRef.current); clearTimeout(pauseRef.current) }
   }, [scheduleWander])
 
-  // ── Main tick loop ────────────────────────────────────────────────────────
+  // ── Main tick ─────────────────────────────────────────────────────────────
   useEffect(() => {
     tickRef.current = setInterval(() => {
-      const cursor  = cursorRef.current
-      const maxX    = MAX_X()
-      const pausing = !!overrideStateRef.current
+      // Locked (dead / sleeping) — bleed velocity, no move
+      if (lockedRef.current) {
+        velX.current *= 0.5
+        velY.current *= 0.5
+        return
+      }
 
-      // Determine effective target x
-      let tx = targetRef.current
-      let cursorNear = false
-      if (cursor?.active) {
-        // Cursor attracts with a "gravity well" — stronger when closer
-        const dist = Math.abs(cursor.x - xRef.current)
-        if (dist < 0.25) {
-          cursorNear = true
-          // Blend: the closer cursor is, the more it overrides wander target
-          const blend = 1 - dist / 0.25
-          tx = tx * (1 - blend * 0.85) + cursor.x * (blend * 0.85)
+      const cursor    = cursorRef.current
+      const isHappy   = overrideStateRef.current === 'happy'
+      const isSleeping= overrideStateRef.current === 'sleeping'
+      const pausing   = !!overrideStateRef.current && !isHappy
+
+      if (isSleeping) {
+        velX.current *= 0.6
+        velY.current *= 0.6
+        return
+      }
+
+      const mxX = maxX()
+      const mxY = maxY()
+      const hungry = pet.isStarving
+
+      // ── Target selection ────────────────────────────────────────────────
+      let tx = tgtX.current
+      let ty = tgtY.current
+      let cursorActive = false
+
+      if (isHappy && cursor) {
+        // Happy: chase cursor instantly & directly across full screen
+        tx = cursor.x
+        ty = cursor.y
+        cursorActive = true
+      } else if (cursor && !pausing) {
+        // Normal: soft gravity toward cursor within radius
+        const dx = cursor.x - xRef.current
+        const dy = cursor.y - yRef.current
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < 0.30) {
+          cursorActive = true
+          const blend = (1 - dist / 0.30) * 0.65
+          tx = tx * (1 - blend) + cursor.x * blend
+          ty = ty * (1 - blend) + cursor.y * blend
         }
       }
 
-      // Clamp target
-      tx = Math.max(0.01, Math.min(maxX, tx))
+      tx = clamp(tx, 0.01, mxX)
+      ty = clamp(ty, minY, mxY)
+
+      const maxSpd = isHappy ? HAPPY_SPEED : MAX_SPEED * (hungry ? HUNGRY_MULT : 1)
+      const acc    = isHappy ? HAPPY_ACCEL : ACCEL     * (hungry ? HUNGRY_MULT : 1)
 
       if (!pausing) {
-        const diff    = tx - xRef.current
-        const absDiff = Math.abs(diff)
-
-        if (absDiff > 0.005) {
-          // Accelerate toward target
-          const accelDir = diff > 0 ? 1 : -1
-          velRef.current += accelDir * ACCEL
-          // Cap speed
-          velRef.current = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, velRef.current))
-          // Friction as we near target
-          if (absDiff < 0.08) velRef.current *= FRICTION
-          else                velRef.current *= COAST_FRIC
+        // ── X axis ────────────────────────────────────────────────────────
+        const dxA = tx - xRef.current
+        const adxA = Math.abs(dxA)
+        if (adxA > 0.005) {
+          velX.current += (dxA > 0 ? 1 : -1) * acc
+          velX.current  = clamp(velX.current, -maxSpd, maxSpd)
+          velX.current *= adxA < 0.08 ? FRICTION : COAST_FRIC
         } else {
-          // Arrived — stop and choose: idle or keep wandering
-          velRef.current *= 0.7
-          if (Math.abs(velRef.current) < 0.0008 && Math.random() < 0.04) {
-            schedulePause()
-          }
+          velX.current *= 0.70
+          if (Math.abs(velX.current) < 0.0008 && Math.random() < 0.04) schedulePause()
         }
+
+        // ── Y axis ────────────────────────────────────────────────────────
+        const dyA = ty - yRef.current
+        const adyA = Math.abs(dyA)
+        if (adyA > 0.005) {
+          velY.current += (dyA > 0 ? 1 : -1) * acc
+          velY.current  = clamp(velY.current, -maxSpd, maxSpd)
+          velY.current *= adyA < 0.08 ? FRICTION : COAST_FRIC
+        } else {
+          velY.current *= 0.70
+        }
+
+        // Tiny organic jitter
+        velX.current += (Math.random() - 0.5) * 0.0005
+        velY.current += (Math.random() - 0.5) * 0.0004
       } else {
-        // Pause mode — bleed velocity
-        velRef.current *= 0.75
+        velX.current *= 0.75
+        velY.current *= 0.75
       }
 
-      // Jitter: tiny random nudge each tick for organic wobble (reduced when pausing)
-      if (!pausing) velRef.current += (Math.random() - 0.5) * 0.0006
+      // ── Apply ─────────────────────────────────────────────────────────────
+      let nx = xRef.current + velX.current
+      let ny = yRef.current + velY.current
+      if (nx >= mxX) { nx = mxX; velX.current *= -0.3 }
+      if (nx <= 0)   { nx = 0;   velX.current *= -0.3 }
+      if (ny >= mxY) { ny = mxY; velY.current *= -0.3 }
+      if (ny <= minY){ ny = minY; velY.current *= -0.3 }
 
-      // Apply velocity
-      let nextX = xRef.current + velRef.current
-      if (nextX >= maxX) { nextX = maxX; velRef.current *= -0.3 }
-      if (nextX <= 0)    { nextX = 0;    velRef.current *= -0.3 }
+      xRef.current = nx
+      yRef.current = ny
+      setXFrac(nx)
+      setYFrac(ny)
 
-      xRef.current = nextX
-      setXFrac(nextX)
-
-      // Update facing direction from velocity (ignore tiny jiggles)
-      if (Math.abs(velRef.current) > 0.001) {
-        setDir(velRef.current > 0 ? 1 : -1)
+      // ── Facing: determined by horizontal velocity ─────────────────────────
+      if (Math.abs(velX.current) > 0.0008) {
+        setDir(velX.current > 0 ? 1 : -1)
       }
 
-      // Update animation state
+      // ── Animation state ───────────────────────────────────────────────────
       if (!overrideStateRef.current) {
         const baseState = pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'walk'
-        // If barely moving, show idle
-        const effState = (!pausing && Math.abs(velRef.current) < 0.0015) ? 'idle'
-          : cursorNear && !pet.isDead && !pet.isStarving ? 'walk'
+        const moving    = Math.abs(velX.current) > 0.0015 || Math.abs(velY.current) > 0.0015
+        const effState  = !moving ? 'idle'
+          : cursorActive && !pet.isDead && !pet.isStarving ? 'walk'
           : baseState
         setPetState(effState)
       }
@@ -187,7 +243,7 @@ function PetWidget({ pet, onHungryClick }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pet.isDead, pet.isStarving, schedulePause])
 
-  // ── Hunger bubble ─────────────────────────────────────────────────────────
+  // ── Hunger / dead bubble ──────────────────────────────────────────────────
   useEffect(() => {
     if (!pet.isStarving && !pet.isDead) { setShowBubble(false); return }
     setShowBubble(true)
@@ -195,17 +251,26 @@ function PetWidget({ pet, onHungryClick }) {
     return () => clearInterval(t)
   }, [pet.isStarving, pet.isDead])
 
-  // ── Touch / click interactions ────────────────────────────────────────────
+  // ── Tap / long-press interactions ─────────────────────────────────────────
   const longPressRef = useRef(null)
 
   const triggerInteraction = useCallback((s, ms = 1800) => {
     if (overrideRef.current) clearTimeout(overrideRef.current)
     overrideStateRef.current = s
     setPetState(s)
-    velRef.current *= 0.2
+    velX.current *= 0.2
+    velY.current *= 0.2
+
+    if (s === 'sleeping') {
+      lockedRef.current = true
+      savePos(xRef.current, yRef.current)
+    }
+
     overrideRef.current = setTimeout(() => {
       overrideRef.current = null
       overrideStateRef.current = null
+      // After sleeping expires, only re-enable movement if still alive
+      if (s === 'sleeping') lockedRef.current = petIsDeadRef.current
     }, ms)
   }, [])
 
@@ -222,13 +287,13 @@ function PetWidget({ pet, onHungryClick }) {
     if (longPressRef.current) {
       clearTimeout(longPressRef.current)
       longPressRef.current = null
-      // Short tap → happy; also nudge toward cursor
       triggerInteraction('happy', 1800)
     }
   }, [triggerInteraction])
 
-  const mirrorX = dir === -1  // sprite default faces right; flip when going left
+  const mirrorX = dir === -1
   const anim    = STATE_ANIMS[petState] || STATE_ANIMS.idle
+  const speed   = Math.abs(velX.current)
 
   return (
     <>
@@ -238,21 +303,16 @@ function PetWidget({ pet, onHungryClick }) {
         onPointerUp={onPointerUp}
         style={{
           position:         'fixed',
-          bottom:           isDesktop ? 32 : 16,
-          ...(isDesktop
-            ? { right: 32 }
-            : { left: `calc(${xFrac * 100}vw)` }
-          ),
+          left:             `calc(${xFrac * 100}vw)`,
+          top:              `calc(${yFrac * 100}vh)`,
           width:            PET_SIZE,
+          height:           PET_SIZE,
           zIndex:           9000,
           cursor:           'pointer',
           userSelect:       'none',
           WebkitUserSelect: 'none',
           touchAction:      'none',
-          willChange:       isDesktop ? 'auto' : 'left',
-          transform:        isDesktop ? 'scale(1.1)' : undefined,
-          transformOrigin:  'bottom right',
-          // JS drives position directly for smooth organic feel on mobile
+          willChange:       'left, top',
         }}
       >
         {/* Hunger / dead bubble */}
@@ -260,20 +320,20 @@ function PetWidget({ pet, onHungryClick }) {
           <div
             onClick={onHungryClick ? (e) => { e.stopPropagation(); onHungryClick() } : undefined}
             style={{
-              position:   'absolute',
-              bottom:     PET_SIZE + 6,
-              left:       '50%',
-              transform:  'translateX(-50%)',
-              whiteSpace: 'nowrap',
-              background: pet.isDead ? 'rgba(239,68,68,0.92)' : 'rgba(251,191,36,0.92)',
-              color:      '#fff',
-              fontSize:   11,
-              fontWeight: 800,
-              padding:    '4px 10px',
+              position:    'absolute',
+              bottom:      PET_SIZE + 6,
+              left:        '50%',
+              transform:   'translateX(-50%)',
+              whiteSpace:  'nowrap',
+              background:  pet.isDead ? 'rgba(239,68,68,0.92)' : 'rgba(251,191,36,0.92)',
+              color:       '#fff',
+              fontSize:    11,
+              fontWeight:  800,
+              padding:     '4px 10px',
               borderRadius: 20,
-              boxShadow:  '0 2px 10px rgba(0,0,0,0.5)',
-              animation:  'tomi-bubble-pop 0.3s ease-out',
-              cursor:     onHungryClick ? 'pointer' : 'default',
+              boxShadow:   '0 2px 10px rgba(0,0,0,0.5)',
+              animation:   'tomi-bubble-pop 0.3s ease-out',
+              cursor:      onHungryClick ? 'pointer' : 'default',
             }}>
             {pet.isDead ? `💀 ${getPetName(pet.skin)} mati!` : `🍖 ${getPetName(pet.skin)} lapar!`}
           </div>
@@ -284,20 +344,22 @@ function PetWidget({ pet, onHungryClick }) {
           position:     'absolute',
           bottom:       -4,
           left:         '50%',
-          transform:    `translateX(-50%) scaleX(${1 + Math.min(Math.abs(velRef.current) / MAX_SPEED, 1) * 0.4})`,
+          transform:    `translateX(-50%) scaleX(${1 + Math.min(speed / MAX_SPEED, 1) * 0.4})`,
           width:        44,
           height:       9,
           borderRadius: '50%',
           background:   'rgba(0,0,0,0.22)',
           filter:       'blur(3px)',
+          pointerEvents:'none',
         }} />
 
-        {/* Tomi */}
+        {/* Pet sprite */}
         <div style={{
           animation:       anim,
           transformOrigin: 'center bottom',
+          // Facing: mirror horizontally when moving left
           transform:       mirrorX ? 'scaleX(-1)' : 'scaleX(1)',
-          transition:      'transform 0.12s ease',
+          transition:      'transform 0.10s ease',
           filter:          pet.isDead ? 'saturate(0.3) brightness(0.7)' : 'none',
         }}>
           <PetSVG state={petState} skinId={pet.skin} size={PET_SIZE} />
