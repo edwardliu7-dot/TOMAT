@@ -2,6 +2,7 @@ import express from 'express'
 import { pool } from './db.js'
 import { requireAuth, requireRole } from './auth.js'
 import { computeHunger, skinToPetType, getHungerUntil } from './pet-state.js'
+import { getPetBonus } from './pet-bonuses.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
@@ -122,12 +123,15 @@ router.post('/feed', async (req, res) => {
     }
 
     // Extend hunger for this pet type: base = max(now, current_until) + food_hours
+    // Nananaga skins apply a hungerMult so food lasts proportionally longer.
     const petType = skinToPetType(skinId)
+    const petBonus = getPetBonus(skinId)
+    const effectiveHours = food.hours * petBonus.hungerMult
     const now = new Date()
     const currentUntilStr = getHungerUntil(hungerMap, skinId)
     const currentUntil = currentUntilStr ? new Date(currentUntilStr) : now
     const base = currentUntil < now ? now : currentUntil
-    const newUntil = new Date(base.getTime() + food.hours * 3600 * 1000)
+    const newUntil = new Date(base.getTime() + effectiveHours * 3600 * 1000)
 
     await client.query(
       `update students

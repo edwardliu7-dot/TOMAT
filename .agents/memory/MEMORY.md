@@ -25,3 +25,5 @@
 - [TOMAT pet sprite sheets](tomat-pet-sprites.md) — all 9 skin sprite sheets are 768×768 6×6 uniform grid (128×128/cell); dead row has 4 frames for kelinsay skins, 5 for all others; NananagaSprite uses dedicated sheets (no CSS filter); PetTokoTab groups by Umum/Langka/Epic.
 - [TOMAT gameTheme JSX fix](tomat-gametheme-jsx.md) — gameTheme.js contained JSX and must stay as gameTheme.jsx; Vite refuses to parse JSX in .js files blocking the whole app.
 - [TOMAT pet HP pooling](tomat-pet-hp-pooling.md) — hunger_map keys by pet type (tomi/kelinsay/monyang/nananaga) not skinId; golden equip is a special-cased built-in skin.
+- [TOMAT pet bonuses](tomat-pet-bonuses.md) — server/pet-bonuses.js defines coinMult/expMult/hungerMult per skin; applied post-cap in /player/gain and /pet/feed; src/petBonuses.js mirrors for UI.
+- [TOMAT What's New modal](tomat-whats-new.md) — WhatsNewModal shown once per APP_VERSION via localStorage key; src/version.js is the single version source; bump both version.js and build.gradle together.

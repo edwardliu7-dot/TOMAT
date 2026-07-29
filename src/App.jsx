@@ -33,6 +33,7 @@ import { connectSocket } from './socket'
 import { DUEL_GAME_KEYS } from './gamesCatalog'
 import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
+import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
 
 const DUEL_INVITE_GAMES = [
   { key: 'katak',       emoji: '🐸', name: 'Katak Pelompat' },
@@ -304,6 +305,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [duelInviteCode, setDuelInviteCode]         = useState(null)   // auto-join code for LobbyScreen
   const [tokoInitialTab, setTokoInitialTab]         = useState(null)   // pre-select shop tab on open
   const [duelInvitePending, setDuelInvitePending]   = useState(null)   // { id, role, name } — waiting for game pick
+
+  const { open: whatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew()
 
   // Update browser tab title whenever the active screen changes
   useEffect(() => {
@@ -627,6 +630,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
                   }}
                   onCancel={() => setDuelInvitePending(null)}
                 />
+              )}
+              {/* What's New modal — shown once per version after update */}
+              {whatsNewOpen && !guruMode && (
+                <WhatsNewModal onClose={dismissWhatsNew} />
               )}
               {/* Duel invite banner */}
               {duelInvite && current !== 'duel-lobby' && current !== 'duel-katak' && (

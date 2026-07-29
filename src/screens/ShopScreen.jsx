@@ -5,6 +5,7 @@ import { usePet } from '../PetContext'
 import { usePlayer } from '../PlayerContext'
 import { KATEGORI_LABELS, PET_SKIN_INFO, PET_FOOD_CATALOG } from '../shopVisuals'
 import PetSVG, { PET_CSS, STATE_ANIMS, getPetName } from '../components/PetSVG'
+import { getPetBonusDisplay } from '../petBonuses'
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -154,6 +155,7 @@ const REVIVE_COST = 300
 function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false }) {
   const info = PET_SKIN_INFO[skinId]
   if (!info) return null
+  const bonus = getPetBonusDisplay(skinId)
   const owned = skinId === 'golden' || data.ownedItemIds.includes(skinId)
   const prerequisiteOwned = !info.prerequisitePetId || data.ownedItemIds.includes(info.prerequisitePetId)
   const equipped = equippedSkin === skinId
@@ -182,7 +184,17 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
       <div style={{ textAlign: wide ? 'left' : 'center', flex: wide ? 1 : undefined, minWidth: 0 }}>
         <div style={{ fontSize: 10, fontWeight: 800, color: info.tierColor, letterSpacing: '0.15em', marginBottom: 2 }}>{info.tier}</div>
         <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{info.nama}</div>
-        <div style={{ fontSize: 10, color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>{info.desc}</div>
+        {bonus.label && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 5,
+            background: `${bonus.color}1a`, border: `1px solid ${bonus.color}44`,
+            borderRadius: 20, padding: '2px 8px',
+          }}>
+            <span style={{ fontSize: 11 }}>{bonus.icon}</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: bonus.color, letterSpacing: 0.2 }}>{bonus.label}</span>
+          </div>
+        )}
+        <div style={{ fontSize: 10, color: '#64748B', marginTop: bonus.label ? 4 : 4, lineHeight: 1.4 }}>{info.desc}</div>
         {wide && (
           <div style={{ marginTop: 10 }}>
             {equipped ? (
