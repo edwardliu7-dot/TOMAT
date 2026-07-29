@@ -1,12 +1,12 @@
 // ── PetSVG — universal pet renderer ──────────────────────────────────────────
 // Routes to the correct renderer based on the equipped skin ID.
-// Tomi   → TomiSprite    (/tomi-sprite.png)
-// Monyang → MonyangSprite (/monyang-sprite.png)
-// Nananaga → NananagaSprite (/nananaga-sprite.png)
-// Kelinsay → KelinciSVG  (sprite via TomiSprite-style renderer in KelinciSVG)
+// Tomi     → TomiSprite      (/tomi-sprite.png)
+// Kelinsay → KelinsaySprite  (/kelinsay-sprite.png)
+// Monyang  → MonyangSprite   (/monyang-sprite.png)
+// Nananaga → NananagaSprite  (/nananaga-sprite.png)
 import React from 'react'
 import TomiSprite from './TomiSprite'
-import KelinciSVG from './KelinciSVG'
+import KelinsaySprite from './KelinsaySprite'
 import MonyangSprite from './MonyangSprite'
 import NananagaSprite from './NananagaSprite'
 
@@ -35,7 +35,7 @@ export function getPetName(skinId) {
 }
 
 export default function PetSVG({ state = 'idle', skinId = 'golden', size = 100 }) {
-  if (skinId.startsWith('pet_kelinsay'))  return <KelinciSVG state={state} size={size} variant={skinId} />
+  if (skinId.startsWith('pet_kelinsay'))  return <KelinsaySprite state={state} variant={skinId} size={size} />
   if (skinId.startsWith('pet_monyong'))   return <MonyangSprite state={state} variant={skinId} size={size} />
   if (skinId.startsWith('pet_nananaga'))  return <NananagaSprite state={state} variant={skinId} size={size} />
   return <TomiSprite state={state} skinId={skinId} size={size} />
