@@ -254,10 +254,11 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const activePetName = getPetName(equippedSkin)
 
   const buyEquipSkin = async (skinId) => {
-    if (skinId === 'golden') return
-    const item = data.items.find(it => it.id === skinId)
-    if (!item) return
-    const owned = data.ownedItemIds.includes(skinId)
+    // golden is the built-in base skin — always owned, just equip it
+    const isGolden = skinId === 'golden'
+    const item = !isGolden ? data.items.find(it => it.id === skinId) : null
+    if (!isGolden && !item) return
+    const owned = isGolden || data.ownedItemIds.includes(skinId)
     setBusyId(skinId); setLocalError('')
     try {
       if (!owned) await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } })

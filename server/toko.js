@@ -159,25 +159,30 @@ router.post('/pakai', async (req, res) => {
     let targetItemId = itemId ?? null
 
     if (targetItemId) {
-      const { rows: itemRows } = await pool.query('select * from shop_items where id = $1', [targetItemId])
-      const item = itemRows[0]
-      if (!item) return res.status(404).json({ error: 'Item tidak ditemukan.' })
-      const { rows: ownedRows } = await pool.query(
-        'select 1 from student_inventory where student_id = $1 and item_id = $2',
-        [req.session.user.id, targetItemId]
-      )
-      if (ownedRows.length === 0) return res.status(403).json({ error: 'Kamu belum memiliki item ini.' })
-      const prerequisitePetId = item.visual?.prerequisitePetId
-      if (item.kategori === 'pet_skin' && prerequisitePetId) {
-        const { rows: prerequisiteRows } = await pool.query(
+      // 'golden' is Tomi's built-in base skin — always owned, no shop_items row needed
+      if (targetItemId === 'golden') {
+        targetKategori = 'pet_skin'
+      } else {
+        const { rows: itemRows } = await pool.query('select * from shop_items where id = $1', [targetItemId])
+        const item = itemRows[0]
+        if (!item) return res.status(404).json({ error: 'Item tidak ditemukan.' })
+        const { rows: ownedRows } = await pool.query(
           'select 1 from student_inventory where student_id = $1 and item_id = $2',
-          [req.session.user.id, prerequisitePetId]
+          [req.session.user.id, targetItemId]
         )
-        if (prerequisiteRows.length === 0) {
-          return res.status(403).json({ error: 'Kamu harus memiliki pet dasarnya terlebih dahulu.' })
+        if (ownedRows.length === 0) return res.status(403).json({ error: 'Kamu belum memiliki item ini.' })
+        const prerequisitePetId = item.visual?.prerequisitePetId
+        if (item.kategori === 'pet_skin' && prerequisitePetId) {
+          const { rows: prerequisiteRows } = await pool.query(
+            'select 1 from student_inventory where student_id = $1 and item_id = $2',
+            [req.session.user.id, prerequisitePetId]
+          )
+          if (prerequisiteRows.length === 0) {
+            return res.status(403).json({ error: 'Kamu harus memiliki pet dasarnya terlebih dahulu.' })
+          }
         }
+        targetKategori = item.kategori
       }
-      targetKategori = item.kategori
     }
 
     const column = EQUIP_COLUMN[targetKategori]
