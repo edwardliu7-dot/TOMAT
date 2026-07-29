@@ -1,15 +1,15 @@
 // ── TomiSprite — sprite-sheet Tomi animation ─────────────────────────────────
-// Uses /tomi-sprite.png (RGBA, transparent background)
+// Uses /tomi-sprite.png — clean rebuilt sheet, RGBA transparent background
+// Grid: 6 cols × 6 rows, each cell 260×175 px, no label column
 // Rows: IDLE(0) WALK(1) HAPPY(2) HUNGRY(3) SLEEPING(4) DEAD(5)
-// Animation: pure CSS steps() — no JS per-frame, runs on compositor thread
-import React, { useMemo, useEffect } from 'react'
+// Animation: pure CSS steps() — zero JS per frame, runs on compositor thread
+import React, { useMemo } from 'react'
 
 // ── Sprite sheet measurements ────────────────────────────────────────────────
-const SHEET_W      = 1536
-const SHEET_H      = 1024
-const LABEL_OFFSET = 112   // px: left-side label column width
-const FRAME_W      = 237   // px: one frame width
-const FRAME_H      = 171   // px: one frame height (SHEET_H / 6 rows)
+const SHEET_W = 1560
+const SHEET_H = 1050
+const CELL_W  = 260    // px per frame column
+const CELL_H  = 175    // px per frame row
 
 // ── State config: row index, frame count, playback speed ────────────────────
 const STATE_CFG = {
@@ -29,18 +29,18 @@ const SKIN_FILTER = {
   pet_skin_void:   'hue-rotate(285deg) saturate(1.4) brightness(0.55) contrast(1.3)',
 }
 
-// ── Keyframe cache: injected once per (state, size) pair ─────────────────────
+// ── Keyframe injection cache ─────────────────────────────────────────────────
+// One @keyframes per (state, size) pair — injected once, reused forever.
 const _injected = new Set()
 
 function ensureKeyframes(state, size, cfg) {
-  const key = `tomi-sprite-${state}-${size}`
-  if (_injected.has(key)) return key
+  const key = `tomi-spr-${state}-${size}`
+  if (_injected.has(key) || typeof document === 'undefined') return key
 
-  const scale    = size / FRAME_H
-  // background-position-x at frame 0: centre the first frame in the container
-  const startX   = -(LABEL_OFFSET + FRAME_W / 2) * scale + size / 2
-  // total horizontal travel across all frames
-  const totalW   = cfg.frames * FRAME_W * scale
+  const scale  = size / CELL_H
+  // background-position-x at frame 0: cell 0 starts at x=0, centre at CELL_W/2
+  const startX  = -(CELL_W / 2) * scale + size / 2
+  const totalW  = cfg.frames * CELL_W * scale   // total horizontal travel
 
   const css = `@keyframes ${key} {
   from { background-position-x: ${startX.toFixed(2)}px; }
@@ -58,16 +58,15 @@ function ensureKeyframes(state, size, cfg) {
 export default function TomiSprite({ state = 'idle', skinId = 'golden', size = 100 }) {
   const cfg = STATE_CFG[state] || STATE_CFG.idle
 
-  // Inject keyframes if not already done (SSR-safe: runs in useEffect on server)
-  const animName = useMemo(() => {
-    if (typeof document !== 'undefined') return ensureKeyframes(state, size, cfg)
-    return `tomi-sprite-${state}-${size}`
-  }, [state, size, cfg])
+  const animName = useMemo(
+    () => ensureKeyframes(state, size, cfg),
+    [state, size, cfg],
+  )
 
-  const scale    = size / FRAME_H
+  const scale    = size / CELL_H
   const bgW      = SHEET_W * scale
   const bgH      = SHEET_H * scale
-  const bgY      = -(cfg.row * FRAME_H * scale)
+  const bgY      = -(cfg.row * CELL_H * scale)
   const duration = (cfg.frames / cfg.fps).toFixed(3)
   const filter   = SKIN_FILTER[skinId] || 'none'
 
