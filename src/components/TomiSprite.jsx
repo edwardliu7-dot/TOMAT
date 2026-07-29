@@ -29,12 +29,6 @@ const SKIN_SPRITE = {
   pet_skin_void:   '/tomi-void-emperor.png',
 }
 
-// ── Custom row Y-starts (px in original sheet) for skins with non-128px row spacing ──
-// Measured by scanning pixel content bands; eliminates bleed between adjacent rows.
-const SKIN_ROW_Y = {
-  pet_skin_cosmic: { idle:0, walk:168, happy:300, hungry:430, sleeping:558, dead:647 },
-  pet_skin_void:   { idle:0, walk:150, happy:278, hungry:416, sleeping:546, dead:640 },
-}
 
 // ── Keyframe injection cache ─────────────────────────────────────────────────
 // One @keyframes per (state, size) pair — injected once, reused forever.
@@ -73,8 +67,7 @@ export default function TomiSprite({ state = 'idle', skinId = 'golden', size = 1
   const scale    = size / CELL_H
   const bgW      = SHEET_W * scale
   const bgH      = SHEET_H * scale
-  const rowY     = SKIN_ROW_Y[skinId]?.[state] ?? (cfg.row * CELL_H)
-  const bgY      = -(rowY * scale)
+  const bgY      = -(cfg.row * CELL_H * scale)
   const duration = (cfg.frames / cfg.fps).toFixed(3)
   const sprite   = SKIN_SPRITE[skinId] || SKIN_SPRITE.golden
 
