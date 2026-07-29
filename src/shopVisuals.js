@@ -22,6 +22,9 @@ export const SPANDUK_VISUALS = {
   spanduk_royal_mathematician: { gradient: 'linear-gradient(115deg,#17120c,#45351b 48%,#d4af37)', luxury: 'royal', image: '/dekrit-mahaguru.svg' },
 }
 
+// Stiker visuals — placeholder for future sticker cosmetics
+export const STIKER_VISUALS = {}
+
 export const KATEGORI_LABELS = {
   bingkai:  'Bingkai',
   spanduk:  'Spanduk',
