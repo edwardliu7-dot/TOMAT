@@ -24,6 +24,12 @@ const SKIN_SPRITE = {
   pet_kelinsay_malam: '/kelinsay-malam.png',
 }
 
+// Custom row Y-starts for skins with non-uniform 128px row spacing
+const SKIN_ROW_Y = {
+  pet_kelinsay_senja: { idle:0, walk:155, happy:298, hungry:427, sleeping:555, dead:644 },
+  pet_kelinsay_malam: { idle:0, walk:145, happy:272, hungry:409, sleeping:537, dead:640 },
+}
+
 const _injected = new Set()
 
 function ensureKeyframes(state, size, cfg) {
@@ -53,7 +59,8 @@ export default function KelinsaySprite({ state = 'idle', variant = 'pet_kelinsay
   const scale    = size / CELL_H
   const bgW      = SHEET_W * scale
   const bgH      = SHEET_H * scale
-  const bgY      = -(cfg.row * CELL_H * scale)
+  const rowY     = SKIN_ROW_Y[variant]?.[state] ?? (cfg.row * CELL_H)
+  const bgY      = -(rowY * scale)
   const duration = (cfg.frames / cfg.fps).toFixed(3)
   const sprite   = SKIN_SPRITE[variant] || SKIN_SPRITE.pet_kelinsay
 

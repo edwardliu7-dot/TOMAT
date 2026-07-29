@@ -227,7 +227,7 @@ function PetWidget({ pet, onHungryClick }) {
     }
   }, [triggerInteraction])
 
-  const mirrorX = dir === 1   // sprite default faces left; flip when going right
+  const mirrorX = dir === -1  // sprite default faces right; flip when going left
   const anim    = STATE_ANIMS[petState] || STATE_ANIMS.idle
 
   return (
