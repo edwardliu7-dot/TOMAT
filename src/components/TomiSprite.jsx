@@ -6,10 +6,10 @@
 import React, { useMemo } from 'react'
 
 // ── Sprite sheet measurements ────────────────────────────────────────────────
-const SHEET_W = 1560
-const SHEET_H = 1050
-const CELL_W  = 260    // px per frame column
-const CELL_H  = 175    // px per frame row
+const SHEET_W = 768
+const SHEET_H = 768
+const CELL_W  = 128    // px per frame column
+const CELL_H  = 128    // px per frame row
 
 // ── State config: row index, frame count, playback speed ────────────────────
 const STATE_CFG = {
