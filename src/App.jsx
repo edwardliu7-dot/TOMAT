@@ -44,6 +44,65 @@ const DUEL_INVITE_GAMES = [
   { key: 'scanner',     emoji: '💎', name: 'Scanner Prima' },
 ]
 
+// Toast shown when Nananaga's wrong-answer immunity activates during duel/tournament/survival.
+// Listens for the 'nananaga-shield' CustomEvent dispatched by useSurvival and the duel/
+// tournament screen handlers. Auto-dismisses after 2.5 s.
+function NananagaShieldToast() {
+  const [visible, setVisible] = React.useState(false)
+  const [tokensLeft, setTokensLeft] = React.useState(0)
+  const timerRef = React.useRef(null)
+
+  React.useEffect(() => {
+    function handleShield(e) {
+      setTokensLeft(e.detail?.tokensLeft ?? 0)
+      setVisible(true)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setVisible(false), 2500)
+    }
+    window.addEventListener('nananaga-shield', handleShield)
+    return () => {
+      window.removeEventListener('nananaga-shield', handleShield)
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  if (!visible) return null
+  return (
+    <div style={{
+      position: 'fixed', top: 72, left: '50%', transform: 'translateX(-50%)',
+      zIndex: 10003, maxWidth: 340, width: 'calc(100% - 32px)',
+      background: 'linear-gradient(135deg,rgba(20,10,40,0.97),rgba(30,10,10,0.97))',
+      border: '1.5px solid rgba(251,146,60,0.7)',
+      borderRadius: 18, padding: '14px 18px',
+      boxShadow: '0 0 40px rgba(251,146,60,0.35), 0 8px 32px rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', gap: 14,
+      animation: 'nanaShieldIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both',
+      fontFamily: 'system-ui, sans-serif',
+    }}>
+      <style>{`
+        @keyframes nanaShieldIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(-16px) scale(0.88); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
+        }
+      `}</style>
+      <div style={{ fontSize: 36, lineHeight: 1, flexShrink: 0 }}>🐲</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 900, color: '#FB923C', marginBottom: 2 }}>
+          Nananaga melindungimu!
+        </div>
+        <div style={{ fontSize: 11, color: '#FED7AA', lineHeight: 1.4 }}>
+          Jawaban salah diabaikan. Kamu mendapat soal tambahan.
+          {tokensLeft > 0 && (
+            <span style={{ marginLeft: 4, color: '#FB923C', fontWeight: 700 }}>
+              ({tokensLeft} kebal tersisa)
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Toast shown when a tugas submission fails (pet dead, network error, etc.)
 // so students know their grade was not saved and can act accordingly.
 function SubmitErrorToast() {
@@ -120,7 +179,7 @@ function DuelGamePickerModal({ target, onPick, onCancel }) {
 }
 import GameDesktopWrapper from './components/GameDesktopWrapper'
 import { fetchPublicProfile, normalizeProfileTarget } from './components/shared'
-import { getGameTheme, GameThemeOverlay, getInverseFilter } from './gameTheme'
+import { getGameTheme, GameThemeOverlay, GameThemeStyles } from './gameTheme'
 
 // Auth-aware wrappers — need useAuth inside the PlayerProvider/AuthContext tree
 function TournamentMatchWithAuth({ matchData, goBack, onMatchOver }) {
@@ -287,15 +346,15 @@ const SCREEN_TITLES = {
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const { user, logout } = useAuth()
 
-  // Apply the equipped tema CSS filter to the whole page whenever it changes
+  // Set data-tema on <html> so GameThemeStyles can target structural elements only
   useEffect(() => {
-    const theme = getGameTheme(user?.equippedTema)
-    document.documentElement.style.filter = theme?.filter || ''
-    return () => { document.documentElement.style.filter = '' }
+    if (user?.equippedTema) {
+      document.documentElement.setAttribute('data-tema', user.equippedTema)
+    } else {
+      document.documentElement.removeAttribute('data-tema')
+    }
+    return () => { document.documentElement.removeAttribute('data-tema') }
   }, [user?.equippedTema])
-
-  // Compute the inverse filter so image elements can counteract the global filter
-  const inverseFilter = getInverseFilter(user?.equippedTema)
 
   const [history, setHistory] = useState(['home'])
   const [pendingGame, setPendingGame] = useState(null) // { key, name, emoji }
@@ -598,15 +657,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           <BabLockProvider>
             <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
-              {/* Counteract global theme filter on raw image/sprite elements */}
-              {inverseFilter && (
-                <style>{`
-                  img,
-                  [data-raw-image] {
-                    filter: ${inverseFilter} !important;
-                  }
-                `}</style>
-              )}
+              {/* Inject CSS that filters ONLY structural nav/chrome elements */}
+              <GameThemeStyles temaId={user?.equippedTema} />
               {/* Tema particles overlay — rendered on top of all screens */}
               <GameThemeOverlay temaId={user?.equippedTema} />
               <ErrorBoundary key={current} onReset={goBack}>
@@ -616,6 +668,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               <TaskOverlay />
               {/* Error toast when tugas submission fails */}
               <SubmitErrorToast />
+              {/* Nananaga immunity activation toast */}
+              <NananagaShieldToast />
               {/* Tomi the guinea pig — walks across screen for students */}
               <FloatingPet onHungryClick={() => {
                 setTokoInitialTab('pet_skin')

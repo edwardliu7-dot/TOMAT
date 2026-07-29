@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { connectSocket, getSocket } from '../socket'
+import { useAuth } from '../AuthContext'
+import { useTask } from '../TaskContext'
+import { getWrongImmunity } from '../petBonuses'
 
 function useIsMd() {
   const [md, setMd] = React.useState(() => window.innerWidth >= 768)
@@ -251,6 +254,8 @@ export default function TournamentMatchScreen({
   goBack, onMatchOver,
 }) {
   const isMd = useIsMd()
+  const { user } = useAuth()
+  const { activeSession } = useTask()
   const [question,    setQuestion]    = useState(null)
   const [round,       setRound]       = useState(initRound || 1)
   const [maxRounds,   setMaxRounds]   = useState(7)
@@ -260,6 +265,11 @@ export default function TournamentMatchScreen({
   const [myAnswered,  setMyAnswered]  = useState(false)
   const [myCorrect,   setMyCorrect]   = useState(null)
   const [correctAnswer, setCorrectAnswer] = useState(null)
+
+  // Nananaga wrong-answer immunity tokens for this tournament match
+  const immunityLeft = useRef(
+    !activeSession && user?.equippedPetSkin ? getWrongImmunity(user.equippedPetSkin) : 0
+  )
 
   // phase: 'waiting' | 'playing' | 'result' | 'leaderboard' | 'match-over'
   const [phase, setPhase] = useState('waiting')
@@ -296,6 +306,22 @@ export default function TournamentMatchScreen({
 
     // Hasil jawabanku — brief feedback, soal berikutnya datang otomatis ~1.2s
     socket.on('tournament:answer-result', ({ correct, correctAnswer: ans, yourValue, scores: s }) => {
+      // Nananaga immunity: intercept wrong answers when tokens remain and no task session active
+      if (!correct && immunityLeft.current > 0 && !activeSession) {
+        immunityLeft.current -= 1
+        window.dispatchEvent(new CustomEvent('nananaga-shield', {
+          detail: { tokensLeft: immunityLeft.current },
+        }))
+        // Request a bonus question from server without advancing the round
+        getSocket()?.emit('tournament:use-immunity', {
+          tournamentId: tournIdRef.current,
+          matchId:      matchIdRef.current,
+        })
+        // Update scores but stay in 'playing' phase
+        setScores(s || {})
+        setMyAnswered(false)
+        return
+      }
       setMyAnswered(true)
       setMyCorrect(correct)
       setCorrectAnswer(ans)

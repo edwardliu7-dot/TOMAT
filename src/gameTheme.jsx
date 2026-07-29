@@ -57,14 +57,7 @@ export function getGameTheme(temaId) {
 
 /**
  * Returns the approximate inverse of a theme's CSS filter string.
- * Used to cancel the global filter on image/sprite elements so they
- * keep their original colours while UI backgrounds stay themed.
- *
- * Inversion rules:
- *   hue-rotate(Xdeg)  → hue-rotate(-Xdeg)
- *   saturate(S)       → saturate(1/S)
- *   brightness(B)     → brightness(1/B)
- *   contrast(C)       → contrast(1/C)
+ * Kept for backwards compatibility but no longer used by the main app.
  */
 export function getInverseFilter(temaId) {
   const theme = getGameTheme(temaId)
@@ -74,6 +67,31 @@ export function getInverseFilter(temaId) {
     .replace(/saturate\(([\d.]+)\)/g,          (_, v) => `saturate(${(1 / parseFloat(v)).toFixed(4)})`)
     .replace(/brightness\(([\d.]+)\)/g,        (_, v) => `brightness(${(1 / parseFloat(v)).toFixed(4)})`)
     .replace(/contrast\(([\d.]+)\)/g,          (_, v) => `contrast(${(1 / parseFloat(v)).toFixed(4)})`)
+}
+
+/**
+ * Injects targeted CSS that applies the theme filter ONLY to structural navigation
+ * and chrome elements (nav bar, top bar, player header, sidebar).
+ *
+ * Approach: set data-tema="<id>" on <html>, then target structural elements via CSS
+ * class selectors. Photos, pet sprites, banners, frames, and shop items live outside
+ * these structural elements and are never filtered.
+ */
+export function GameThemeStyles({ temaId }) {
+  const theme = getGameTheme(temaId)
+  if (!theme) return null
+
+  const f = theme.filter
+  const css = `
+    /* Structural nav / chrome elements — these are safe to filter */
+    html[data-tema="${temaId}"] .tomat-topbar,
+    html[data-tema="${temaId}"] .tomat-player-header,
+    html[data-tema="${temaId}"] .appshell-bottom-nav,
+    html[data-tema="${temaId}"] .tomat-sidebar {
+      filter: ${f};
+    }
+  `
+  return <style>{css}</style>
 }
 
 // Static deterministic particle positions (seed-based, no random() at render time)

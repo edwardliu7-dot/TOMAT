@@ -1,0 +1,71 @@
+TOMAT — Lanjutkan implementasi Nananaga Wrong-Answer Immunity
+
+Ini adalah aplikasi TOMAT (Tantangan Otak Matematika) — platform gamifikasi matematika SMP berbasis React + Express + Neon PostgreSQL. Stack: Vite + React frontend, Node/Express (server/index.js), Socket.io untuk multiplayer.
+
+FITUR YANG PERLU DIIMPLEMENTASIKAN
+Ganti bonus Nananaga dari "stamina" (hungerMult) menjadi kebal jawaban salah saat mode duel, turnamen, atau survival. Jika user menjawab salah, mereka mendapat kesempatan menjawab soal tambahan, alih-alih langsung dihitung salah.
+
+Tabel bonus:
+
+Skin	Kebal salah
+pet_nananaga (base)	1×
+pet_nananaga_merah (Naga Api)	2×
+pet_nananaga_es (Naga Es)	3×
+Aturan penting:
+
+Hanya berlaku saat mode duel, turnamen, dan survival
+TIDAK berlaku saat mengerjakan tugas guru (task session aktif)
+Saat kebal digunakan, tampilkan notifikasi ke user ("🐲 Nananaga melindungimu!")
+Setelah semua token kebal habis, jawaban salah dihitung normal
+ARSITEKTUR YANG SUDAH DIPAHAMI
+Pet bonuses:
+
+Server: server/pet-bonuses.js — key hungerMult perlu diganti/ditambah wrongImmunity
+Client: src/petBonuses.js — label/icon display untuk shop
+Cara wrong answer bekerja per mode:
+
+Survival mode (src/difficulty.js sekitar baris 49–80):
+
+Hook useSurvival(survival) — fungsi recordResult(correct): kalau correct === false langsung setGameOver(true)
+Fix: sebelum set gameOver, cek apakah pet punya immunity token tersisa
+Duel mode (src/screens/DuelKatakScreen.jsx):
+
+Server mengirim socket event duel:answer-result → client set myCorrect dan phase ke 'result'
+Wrong answer tidak mengurangi lives tapi mengurangi skor/peluang menang
+Fix: saat myCorrect === false dan masih ada immunity, kirim socket event ke server minta soal tambahan (duel:use-immunity?)
+Tournament mode (src/screens/TournamentMatchScreen.jsx):
+
+Socket event tournament:answer-result → set myCorrect, phase 'result'
+Fix: serupa dengan duel
+FeedbackBanner (src/components/shared.jsx ~baris 1308–1346):
+
+Dipanggil recordWrongAnswer() dari usePlayer() saat isCorrect === false
+Selama task session aktif, TaskContext override recordWrongAnswer untuk track tugas guru
+Deteksi task session aktif:
+
+useTask() dari src/TaskContext.jsx — property activeSession bernilai non-null saat mengerjakan tugas guru
+Kalau activeSession !== null, immunity TIDAK boleh aktif
+Equipped skin siswa:
+
+user.equippedPetSkin tersedia dari useAuth()
+Atau bisa baca dari context pet
+LANGKAH IMPLEMENTASI YANG DISARANKAN
+server/pet-bonuses.js — ganti hungerMult nananaga dengan wrongImmunity: 1/2/3, set hungerMult: 1.00
+
+src/petBonuses.js — update label/icon: '🛡️ Kebal Salah ×1/2/3'
+
+src/difficulty.js — update useSurvival hook agar recordResult(false) memeriksa immunity token sebelum setGameOver(true). Buat hook useNanagaImmunity() atau terima prop immunityTokens.
+
+src/screens/DuelKatakScreen.jsx — saat menerima duel:answer-result dengan correct: false, jika masih ada immunity token: tampilkan notif "🐲 Nananaga melindungimu!", kurangi token, dan minta soal baru dari socket (duel:request-next-question atau mekanisme yang ada)
+
+src/screens/TournamentMatchScreen.jsx — sama seperti duel
+
+Shop display (src/screens/ShopScreen.jsx) — update deskripsi PetCard untuk nananaga skins
+
+Jangan sentuh logic immunity saat activeSession !== null (tugas guru)
+
+SECRETS YANG TERSEDIA (sudah di-set, jangan diubah)
+NEON_DATABASE_URL
+SESSION_SECRET
+VAPID_PRIVATE_KEY
+VAPID_PUBLIC_KEY

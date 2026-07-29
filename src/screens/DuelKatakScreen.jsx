@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { TopBar, Card, Btn } from '../components/shared'
 import { connectSocket, getSocket } from '../socket'
 import { getGameInfo } from '../gamesCatalog'
+import { useAuth } from '../AuthContext'
+import { useTask } from '../TaskContext'
+import { getWrongImmunity } from '../petBonuses'
 
 function useIsMd() {
   const [md, setMd] = React.useState(() => window.innerWidth >= 768)
@@ -325,6 +328,8 @@ function GameOverScreen({ winner, scores, myIndex, onLeave }) {
 export default function DuelKatakScreen({ code, myIndex, question: initQ, round: initRound, maxRounds, scores: initScores, gameKey = 'katak', goBack }) {
   const gameInfo = getGameInfo(gameKey)
   const isMd = useIsMd()
+  const { user } = useAuth()
+  const { activeSession } = useTask()
   const [question, setQuestion] = useState(initQ)
   const [round, setRound]       = useState(initRound)
   const [scores, setScores]     = useState(initScores)
@@ -334,6 +339,11 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   const [myAnswered, setMyAnswered]     = useState(false)
   const [myCorrect, setMyCorrect]       = useState(null)
   const [correctAnswer, setCorrectAnswer] = useState(null)
+
+  // Nananaga wrong-answer immunity tokens for this duel session
+  const immunityLeft = useRef(
+    !activeSession && user?.equippedPetSkin ? getWrongImmunity(user.equippedPetSkin) : 0
+  )
 
   // phase: 'playing' | 'result' | 'leaderboard' | 'game-over' | 'left'
   const [phase, setPhase]   = useState('playing')
@@ -365,6 +375,23 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
 
     // My answer result — brief feedback, next question comes automatically after ~1.2s
     socket.on('duel:answer-result', ({ correct, yourScore, correctAnswer: ans }) => {
+      // Nananaga immunity: intercept wrong answers when tokens remain and no task session active
+      if (!correct && immunityLeft.current > 0 && !activeSession) {
+        immunityLeft.current -= 1
+        window.dispatchEvent(new CustomEvent('nananaga-shield', {
+          detail: { tokensLeft: immunityLeft.current },
+        }))
+        // Request a bonus question from server without advancing the round
+        getSocket()?.emit('duel:use-immunity', { code })
+        // Update score display but stay in 'playing' phase (server will send duel:question)
+        setMyAnswered(false)
+        setScores(prev => {
+          const updated = [...prev]
+          updated[myIndex] = { ...updated[myIndex], score: yourScore }
+          return updated
+        })
+        return
+      }
       setMyAnswered(true)
       setMyCorrect(correct)
       setCorrectAnswer(ans)

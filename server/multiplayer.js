@@ -331,6 +331,34 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       }
     })
 
+    // ── NANANAGA IMMUNITY — kirim soal bonus tanpa menambah round ────────────
+    // Dipanggil client saat menerima duel:answer-result dengan correct:false
+    // dan masih ada immunity token tersisa. Server mengirim soal baru ke player ini
+    // tanpa mengubah myRound, sehingga player mendapat kesempatan menjawab lagi.
+    socket.on('duel:use-immunity', async ({ code } = {}) => {
+      if (!(await canPlayStudentMode(socket, 'duel:error'))) return
+      const room = rooms.get(code)
+      if (!room || room.status !== 'in-progress') return
+      const player = room.players.find(p => p.userId === user.id)
+      if (!player) return
+
+      // Generate fresh bonus question (round counter NOT incremented)
+      player.answered = false
+      player.lastAnswer = null
+      const q = genTournamentQ(room.gameKey || 'katak')
+      player.currentQ = q
+      const { answer, ...qForClient } = q
+      const playerSocket = io.sockets.sockets.get(player.socketId)
+      playerSocket?.emit('duel:question', {
+        question:   qForClient,
+        round:      player.myRound,      // same round — immunity bonus round
+        maxRounds:  MAX_ROUNDS,
+        scores:     room.players.map(safePlayer),
+        gameKey:    room.gameKey || 'katak',
+        isImmunityBonus: true,
+      })
+    })
+
     // ── LEAVE (explicit, e.g. pressing back mid-game) ────────────────────────
     socket.on('duel:leave', () => {
       leaveAllRooms(socket, io)
@@ -643,6 +671,35 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const match = round?.matches.find(m => m.id === matchId)
       if (!match) return
       handleTournamentAnswer(io, t, match, user.id, value, socket)
+    })
+
+    // Siswa: Nananaga immunity — kirim soal bonus tanpa menambah round tournament
+    socket.on('tournament:use-immunity', async ({ tournamentId, matchId } = {}) => {
+      if (user.role !== 'siswa') return
+      if (!(await canPlayStudentMode(socket, 'tournament:error'))) return
+      const t = tournaments.get(tournamentId)
+      if (!t) return
+      const round = t.rounds[t.currentRound - 1]
+      const match = round?.matches.find(m => m.id === matchId)
+      if (!match || match.status !== 'in-progress') return
+
+      match._playerRounds = match._playerRounds || {}
+      match._playerCurrentQ = match._playerCurrentQ || {}
+
+      const userId = user.id
+      const playerRound = match._playerRounds[userId] || 0
+
+      // Generate bonus question without advancing round counter
+      const q = genTournamentQ(t.gameKey || 'katak')
+      match._playerCurrentQ[userId] = q
+      const { answer, ...qForClient } = q
+      socket.emit('tournament:question', {
+        question:        qForClient,
+        round:           playerRound,   // same round — immunity bonus
+        maxRounds:       7,             // TOURNAMENT_MAX_ROUNDS
+        scores:          match.scores,
+        isImmunityBonus: true,
+      })
     })
 
     // Siswa: kirim posisi slider ke guru spectator

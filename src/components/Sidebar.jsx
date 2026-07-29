@@ -119,7 +119,7 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
   }
 
   return (
-    <div style={{
+    <div className="tomat-sidebar" style={{
       position: 'fixed', top: 0, left: 0,
       width: 220, height: '100vh',
       background: '#111318',

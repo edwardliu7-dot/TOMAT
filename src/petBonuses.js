@@ -19,12 +19,25 @@ export const PET_BONUS_DISPLAY = {
   pet_monyong_raja:   { label: '+30% Koin & EXP',    icon: '✨',  color: '#D4AF37', desc: '+30% koin dan EXP dari setiap jawaban benar.' },            // langka
   pet_monyong_kosmik: { label: '+50% Koin & EXP',    icon: '✨',  color: '#C084FC', desc: '+50% koin dan EXP dari setiap jawaban benar!' },            // epic
 
-  // ── Nananaga — stamina booster (epic → epic → epic) ───────────────────────
-  pet_nananaga:       { label: 'Stamina +25%',       icon: '🍖',  color: '#FB923C', desc: 'Makanan bertahan 25% lebih lama setiap kali diberi makan.' },  // epic
-  pet_nananaga_merah: { label: 'Stamina +50%',       icon: '🍖',  color: '#F87171', desc: 'Makanan bertahan 50% lebih lama setiap kali diberi makan.' }, // epic
-  pet_nananaga_es:    { label: 'Stamina ×2',         icon: '🍖',  color: '#7DD3FC', desc: 'Makanan bertahan 2× lebih lama — Nananaga Es tidak pernah lapar!' }, // epic
+  // ── Nananaga — wrong-answer immunity (epic → epic → epic) ─────────────────
+  pet_nananaga:       { label: '🛡️ Kebal Salah ×1',  icon: '🛡️',  color: '#FB923C', desc: 'Saat duel, turnamen, atau survival: 1 jawaban salah tidak dihitung — mendapat soal tambahan.' },  // epic
+  pet_nananaga_merah: { label: '🛡️ Kebal Salah ×2',  icon: '🛡️',  color: '#F87171', desc: 'Saat duel, turnamen, atau survival: 2 jawaban salah tidak dihitung — mendapat soal tambahan.' }, // epic
+  pet_nananaga_es:    { label: '🛡️ Kebal Salah ×3',  icon: '🛡️',  color: '#7DD3FC', desc: 'Saat duel, turnamen, atau survival: 3 jawaban salah tidak dihitung — mendapat soal tambahan!' }, // epic
 }
 
 export function getPetBonusDisplay(skinId) {
   return PET_BONUS_DISPLAY[skinId] || PET_BONUS_DISPLAY.golden
+}
+
+// ── Wrong-immunity helpers ─────────────────────────────────────────────────────
+// Maps skinId → number of wrong-answer immunity tokens for duel/tournament/survival.
+// Mirrors server/pet-bonuses.js wrongImmunity values — kept in sync manually.
+const WRONG_IMMUNITY_MAP = {
+  pet_nananaga:       1,
+  pet_nananaga_merah: 2,
+  pet_nananaga_es:    3,
+}
+
+export function getWrongImmunity(skinId) {
+  return WRONG_IMMUNITY_MAP[skinId] ?? 0
 }

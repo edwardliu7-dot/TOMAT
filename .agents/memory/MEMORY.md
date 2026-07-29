@@ -27,3 +27,4 @@
 - [TOMAT pet HP pooling](tomat-pet-hp-pooling.md) — hunger_map keys by pet type (tomi/kelinsay/monyang/nananaga) not skinId; golden equip is a special-cased built-in skin.
 - [TOMAT pet bonuses](tomat-pet-bonuses.md) — server/pet-bonuses.js defines coinMult/expMult/hungerMult per skin; applied post-cap in /player/gain and /pet/feed; src/petBonuses.js mirrors for UI.
 - [TOMAT What's New modal](tomat-whats-new.md) — WhatsNewModal shown once per APP_VERSION via localStorage key; src/version.js is the single version source; bump both version.js and build.gradle together.
+- [TOMAT Nananaga immunity](tomat-nananaga-immunity.md) — Nananaga skins have wrongImmunity:1/2/3 replacing hungerMult; immunity fires via 'nananaga-shield' CustomEvent on window; NananagaShieldToast in App.jsx; useSurvival reads useAuth+useTask internally so zero game files needed; duel/tournament emit duel:use-immunity / tournament:use-immunity for server bonus question.

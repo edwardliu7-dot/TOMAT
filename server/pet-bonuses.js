@@ -25,10 +25,12 @@ export const PET_BONUSES = {
   pet_monyong_raja:   { coinMult: 1.30, expMult: 1.30, hungerMult: 1.00 }, // langka (was 1.20)
   pet_monyong_kosmik: { coinMult: 1.50, expMult: 1.50, hungerMult: 1.00 }, // epic   (was 1.35)
 
-  // ── Nananaga — stamina booster (makanan lebih awet) ─────────────────────────
-  pet_nananaga:       { coinMult: 1.00, expMult: 1.00, hungerMult: 1.25 }, // epic
-  pet_nananaga_merah: { coinMult: 1.00, expMult: 1.00, hungerMult: 1.50 }, // epic
-  pet_nananaga_es:    { coinMult: 1.00, expMult: 1.00, hungerMult: 2.00 }, // epic
+  // ── Nananaga — wrong-answer immunity (duel/turnamen/survival) ──────────────
+  // wrongImmunity: jumlah token kebal jawaban salah per sesi (duel/tournamen/survival)
+  // Hanya berlaku saat mode duel, turnamen, survival — TIDAK berlaku saat tugas guru aktif
+  pet_nananaga:       { coinMult: 1.00, expMult: 1.00, hungerMult: 1.00, wrongImmunity: 1 }, // epic
+  pet_nananaga_merah: { coinMult: 1.00, expMult: 1.00, hungerMult: 1.00, wrongImmunity: 2 }, // epic
+  pet_nananaga_es:    { coinMult: 1.00, expMult: 1.00, hungerMult: 1.00, wrongImmunity: 3 }, // epic
 }
 
 export function getPetBonus(skinId) {

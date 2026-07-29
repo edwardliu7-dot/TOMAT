@@ -109,19 +109,19 @@ export const PET_SKIN_INFO = {
   },
   pet_nananaga: {
     nama: 'Nananaga', tier: 'EPIC', tierColor: '#FB923C',
-    desc: 'Makhluk mitologis purba penjaga Negeri TOMAT. Matanya menyala, sayapnya menggelegar.',
+    desc: 'Makhluk mitologis purba penjaga Negeri TOMAT. Matanya menyala, sayapnya menggelegar. Memberikan 1× kebal jawaban salah saat duel, turnamen, atau survival.',
     story: 'Makhluk mitologis purba yang telah menjaga Negeri TOMAT selama ribuan tahun. Kehadirannya membawa kewibawaan dan aura mistis yang luar biasa.',
     glow: 'rgba(251,146,60,0.65)', rarity: 'epic',
   },
   pet_nananaga_merah: {
     nama: 'Nananaga Api', tier: 'EPIC', tierColor: '#F87171',
-    desc: 'Naga api merah menyala. Sisiknya membara, napasnya meninggalkan jejak bara.',
+    desc: 'Naga api merah menyala. Sisiknya membara, napasnya meninggalkan jejak bara. Memberikan 2× kebal jawaban salah saat duel, turnamen, atau survival.',
     story: 'Terlahir kembali dari lahar panas inti bumi Negeri TOMAT. Kobaran api di tubuhnya akan membakar habis siapa saja yang berani mengusik kedamaian!',
     glow: 'rgba(239,68,68,0.60)', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga', rarity: 'epic',
   },
   pet_nananaga_es: {
     nama: 'Nananaga Es', tier: 'EPIC', tierColor: '#7DD3FC',
-    desc: 'Penguasa puncak gunung tertinggi berselimut salju abadi.',
+    desc: 'Penguasa puncak gunung tertinggi berselimut salju abadi. Memberikan 3× kebal jawaban salah saat duel, turnamen, atau survival!',
     story: 'Penguasa puncak gunung tertinggi yang diselimuti salju abadi. Hembusan napas es milik Nananaga mampu membekukan ancaman dalam sekejap.',
     glow: 'rgba(56,189,248,0.60)', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga', rarity: 'epic',
   },
