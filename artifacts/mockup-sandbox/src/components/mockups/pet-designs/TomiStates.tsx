@@ -1,336 +1,539 @@
-import React, { useState } from "react";
+import React from "react";
 
-const STATES = [
-  { id: "idle",     label: "Idle",     emoji: "😌", desc: "Santai, melayang pelan" },
-  { id: "walk",     label: "Walk",     emoji: "🚶", desc: "Jalan kiri-kanan" },
-  { id: "happy",    label: "Happy",    emoji: "🎉", desc: "Lompat girang" },
-  { id: "hungry",   label: "Hungry",   emoji: "🍖", desc: "Gemetar lapar" },
-  { id: "sleeping", label: "Sleeping", emoji: "💤", desc: "Napas tertidur" },
-  { id: "dead",     label: "Dead",     emoji: "💀", desc: "Greyscale, goyang lemah" },
-] as const;
+/* ─────────────────────────────────────────────────────────────────────────────
+   TomiStates — 6-state canvas mockup
+   Setiap bagian (telinga, mata, tangan/paw, kaki, badan) animasi independen
+   viewBox 100 × 120, semua koordinat dalam space itu
+───────────────────────────────────────────────────────────────────────────── */
 
-type StateId = typeof STATES[number]["id"];
+type TState = "idle" | "walk" | "happy" | "hungry" | "sleeping" | "dead";
 
-const STATE_COLORS: Record<StateId, { accent: string; bg: string; glow: string }> = {
-  idle:     { accent: "#67E8F9", bg: "rgba(103,232,249,0.08)", glow: "rgba(103,232,249,0.25)" },
-  walk:     { accent: "#34D399", bg: "rgba(52,211,153,0.08)",  glow: "rgba(52,211,153,0.25)"  },
-  happy:    { accent: "#FBBF24", bg: "rgba(251,191,36,0.10)",  glow: "rgba(251,191,36,0.30)"  },
-  hungry:   { accent: "#F87171", bg: "rgba(248,113,113,0.08)", glow: "rgba(248,113,113,0.25)" },
-  sleeping: { accent: "#A78BFA", bg: "rgba(167,139,250,0.08)", glow: "rgba(167,139,250,0.25)" },
-  dead:     { accent: "#6B7280", bg: "rgba(107,114,128,0.08)", glow: "rgba(107,114,128,0.20)" },
+const STATE_META: Record<TState, { label: string; emoji: string; accent: string; bg: string }> = {
+  idle:     { label: "Idle",     emoji: "😌", accent: "#67E8F9", bg: "rgba(103,232,249,0.08)" },
+  walk:     { label: "Walk",     emoji: "🚶", accent: "#34D399", bg: "rgba(52,211,153,0.08)"  },
+  happy:    { label: "Happy",    emoji: "🎉", accent: "#FBBF24", bg: "rgba(251,191,36,0.10)"  },
+  hungry:   { label: "Hungry",   emoji: "🍖", accent: "#F87171", bg: "rgba(248,113,113,0.08)" },
+  sleeping: { label: "Sleeping", emoji: "💤", accent: "#A78BFA", bg: "rgba(167,139,250,0.08)" },
+  dead:     { label: "Dead",     emoji: "💀", accent: "#6B7280", bg: "rgba(107,114,128,0.08)" },
 };
 
-const CSS = `
-  @keyframes tomi-idle {
-    0%,100% { transform: translateY(0px) rotate(0deg); }
-    30%      { transform: translateY(-7px) rotate(-1.5deg); }
-    70%      { transform: translateY(-4px) rotate(1deg); }
-  }
-  @keyframes tomi-walk {
-    0%   { transform: translateX(0px)  rotate(0deg)  scaleX(1); }
-    20%  { transform: translateX(6px)  rotate(3deg)  scaleX(1.04); }
-    50%  { transform: translateX(0px)  rotate(0deg)  scaleX(1); }
-    70%  { transform: translateX(-6px) rotate(-3deg) scaleX(1.04); }
-    100% { transform: translateX(0px)  rotate(0deg)  scaleX(1); }
-  }
-  @keyframes tomi-happy {
-    0%   { transform: scale(1)    rotate(0deg)   translateY(0px); }
-    20%  { transform: scale(1.15) rotate(-8deg)  translateY(-12px); }
-    40%  { transform: scale(1)    rotate(6deg)   translateY(0px); }
-    60%  { transform: scale(1.10) rotate(-5deg)  translateY(-8px); }
-    80%  { transform: scale(1)    rotate(3deg)   translateY(0px); }
-    100% { transform: scale(1)    rotate(0deg)   translateY(0px); }
-  }
-  @keyframes tomi-hungry {
-    0%,100% { transform: translateX(0px) translateY(0px) rotate(0deg); }
-    20%     { transform: translateX(-3px) translateY(2px) rotate(-2deg); }
-    40%     { transform: translateX(3px)  translateY(1px) rotate(2deg); }
-    60%     { transform: translateX(-2px) translateY(2px) rotate(-1deg); }
-    80%     { transform: translateX(2px)  translateY(1px) rotate(1deg); }
-  }
-  @keyframes tomi-sleeping {
-    0%,100% { transform: translateY(0px) rotate(-3deg); }
-    50%     { transform: translateY(-5px) rotate(3deg); }
-  }
-  @keyframes tomi-dead {
-    0%,100% { transform: rotate(-5deg) translateY(0px); }
-    50%     { transform: rotate(5deg) translateY(2px); }
-  }
-  @keyframes z-float-1 {
-    0%   { opacity: 0;   transform: translate(0px, 0px) scale(0.6); }
-    30%  { opacity: 1;   transform: translate(4px, -10px) scale(1); }
-    100% { opacity: 0;   transform: translate(8px, -28px) scale(0.8); }
-  }
-  @keyframes z-float-2 {
-    0%   { opacity: 0;   transform: translate(0px, 0px) scale(0.5); }
-    30%  { opacity: 1;   transform: translate(6px, -14px) scale(1); }
-    100% { opacity: 0;   transform: translate(12px, -36px) scale(0.7); }
-  }
-  @keyframes z-float-3 {
-    0%   { opacity: 0;   transform: translate(0px, 0px) scale(0.4); }
-    30%  { opacity: 1;   transform: translate(8px, -18px) scale(1); }
-    100% { opacity: 0;   transform: translate(16px, -46px) scale(0.6); }
-  }
-  @keyframes shadow-pulse {
-    0%,100% { transform: translateX(-50%) scaleX(1); opacity: 0.25; }
-    50%     { transform: translateX(-50%) scaleX(0.7); opacity: 0.12; }
-  }
-  @keyframes hungry-pulse {
-    0%,100% { transform: translateX(-50%) scale(1);    opacity: 0; }
-    20%     { transform: translateX(-50%) scale(1.1);  opacity: 1; }
-    80%     { transform: translateX(-50%) scale(1.3);  opacity: 0; }
-  }
-  @keyframes card-glow-pulse {
-    0%,100% { opacity: 0.6; }
-    50%     { opacity: 1; }
-  }
-  @keyframes eyex-appear {
-    0%   { opacity: 0; transform: scale(0.5); }
-    100% { opacity: 1; transform: scale(1); }
-  }
-`;
+/* ── colour palette (matches tomi.svg warm-cream tones) ── */
+const FUR     = "#F0A830";
+const FUR_LT  = "#F7C860";
+const FUR_DK  = "#C47A0A";
+const BELLY   = "#FFF5D0";
+const EAR_IN  = "#F5A0B8";
+const OUTLINE = "#7A4800";
+const NOSE    = "#E07090";
+const WHISKER = "#9A5A00";
 
-const ANIM: Record<StateId, string> = {
-  idle:     "tomi-idle 2.4s ease-in-out infinite",
-  walk:     "tomi-walk 0.85s ease-in-out infinite",
-  happy:    "tomi-happy 0.9s ease-in-out infinite",
-  hungry:   "tomi-hungry 1.2s ease-in-out infinite",
-  sleeping: "tomi-sleeping 3.2s ease-in-out infinite",
-  dead:     "tomi-dead 4s ease-in-out infinite",
-};
+/* ══════════════════════════════════════════════════════════════════════════
+   Per-state keyframes — prefixed with state name so 6 can run side-by-side
+═══════════════════════════════════════════════════════════════════════════ */
+function makeCSS(s: TState) {
+  const p = s; // prefix
+  switch (s) {
+    case "idle": return `
+      @keyframes ${p}-body { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-5px)} }
+      @keyframes ${p}-ear-l { 0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(4deg)} }
+      @keyframes ${p}-ear-r { 0%,100%{transform:rotate(4deg)} 50%{transform:rotate(-4deg)} }
+      @keyframes ${p}-paw-l { 0%,100%{transform:translateY(0px) rotate(-3deg)} 50%{transform:translateY(-2px) rotate(3deg)} }
+      @keyframes ${p}-paw-r { 0%,100%{transform:translateY(0px) rotate(3deg)} 50%{transform:translateY(-2px) rotate(-3deg)} }
+      @keyframes ${p}-foot  { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-2px)} }
+      @keyframes ${p}-blink {
+        0%,88%,96%,100%{transform:scaleY(1)} 90%,94%{transform:scaleY(0.05)}
+      }
+    `;
+    case "walk": return `
+      @keyframes ${p}-body { 0%,100%{transform:rotate(0deg) translateY(0)} 25%{transform:rotate(3deg) translateY(-2px)} 75%{transform:rotate(-3deg) translateY(-2px)} }
+      @keyframes ${p}-ear-l { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(5deg)} }
+      @keyframes ${p}-ear-r { 0%,100%{transform:rotate(8deg)} 50%{transform:rotate(-5deg)} }
+      @keyframes ${p}-paw-l { 0%,50%,100%{transform:translateY(0px) rotate(-10deg)} 25%{transform:translateY(-8px) rotate(5deg)} }
+      @keyframes ${p}-paw-r { 0%,50%,100%{transform:translateY(0px) rotate(10deg)} 75%{transform:translateY(-8px) rotate(-5deg)} }
+      @keyframes ${p}-foot-l{ 0%,50%,100%{transform:translateY(0px)} 25%{transform:translateY(-6px)} }
+      @keyframes ${p}-foot-r{ 0%,50%,100%{transform:translateY(0px)} 75%{transform:translateY(-6px)} }
+    `;
+    case "happy": return `
+      @keyframes ${p}-body { 0%,100%{transform:translateY(0px) scale(1)} 30%{transform:translateY(-12px) scale(1.06)} 60%{transform:translateY(-4px) scale(1.02)} }
+      @keyframes ${p}-ear-l { 0%,100%{transform:rotate(-18deg) translateY(-2px)} 50%{transform:rotate(-10deg) translateY(-5px)} }
+      @keyframes ${p}-ear-r { 0%,100%{transform:rotate(18deg) translateY(-2px)} 50%{transform:rotate(10deg) translateY(-5px)} }
+      @keyframes ${p}-paw-l { 0%,100%{transform:translateY(0px) rotate(-20deg)} 40%{transform:translateY(-14px) rotate(-40deg)} 70%{transform:translateY(-8px) rotate(-25deg)} }
+      @keyframes ${p}-paw-r { 0%,100%{transform:translateY(0px) rotate(20deg)} 40%{transform:translateY(-14px) rotate(40deg)} 70%{transform:translateY(-8px) rotate(25deg)} }
+      @keyframes ${p}-foot  { 0%,100%{transform:translateY(0px)} 30%{transform:translateY(-8px)} }
+      @keyframes ${p}-star  { 0%{opacity:0;transform:scale(0) rotate(0deg)} 40%{opacity:1;transform:scale(1.2) rotate(20deg)} 100%{opacity:0;transform:scale(0.6) rotate(40deg) translateY(-18px)} }
+    `;
+    case "hungry": return `
+      @keyframes ${p}-body { 0%,100%{transform:translateY(0px) rotate(0deg)} 30%{transform:translateY(3px) rotate(-1.5deg)} 70%{transform:translateY(2px) rotate(1deg)} }
+      @keyframes ${p}-ear-l { 0%,100%{transform:rotate(35deg) translateY(4px)} 50%{transform:rotate(38deg) translateY(5px)} }
+      @keyframes ${p}-ear-r { 0%,100%{transform:rotate(-35deg) translateY(4px)} 50%{transform:rotate(-38deg) translateY(5px)} }
+      @keyframes ${p}-paw-l { 0%,100%{transform:translateY(4px) rotate(8deg)} 50%{transform:translateY(6px) rotate(10deg)} }
+      @keyframes ${p}-paw-r { 0%,100%{transform:translateY(4px) rotate(-8deg)} 50%{transform:translateY(6px) rotate(-10deg)} }
+      @keyframes ${p}-foot  { 0%,100%{transform:translateY(3px)} 50%{transform:translateY(4px)} }
+      @keyframes ${p}-shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-2px)} 40%{transform:translateX(2px)} 60%{transform:translateX(-1.5px)} 80%{transform:translateX(1.5px)} }
+      @keyframes ${p}-tear  { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(10px);opacity:0} }
+      @keyframes ${p}-rumble{ 0%,100%{transform:translateY(0) scaleX(1)} 50%{transform:translateY(1px) scaleX(1.04)} }
+    `;
+    case "sleeping": return `
+      @keyframes ${p}-body  { 0%,100%{transform:scaleX(1) scaleY(1)} 50%{transform:scaleX(1.04) scaleY(0.97)} }
+      @keyframes ${p}-ear-l { 0%,100%{transform:rotate(12deg)} 50%{transform:rotate(15deg)} }
+      @keyframes ${p}-ear-r { 0%,100%{transform:rotate(-12deg)} 50%{transform:rotate(-15deg)} }
+      @keyframes ${p}-paw-l { 0%,100%{transform:translateY(2px) rotate(5deg)} }
+      @keyframes ${p}-paw-r { 0%,100%{transform:translateY(2px) rotate(-5deg)} }
+      @keyframes ${p}-foot  { 0%,100%{transform:translateY(2px)} }
+      @keyframes ${p}-z1    { 0%{opacity:0;transform:translate(0,0) scale(0.5)} 30%{opacity:1;transform:translate(3px,-8px) scale(0.9)} 100%{opacity:0;transform:translate(7px,-22px) scale(0.5)} }
+      @keyframes ${p}-z2    { 0%{opacity:0;transform:translate(0,0) scale(0.4)} 30%{opacity:1;transform:translate(5px,-12px) scale(1)} 100%{opacity:0;transform:translate(11px,-30px) scale(0.6)} }
+      @keyframes ${p}-z3    { 0%{opacity:0;transform:translate(0,0) scale(0.3)} 30%{opacity:1;transform:translate(7px,-16px) scale(1.1)} 100%{opacity:0;transform:translate(15px,-40px) scale(0.4)} }
+    `;
+    case "dead": return `
+      @keyframes ${p}-body  { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(-6deg)} }
+      @keyframes ${p}-ear-l { 0%,100%{transform:rotate(55deg) translateY(8px)} }
+      @keyframes ${p}-ear-r { 0%,100%{transform:rotate(-55deg) translateY(8px)} }
+      @keyframes ${p}-paw-l { 0%,100%{transform:translateY(-10px) rotate(-50deg)} 50%{transform:translateY(-8px) rotate(-48deg)} }
+      @keyframes ${p}-paw-r { 0%,100%{transform:translateY(-10px) rotate(50deg)} 50%{transform:translateY(-8px) rotate(48deg)} }
+      @keyframes ${p}-foot  { 0%,100%{transform:translateY(-4px) rotate(-5deg)} }
+      @keyframes ${p}-star  { 0%,100%{transform:rotate(0deg) translate(0,0)} 50%{transform:rotate(180deg) translate(2px,-1px)} }
+    `;
+  }
+}
 
-function StateCard({ id, label, emoji, desc, active, onClick }: {
-  id: StateId; label: string; emoji: string; desc: string;
-  active: boolean; onClick: () => void;
-}) {
-  const c = STATE_COLORS[id];
-  const isDead = id === "dead";
-  const isSleeping = id === "sleeping";
-  const isHungry = id === "hungry";
-  const isHappy = id === "happy";
-
+/* ══════════════════════════════════════════════════════════════════════════
+   Eye renderers
+═══════════════════════════════════════════════════════════════════════════ */
+function EyeNormal({ cx, cy, r, uid, blink }: { cx: number; cy: number; r: number; uid: string; blink?: boolean }) {
   return (
-    <div
-      onClick={onClick}
-      style={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 0,
-        padding: "20px 12px 16px",
-        borderRadius: 20,
-        background: active ? c.bg : "rgba(255,255,255,0.03)",
-        border: `1.5px solid ${active ? c.accent : "rgba(255,255,255,0.07)"}`,
-        cursor: "pointer",
-        transition: "all 0.22s ease",
-        boxShadow: active
-          ? `0 0 32px ${c.glow}, inset 0 0 24px ${c.bg}`
-          : "none",
-        minWidth: 160,
-        flex: 1,
-        userSelect: "none",
-      }}
+    <g style={blink ? { transformBox: "fill-box", transformOrigin: "center", animation: `idle-blink 4s ease-in-out infinite` } : {}}>
+      <circle cx={cx} cy={cy} r={r} fill="white" />
+      <circle cx={cx} cy={cy + 0.6} r={r - 1.4} fill="#190900" />
+      <circle cx={cx - 1.2} cy={cy - 1.2} r={1.5} fill="white" opacity={0.95} />
+      <circle cx={cx + 0.8} cy={cy + 1}   r={0.7} fill="white" opacity={0.5} />
+    </g>
+  );
+}
+
+function EyeHappy({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  // ^w^ crescent — arc closing from below
+  return (
+    <g>
+      <path
+        d={`M ${cx - r + 0.5} ${cy + 1} Q ${cx} ${cy - r - 1} ${cx + r - 0.5} ${cy + 1}`}
+        stroke="#190900" strokeWidth="2.8" fill="none" strokeLinecap="round"
+      />
+    </g>
+  );
+}
+
+function EyeSad({ cx, cy, r, side }: { cx: number; cy: number; r: number; side: "L" | "R" }) {
+  const browDx = side === "L" ? 1.5 : -1.5; // inner brow raised toward nose
+  return (
+    <g>
+      <circle cx={cx} cy={cy + 1} r={r - 0.5} fill="white" />
+      <circle cx={cx} cy={cy + 2} r={r - 2}   fill="#190900" />
+      <circle cx={cx - 1} cy={cy} r={1.2} fill="white" opacity={0.9} />
+      {/* angled sad brow */}
+      <path
+        d={`M ${cx - r + 1} ${cy - r - 2 + (side === "L" ? 2 : 0)} Q ${cx} ${cy - r - 4} ${cx + r - 1} ${cy - r - 2 + (side === "R" ? 2 : 0)}`}
+        stroke={OUTLINE} strokeWidth="1.8" fill="none" strokeLinecap="round" opacity={0.75}
+      />
+      {/* tiny teardrop — animated separately */}
+      <ellipse cx={cx + (side === "L" ? 2 : -2)} cy={cy + r + 1} rx={1.2} ry={1.6}
+        fill="#67CAEE" opacity={0.85}
+        style={{ animation: `hungry-tear 2.4s ease-in infinite` }} />
+    </g>
+  );
+}
+
+function EyeSleeping({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  return (
+    <path
+      d={`M ${cx - r} ${cy} Q ${cx} ${cy - r * 0.85} ${cx + r} ${cy}`}
+      stroke={OUTLINE} strokeWidth="2.6" fill="none" strokeLinecap="round"
+    />
+  );
+}
+
+function EyeDead({ cx, cy, r }: { cx: number; cy: number; r: number }) {
+  const d = r * 0.75;
+  return (
+    <g>
+      <line x1={cx - d} y1={cy - d} x2={cx + d} y2={cy + d} stroke={OUTLINE} strokeWidth="2.4" strokeLinecap="round" />
+      <line x1={cx + d} y1={cy - d} x2={cx - d} y2={cy + d} stroke={OUTLINE} strokeWidth="2.4" strokeLinecap="round" />
+    </g>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Mouth renderers
+═══════════════════════════════════════════════════════════════════════════ */
+function Mouth({ type }: { type: "neutral" | "smile" | "grin" | "frown" | "o" }) {
+  const cx = 50, cy = 68;
+  if (type === "grin")
+    return (
+      <g>
+        <path d={`M 41 ${cy - 1} Q 50 ${cy + 9} 59 ${cy - 1}`} fill="#D97070" stroke="#A03040" strokeWidth="1.4" strokeLinecap="round" />
+        <line x1={50} y1={cy - 1} x2={50} y2={cy + 6} stroke="#B04050" strokeWidth="1.2" opacity={0.6} />
+      </g>
+    );
+  if (type === "smile")
+    return <path d={`M 43 ${cy} Q 50 ${cy + 6} 57 ${cy}`} stroke="#904040" strokeWidth="1.8" fill="none" strokeLinecap="round" />;
+  if (type === "frown")
+    return <path d={`M 43 ${cy + 4} Q 50 ${cy - 1} 57 ${cy + 4}`} stroke="#904040" strokeWidth="1.8" fill="none" strokeLinecap="round" />;
+  if (type === "o")
+    return <ellipse cx={50} cy={cy + 2} rx={3.5} ry={2.8} fill="#904040" />;
+  // neutral
+  return <path d={`M 44 ${cy + 1} Q 50 ${cy + 5} 56 ${cy + 1}`} stroke="#904040" strokeWidth="1.6" fill="none" strokeLinecap="round" />;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Full Tomi figure — one SVG per state
+═══════════════════════════════════════════════════════════════════════════ */
+function TomiFigure({ state }: { state: TState }) {
+  const p = state;
+  const isDead     = state === "dead";
+  const isHappy    = state === "happy";
+  const isSleeping = state === "sleeping";
+  const isHungry   = state === "hungry";
+  const isWalk     = state === "walk";
+
+  // Durations
+  const bodyDur    = { idle: "2.6s", walk: "0.72s", happy: "0.85s", hungry: "3s", sleeping: "3.4s", dead: "5s" }[state];
+  const earDur     = { idle: "2.6s", walk: "0.72s", happy: "0.85s", hungry: "3s", sleeping: "3.4s", dead: "6s" }[state];
+  const pawDur     = { idle: "2.6s", walk: "0.72s", happy: "0.85s", hungry: "3s", sleeping: "3.4s", dead: "6s" }[state];
+  const footDur    = { idle: "2.6s", walk: "0.72s", happy: "0.85s", hungry: "3s", sleeping: "3.4s", dead: "6s" }[state];
+
+  const bodyAnim   = `${p}-body ${bodyDur} ease-in-out infinite`;
+  const earLAnim   = `${p}-ear-l ${earDur} ease-in-out infinite`;
+  const earRAnim   = `${p}-ear-r ${earDur} ease-in-out infinite`;
+  const pawLAnim   = `${p}-paw-l ${pawDur} ease-in-out infinite`;
+  const pawRAnim   = `${p}-paw-r ${pawDur} ease-in-out infinite`;
+  const footLAnim  = isWalk ? `${p}-foot-l ${footDur} ease-in-out infinite` : `${p}-foot ${footDur} ease-in-out infinite`;
+  const footRAnim  = isWalk ? `${p}-foot-r ${footDur} ease-in-out 0.36s infinite` : `${p}-foot ${footDur} ease-in-out 0.4s infinite`;
+
+  const filter = isDead ? "saturate(0) brightness(0.55)" : isHungry ? "saturate(0.7) brightness(0.88)" : "none";
+
+  // Ear transform-origin: left ear rotates from base at (30,38), right from (70,38)
+  return (
+    <svg
+      viewBox="0 0 100 120"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ overflow: "visible", display: "block", filter }}
     >
-      {/* Glow blob behind pet */}
-      {active && (
-        <div style={{
-          position: "absolute",
-          top: "30%", left: "50%",
-          transform: "translateX(-50%)",
-          width: 120, height: 120,
-          borderRadius: "50%",
-          background: c.glow,
-          filter: "blur(40px)",
-          pointerEvents: "none",
-          animation: "card-glow-pulse 2s ease-in-out infinite",
-        }} />
-      )}
+      <defs>
+        <radialGradient id={`hg-${p}`} cx="38%" cy="30%" r="65%">
+          <stop offset="0%"   stopColor={FUR_LT} />
+          <stop offset="55%"  stopColor={FUR} />
+          <stop offset="100%" stopColor={FUR_DK} />
+        </radialGradient>
+        <radialGradient id={`bg-${p}`} cx="42%" cy="36%" r="62%">
+          <stop offset="0%"   stopColor={FUR_LT} />
+          <stop offset="60%"  stopColor={FUR} />
+          <stop offset="100%" stopColor={FUR_DK} />
+        </radialGradient>
+        <radialGradient id={`belly-${p}`} cx="50%" cy="45%" r="55%">
+          <stop offset="0%"   stopColor="#fffde8" />
+          <stop offset="100%" stopColor={BELLY} />
+        </radialGradient>
+        <filter id={`shadow-${p}`}>
+          <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#000" floodOpacity="0.28" />
+        </filter>
+      </defs>
 
-      {/* Pet container */}
-      <div style={{ position: "relative", width: 120, height: 140, marginBottom: 6 }}>
+      {/* ── Whole-body wrapper (body bounce / sway) ── */}
+      <g style={{
+        transformBox: "fill-box", transformOrigin: "50% 90%",
+        animation: bodyAnim,
+      }}>
 
-        {/* Shadow */}
-        <div style={{
-          position: "absolute",
-          bottom: 4, left: "50%",
-          width: 70, height: 14,
-          borderRadius: "50%",
-          background: "rgba(0,0,0,0.35)",
-          filter: "blur(5px)",
-          animation: "shadow-pulse 2.4s ease-in-out infinite",
-          transformOrigin: "center",
-        }} />
+        {/* ── LEFT EAR ── pivot at base bottom-center of ear */}
+        <g style={{
+          transformBox: "fill-box", transformOrigin: "30px 40px",
+          animation: earLAnim,
+        }}>
+          <ellipse cx="30" cy="22" rx="11" ry="14" fill={`url(#hg-${p})`} stroke={OUTLINE} strokeWidth="1.4" />
+          <ellipse cx="30" cy="23" rx="6"  ry="8.5" fill={FUR_DK} opacity="0.45" />
+          <ellipse cx="30" cy="22" rx="3.5" ry="5.5" fill={EAR_IN} opacity="0.65" />
+        </g>
 
-        {/* Sleeping Z bubbles */}
-        {isSleeping && active && (
-          <div style={{ position: "absolute", top: 0, right: 8, pointerEvents: "none" }}>
-            <span style={{ position: "absolute", top: 28, right: 0, fontSize: 13, fontWeight: 900, color: "#A78BFA", animation: "z-float-1 2.4s ease-in-out infinite" }}>z</span>
-            <span style={{ position: "absolute", top: 14, right: 6, fontSize: 17, fontWeight: 900, color: "#A78BFA", animation: "z-float-2 2.4s ease-in-out 0.7s infinite" }}>z</span>
-            <span style={{ position: "absolute", top: 0, right: 14, fontSize: 22, fontWeight: 900, color: "#A78BFA", animation: "z-float-3 2.4s ease-in-out 1.4s infinite" }}>Z</span>
-          </div>
-        )}
+        {/* ── RIGHT EAR ── pivot at base bottom-center of ear */}
+        <g style={{
+          transformBox: "fill-box", transformOrigin: "70px 40px",
+          animation: earRAnim,
+        }}>
+          <ellipse cx="70" cy="22" rx="11" ry="14" fill={`url(#hg-${p})`} stroke={OUTLINE} strokeWidth="1.4" />
+          <ellipse cx="70" cy="23" rx="6"  ry="8.5" fill={FUR_DK} opacity="0.45" />
+          <ellipse cx="70" cy="22" rx="3.5" ry="5.5" fill={EAR_IN} opacity="0.65" />
+        </g>
 
-        {/* Hungry indicator */}
-        {isHungry && active && (
-          <div style={{
-            position: "absolute",
-            top: -4, left: "50%",
-            fontSize: 16,
-            animation: "hungry-pulse 1.8s ease-in-out infinite",
-            pointerEvents: "none",
-          }}>🍖</div>
-        )}
+        {/* ── BODY ── */}
+        <g style={{ transformBox: "fill-box", transformOrigin: "50px 92px",
+                    animation: isHungry ? `hungry-rumble 1.2s ease-in-out infinite` : undefined }}>
+          <ellipse cx="50" cy="92" rx="30" ry="22" fill={`url(#bg-${p})`} stroke={OUTLINE} strokeWidth="1.5" filter={`url(#shadow-${p})`} />
+          <ellipse cx="50" cy="94" rx="17" ry="13" fill={`url(#belly-${p})`} />
+          {/* rosette spots on body */}
+          <circle cx="36" cy="88" r="4.5" fill="none" stroke={FUR_DK} strokeWidth="1.1" opacity="0.4" />
+          <circle cx="36" cy="88" r="1.5" fill={FUR_DK} opacity="0.3" />
+          <circle cx="64" cy="95" r="4"   fill="none" stroke={FUR_DK} strokeWidth="1.1" opacity="0.35" />
+          <circle cx="64" cy="95" r="1.4" fill={FUR_DK} opacity="0.28" />
+        </g>
 
-        {/* Happy sparkles */}
-        {isHappy && active && (
+        {/* ── LEFT PAW ── pivot at shoulder */}
+        <g style={{
+          transformBox: "fill-box", transformOrigin: "26px 84px",
+          animation: pawLAnim,
+        }}>
+          <ellipse cx="24" cy="90" rx="8.5" ry="6" fill={FUR} stroke={OUTLINE} strokeWidth="1.2" />
+          <ellipse cx="24" cy="93" rx="8"   ry="3.5" fill={FUR_DK} opacity="0.5" />
+          {[-3,0,3].map((dx, i) => (
+            <circle key={i} cx={24 + dx} cy="95.5" r="1.4" fill={OUTLINE} opacity="0.55" />
+          ))}
+        </g>
+
+        {/* ── RIGHT PAW ── pivot at shoulder */}
+        <g style={{
+          transformBox: "fill-box", transformOrigin: "74px 84px",
+          animation: pawRAnim,
+        }}>
+          <ellipse cx="76" cy="90" rx="8.5" ry="6" fill={FUR} stroke={OUTLINE} strokeWidth="1.2" />
+          <ellipse cx="76" cy="93" rx="8"   ry="3.5" fill={FUR_DK} opacity="0.5" />
+          {[-3,0,3].map((dx, i) => (
+            <circle key={i} cx={76 + dx} cy="95.5" r="1.4" fill={OUTLINE} opacity="0.55" />
+          ))}
+        </g>
+
+        {/* ── LEFT FOOT ── */}
+        <g style={{
+          transformBox: "fill-box", transformOrigin: "35px 108px",
+          animation: footLAnim,
+        }}>
+          <ellipse cx="35" cy="108" rx="9"  ry="5.5" fill={FUR} stroke={OUTLINE} strokeWidth="1.1" />
+          <ellipse cx="35" cy="111" rx="8.5" ry="3"  fill={FUR_DK} opacity="0.55" />
+          {[-3.5,0,3.5].map((dx, i) => (
+            <circle key={i} cx={35 + dx} cy="113" r="1.3" fill={OUTLINE} opacity="0.5" />
+          ))}
+        </g>
+
+        {/* ── RIGHT FOOT ── */}
+        <g style={{
+          transformBox: "fill-box", transformOrigin: "65px 108px",
+          animation: footRAnim,
+        }}>
+          <ellipse cx="65" cy="108" rx="9"  ry="5.5" fill={FUR} stroke={OUTLINE} strokeWidth="1.1" />
+          <ellipse cx="65" cy="111" rx="8.5" ry="3"  fill={FUR_DK} opacity="0.55" />
+          {[-3.5,0,3.5].map((dx, i) => (
+            <circle key={i} cx={65 + dx} cy="113" r="1.3" fill={OUTLINE} opacity="0.5" />
+          ))}
+        </g>
+
+        {/* ── HEAD ── rendered last so it sits on top of ears */}
+        <ellipse cx="50" cy="50" rx="36" ry="33"
+          fill={`url(#hg-${p})`} stroke={OUTLINE} strokeWidth="1.6" />
+
+        {/* forehead tuft */}
+        <ellipse cx="50" cy="19" rx="9"  ry="6.5" fill={FUR_LT} opacity="0.75" />
+        <ellipse cx="43" cy="18" rx="6"  ry="4.5" fill={FUR_LT} opacity="0.55" />
+        <ellipse cx="57" cy="18" rx="5.5" ry="4"  fill={FUR_LT} opacity="0.5" />
+
+        {/* ── CHEEK BLUSH ── */}
+        {!isDead && (
           <>
-            <span style={{ position: "absolute", top: 10, left: 2,  fontSize: 14, animation: "z-float-1 1.2s ease-in-out infinite" }}>✨</span>
-            <span style={{ position: "absolute", top: 6,  right: 4, fontSize: 12, animation: "z-float-2 1.2s ease-in-out 0.4s infinite" }}>⭐</span>
-            <span style={{ position: "absolute", top: 18, left: 10, fontSize: 10, animation: "z-float-3 1.2s ease-in-out 0.8s infinite" }}>✨</span>
+            <ellipse cx="22" cy="58" rx={isHappy ? 8 : 6.5} ry={isHappy ? 5 : 3.8}
+              fill="#FF8FA0" opacity={isHappy ? 0.45 : 0.28} />
+            <ellipse cx="78" cy="58" rx={isHappy ? 8 : 6.5} ry={isHappy ? 5 : 3.8}
+              fill="#FF8FA0" opacity={isHappy ? 0.45 : 0.28} />
           </>
         )}
 
-        {/* Dead eyes overlay */}
+        {/* ── EYES ── */}
+        {isHappy && (
+          <>
+            <EyeHappy cx={38} cy={46} r={8} />
+            <EyeHappy cx={62} cy={46} r={8} />
+          </>
+        )}
+        {isSleeping && (
+          <>
+            <EyeSleeping cx={38} cy={46} r={8} />
+            <EyeSleeping cx={62} cy={46} r={8} />
+          </>
+        )}
         {isDead && (
-          <div style={{
-            position: "absolute",
-            top: 28, left: "50%",
-            transform: "translateX(-50%)",
-            fontSize: 22,
-            letterSpacing: 20,
-            pointerEvents: "none",
-            animation: "eyex-appear 0.4s ease-out both",
-            zIndex: 2,
-          }}>✕ ✕</div>
+          <>
+            <EyeDead cx={38} cy={46} r={7} />
+            <EyeDead cx={62} cy={46} r={7} />
+          </>
+        )}
+        {isHungry && (
+          <>
+            <EyeSad cx={38} cy={46} r={8} side="L" />
+            <EyeSad cx={62} cy={46} r={8} side="R" />
+          </>
+        )}
+        {!isHappy && !isSleeping && !isDead && !isHungry && (
+          <>
+            <EyeNormal cx={38} cy={46} r={8} uid={p} blink={state === "idle"} />
+            <EyeNormal cx={62} cy={46} r={8} uid={p} />
+          </>
         )}
 
-        {/* Tomi SVG */}
-        <div style={{
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "center",
-          height: "100%",
-          paddingBottom: 8,
-        }}>
-          <div style={{
-            animation: ANIM[id],
-            transformOrigin: "center bottom",
-            filter: isDead
-              ? "saturate(0) brightness(0.55)"
-              : isHungry
-              ? "saturate(0.6) brightness(0.85)"
-              : isSleeping
-              ? "brightness(0.75) saturate(0.7)"
-              : "none",
-            transition: "filter 0.4s ease",
-          }}>
-            <img
-              src="/__mockup/images/tomi.svg"
-              alt="Tomi"
-              width={active ? 110 : 90}
-              height={active ? 110 : 90}
-              style={{
-                display: "block",
-                transition: "width 0.3s ease, height 0.3s ease",
-                imageRendering: "crisp-edges",
-              }}
-            />
-          </div>
-        </div>
-      </div>
+        {/* ── NOSE ── */}
+        <ellipse cx="50" cy="60" rx="4.5" ry="3.5" fill={NOSE} />
+        <ellipse cx="48.5" cy="58.8" rx="1.8" ry="1.1" fill="white" opacity="0.5" />
+        {/* philtrum */}
+        <path d="M 50 63 L 48 66 M 50 63 L 52 66 M 50 63 L 50 66"
+          stroke={OUTLINE} strokeWidth="0.85" strokeLinecap="round" opacity="0.55" />
 
-      {/* Label */}
+        {/* ── MOUTH ── */}
+        <Mouth type={isHappy ? "grin" : isHungry ? "frown" : isSleeping ? "neutral" : isDead ? "o" : isWalk ? "neutral" : "smile"} />
+
+        {/* ── WHISKERS ── */}
+        {!isDead && (
+          <>
+            <line x1="22" y1="60" x2="42" y2="61" stroke={WHISKER} strokeWidth="0.9" opacity="0.6" strokeLinecap="round" />
+            <line x1="21" y1="63" x2="42" y2="63" stroke={WHISKER} strokeWidth="0.9" opacity="0.5" strokeLinecap="round" />
+            <line x1="22" y1="66" x2="42" y2="65" stroke={WHISKER} strokeWidth="0.9" opacity="0.4" strokeLinecap="round" />
+            <line x1="78" y1="61" x2="58" y2="60" stroke={WHISKER} strokeWidth="0.9" opacity="0.6" strokeLinecap="round" />
+            <line x1="79" y1="63" x2="58" y2="63" stroke={WHISKER} strokeWidth="0.9" opacity="0.5" strokeLinecap="round" />
+            <line x1="78" y1="65" x2="58" y2="66" stroke={WHISKER} strokeWidth="0.9" opacity="0.4" strokeLinecap="round" />
+          </>
+        )}
+
+        {/* ── SLEEPING: ZZZ ── */}
+        {isSleeping && (
+          <>
+            <text x="68" y="36" fontSize="10" fill="#A78BFA" fontWeight="900"
+              style={{ animation: `sleeping-z1 2.8s ease-in-out infinite` }}>z</text>
+            <text x="74" y="26" fontSize="14" fill="#A78BFA" fontWeight="900"
+              style={{ animation: `sleeping-z2 2.8s ease-in-out 0.8s infinite` }}>z</text>
+            <text x="82" y="14" fontSize="18" fill="#A78BFA" fontWeight="900"
+              style={{ animation: `sleeping-z3 2.8s ease-in-out 1.6s infinite` }}>Z</text>
+          </>
+        )}
+
+        {/* ── HUNGRY: shake overlay + sweat ── */}
+        {isHungry && (
+          <g style={{ animation: `hungry-shake 0.8s ease-in-out infinite` }}>
+            {/* sweat drop */}
+            <ellipse cx="78" cy="35" rx="3" ry="4.5" fill="#67CAEE" opacity="0.9" />
+            <ellipse cx="78" cy="32.5" rx="1.5" ry="1.2" fill="#AEE8FA" opacity="0.7" />
+          </g>
+        )}
+
+        {/* ── HAPPY: sparkle stars ── */}
+        {isHappy && (
+          <>
+            <text x="6" y="26" fontSize="13"
+              style={{ animation: `happy-star 1.1s ease-out infinite` }}>✨</text>
+            <text x="78" y="20" fontSize="10"
+              style={{ animation: `happy-star 1.1s ease-out 0.4s infinite` }}>⭐</text>
+            <text x="2" y="50" fontSize="9"
+              style={{ animation: `happy-star 1.1s ease-out 0.7s infinite` }}>✨</text>
+          </>
+        )}
+
+        {/* ── DEAD: stars circling head ── */}
+        {isDead && (
+          <>
+            {[0,1,2].map(i => (
+              <text key={i} x={32 + i * 18} y="8" fontSize="10" fill="#FBBF24"
+                style={{ animation: `dead-star 2s linear ${i * 0.66}s infinite`, transformBox: "fill-box", transformOrigin: `${41 + i * 18}px 12px` }}>
+                ★
+              </text>
+            ))}
+          </>
+        )}
+
+      </g>{/* end body wrapper */}
+
+      {/* Ground shadow */}
+      <ellipse cx="50" cy="117" rx="28" ry="5" fill="rgba(0,0,0,0.22)" />
+    </svg>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   State card
+═══════════════════════════════════════════════════════════════════════════ */
+function StateCard({ state }: { state: TState }) {
+  const m = STATE_META[state];
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      gap: 0, padding: "18px 12px 14px",
+      borderRadius: 20,
+      background: m.bg,
+      border: `1.5px solid ${m.accent}30`,
+      boxShadow: `0 0 28px ${m.accent}18`,
+      minWidth: 0, flex: 1,
+      position: "relative",
+    }}>
+      <style>{makeCSS(state)}</style>
+
+      {/* glow behind pet */}
       <div style={{
-        display: "flex", alignItems: "center", gap: 5, marginBottom: 3,
-      }}>
-        <span style={{ fontSize: 14 }}>{emoji}</span>
-        <span style={{
-          fontSize: 13, fontWeight: 800,
-          color: active ? c.accent : "#94A3B8",
-          transition: "color 0.2s",
-        }}>{label}</span>
-      </div>
-      <span style={{
-        fontSize: 10, color: "#475569", fontWeight: 500,
-        textAlign: "center", lineHeight: 1.4,
-      }}>{desc}</span>
+        position: "absolute", top: "25%", left: "50%",
+        transform: "translateX(-50%)",
+        width: 110, height: 110, borderRadius: "50%",
+        background: `${m.accent}22`, filter: "blur(32px)",
+        pointerEvents: "none",
+      }} />
 
-      {/* Active pip */}
-      {active && (
-        <div style={{
-          position: "absolute", bottom: 10,
-          width: 24, height: 3, borderRadius: 99,
-          background: c.accent,
-          boxShadow: `0 0 8px ${c.accent}`,
-        }} />
-      )}
+      {/* pet */}
+      <div style={{ width: 110, height: 132, position: "relative" }}>
+        <TomiFigure state={state} />
+      </div>
+
+      {/* label */}
+      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+        <span style={{ fontSize: 13 }}>{m.emoji}</span>
+        <span style={{ fontSize: 13, fontWeight: 800, color: m.accent }}>{m.label}</span>
+      </div>
+
+      {/* accent pip */}
+      <div style={{
+        width: 20, height: 3, borderRadius: 99, marginTop: 6,
+        background: m.accent, boxShadow: `0 0 6px ${m.accent}`,
+      }} />
     </div>
   );
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   Root export
+═══════════════════════════════════════════════════════════════════════════ */
 export function TomiStates() {
-  const [active, setActive] = useState<StateId>("idle");
-  const activeColor = STATE_COLORS[active];
+  const STATES: TState[] = ["idle","walk","happy","hungry","sleeping","dead"];
 
   return (
     <div style={{
-      minHeight: "100vh",
-      background: "#071321",
-      color: "#E2E8F0",
-      fontFamily: "'Inter', sans-serif",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "32px 24px",
-      gap: 28,
+      minHeight: "100vh", background: "#071321",
+      color: "#E2E8F0", fontFamily: "'Inter', sans-serif",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      padding: "28px 20px", gap: 20,
     }}>
-      <style>{CSS}</style>
-
       {/* Header */}
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.2em", color: "#475569", textTransform: "uppercase", marginBottom: 6 }}>
-          Pet Design · Tomi SVG
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.22em", color: "#475569", textTransform: "uppercase", marginBottom: 5 }}>
+          Pet Design · Tomi — Vector Rebuild
         </div>
-        <h1 style={{ fontSize: 26, fontWeight: 900, margin: 0, letterSpacing: "-0.03em" }}>
-          Tomi —{" "}
-          <span style={{ color: activeColor.accent, transition: "color 0.3s" }}>
-            {STATES.find(s => s.id === active)?.label}
-          </span>
+        <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0, letterSpacing: "-0.03em" }}>
+          6 State Animations — Tiap Bagian Independen
         </h1>
-        <p style={{ fontSize: 12, color: "#64748B", margin: "6px 0 0", fontWeight: 500 }}>
-          Klik kartu untuk preview animasi · 6 state behavior
+        <p style={{ fontSize: 11, color: "#475569", margin: "5px 0 0", fontWeight: 500 }}>
+          telinga · mata · hidung · tangan (paw) · kaki · badan — CSS @keyframes terpisah
         </p>
       </div>
 
-      {/* Cards row */}
-      <div style={{
-        display: "flex",
-        gap: 10,
-        width: "100%",
-        maxWidth: 1060,
-        flexWrap: "wrap",
-        justifyContent: "center",
-      }}>
-        {STATES.map(s => (
-          <StateCard
-            key={s.id}
-            {...s}
-            active={active === s.id}
-            onClick={() => setActive(s.id)}
-          />
-        ))}
+      {/* Grid: 3 + 3 */}
+      <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 820 }}>
+        {STATES.slice(0,3).map(s => <StateCard key={s} state={s} />)}
+      </div>
+      <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 820 }}>
+        {STATES.slice(3).map(s => <StateCard key={s} state={s} />)}
       </div>
 
-      {/* Bottom hint */}
-      <div style={{
-        fontSize: 11, color: "#334155", fontWeight: 500,
-        borderTop: "1px solid rgba(255,255,255,0.05)",
-        paddingTop: 16, width: "100%", maxWidth: 1060,
-        textAlign: "center",
-      }}>
-        idle · walk · happy · hungry · sleeping · dead — animasi CSS @keyframes, siap diimplementasi ke FloatingPet
+      {/* Legend */}
+      <div style={{ fontSize: 10, color: "#334155", fontWeight: 500, textAlign: "center" }}>
+        Telinga: rotate dari pivot pangkal · Mata: shape berbeda per state (^w^, X, arc, brow) · Paw: translateY + rotate · Kaki: bounce terpisah L/R
       </div>
     </div>
   );
