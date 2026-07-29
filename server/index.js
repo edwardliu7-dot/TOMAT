@@ -28,8 +28,31 @@ if (!process.env.SESSION_SECRET) {
   throw new Error('SESSION_SECRET environment variable is required.')
 }
 
+// Origin yang diizinkan untuk request dari APK (Capacitor WebView)
+const ALLOWED_ORIGINS = [
+  'capacitor://localhost',
+  'https://localhost',
+  'http://localhost',
+]
+
 async function createServer() {
   const app = express()
+
+  // CORS — izinkan Capacitor APK dan web dev
+  app.use((req, res, next) => {
+    const origin = req.headers.origin
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin)
+        res.setHeader('Access-Control-Allow-Credentials', 'true')
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+      }
+      if (req.method === 'OPTIONS') return res.sendStatus(204)
+    }
+    next()
+  })
+
   app.use(express.json({ limit: '2mb' }))
   app.set('trust proxy', 1)
 
