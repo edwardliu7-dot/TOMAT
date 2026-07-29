@@ -312,8 +312,8 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
   // Desktop dimensions: sidebar 280px fixed, chat takes remaining space
   // Height: fills viewport minus header/tabs on desktop; compact on mobile
   const chatHeight = isDesktop
-    ? 'calc(100vh - 180px)'
-    : 'min(430px, calc(100vh - 230px))'
+    ? (embedded ? 'calc(100vh - 260px)' : 'calc(100vh - 180px)')
+    : (embedded ? 'min(380px, calc(100vh - 300px))' : 'min(430px, calc(100vh - 230px))')
   const sidebarWidth = isDesktop ? '280px' : 'minmax(145px, 0.75fr)'
   const gridCols = isDesktop
     ? (sidebarOpen || isDesktop ? `${sidebarWidth} minmax(0, 1fr)` : '0 1fr')
@@ -382,7 +382,7 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
               <div style={{ color: '#64748B', fontSize: 10, marginTop: 2 }}>{tab === 'forum' ? 'Guru dan siswa dapat berdiskusi bersama' : 'Percakapan pribadi'}</div>
             </div>
           </div>
-          <div ref={messageScrollRef} style={{ flex: 1, padding: 12, overflowY: 'auto', minHeight: 300 }}>
+          <div ref={messageScrollRef} style={{ flex: 1, minHeight: 0, padding: 12, overflowY: 'auto' }}>
             {loadingMessages && messages.length === 0
               ? <div style={{ color: '#64748B', fontSize: 12, textAlign: 'center', padding: 30 }}>Memuat pesan…</div>
               : <MessageList messages={messages} user={user} forum={tab === 'forum'} onProfileClick={openProfile} />}

@@ -1,0 +1,75 @@
+Ini adalah aplikasi TOMAT (Tantangan Otak Matematika) — platform gamifikasi matematika SMP berbasis React + Express + Neon PostgreSQL. Stack: Vite + React (frontend), Node/Express (server/index.js), socket.io untuk multiplayer.
+
+Ada 3 bug yang perlu diperbaiki:
+
+---
+
+### BUG 1 — Spanduk profil tidak full-width
+File: src/screens/ProfileScreen.jsx
+
+Di sekitar baris 115, background CSS banner menggunakan:
+  url(...) right center / auto 100% no-repeat
+
+Ubah itu menjadi:
+  url(...) center center / cover no-repeat
+
+Ini perlu diterapkan untuk SEMUA spanduk yang punya .image property (ada pengecekan `spanduk.image ? ...`). Tujuannya supaya gambar spanduk mengisi penuh lebar banner di semua ukuran layar (hp, tablet, laptop).
+
+---
+
+### BUG 2 — Guru dashboard: seluruh halaman ikut scroll, harusnya hanya content area saja
+
+File: src/screens/GuruDashboardScreen.jsx
+
+Ada DUA layout: Desktop (mulai sekitar baris 2045) dan Mobile (mulai sekitar baris 2155).
+
+**Desktop layout fix:**
+- Outer wrapper saat ini pakai `minHeight: '100vh'` → ubah ke `height: '100vh', overflow: 'hidden'`
+- Main area (div setelah sidebar, sekitar baris 2123) pakai `minHeight: '100vh'` → ubah ke `height: '100vh', overflow: 'hidden'`
+- Topbar sudah `position: 'sticky'` tapi tidak akan bekerja kalau parent tidak ada height limit. Ubah ke `position: 'sticky', top: 0` (sudah benar, tapi pastikan parent punya overflow hidden + fixed height)
+- Content div (sekitar baris 2145) sudah `overflowY: 'auto'` — pastikan dia punya `flex: 1, minHeight: 0` bukan minHeight: '100vh'
+
+**Mobile layout fix:**
+- Sudah pakai `height: '100dvh', overflow: 'hidden'` (benar)
+- Topbar (flexShrink: 0) sudah fixed — OK
+- Content area (sekitar baris 2200) perlu `flex: 1, minHeight: 0, overflowY: 'auto'`
+- Bottom nav (flexShrink: 0) sudah fixed — OK
+- Pastikan TIDAK ada div perantara yang punya `minHeight: '100vh'` di antara outer flex container dan content
+
+Tujuan: header di atas dan navigasi di bawah selalu terlihat, hanya area konten tengah yang scroll.
+
+---
+
+### BUG 3 — Chat: kolom ketik/balas tidak muncul
+
+File: src/screens/CommunicationScreen.jsx
+
+Form kirim pesan ada di sekitar baris 390 dan sudah benar secara kode. Masalahnya adalah tinggi chat panel dihitung dengan nilai hardcoded viewport:
+  const chatHeight = isDesktop
+    ? 'calc(100vh - 180px)'
+    : 'min(430px, calc(100vh - 230px))'
+
+Ketika CommunicationScreen di-embed di dalam GuruDashboardScreen (prop `embedded={true}`), header guru + padding sudah memakan ruang, jadi chatHeight terlalu besar → form tergeser keluar viewport.
+
+Fix:
+1. Tambahkan prop `availableHeight` ke CommunicationScreen, atau
+2. Deteksi `embedded` untuk menggunakan height yang lebih kecil:
+   const chatHeight = isDesktop
+     ? embedded ? 'calc(100vh - 260px)' : 'calc(100vh - 180px)'
+     : embedded ? 'min(380px, calc(100vh - 300px))' : 'min(430px, calc(100vh - 230px))'
+3. Pastikan chat panel div (sekitar baris 371) punya `overflow: 'hidden'` dan `display: 'flex', flexDirection: 'column'` agar form tidak tergeser
+4. Messages div (sekitar baris 385) perlu `flex: 1, minHeight: 0, overflowY: 'auto'` agar shrink dengan benar dan form tetap terlihat di bawah
+
+---
+
+### CARA VERIFIKASI
+1. Restart workflow "TOMAT Web App" setelah edit
+2. Login sebagai guru → cek dashboard scroll
+3. Di dashboard guru → tab Chat → pilih kontak → form kirim harus muncul di bawah
+4. Login siswa → Profil → spanduk harus full width di semua ukuran layar
+
+Secrets yang tersedia (sudah di-set, jangan diubah):
+- NEON_DATABASE_URL
+- SESSION_SECRET  
+- VAPID_PRIVATE_KEY
+- VAPID_PUBLIC_KEY

@@ -112,7 +112,7 @@ function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingBottom: 8 }}>
       {/* Banner */}
-      <div style={{ position: 'relative', width: '100%', height: 150, overflow: 'hidden', background: spanduk ? (spanduk.image ? `url(${spanduk.image}) right center / auto 100% no-repeat, ${spanduk.gradient}` : spanduk.gradient) : 'linear-gradient(160deg,#0c1a2e,#111827)', cursor: 'default' }}>
+      <div style={{ position: 'relative', width: '100%', height: 150, overflow: 'hidden', background: spanduk ? (spanduk.image ? `url(${spanduk.image}) center center / cover no-repeat, ${spanduk.gradient}` : spanduk.gradient) : 'linear-gradient(160deg,#0c1a2e,#111827)', cursor: 'default' }}>
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: isCelestia ? 'radial-gradient(circle at 20% 60%, rgba(191,219,254,0.28), transparent 35%), radial-gradient(circle at 80% 30%, rgba(96,165,250,0.2), transparent 30%)' : isRoyal ? 'radial-gradient(circle at 50% 0%, rgba(212,175,55,0.25), transparent 55%), linear-gradient(90deg, transparent, rgba(212,175,55,0.08), transparent)' : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)' }} />
         {isCelestia && (
           <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>

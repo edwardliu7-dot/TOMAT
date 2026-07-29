@@ -2042,7 +2042,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   // ── Desktop layout — left sidebar + content ──
   if (isDesktop) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0A0B14', position: 'relative', display: 'flex' }}>
+      <div style={{ height: '100vh', overflow: 'hidden', background: '#0A0B14', position: 'relative', display: 'flex' }}>
         {/* Background blobs */}
         <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
           <div style={{ position: 'absolute', top: '-10%', right: '-15%', width: '60%', height: '45%', borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(100px)' }} />
@@ -2120,7 +2120,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
         </div>
 
         {/* ── Main area ── */}
-        <div style={{ flex: 1, marginLeft: 220, position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <div style={{ flex: 1, marginLeft: 220, position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
           {/* Topbar */}
           <div style={{
             padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 10,
@@ -2142,7 +2142,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           </div>
 
           {/* Content */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px', maxWidth: 900 }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px', maxWidth: 900 }}>
             {tabContent}
           </div>
         </div>
@@ -2197,7 +2197,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
       </div>
 
       {/* ── Scrollable Content ── */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', position: 'relative', zIndex: 1, WebkitOverflowScrolling: 'touch' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', position: 'relative', zIndex: 1, WebkitOverflowScrolling: 'touch' }}>
         {tab !== 'home' && (
           <div style={{ padding: '16px 16px 0' }}>
             {tabContent}
