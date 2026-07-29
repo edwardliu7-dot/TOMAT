@@ -1,23 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
 
-// ── src/assets imports (Vite resolves these at build time) ──────────────────
-import assetLogo        from '../assets/logo.png'
-import assetTomi        from '../assets/tomi.svg'
-import assetNeonCyber   from '../assets/neon cyber.png'
-import assetIceCrystal  from '../assets/ice crystal.png'
-import assetApiAbadi    from '../assets/api abadi.png'
-import assetSakuraPetal from '../assets/sakura petal.png'
-import assetGoldenHalo  from '../assets/golden halo.png'
-import assetAurum       from '../assets/aurum sovereign.png'
-import assetVoidKing    from '../assets/void king.png'
-import assetVoidMonarch from '../assets/void monarch.png'
-import assetDekrit      from '../assets/dekrit mahaguru.svg'
-import assetCelestia    from '../assets/celestia relic.svg'
+// ── src/assets imports ──────────────────────────────────────────────────────
+import assetLogo from '../assets/logo.png'
 
 // ── All assets to preload ───────────────────────────────────────────────────
-// public/ assets are referenced by absolute URL string (served as-is by Vite).
-// src/assets/ are the imported module URLs above.
 const ALL_ASSETS = [
+  // ── logo (src/assets — gets content-hashed URL) ──
+  assetLogo,
   // ── sprites & pets ──
   '/tomi-sprite.png',
   '/tomi-silver-fluff.png',
@@ -44,19 +33,6 @@ const ALL_ASSETS = [
   '/celestia-relic.svg',
   '/dekrit-mahaguru.svg',
   '/icon-192.png',
-  // ── src/assets ──
-  assetLogo,
-  assetTomi,
-  assetNeonCyber,
-  assetIceCrystal,
-  assetApiAbadi,
-  assetSakuraPetal,
-  assetGoldenHalo,
-  assetAurum,
-  assetVoidKing,
-  assetVoidMonarch,
-  assetDekrit,
-  assetCelestia,
 ]
 
 const TOTAL = ALL_ASSETS.length
