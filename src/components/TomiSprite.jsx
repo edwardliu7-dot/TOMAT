@@ -72,7 +72,7 @@ export default function TomiSprite({ state = 'idle', skinId = 'golden', size = 1
   const sprite   = SKIN_SPRITE[skinId] || SKIN_SPRITE.golden
 
   return (
-    <div style={{
+    <div data-raw-image="" style={{
       width:               size,
       height:              size,
       flexShrink:          0,

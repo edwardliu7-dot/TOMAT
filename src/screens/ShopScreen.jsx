@@ -237,34 +237,51 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
 }
 
 // ── Rarity config for pet grouping ──────────────────────────────────────────
-// ORDER: umum → langka → epic  (epic = rarest & most powerful)
-const PET_RARITY_GROUPS = [
+// Base pets (different animals — each is its own creature)
+const BASE_PETS = [
+  { id: 'golden',       rarity: 'umum',   rarityColor: '#94A3B8' },
+  { id: 'pet_kelinsay', rarity: 'umum',   rarityColor: '#34D399' },
+  { id: 'pet_monyong',  rarity: 'langka', rarityColor: '#FB923C' },
+  { id: 'pet_nananaga', rarity: 'epic',   rarityColor: '#C084FC' },
+]
+
+// Skins grouped by which base pet they dress up
+const SKIN_GROUPS = [
   {
-    id: 'umum',
-    label: 'Umum',
-    icon: '◆',
-    color: '#94A3B8',
-    bg: 'rgba(148,163,184,0.10)',
-    border: 'rgba(148,163,184,0.22)',
-    skins: ['golden', 'pet_skin_silver', 'pet_kelinsay', 'pet_kelinsay_senja'],
+    id: 'tomi',
+    label: 'Tomi (Marmut)',
+    icon: '🐹',
+    color: '#F5A623',
+    bg: 'rgba(245,166,35,0.10)',
+    border: 'rgba(245,166,35,0.22)',
+    skins: ['pet_skin_silver', 'pet_skin_cosmic', 'pet_skin_void'],
   },
   {
-    id: 'langka',
-    label: 'Langka',
-    icon: '◈',
+    id: 'kelinsay',
+    label: 'Kelinsay (Kelinci)',
+    icon: '🐰',
+    color: '#34D399',
+    bg: 'rgba(52,211,153,0.10)',
+    border: 'rgba(52,211,153,0.22)',
+    skins: ['pet_kelinsay_senja', 'pet_kelinsay_malam'],
+  },
+  {
+    id: 'monyong',
+    label: 'Monyang (Monyet)',
+    icon: '🐒',
     color: '#FB923C',
     bg: 'rgba(251,146,60,0.10)',
     border: 'rgba(251,146,60,0.22)',
-    skins: ['pet_skin_cosmic', 'pet_monyong', 'pet_monyong_raja'],
+    skins: ['pet_monyong_raja', 'pet_monyong_kosmik'],
   },
   {
-    id: 'epic',
-    label: 'Epic',
-    icon: '★',
+    id: 'nananaga',
+    label: 'Nananaga (Naga)',
+    icon: '🐲',
     color: '#C084FC',
     bg: 'rgba(192,132,252,0.12)',
     border: 'rgba(192,132,252,0.25)',
-    skins: ['pet_kelinsay_malam', 'pet_skin_void', 'pet_monyong_kosmik', 'pet_nananaga', 'pet_nananaga_merah', 'pet_nananaga_es'],
+    skins: ['pet_nananaga_merah', 'pet_nananaga_es'],
   },
 ]
 
@@ -308,7 +325,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const [busyId, setBusyId] = useState(null)
   const [localError, setLocalError] = useState('')
   const [feedSuccess, setFeedSuccess] = useState('')
-  const [subTab, setSubTab] = useState('skin')  // 'skin' | 'makanan'
+  const [subTab, setSubTab] = useState('pet')  // 'pet' | 'skin' | 'makanan'
 
   const equippedSkin  = data.equipped.pet_skin || 'golden'
   const activePetName = getPetName(equippedSkin)
@@ -380,7 +397,8 @@ function PetTokoTab({ data, onRefresh, setError }) {
 
       {/* ── Sub-tabs ── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        <button onClick={() => setSubTab('skin')}    style={subTabStyle(subTab === 'skin')}>🐾 Pet &amp; Skin</button>
+        <button onClick={() => setSubTab('pet')}     style={subTabStyle(subTab === 'pet')}>🐾 Pet</button>
+        <button onClick={() => setSubTab('skin')}    style={subTabStyle(subTab === 'skin')}>✨ Skin</button>
         <button onClick={() => setSubTab('makanan')} style={subTabStyle(subTab === 'makanan')}>🍖 Makanan</button>
       </div>
 
@@ -391,8 +409,8 @@ function PetTokoTab({ data, onRefresh, setError }) {
         </div>
       )}
 
-      {/* ══════════════ SUB-TAB: PET & SKIN ══════════════ */}
-      {subTab === 'skin' && (
+      {/* ══════════════ SUB-TAB: PET ══════════════ */}
+      {subTab === 'pet' && (
         <>
           {/* ── Dead / revive block ── */}
           {pet.isDead && (
@@ -407,13 +425,24 @@ function PetTokoTab({ data, onRefresh, setError }) {
             </div>
           )}
 
-          {/* ── Rarity groups ── */}
-          {PET_RARITY_GROUPS.map(group => (
+          <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🐾 Koleksi Pet</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+            {BASE_PETS.map(({ id, rarityColor }) => (
+              <PetCard key={id} skinId={id} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ══════════════ SUB-TAB: SKIN ══════════════ */}
+      {subTab === 'skin' && (
+        <>
+          {SKIN_GROUPS.map(group => (
             <div key={group.id} style={{ marginBottom: 28 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: group.bg, border: `1px solid ${group.border}`, borderRadius: 99, padding: '3px 10px' }}>
-                  <span style={{ fontSize: 10, color: group.color }}>{group.icon}</span>
-                  <span style={{ fontSize: 10, fontWeight: 900, color: group.color, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{group.label}</span>
+                  <span style={{ fontSize: 12 }}>{group.icon}</span>
+                  <span style={{ fontSize: 10, fontWeight: 900, color: group.color, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{group.label}</span>
                 </div>
                 <div style={{ flex: 1, height: 1, background: `${group.color}28` }} />
                 <span style={{ fontSize: 10, fontWeight: 700, color: group.color + '88' }}>{group.skins.length} skin</span>
@@ -435,7 +464,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
           {pet.isDead ? (
             <div style={{ padding: '20px 16px', borderRadius: 16, background: 'rgba(239,68,68,0.07)', border: '1px dashed rgba(239,68,68,0.3)', textAlign: 'center', fontSize: 13, color: '#6B7280', lineHeight: 1.7 }}>
               🚫 Makanan tidak bisa diberikan ke pet yang sudah mati.<br />
-              <span style={{ fontSize: 11 }}>Adopsi pet baru dulu di tab <strong style={{ color: '#94A3B8' }}>🐾 Pet &amp; Skin</strong></span>
+              <span style={{ fontSize: 11 }}>Adopsi pet baru dulu di tab <strong style={{ color: '#94A3B8' }}>🐾 Pet</strong></span>
             </div>
           ) : (
             <>
@@ -682,7 +711,12 @@ export default function ShopScreen({ goBack, initialTab }) {
 
   const equip = async (item) => {
     setError(''); setBusyId(item.id)
-    try { await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: item.id } }); await refresh(); await refreshMe() }
+    // Default items (id === null) have no shop_items row — send kategori so the
+    // server knows which column to clear (set to NULL = "back to default").
+    const body = item.id === null
+      ? { itemId: null, kategori: item.kategori }
+      : { itemId: item.id }
+    try { await apiCall('/api/siswa/toko/pakai', { method: 'POST', body }); await refresh(); await refreshMe() }
     catch (err) { setError(err.message) } finally { setBusyId(null) }
   }
 

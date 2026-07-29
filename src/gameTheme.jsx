@@ -55,6 +55,27 @@ export function getGameTheme(temaId) {
   return (temaId && GAME_THEMES[temaId]) || null
 }
 
+/**
+ * Returns the approximate inverse of a theme's CSS filter string.
+ * Used to cancel the global filter on image/sprite elements so they
+ * keep their original colours while UI backgrounds stay themed.
+ *
+ * Inversion rules:
+ *   hue-rotate(Xdeg)  → hue-rotate(-Xdeg)
+ *   saturate(S)       → saturate(1/S)
+ *   brightness(B)     → brightness(1/B)
+ *   contrast(C)       → contrast(1/C)
+ */
+export function getInverseFilter(temaId) {
+  const theme = getGameTheme(temaId)
+  if (!theme) return null
+  return theme.filter
+    .replace(/hue-rotate\((-?[\d.]+)deg\)/g,  (_, v) => `hue-rotate(${-parseFloat(v)}deg)`)
+    .replace(/saturate\(([\d.]+)\)/g,          (_, v) => `saturate(${(1 / parseFloat(v)).toFixed(4)})`)
+    .replace(/brightness\(([\d.]+)\)/g,        (_, v) => `brightness(${(1 / parseFloat(v)).toFixed(4)})`)
+    .replace(/contrast\(([\d.]+)\)/g,          (_, v) => `contrast(${(1 / parseFloat(v)).toFixed(4)})`)
+}
+
 // Static deterministic particle positions (seed-based, no random() at render time)
 function seededPositions(count, salt = 0) {
   return Array.from({ length: count }, (_, i) => ({

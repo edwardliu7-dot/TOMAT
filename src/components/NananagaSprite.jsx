@@ -58,7 +58,7 @@ export default function NananagaSprite({ state = 'idle', variant = 'pet_nananaga
   const sprite   = SKIN_SPRITE[variant] || SKIN_SPRITE.pet_nananaga
 
   return (
-    <div style={{
+    <div data-raw-image="" style={{
       width:               size,
       height:              size,
       flexShrink:          0,

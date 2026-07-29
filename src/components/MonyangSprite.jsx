@@ -58,7 +58,7 @@ export default function MonyangSprite({ state = 'idle', variant = 'pet_monyong',
   const sprite   = SKIN_SPRITE[variant] || SKIN_SPRITE.pet_monyong
 
   return (
-    <div style={{
+    <div data-raw-image="" style={{
       width:               size,
       height:              size,
       flexShrink:          0,

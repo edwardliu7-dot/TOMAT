@@ -120,7 +120,7 @@ function DuelGamePickerModal({ target, onPick, onCancel }) {
 }
 import GameDesktopWrapper from './components/GameDesktopWrapper'
 import { fetchPublicProfile, normalizeProfileTarget } from './components/shared'
-import { getGameTheme, GameThemeOverlay } from './gameTheme'
+import { getGameTheme, GameThemeOverlay, getInverseFilter } from './gameTheme'
 
 // Auth-aware wrappers — need useAuth inside the PlayerProvider/AuthContext tree
 function TournamentMatchWithAuth({ matchData, goBack, onMatchOver }) {
@@ -286,6 +286,17 @@ const SCREEN_TITLES = {
 // teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const { user, logout } = useAuth()
+
+  // Apply the equipped tema CSS filter to the whole page whenever it changes
+  useEffect(() => {
+    const theme = getGameTheme(user?.equippedTema)
+    document.documentElement.style.filter = theme?.filter || ''
+    return () => { document.documentElement.style.filter = '' }
+  }, [user?.equippedTema])
+
+  // Compute the inverse filter so image elements can counteract the global filter
+  const inverseFilter = getInverseFilter(user?.equippedTema)
+
   const [history, setHistory] = useState(['home'])
   const [pendingGame, setPendingGame] = useState(null) // { key, name, emoji }
   const [pendingTaskId, setPendingTaskId] = useState(null)
@@ -587,6 +598,17 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           <BabLockProvider>
             <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
+              {/* Counteract global theme filter on raw image/sprite elements */}
+              {inverseFilter && (
+                <style>{`
+                  img,
+                  [data-raw-image] {
+                    filter: ${inverseFilter} !important;
+                  }
+                `}</style>
+              )}
+              {/* Tema particles overlay — rendered on top of all screens */}
+              <GameThemeOverlay temaId={user?.equippedTema} />
               <ErrorBoundary key={current} onReset={goBack}>
                 {renderScreen()}
               </ErrorBoundary>

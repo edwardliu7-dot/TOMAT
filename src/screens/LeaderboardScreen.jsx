@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   TopBar, PlayerHeader, PublicProfileModal, UserAvatar, usePublicProfile,
 } from '../components/shared'
+import { useAuth } from '../AuthContext'
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -231,17 +232,38 @@ function LeaderboardTable({ leaderboard, publicProfile }) {
   )
 }
 
-const GRADE_TABS = [
-  { id: 'myclass', label: '🏫 Kelasku' },
-  { id: '8', label: '📗 Kelas 8' },
-  { id: '9', label: '📘 Kelas 9' },
-]
+// Derive numeric grade (7/8/9) from a kelas string like "IX Al Khawarizmi"
+function gradeFromKelas(kelas) {
+  if (!kelas) return null
+  if (kelas.startsWith('IX')) return 9
+  if (kelas.startsWith('VIII')) return 8
+  if (kelas.startsWith('VII')) return 7
+  return null
+}
+
+const GRADE_ICONS = { 7: '📕', 8: '📗', 9: '📘' }
+
+// Build ordered tab list: [grade 7, grade 8, grade 9] with 'myclass' replacing the student's own grade
+function buildGradeTabs(myGrade) {
+  return [7, 8, 9].map(g => {
+    const isOwn = g === myGrade
+    return {
+      id: isOwn ? 'myclass' : String(g),
+      label: isOwn ? '🏫 Kelasku' : `${GRADE_ICONS[g]} Kelas ${g}`,
+    }
+  })
+}
 
 export default function LeaderboardScreen({ goBack }) {
+  const { user } = useAuth()
+  const myGrade = gradeFromKelas(user?.kelas)
+
+  const gradeTabs = useMemo(() => buildGradeTabs(myGrade), [myGrade])
+
   const [activeTab, setActiveTab] = useState('myclass')
   const [myClassData, setMyClassData] = useState(null)
-  const [grade8Data, setGrade8Data] = useState(null)
-  const [grade9Data, setGrade9Data] = useState(null)
+  // Generic cache: { '7': data, '8': data, '9': data }
+  const [gradeDataCache, setGradeDataCache] = useState({})
   const [loadingTab, setLoadingTab] = useState(false)
   const [error, setError] = useState('')
   const publicProfile = usePublicProfile()
@@ -253,23 +275,21 @@ export default function LeaderboardScreen({ goBack }) {
 
   useEffect(() => {
     if (activeTab === 'myclass') return
-    const grade = activeTab
-    const already = grade === '8' ? grade8Data : grade9Data
-    if (already) return
+    if (gradeDataCache[activeTab]) return
     setLoadingTab(true)
     setError('')
-    apiCall(`/api/siswa/papan-peringkat/kelas/${grade}`)
-      .then(data => { if (grade === '8') setGrade8Data(data); else setGrade9Data(data) })
+    apiCall(`/api/siswa/papan-peringkat/kelas/${activeTab}`)
+      .then(data => setGradeDataCache(prev => ({ ...prev, [activeTab]: data })))
       .catch(err => setError(err.message))
       .finally(() => setLoadingTab(false))
-  }, [activeTab, grade8Data, grade9Data])
+  }, [activeTab, gradeDataCache])
 
-  const currentData = activeTab === 'myclass' ? myClassData : (activeTab === '8' ? grade8Data : grade9Data)
+  const currentData = activeTab === 'myclass' ? myClassData : gradeDataCache[activeTab]
   const isLoading = activeTab === 'myclass' ? !myClassData && !error : loadingTab && !currentData
 
   const tabBar = (
     <div style={{ display: 'flex', gap: 8, padding: '0 0 14px', overflowX: 'auto' }}>
-      {GRADE_TABS.map(t => (
+      {gradeTabs.map(t => (
         <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
           flex: '0 0 auto', padding: '9px 18px', borderRadius: 12, border: 'none', cursor: 'pointer',
           fontSize: 13, fontWeight: 700, fontFamily: 'inherit', whiteSpace: 'nowrap',
