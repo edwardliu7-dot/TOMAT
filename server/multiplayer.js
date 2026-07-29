@@ -142,7 +142,18 @@ async function canPlayStudentMode(socket, eventName) {
 export function setupMultiplayer(httpServer, sessionMiddleware) {
   const io = new Server(httpServer, {
     path: '/socket.io',
-    cors: { origin: '*', credentials: true },
+    // origin: '*' + credentials: true dilarang per CORS spec → browser/WebView
+    // menolak response. Harus list origin eksplisit agar session cookie
+    // dikirim saat WebSocket handshake dari Capacitor APK.
+    cors: {
+      origin: [
+        'capacitor://localhost',
+        'https://localhost',
+        'http://localhost',
+        /^https?:\/\/localhost(:\d+)?$/,
+      ],
+      credentials: true,
+    },
   })
 
   // Share Express session so socket.request.session works
