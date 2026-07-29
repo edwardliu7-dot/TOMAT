@@ -138,8 +138,12 @@
       };
 
       // Fullscreen API — sembunyikan Android nav bar tanpa perlu install PWA.
+      // Hanya aktif di mobile (< 768px); desktop tidak perlu fullscreen.
       // Browser mengharuskan gesture user (tap/click) sebelum requestFullscreen bisa dipanggil.
       (function() {
+        var isDesktop = window.innerWidth >= 768;
+        if (isDesktop) return; // desktop: tidak perlu fullscreen
+
         var el = document.documentElement;
         var isStandalone = window.matchMedia('(display-mode: fullscreen)').matches
                         || window.matchMedia('(display-mode: standalone)').matches
