@@ -170,19 +170,29 @@ function LoadingScreen({ pct }) {
   )
 }
 
+const CACHE_KEY = 'tomat_assets_cached_v1'
+
 // ── Main preloader wrapper ──────────────────────────────────────────────────
 export default function AssetPreloader({ children }) {
-  const [loaded, setLoaded]   = useState(false)
+  // If assets were already preloaded in a previous session, skip immediately.
+  const alreadyCached = typeof localStorage !== 'undefined'
+    && localStorage.getItem(CACHE_KEY) === '1'
+
+  const [loaded, setLoaded]   = useState(alreadyCached)
   const [pct,    setPct]      = useState(0)
   const countRef              = useRef(0)
 
   useEffect(() => {
-    // Hide the static HTML splash immediately — we're taking over
-    const splash = document.getElementById('splash')
-    if (splash) {
-      splash.style.transition = 'none'
-      splash.remove()
+    // Assets already in cache — nothing to do, hide HTML splash and go.
+    if (alreadyCached) {
+      const splash = document.getElementById('splash')
+      if (splash) { splash.style.transition = 'none'; splash.remove() }
+      return
     }
+
+    // First-ever visit: hide HTML splash and run the preload sequence.
+    const splash = document.getElementById('splash')
+    if (splash) { splash.style.transition = 'none'; splash.remove() }
 
     let cancelled = false
 
@@ -192,17 +202,17 @@ export default function AssetPreloader({ children }) {
       const p = Math.round((countRef.current / TOTAL) * 100)
       setPct(p)
       if (countRef.current >= TOTAL) {
-        // Brief pause so the user sees 100% before the app appears
-        setTimeout(() => {
-          if (!cancelled) setLoaded(true)
-        }, 300)
+        // Mark as cached so future sessions skip this screen entirely.
+        try { localStorage.setItem(CACHE_KEY, '1') } catch (_) {}
+        // Brief pause so the user sees 100 % / "✓ Siap!" before the app appears.
+        setTimeout(() => { if (!cancelled) setLoaded(true) }, 350)
       }
     }
 
     ALL_ASSETS.forEach(src => loadAsset(src).then(onOne))
 
     return () => { cancelled = true }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!loaded) return <LoadingScreen pct={pct} />
   return children
