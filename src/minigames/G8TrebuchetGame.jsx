@@ -19,7 +19,7 @@ function genQ(difficulty = 'medium') {
 }
 
 export default function G8TrebuchetGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -38,7 +38,7 @@ export default function G8TrebuchetGame({ goBack, difficulty = 'medium', surviva
     const correct = val === q.answer
     setFeedback(correct)
     survivalState.recordResult(correct)
-    if (correct) { addCoins(50); addExp(100) }
+    if (correct) { addCoins(50); addExp(100) } else { recordWrongAnswer() }
   }
 
   if (survival && survivalState.gameOver)

@@ -1319,7 +1319,10 @@ export function FeedbackBanner({ message, isCorrect, extras, correct, answer, on
   if (resolvedMessage === null || resolvedMessage === undefined || resolvedMessage === '') return null
 
   const handleNext = () => {
-    if (!resolvedIsCorrect) recordWrongAnswer?.()
+    // For the new isCorrect-prop pattern: FeedbackBanner owns recordWrongAnswer.
+    // For the legacy correct-prop pattern (G8/G9 games): games call it in confirm(),
+    // so we skip it here to avoid double-counting.
+    if (isCorrect !== undefined && !resolvedIsCorrect) recordWrongAnswer?.()
     onNext()
   }
 

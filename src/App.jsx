@@ -2,7 +2,7 @@ import React, { useState, useCallback, Component, Suspense, useEffect } from 're
 import { PetProvider } from './PetContext'
 import FloatingPet from './components/FloatingPet'
 import { PlayerProvider } from './PlayerContext'
-import { TaskProvider } from './TaskContext'
+import { TaskProvider, useTask } from './TaskContext'
 import { BabLockProvider } from './BabLockContext'
 import { useAuth } from './AuthContext'
 import AppShell from './components/AppShell'
@@ -42,6 +42,34 @@ const DUEL_INVITE_GAMES = [
   { key: 'mercusuar',   emoji: '🏮', name: 'Mercusuar KPK' },
   { key: 'scanner',     emoji: '💎', name: 'Scanner Prima' },
 ]
+
+// Toast shown when a tugas submission fails (pet dead, network error, etc.)
+// so students know their grade was not saved and can act accordingly.
+function SubmitErrorToast() {
+  const { submitError, clearSubmitError } = useTask()
+  if (!submitError) return null
+  return (
+    <div style={{
+      position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+      zIndex: 10002, maxWidth: 380, width: 'calc(100% - 32px)',
+      background: 'rgba(30,10,10,0.97)', border: '1.5px solid #ef4444',
+      borderRadius: 16, padding: '14px 16px',
+      boxShadow: '0 8px 32px rgba(239,68,68,0.25)',
+      display: 'flex', alignItems: 'flex-start', gap: 12,
+    }}>
+      <div style={{ fontSize: 22, flexShrink: 0, lineHeight: 1 }}>⚠️</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#f87171', marginBottom: 3 }}>Tugas Gagal Tersimpan</div>
+        <div style={{ fontSize: 12, color: '#FCA5A5', lineHeight: 1.5 }}>{submitError}</div>
+        <button onClick={clearSubmitError} style={{
+          marginTop: 10, background: 'rgba(239,68,68,0.2)', border: '1px solid #ef4444',
+          borderRadius: 8, padding: '6px 14px', color: '#f87171', fontSize: 12,
+          fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+        }}>Tutup</button>
+      </div>
+    </div>
+  )
+}
 
 function DuelGamePickerModal({ target, onPick, onCancel }) {
   return (
@@ -560,6 +588,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               </ErrorBoundary>
               {/* Floating task progress strip — shown during any task session */}
               <TaskOverlay />
+              {/* Error toast when tugas submission fails */}
+              <SubmitErrorToast />
               {/* Tomi the guinea pig — walks across screen for students */}
               <FloatingPet onHungryClick={() => {
                 setTokoInitialTab('pet_skin')

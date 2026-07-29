@@ -72,9 +72,10 @@ export function TaskProvider({ children, onTaskComplete }) {
 
   const [tasks, setTasks] = useState([])
   const [grades, setGrades] = useState([])
-  // activeSession: { taskId, correctAnswers, totalQuestions, task } | null
   // activeSession: { taskId, correctAnswers, wrongAnswers, totalQuestions, task } | null
   const [activeSession, setActiveSession] = useState(null)
+  // submitError: shown to student when the server rejects the grade submission
+  const [submitError, setSubmitError] = useState(null)
 
   const onTaskCompleteRef = useRef(onTaskComplete)
   useEffect(() => { onTaskCompleteRef.current = onTaskComplete }, [onTaskComplete])
@@ -116,7 +117,11 @@ export function TaskProvider({ children, onTaskComplete }) {
   const submitGrade = useCallback((session, newCorrect, newWrong) => {
     const totalAnswered = newCorrect + newWrong
     if (totalAnswered < session.totalQuestions) return false
+
+    // Clear session immediately to prevent double-submission while the request is in-flight.
     setActiveSession(null)
+    setSubmitError(null)
+
     apiCall('/api/siswa/nilai', {
       method: 'POST',
       body: { tugasId: session.taskId, correctCount: newCorrect },
@@ -127,6 +132,10 @@ export function TaskProvider({ children, onTaskComplete }) {
       onTaskCompleteRef.current?.(gradeRecord)
     }).catch(err => {
       console.error('Failed to submit grade', err)
+      // Surface the error so the student knows the task was not saved.
+      // Common causes: pet died during gameplay, guru closed the task, session expired.
+      const msg = err?.message || 'Terjadi kesalahan jaringan.'
+      setSubmitError(msg)
     })
     return true
   }, [])
@@ -167,6 +176,8 @@ export function TaskProvider({ children, onTaskComplete }) {
     ? { ...playerCtx, addCoins, recordWrongAnswer }
     : playerCtx
 
+  const clearSubmitError = useCallback(() => setSubmitError(null), [])
+
   const taskValue = {
     tasks,
     grades,
@@ -175,6 +186,8 @@ export function TaskProvider({ children, onTaskComplete }) {
     startTaskSession,
     endTaskSession,
     refresh,
+    submitError,
+    clearSubmitError,
   }
 
   return (
