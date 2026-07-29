@@ -92,16 +92,16 @@ function LoadingScreen({ pct }) {
       }} />
 
       {/* Logo */}
-      <div style={{
-        width: 96, height: 96, borderRadius: 28,
-        background: 'linear-gradient(135deg, #facc15 0%, #ef4444 100%)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 52, marginBottom: 24,
-        boxShadow: '0 0 48px rgba(250,204,21,0.25), 0 8px 32px rgba(0,0,0,0.5)',
-        animation: 'tomPulse 2s ease-in-out infinite',
-      }}>
-        🍅
-      </div>
+      <img
+        src={assetLogo}
+        alt="TOMAT"
+        style={{
+          width: 108, height: 108, borderRadius: 28,
+          objectFit: 'cover', marginBottom: 24,
+          boxShadow: '0 0 48px rgba(250,204,21,0.30), 0 8px 32px rgba(0,0,0,0.55)',
+          animation: 'tomPulse 2s ease-in-out infinite',
+        }}
+      />
 
       {/* Title */}
       <div style={{
