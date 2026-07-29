@@ -17,11 +17,11 @@ const STATE_CFG = {
   dead:     { row: 5, frames: 5, fps: 4 },
 }
 
-// CSS filter per variant — base sprite is natural white/cream Kelinsay
-const SKIN_FILTER = {
-  pet_kelinsay:       'none',
-  pet_kelinsay_senja: 'sepia(0.35) saturate(2.0) hue-rotate(338deg) brightness(1.1)',  // warm sunset orange
-  pet_kelinsay_malam: 'hue-rotate(228deg) saturate(1.6) brightness(0.85)',              // night indigo/purple
+// Skin → sprite sheet mapping
+const SKIN_SPRITE = {
+  pet_kelinsay:       '/kelinsay-sprite.png',
+  pet_kelinsay_senja: '/kelinsay-senja.png',
+  pet_kelinsay_malam: '/kelinsay-malam.png',
 }
 
 const _injected = new Set()
@@ -55,7 +55,7 @@ export default function KelinsaySprite({ state = 'idle', variant = 'pet_kelinsay
   const bgH      = SHEET_H * scale
   const bgY      = -(cfg.row * CELL_H * scale)
   const duration = (cfg.frames / cfg.fps).toFixed(3)
-  const filter   = SKIN_FILTER[variant] || 'none'
+  const sprite   = SKIN_SPRITE[variant] || SKIN_SPRITE.pet_kelinsay
 
   return (
     <div style={{
@@ -63,14 +63,13 @@ export default function KelinsaySprite({ state = 'idle', variant = 'pet_kelinsay
       height:              size,
       flexShrink:          0,
       overflow:            'hidden',
-      backgroundImage:     'url(/kelinsay-sprite.png)',
+      backgroundImage:     `url(${sprite})`,
       backgroundSize:      `${bgW.toFixed(1)}px ${bgH.toFixed(1)}px`,
       backgroundPositionY: `${bgY.toFixed(2)}px`,
       backgroundRepeat:    'no-repeat',
       animation:           `${animName} ${duration}s steps(${cfg.frames}) infinite`,
       willChange:          'background-position-x',
       imageRendering:      'auto',
-      filter,
     }} />
   )
 }

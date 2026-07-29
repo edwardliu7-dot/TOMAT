@@ -17,11 +17,11 @@ const STATE_CFG = {
   dead:     { row: 5, frames: 5, fps: 4 },
 }
 
-// CSS filter per variant — base sprite is natural brown/orange Monyang
-const SKIN_FILTER = {
-  pet_monyong:        'none',
-  pet_monyong_raja:   'sepia(0.45) saturate(2.4) hue-rotate(12deg) brightness(1.15)',  // golden
-  pet_monyong_kosmik: 'hue-rotate(260deg) saturate(2.0) brightness(1.1)',              // purple cosmic
+// Skin → sprite sheet mapping
+const SKIN_SPRITE = {
+  pet_monyong:        '/monyang-sprite.png',
+  pet_monyong_raja:   '/monyang-raja.png',
+  pet_monyong_kosmik: '/monyang-sprite.png',   // no dedicated sheet yet — fallback to base
 }
 
 const _injected = new Set()
@@ -55,7 +55,7 @@ export default function MonyangSprite({ state = 'idle', variant = 'pet_monyong',
   const bgH      = SHEET_H * scale
   const bgY      = -(cfg.row * CELL_H * scale)
   const duration = (cfg.frames / cfg.fps).toFixed(3)
-  const filter   = SKIN_FILTER[variant] || 'none'
+  const sprite   = SKIN_SPRITE[variant] || SKIN_SPRITE.pet_monyong
 
   return (
     <div style={{
@@ -63,14 +63,13 @@ export default function MonyangSprite({ state = 'idle', variant = 'pet_monyong',
       height:              size,
       flexShrink:          0,
       overflow:            'hidden',
-      backgroundImage:     'url(/monyang-sprite.png)',
+      backgroundImage:     `url(${sprite})`,
       backgroundSize:      `${bgW.toFixed(1)}px ${bgH.toFixed(1)}px`,
       backgroundPositionY: `${bgY.toFixed(2)}px`,
       backgroundRepeat:    'no-repeat',
       animation:           `${animName} ${duration}s steps(${cfg.frames}) infinite`,
       willChange:          'background-position-x',
       imageRendering:      'auto',
-      filter,
     }} />
   )
 }

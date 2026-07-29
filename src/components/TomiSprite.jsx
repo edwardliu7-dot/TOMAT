@@ -21,12 +21,12 @@ const STATE_CFG = {
   dead:     { row: 5, frames: 5, fps: 4  },
 }
 
-// ── Skin CSS filters ─────────────────────────────────────────────────────────
-const SKIN_FILTER = {
-  golden:          'none',
-  pet_skin_silver: 'grayscale(0.75) brightness(1.25) sepia(0.15)',
-  pet_skin_cosmic: 'hue-rotate(200deg) saturate(2.2) brightness(1.15)',
-  pet_skin_void:   'hue-rotate(285deg) saturate(1.4) brightness(0.55) contrast(1.3)',
+// ── Skin → sprite sheet mapping ──────────────────────────────────────────────
+const SKIN_SPRITE = {
+  golden:          '/tomi-sprite.png',
+  pet_skin_silver: '/tomi-silver-fluff.png',
+  pet_skin_cosmic: '/tomi-cosmic-fluff.png',
+  pet_skin_void:   '/tomi-void-emperor.png',
 }
 
 // ── Keyframe injection cache ─────────────────────────────────────────────────
@@ -68,7 +68,7 @@ export default function TomiSprite({ state = 'idle', skinId = 'golden', size = 1
   const bgH      = SHEET_H * scale
   const bgY      = -(cfg.row * CELL_H * scale)
   const duration = (cfg.frames / cfg.fps).toFixed(3)
-  const filter   = SKIN_FILTER[skinId] || 'none'
+  const sprite   = SKIN_SPRITE[skinId] || SKIN_SPRITE.golden
 
   return (
     <div style={{
@@ -76,14 +76,13 @@ export default function TomiSprite({ state = 'idle', skinId = 'golden', size = 1
       height:              size,
       flexShrink:          0,
       overflow:            'hidden',
-      backgroundImage:     'url(/tomi-sprite.png)',
+      backgroundImage:     `url(${sprite})`,
       backgroundSize:      `${bgW.toFixed(1)}px ${bgH.toFixed(1)}px`,
       backgroundPositionY: `${bgY.toFixed(2)}px`,
       backgroundRepeat:    'no-repeat',
       animation:           `${animName} ${duration}s steps(${cfg.frames}) infinite`,
       willChange:          'background-position-x',
       imageRendering:      'auto',
-      filter,
     }} />
   )
 }
