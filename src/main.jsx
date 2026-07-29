@@ -1,3 +1,6 @@
+import { applyNativePatch } from './nativePatch'
+applyNativePatch() // harus dipanggil sebelum semua import lain agar __TOMAT_API__ tersedia
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'

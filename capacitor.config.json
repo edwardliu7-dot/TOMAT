@@ -4,8 +4,7 @@
   "webDir": "dist",
   "server": {
     "androidScheme": "https",
-    "cleartext": true,
-    "url": "https://y4e6icv3cej4ax65idvhusde.157.10.161.229.sslip.io"
+    "cleartext": true
   },
   "android": {
     "allowMixedContent": true,
