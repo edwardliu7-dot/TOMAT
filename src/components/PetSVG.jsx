@@ -1,9 +1,9 @@
 // ── PetSVG — universal pet renderer ──────────────────────────────────────────
-// Routes to the correct SVG based on the equipped skin ID.
-// Tomi (guinea pig) skins: golden, pet_skin_silver, pet_skin_cosmic, pet_skin_void
-// New animal pets and their purchasable variants.
+// Routes to the correct renderer based on the equipped skin ID.
+// Tomi (guinea pig) now uses the sprite-sheet renderer (TomiSprite).
+// Other animals continue using their SVG renderers.
 import React from 'react'
-import TomiSVG from './TomiSVG'
+import TomiSprite from './TomiSprite'
 import KelinciSVG from './KelinciSVG'
 import MonyetSVG from './MonyetSVG'
 import NagaSVG from './NagaSVG'
@@ -36,5 +36,5 @@ export default function PetSVG({ state = 'idle', skinId = 'golden', size = 100 }
   if (skinId.startsWith('pet_kelinsay')) return <KelinciSVG state={state} size={size} variant={skinId} />
   if (skinId.startsWith('pet_monyong')) return <MonyetSVG state={state} size={size} variant={skinId} />
   if (skinId.startsWith('pet_nananaga')) return <NagaSVG state={state} size={size} variant={skinId} />
-  return <TomiSVG state={state} skinId={skinId} size={size} />
+  return <TomiSprite state={state} skinId={skinId} size={size} />
 }
