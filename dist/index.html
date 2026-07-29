@@ -2,10 +2,11 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>TOMAT – Tantangan Otak Matematika</title>
     <meta name="description" content="TOMAT - Platform gamifikasi matematika SMP dengan duel real-time, turnamen, dan sistem reward." />
-    <meta name="theme-color" content="#0F1115" />
+    <meta name="theme-color" content="#071321" />
     <meta property="og:title" content="TOMAT — Tantangan Otak Matematika" />
     <meta property="og:description" content="Belajar matematika SMP dengan cara yang menyenangkan. Duel teman, ikut turnamen, kumpulkan reward!" />
     <meta property="og:type" content="website" />
@@ -14,6 +15,8 @@
     <meta name="apple-mobile-web-app-title" content="TOMAT" />
     <link rel="icon" type="image/png" href="/assets/logo-Cw-77iwy.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Preload Tomi sprite sheet immediately so the pet is ready on first login -->
+    <link rel="preload" as="image" href="/tomi-sprite.png" />
     <!-- Preload bingkai images so they're ready before the shop opens -->
     <link rel="preload" as="image" href="/bingkai-neon.png" />
     <link rel="preload" as="image" href="/bingkai-api.png" />
@@ -55,7 +58,12 @@
         :root { --content-max: 1100px; }
       }
       html { font-size: calc(16px * var(--fs-scale)); }
-      body { font-family: 'Inter', sans-serif; background: #0F1115; color: #E2E2E6; min-height: 100vh; }
+      body { font-family: 'Inter', sans-serif; background: #0F1115; color: #E2E2E6; min-height: 100vh;
+        padding-top: env(safe-area-inset-top);
+        padding-right: env(safe-area-inset-right);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+      }
       #root { min-height: 100vh; }
 
       /* Sidebar offset untuk konten utama */
@@ -84,9 +92,9 @@
       input[type=text] { background: #1E2128; border: 1px solid #374151; color: #E2E2E6; border-radius: 8px; padding: 10px 14px; font-size: 16px; width: 100%; outline: none; font-family: inherit; }
       input[type=text]:focus { border-color: #6366F1; }
     </style>
-    <script type="module" crossorigin src="/assets/index-CRuJ97MI.js"></script>
+    <script type="module" crossorigin src="/assets/index-BiSH67pi.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-BMML5I2x.js">
-    <link rel="modulepreload" crossorigin href="/assets/games-ByU3IMFv.js">
+    <link rel="modulepreload" crossorigin href="/assets/games-CvFfFP5b.js">
   </head>
   <style>
     #splash {
@@ -123,13 +131,46 @@
       <div id="splash-sub">Tantangan Otak Matematika</div>
       <div id="splash-dots"><span></span><span></span><span></span></div>
     </div>
-    <div id="root"></div>
+    <div id="root"></div>
     <script>
       // Hide splash once React has painted its first frame
       window.__hideSplash = function() {
         var s = document.getElementById('splash');
         if (s) { s.classList.add('hidden'); setTimeout(function(){ s.remove(); }, 300); }
       };
+
+      // Fullscreen API — sembunyikan Android nav bar tanpa perlu install PWA.
+      // Hanya aktif di mobile (< 768px); desktop tidak perlu fullscreen.
+      // Browser mengharuskan gesture user (tap/click) sebelum requestFullscreen bisa dipanggil.
+      (function() {
+        var isDesktop = window.innerWidth >= 768;
+        if (isDesktop) return; // desktop: tidak perlu fullscreen
+
+        var el = document.documentElement;
+        var isStandalone = window.matchMedia('(display-mode: fullscreen)').matches
+                        || window.matchMedia('(display-mode: standalone)').matches
+                        || window.navigator.standalone;
+
+        function goFullscreen() {
+          if (isStandalone) return; // sudah fullscreen via PWA install, tidak perlu
+          if (document.fullscreenElement) return;
+          var req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+          if (req) req.call(el).catch(function(){});
+        }
+
+        // Re-enter fullscreen jika user keluar (e.g. notifikasi, alt-tab)
+        document.addEventListener('fullscreenchange', function() {
+          if (!document.fullscreenElement && !isStandalone) {
+            // Jangan langsung re-request tanpa gesture — tunggu tap berikutnya
+            document.addEventListener('click', goFullscreen, { once: true });
+            document.addEventListener('touchstart', goFullscreen, { once: true });
+          }
+        });
+
+        // Request saat tap pertama
+        document.addEventListener('click', goFullscreen, { once: true });
+        document.addEventListener('touchstart', goFullscreen, { once: true });
+      })();
     </script>
   </body>
 </html>
