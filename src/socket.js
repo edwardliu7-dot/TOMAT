@@ -4,14 +4,15 @@
  */
 import { io } from 'socket.io-client'
 
-// Di web: SERVER = '' → io() pakai relative URL (normal)
-// Di APK:  SERVER = URL produksi yang di-set oleh nativePatch.js
-const SERVER = window.__TOMAT_API__ || ''
-
 let _socket = null
 
 export function getSocket() {
   if (!_socket) {
+    // Dibaca lazy di sini — bukan di level module — agar applyNativePatch()
+    // sudah sempat set window.__TOMAT_API__ sebelum io() pertama kali dipanggil.
+    // (ES module hoist semua import sebelum kode main.jsx jalan, sehingga
+    //  pembacaan di level module selalu dapat '' meskipun di APK.)
+    const SERVER = window.__TOMAT_API__ || ''
     _socket = io(SERVER, {
       path: '/socket.io',
       autoConnect: false,
