@@ -74,21 +74,42 @@ export function getInverseFilter(temaId) {
  * and chrome elements (nav bar, top bar, player header, sidebar).
  *
  * Approach: set data-tema="<id>" on <html>, then target structural elements via CSS
- * class selectors. Photos, pet sprites, banners, frames, and shop items live outside
- * these structural elements and are never filtered.
+ * class selectors.  Inside those containers, any <img>, <canvas>, <svg> or element
+ * marked [data-raw-image] receives the inverse filter to counteract the parent —
+ * so profile photos, avatar frames, and pet sprites stay true-colour even inside
+ * a filtered nav bar.
  */
 export function GameThemeStyles({ temaId }) {
   const theme = getGameTheme(temaId)
   if (!theme) return null
 
-  const f = theme.filter
+  const f  = theme.filter
+  const iv = getInverseFilter(temaId)   // counteract filter for images inside bars
+
+  const bars = [
+    `html[data-tema="${temaId}"] .tomat-topbar`,
+    `html[data-tema="${temaId}"] .tomat-player-header`,
+    `html[data-tema="${temaId}"] .appshell-bottom-nav`,
+    `html[data-tema="${temaId}"] .tomat-sidebar`,
+  ]
+
+  // Child selectors that should NOT be colour-shifted (photos, frames, sprites)
+  const protectedChildren = bars.flatMap(sel => [
+    `${sel} img`,
+    `${sel} canvas`,
+    `${sel} svg`,
+    `${sel} [data-raw-image]`,
+  ])
+
   const css = `
-    /* Structural nav / chrome elements — these are safe to filter */
-    html[data-tema="${temaId}"] .tomat-topbar,
-    html[data-tema="${temaId}"] .tomat-player-header,
-    html[data-tema="${temaId}"] .appshell-bottom-nav,
-    html[data-tema="${temaId}"] .tomat-sidebar {
+    /* Structural nav / chrome — background and border get theme tint */
+    ${bars.join(',\n    ')} {
       filter: ${f};
+    }
+
+    /* Photos, avatars, sprites inside nav bars — counteract parent filter */
+    ${protectedChildren.join(',\n    ')} {
+      filter: ${iv} !important;
     }
   `
   return <style>{css}</style>
