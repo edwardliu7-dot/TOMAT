@@ -56,6 +56,29 @@ async function createServer() {
   app.use(express.json({ limit: '2mb' }))
   app.set('trust proxy', 1)
 
+  // Capacitor Cookie Patch — ubah SameSite=Lax → SameSite=None; Secure
+  // agar session cookie bisa dikirim dari https://localhost (Capacitor) ke
+  // domain produksi (cross-site request dengan withCredentials: true).
+  app.use((req, res, next) => {
+    const origin = req.headers.origin || ''
+    const isCapacitor = origin === 'capacitor://localhost' || origin === 'https://localhost'
+    if (!isCapacitor) return next()
+
+    const _setHeader = res.setHeader.bind(res)
+    res.setHeader = function (name, value) {
+      if (name.toLowerCase() === 'set-cookie') {
+        const patch = (c) =>
+          c
+            .replace(/;\s*samesite=[^;,]*/gi, '')  // hapus SameSite lama
+            .replace(/;\s*secure/gi, '')             // hapus Secure lama
+            + '; SameSite=None; Secure'              // tambah ulang
+        value = Array.isArray(value) ? value.map(patch) : patch(String(value))
+      }
+      return _setHeader(name, value)
+    }
+    next()
+  })
+
   const PgSession = connectPgSimple(session)
   // Keep a reference so Socket.io can share the same session middleware
   const sessionMiddleware = session({
