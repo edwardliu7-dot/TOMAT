@@ -22,6 +22,15 @@ export const SPANDUK_VISUALS = {
   spanduk_royal_mathematician: { gradient: 'linear-gradient(115deg,#17120c,#45351b 48%,#d4af37)', luxury: 'royal', image: '/dekrit-mahaguru.svg' },
 }
 
+// Tema visuals — mirrors shop_items seed in server/schema.js
+export const TEMA_VISUALS = {
+  tema_space: { accent: '#22d3ee', gradient: 'linear-gradient(135deg,#020610,#0a0f1e)', swatches: ['#020610','#0a0f1e','#22d3ee','#6366f1'], label: 'Luar Angkasa' },
+  tema_hutan: { accent: '#4ade80', gradient: 'linear-gradient(135deg,#021408,#04230e)', swatches: ['#021408','#04230e','#4ade80','#2dd4bf'], label: 'Hutan Mistis' },
+  tema_api:   { accent: '#f59e0b', gradient: 'linear-gradient(135deg,#150502,#2d0a04)', swatches: ['#150502','#2d0a04','#f59e0b','#ef4444'], label: 'Api Merah'   },
+  tema_salju: { accent: '#7dd3fc', gradient: 'linear-gradient(135deg,#0a1929,#0f2744)', swatches: ['#0a1929','#0f2744','#7dd3fc','#e0f2fe'], label: 'Salju'        },
+  tema_void:  { accent: '#a855f7', gradient: 'linear-gradient(135deg,#000000,#0d0014)', swatches: ['#000000','#0d0014','#a855f7','#ec4899'], label: 'Void', limited: true },
+}
+
 // Stiker visuals — placeholder for future sticker cosmetics
 export const STIKER_VISUALS = {}
 

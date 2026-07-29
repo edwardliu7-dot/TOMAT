@@ -350,6 +350,12 @@ export async function ensureSchema() {
       tier: 'langka', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
       desc: 'Naga es dari puncak gunung beku. Napasnya membekukan segalanya, matanya biru seperti samudra arktik.'
     }, 12],
+    // Tema — shifts the game screen color palette + particle overlay
+    ['tema_space', 'tema', 'Luar Angkasa', 1500, { accent: '#22d3ee', gradient: 'linear-gradient(135deg,#020610,#0a0f1e)', swatches: ['#020610','#0a0f1e','#22d3ee','#6366f1'], description: 'Background galaxy gelap, aksen cyan, partikel bintang.' }, 1],
+    ['tema_hutan', 'tema', 'Hutan Mistis',  2000, { accent: '#4ade80', gradient: 'linear-gradient(135deg,#021408,#04230e)', swatches: ['#021408','#04230e','#4ade80','#2dd4bf'], description: 'Gradien hijau tua, aksen hijau neon, partikel daun.' }, 2],
+    ['tema_api',   'tema', 'Api Merah',     2500, { accent: '#f59e0b', gradient: 'linear-gradient(135deg,#150502,#2d0a04)', swatches: ['#150502','#2d0a04','#f59e0b','#ef4444'], description: 'Gradien merah-oranye, aksen amber, overlay nyala.' }, 3],
+    ['tema_salju', 'tema', 'Salju',         2000, { accent: '#7dd3fc', gradient: 'linear-gradient(135deg,#0a1929,#0f2744)', swatches: ['#0a1929','#0f2744','#7dd3fc','#e0f2fe'], description: 'Biru muda + putih, aksen ice-blue, partikel salju.' }, 4],
+    ['tema_void',  'tema', 'Void',          8000, { accent: '#a855f7', gradient: 'linear-gradient(135deg,#000000,#0d0014)', swatches: ['#000000','#0d0014','#a855f7','#ec4899'], glow: true, limited: true, edition: 'LIMITED', description: 'Hitam pekat, aksen ungu neon, partikel void.' }, 5],
     // Stiker — placed freely on banner canvas
     ['stiker_roket',   'stiker', 'Roket Belajar',  200,  { emoji: '🚀', tier: 'common' }, 1],
     ['stiker_api',     'stiker', 'Api Semangat',   200,  { emoji: '🔥', tier: 'common' }, 2],

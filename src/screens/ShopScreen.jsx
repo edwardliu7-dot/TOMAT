@@ -127,6 +127,25 @@ function ItemVisual({ item }) {
     return <div style={{ width: '100%', height: 64, borderRadius: 12, background: v.gradient || '#334155', boxShadow: v.glow ? '0 0 20px rgba(212,175,55,0.3)' : 'none', border: v.limited ? '1px solid rgba(212,175,55,0.55)' : 'none' }} />
   }
 
+  if (item.kategori === 'tema') {
+    const v = item.visual || {}
+    const sw = v.swatches || []
+    return (
+      <div style={{ width: '100%', height: 80, borderRadius: 12, overflow: 'hidden', position: 'relative', background: v.gradient || '#1A1D27', border: v.limited ? `1px solid ${v.accent}44` : '1px solid rgba(255,255,255,0.08)', boxShadow: v.glow ? `0 0 18px ${v.accent}33` : 'none' }}>
+        {/* glow orb */}
+        {v.accent && <div style={{ position: 'absolute', width: 70, height: 70, borderRadius: '50%', background: v.accent, filter: 'blur(34px)', opacity: 0.22, top: '-30%', left: '28%', pointerEvents: 'none' }} />}
+        {/* dot particles */}
+        {[12,28,42,56,72,85].map((x, i) => (
+          <div key={i} style={{ position: 'absolute', width: 1.5, height: 1.5, borderRadius: '50%', background: '#fff', opacity: 0.18 + i * 0.04, left: `${x}%`, top: `${10 + i * 12}%` }} />
+        ))}
+        {/* swatches */}
+        <div style={{ position: 'absolute', bottom: 7, left: 10, display: 'flex', gap: 5 }}>
+          {sw.map((c, i) => <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: c, border: '1px solid rgba(255,255,255,0.18)', flexShrink: 0 }} />)}
+        </div>
+      </div>
+    )
+  }
+
   return <div style={{ width: 76, height: 76, borderRadius: 12, background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>❔</div>
 }
 
@@ -345,6 +364,174 @@ function PetTokoTab({ data, onRefresh, setError }) {
   )
 }
 
+// ── Deterministic dot positions for tema preview strip ──────────────────────
+const TEMA_DOTS = Array.from({ length: 14 }, (_, i) => ({
+  left: ((i * 137.5 + 11) % 100).toFixed(1),
+  top:  ((i * 83.7  +  7) % 100).toFixed(1),
+  size: (1 + (i % 3) * 0.5).toFixed(1),
+  op:   (0.18 + (i % 4) * 0.08).toFixed(2),
+}))
+
+const DEFAULT_TEMA_ENTRY = {
+  id:       null,
+  nama:     'Default',
+  kategori: 'tema',
+  harga:    0,
+  visual: {
+    gradient:    'linear-gradient(135deg,#071321,#0d1b2e)',
+    accent:      '#22d3ee',
+    swatches:    ['#071321','#0d1b2e','#22d3ee','#818cf8'],
+    description: 'Tema bawaan TOMAT — biru galaksi & cyan.',
+    limited:     false,
+  },
+}
+
+function TemaCard({ tema, isEquipped, owned, affordable, busy, onAction }) {
+  const v = tema.visual || {}
+  const accent = v.accent || '#22d3ee'
+  const isDefault = tema.id === null
+  return (
+    <div style={{
+      borderRadius: 18, overflow: 'hidden', border: `1px solid ${isEquipped ? accent + '55' : 'rgba(255,255,255,0.07)'}`,
+      boxShadow: isEquipped ? `0 0 20px ${accent}22` : 'none',
+      transition: 'border-color 0.2s, box-shadow 0.2s',
+    }}>
+      {/* ── Preview strip ── */}
+      <div style={{ height: 64, position: 'relative', overflow: 'hidden', background: v.gradient || '#071321' }}>
+        {/* Dot particles */}
+        {TEMA_DOTS.map((d, i) => (
+          <div key={i} style={{ position: 'absolute', borderRadius: '50%', background: '#fff', pointerEvents: 'none',
+            left: `${d.left}%`, top: `${d.top}%`, width: `${d.size}px`, height: `${d.size}px`, opacity: d.op }} />
+        ))}
+        {/* Glow orb */}
+        <div style={{ position: 'absolute', width: 80, height: 80, borderRadius: '50%', background: accent,
+          filter: 'blur(36px)', opacity: 0.28, top: '-35%', left: '20%', pointerEvents: 'none' }} />
+        {/* Swatches */}
+        <div style={{ position: 'absolute', bottom: 8, left: 12, display: 'flex', gap: 5 }}>
+          {(v.swatches || []).map((c, i) => (
+            <div key={i} style={{ width: 13, height: 13, borderRadius: '50%', background: c,
+              border: '1px solid rgba(255,255,255,0.22)', flexShrink: 0 }} />
+          ))}
+        </div>
+        {/* Badges */}
+        <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+          {v.limited && !isEquipped && (
+            <div style={{ background: 'rgba(234,179,8,0.9)', color: '#422006', fontSize: 9, fontWeight: 900,
+              padding: '3px 7px', borderRadius: 99, letterSpacing: 0.5 }}>★ LIMITED</div>
+          )}
+          {isEquipped && (
+            <div style={{ background: accent, color: '#000', fontSize: 9, fontWeight: 900,
+              padding: '3px 7px', borderRadius: 99 }}>✓ DIPAKAI</div>
+          )}
+          {!isEquipped && !isDefault && (
+            <div style={{ background: `${accent}22`, border: `1px solid ${accent}44`, color: accent,
+              fontSize: 9, fontWeight: 900, padding: '3px 7px', borderRadius: 99 }}>
+              🪙 {tema.harga.toLocaleString('id-ID')}
+            </div>
+          )}
+          {isDefault && !isEquipped && (
+            <div style={{ background: 'rgba(148,163,184,0.15)', border: '1px solid rgba(148,163,184,0.3)',
+              color: '#94A3B8', fontSize: 9, fontWeight: 800, padding: '3px 7px', borderRadius: 99 }}>GRATIS</div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Card body ── */}
+      <div style={{ background: 'rgba(255,255,255,0.025)', padding: '12px 14px',
+        display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {tema.nama}
+          </div>
+          {v.description && (
+            <div style={{ fontSize: 11, color: '#64748B', marginTop: 3, lineHeight: 1.4 }}>{v.description}</div>
+          )}
+        </div>
+        <button
+          onClick={onAction}
+          disabled={busy || isEquipped || (!owned && !affordable)}
+          style={{
+            flexShrink: 0, padding: '8px 14px', borderRadius: 12, border: 'none',
+            fontSize: 11, fontWeight: 900, cursor: (busy || isEquipped || (!owned && !affordable)) ? 'default' : 'pointer',
+            fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all 0.15s',
+            ...(isEquipped
+              ? { background: `${accent}22`, color: accent, border: `1px solid ${accent}44` }
+              : owned || isDefault
+              ? { background: '#4F46E5', color: '#fff', boxShadow: '0 0 12px rgba(99,102,241,0.3)' }
+              : affordable
+              ? { background: '#EAB308', color: '#1a1000', boxShadow: '0 0 12px rgba(234,179,8,0.3)' }
+              : { background: 'rgba(255,255,255,0.05)', color: '#475569', cursor: 'not-allowed' })
+          }}
+        >
+          {busy ? '…'
+            : isEquipped ? '✓ Aktif'
+            : (owned || isDefault) ? 'Pakai'
+            : affordable ? `Beli`
+            : '🔒 Kurang'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function TemaTokoTab({ data, onBuy, onEquip, busyId, onRefresh, refreshMe, setError }) {
+  const [defaultBusy, setDefaultBusy] = useState(false)
+
+  const temaItems  = data.items.filter(it => it.kategori === 'tema')
+  const equippedId = data.equipped.tema   // null → default is active
+  const allTemas   = [DEFAULT_TEMA_ENTRY, ...temaItems]
+
+  const equipDefault = async () => {
+    if (equippedId === null) return
+    setDefaultBusy(true); setError('')
+    try {
+      await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: null } })
+      await onRefresh(); await refreshMe()
+    } catch (err) { setError(err.message) }
+    finally { setDefaultBusy(false) }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {allTemas.map(tema => {
+        const isDefault = tema.id === null
+        const isEquipped = isDefault ? equippedId === null : equippedId === tema.id
+        const owned = isDefault || data.ownedItemIds.includes(tema.id)
+        const affordable = isDefault || data.coins >= tema.harga
+        const busy = isDefault ? defaultBusy : busyId === tema.id
+
+        const onAction = isDefault
+          ? equipDefault
+          : owned
+          ? () => onEquip(tema)
+          : () => onBuy(tema)
+
+        return (
+          <TemaCard
+            key={tema.id ?? 'default'}
+            tema={tema}
+            isEquipped={isEquipped}
+            owned={owned}
+            affordable={affordable}
+            busy={busy}
+            onAction={onAction}
+          />
+        )
+      })}
+
+      {/* Info banner */}
+      <div style={{ borderRadius: 16, background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.18)',
+        padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 4 }}>
+        <span style={{ fontSize: 15, flexShrink: 0 }}>🎨</span>
+        <p style={{ fontSize: 11, color: 'rgba(165,180,252,0.75)', lineHeight: 1.6, margin: 0 }}>
+          Tema mengubah tampilan <strong style={{ color: '#C4B5FD' }}>layar permainan</strong> — warna latar, efek cahaya, dan partikel. Profil &amp; toko tidak terpengaruh.
+        </p>
+      </div>
+      <div style={{ height: 8 }} />
+    </div>
+  )
+}
+
 function ItemCard({ item, data, onBuy, onEquip, busyId }) {
   const owned = data.ownedItemIds.includes(item.id)
   const equipped = data.equipped[item.kategori] === item.id
@@ -423,6 +610,7 @@ export default function ShopScreen({ goBack, initialTab }) {
   // ── Item grid ──
   const ItemGrid = () => {
     if (tab === 'pet_skin') return <PetTokoTab data={data} onRefresh={refresh} setError={setError} />
+    if (tab === 'tema') return <TemaTokoTab data={data} onBuy={buy} onEquip={equip} busyId={busyId} onRefresh={refresh} refreshMe={refreshMe} setError={setError} />
     if (items.length === 0) return (
       <div style={{ textAlign: 'center', padding: '40px 16px', color: '#6B7280' }}>
         <div style={{ fontSize: 32, marginBottom: 10 }}>✨</div>
@@ -437,7 +625,7 @@ export default function ShopScreen({ goBack, initialTab }) {
     for (const item of items) grouped[getItemRarity(item)].push(item)
     const activeRarities = RARITY_ORDER.filter(r => grouped[r].length > 0)
 
-    const cols = tab === 'spanduk' ? '1fr' : isDesktop ? 'repeat(3,1fr)' : 'repeat(2,1fr)'
+    const cols = (tab === 'spanduk' || tab === 'tema') ? '1fr' : isDesktop ? 'repeat(3,1fr)' : 'repeat(2,1fr)'
 
     return (
       <div>

@@ -119,6 +119,7 @@ function DuelGamePickerModal({ target, onPick, onCancel }) {
 }
 import GameDesktopWrapper from './components/GameDesktopWrapper'
 import { fetchPublicProfile, normalizeProfileTarget } from './components/shared'
+import { getGameTheme, GameThemeOverlay } from './gameTheme'
 
 // Auth-aware wrappers — need useAuth inside the PlayerProvider/AuthContext tree
 function TournamentMatchWithAuth({ matchData, goBack, onMatchOver }) {
