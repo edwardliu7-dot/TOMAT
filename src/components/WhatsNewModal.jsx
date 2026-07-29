@@ -5,25 +5,30 @@ const STORAGE_KEY = `tomat_seen_whats_new_v${APP_VERSION}`
 
 const CHANGES = [
   {
-    icon: '🐾',
-    title: 'Sistem HP Pet Diperbaiki',
-    body: 'Mengganti skin dalam satu jenis pet tidak lagi mereset HP. Semua skin Tomi berbagi HP yang sama — begitu juga Kelinsay, Monyang, dan Nananaga.',
-  },
-  {
     icon: '🌟',
     title: 'Bonus Keistimewaan Pet',
-    body: 'Setiap pet & skin kini punya bonus unik: Tomi menambah Koin, Kelinsay menambah EXP, Monyang menambah keduanya, dan Nananaga membuat makanan lebih awet!',
+    body: 'Setiap pet & skin kini punya keistimewaan unik yang aktif saat bermain: Tomi menambah Koin, Kelinsay menambah EXP, Monyang menambah keduanya, dan Nananaga membuat makanan lebih awet. Semakin tinggi skin, semakin besar bonusnya!',
     highlight: true,
+  },
+  {
+    icon: '📖',
+    title: 'Kisah Pet di Toko',
+    body: 'Buka toko dan temukan cerita unik di balik setiap pet dan skin — dari Tomi si pahlawan emas, Kelinsay sahabat setia, Monyang raja usil, hingga Nananaga sang legenda Negeri TOMAT!',
+  },
+  {
+    icon: '🐾',
+    title: 'Sistem HP Pet Diperbaiki',
+    body: 'Mengganti skin Tomi tidak lagi mereset HP-nya. Semua skin dalam satu pet berbagi HP yang sama — HP Tomi tetap, hanya penampilannya yang berubah.',
   },
   {
     icon: '🎨',
     title: 'Skin Dasar Bisa Dipakai Kembali',
-    body: 'Kamu bisa kembali ke Golden Marmut kapan saja lewat toko pet — tidak ada lagi jebakan tanpa tombol balik.',
+    body: 'Kamu bisa kembali ke Golden Marmut kapan saja lewat toko pet.',
   },
   {
     icon: '🔧',
     title: 'Perbaikan & Penyempurnaan',
-    body: 'Berbagai perbaikan kecil untuk pengalaman bermain yang lebih lancar dan stabil.',
+    body: 'Perbaikan koneksi jaringan Android, penyempurnaan performa, dan berbagai peningkatan stabilitas.',
   },
 ]
 
