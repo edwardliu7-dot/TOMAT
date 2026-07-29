@@ -221,7 +221,7 @@ const PET_RARITY_GROUPS = [
     color: '#94A3B8',
     bg: 'rgba(148,163,184,0.10)',
     border: 'rgba(148,163,184,0.22)',
-    skins: ['golden', 'pet_skin_silver', 'pet_kelinsay', 'pet_kelinsay_senja', 'pet_kelinsay_malam'],
+    skins: ['golden', 'pet_skin_silver', 'pet_kelinsay', 'pet_kelinsay_senja'],
   },
   {
     id: 'langka',
@@ -230,7 +230,7 @@ const PET_RARITY_GROUPS = [
     color: '#FB923C',
     bg: 'rgba(251,146,60,0.10)',
     border: 'rgba(251,146,60,0.22)',
-    skins: ['pet_nananaga', 'pet_nananaga_merah', 'pet_nananaga_es'],
+    skins: ['pet_kelinsay_malam', 'pet_skin_void', 'pet_monyong_kosmik', 'pet_nananaga', 'pet_nananaga_merah', 'pet_nananaga_es'],
   },
   {
     id: 'epic',
@@ -239,7 +239,7 @@ const PET_RARITY_GROUPS = [
     color: '#C084FC',
     bg: 'rgba(192,132,252,0.12)',
     border: 'rgba(192,132,252,0.25)',
-    skins: ['pet_monyong', 'pet_monyong_raja', 'pet_monyong_kosmik', 'pet_skin_cosmic', 'pet_skin_void'],
+    skins: ['pet_skin_cosmic', 'pet_monyong', 'pet_monyong_raja'],
   },
 ]
 

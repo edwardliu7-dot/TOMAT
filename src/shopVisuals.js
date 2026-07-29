@@ -66,9 +66,9 @@ export const PET_SKIN_INFO = {
     glow: 'rgba(249,115,22,0.38)', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay', rarity: 'umum',
   },
   pet_kelinsay_malam: {
-    nama: 'Kelinsay Malam', tier: 'UMUM', tierColor: '#A78BFA',
+    nama: 'Kelinsay Malam', tier: 'LANGKA', tierColor: '#A78BFA',
     desc: 'Bulu malam bertabur bintang. Pendiam, elegan, ditemani cahaya bulan.',
-    glow: 'rgba(99,102,241,0.42)', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay', rarity: 'umum',
+    glow: 'rgba(99,102,241,0.42)', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay', rarity: 'langka',
   },
   // ── LANGKA ──────────────────────────────────────────────────────────────────
   pet_nananaga: {
@@ -98,9 +98,9 @@ export const PET_SKIN_INFO = {
     glow: 'rgba(212,175,55,0.42)', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong', rarity: 'epic',
   },
   pet_monyong_kosmik: {
-    nama: 'Monyang Kosmik', tier: 'EPIC', tierColor: '#C084FC',
+    nama: 'Monyang Kosmik', tier: 'LANGKA', tierColor: '#C084FC',
     desc: 'Monyet penjelajah galaksi dengan bulu nebula dan bintang-bintang yang berkilau.',
-    glow: 'rgba(168,85,247,0.48)', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong', rarity: 'epic',
+    glow: 'rgba(168,85,247,0.48)', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong', rarity: 'langka',
   },
   pet_skin_cosmic: {
     nama: 'Cosmic Fluff', tier: 'EPIC', tierColor: '#A78BFA',
@@ -108,9 +108,9 @@ export const PET_SKIN_INFO = {
     glow: 'rgba(167,139,250,0.45)', rarity: 'epic',
   },
   pet_skin_void: {
-    nama: 'Void Emperor', tier: 'EPIC', tierColor: '#F59E0B',
+    nama: 'Void Emperor', tier: 'LANGKA', tierColor: '#F59E0B',
     desc: 'Marmut hitam pekat berpendar emas, jubah dan mahkota kerajaan. Dominasi leaderboard.',
-    glow: 'rgba(245,158,11,0.55)', rarity: 'epic',
+    glow: 'rgba(245,158,11,0.55)', rarity: 'langka',
   },
 }
 

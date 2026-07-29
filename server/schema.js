@@ -320,7 +320,7 @@ export async function ensureSchema() {
     // Pet skins — purchasable once, stored in student_inventory
     ['pet_skin_silver', 'pet_skin', 'Silver Fluff',   800,  { tier: 'premium',   desc: 'Bulu perak berkilau. Menunjukkan siswa aktif dan rajin mengumpulkan koin.' }, 1],
     ['pet_skin_cosmic', 'pet_skin', 'Cosmic Fluff',  2000,  { tier: 'eksklusif', desc: 'Bulu ungu-biru galaksi dengan bintang berkelip di rosette.' }, 2],
-    ['pet_skin_void',   'pet_skin', 'Void Emperor',  5000,  { tier: 'legendaris',desc: 'Bulu hitam pekat berpendar emas, mahkota emas. Dominasi leaderboard.' }, 3],
+    ['pet_skin_void',   'pet_skin', 'Void Emperor',  7000,  { tier: 'langka', desc: 'Bulu hitam pekat berpendar emas, jubah dan mahkota kerajaan. Dominasi leaderboard.' }, 3],
     // New animal pets — different base animal, not a Tomi skin
     ['pet_kelinsay', 'pet_skin', 'Kelinsay',  3000, { tier: 'umum',   baseAnimal: 'kelinci', desc: 'Kelinci putih lembut berhati hangat. Telinganya panjang, selalu mendengarkan.' }, 4],
     ['pet_monyong',  'pet_skin', 'Monyang',   8000, { tier: 'epic',   baseAnimal: 'monyet',  desc: 'Monyet ceria penuh ekspresi. Ekornya selalu berayun dan senyumnya lebar!' }, 5],
@@ -330,16 +330,16 @@ export async function ensureSchema() {
       tier: 'umum+', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
       desc: 'Bulu hangat warna senja. Muncul saat matahari terbenam, membawa ketenangan dan semangat belajar.'
     }, 7],
-    ['pet_kelinsay_malam', 'pet_skin', 'Kelinsay Malam', 4500, {
-      tier: 'premium', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
+    ['pet_kelinsay_malam', 'pet_skin', 'Kelinsay Malam', 6000, {
+      tier: 'langka', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
       desc: 'Bulu malam bertabur bintang. Pendiam, elegan, dan selalu ditemani cahaya bulan.'
     }, 8],
     ['pet_monyong_raja', 'pet_skin', 'Monyang Raja', 12000, {
       tier: 'epic', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
       desc: 'Mahkota emas bertahta di kepalanya. Monyang Raja memerintah leaderboard dengan senyum lebarnya.'
     }, 9],
-    ['pet_monyong_kosmik', 'pet_skin', 'Monyang Kosmik', 10000, {
-      tier: 'epic', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
+    ['pet_monyong_kosmik', 'pet_skin', 'Monyang Kosmik', 9000, {
+      tier: 'langka', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
       desc: 'Monyet penjelajah galaksi dengan bulu nebula dan bintang-bintang yang berkilau di sekelilingnya.'
     }, 10],
     ['pet_nananaga_merah', 'pet_skin', 'Nananaga Merah', 18000, {
