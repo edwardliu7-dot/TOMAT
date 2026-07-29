@@ -1,5 +1,5 @@
 // ── NananagaSprite — sprite-sheet renderer untuk pet Nananaga ────────────────
-// Sprite: /nananaga-sprite.png — 768×768, 6 cols × 6 rows, 128×128 per cell
+// All skins: 768×768, 6 cols × 6 rows, 128×128 per cell (uniform grid)
 // Rows: IDLE(0,5f) WALK(1,6f) HAPPY(2,6f) HUNGRY(3,5f) SLEEPING(4,5f) DEAD(5,5f)
 import React, { useMemo } from 'react'
 
@@ -17,11 +17,11 @@ const STATE_CFG = {
   dead:     { row: 5, frames: 5, fps: 4 },
 }
 
-// CSS filter per variant — base sprite is natural green Nananaga
-const SKIN_FILTER = {
-  pet_nananaga:       'none',
-  pet_nananaga_merah: 'hue-rotate(240deg) saturate(1.5) brightness(1.05)',  // green → red
-  pet_nananaga_es:    'hue-rotate(80deg) saturate(0.85) brightness(1.2)',   // green → ice blue
+// Skin → sprite sheet mapping (each skin has its own dedicated art)
+const SKIN_SPRITE = {
+  pet_nananaga:       '/nananaga-sprite.png',
+  pet_nananaga_merah: '/nananaga-api.png',
+  pet_nananaga_es:    '/nananaga-es.png',
 }
 
 const _injected = new Set()
@@ -55,7 +55,7 @@ export default function NananagaSprite({ state = 'idle', variant = 'pet_nananaga
   const bgH      = SHEET_H * scale
   const bgY      = -(cfg.row * CELL_H * scale)
   const duration = (cfg.frames / cfg.fps).toFixed(3)
-  const filter   = SKIN_FILTER[variant] || 'none'
+  const sprite   = SKIN_SPRITE[variant] || SKIN_SPRITE.pet_nananaga
 
   return (
     <div style={{
@@ -63,14 +63,13 @@ export default function NananagaSprite({ state = 'idle', variant = 'pet_nananaga
       height:              size,
       flexShrink:          0,
       overflow:            'hidden',
-      backgroundImage:     'url(/nananaga-sprite.png)',
+      backgroundImage:     `url(${sprite})`,
       backgroundSize:      `${bgW.toFixed(1)}px ${bgH.toFixed(1)}px`,
       backgroundPositionY: `${bgY.toFixed(2)}px`,
       backgroundRepeat:    'no-repeat',
       animation:           `${animName} ${duration}s steps(${cfg.frames}) infinite`,
       willChange:          'background-position-x',
       imageRendering:      'auto',
-      filter,
     }} />
   )
 }

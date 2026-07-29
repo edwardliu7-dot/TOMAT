@@ -212,6 +212,37 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
   )
 }
 
+// ── Rarity config for pet grouping ──────────────────────────────────────────
+const PET_RARITY_GROUPS = [
+  {
+    id: 'umum',
+    label: 'Umum',
+    icon: '◆',
+    color: '#94A3B8',
+    bg: 'rgba(148,163,184,0.10)',
+    border: 'rgba(148,163,184,0.22)',
+    skins: ['golden', 'pet_skin_silver', 'pet_kelinsay', 'pet_kelinsay_senja', 'pet_kelinsay_malam'],
+  },
+  {
+    id: 'langka',
+    label: 'Langka',
+    icon: '◈',
+    color: '#FB923C',
+    bg: 'rgba(251,146,60,0.10)',
+    border: 'rgba(251,146,60,0.22)',
+    skins: ['pet_nananaga', 'pet_nananaga_merah', 'pet_nananaga_es'],
+  },
+  {
+    id: 'epic',
+    label: 'Epic',
+    icon: '★',
+    color: '#C084FC',
+    bg: 'rgba(192,132,252,0.12)',
+    border: 'rgba(192,132,252,0.25)',
+    skins: ['pet_monyong', 'pet_monyong_raja', 'pet_monyong_kosmik', 'pet_skin_cosmic', 'pet_skin_void'],
+  },
+]
+
 function PetTokoTab({ data, onRefresh, setError }) {
   const { pet, feedPet, revivePet, refreshPet } = usePet()
   const { refreshMe } = useAuth()
@@ -219,12 +250,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const [localError, setLocalError] = useState('')
   const [feedSuccess, setFeedSuccess] = useState('')
 
-  const tomiSkins  = ['golden', 'pet_skin_silver', 'pet_skin_cosmic', 'pet_skin_void']
-  const newPets    = ['pet_kelinsay', 'pet_monyong', 'pet_nananaga']
-  const kelinsaySkins = ['pet_kelinsay_senja', 'pet_kelinsay_malam']
-  const monyongSkins = ['pet_monyong_raja', 'pet_monyong_kosmik']
-  const nananagaSkins = ['pet_nananaga_merah', 'pet_nananaga_es']
-  const equippedSkin = data.equipped.pet_skin || 'golden'
+  const equippedSkin  = data.equipped.pet_skin || 'golden'
   const activePetName = getPetName(equippedSkin)
 
   const buyEquipSkin = async (skinId) => {
@@ -262,6 +288,8 @@ function PetTokoTab({ data, onRefresh, setError }) {
   return (
     <div style={{ paddingBottom: 40 }}>
       <style>{PET_CSS}</style>
+
+      {/* ── Active pet status ── */}
       <div style={{ margin: '0 0 20px', background: 'linear-gradient(160deg,#0d1b2a,#1a0d2e)', border: '1px solid rgba(245,166,35,0.2)', borderRadius: 20, padding: 20, display: 'flex', alignItems: 'flex-end', gap: 16 }}>
         <div style={{ animation: STATE_ANIMS[pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'], transformOrigin: 'center bottom' }}>
           <PetSVG state={pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'} skinId={equippedSkin} size={96} />
@@ -287,40 +315,28 @@ function PetTokoTab({ data, onRefresh, setError }) {
         </div>
       )}
 
-      {/* ── Tomi skins ── */}
-      <div style={{ fontSize: 11, color: '#F5A623', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🐹 Tomi &amp; Kostum</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: 28 }}>
-        {tomiSkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} />)}
-      </div>
+      {/* ── Rarity groups ── */}
+      {PET_RARITY_GROUPS.map(group => (
+        <div key={group.id} style={{ marginBottom: 28 }}>
+          {/* Section header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: group.bg, border: `1px solid ${group.border}`, borderRadius: 99, padding: '3px 10px' }}>
+              <span style={{ fontSize: 10, color: group.color }}>{group.icon}</span>
+              <span style={{ fontSize: 10, fontWeight: 900, color: group.color, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{group.label}</span>
+            </div>
+            <div style={{ flex: 1, height: 1, background: `${group.color}28` }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: group.color + '88' }}>{group.skins.length} skin</span>
+          </div>
+          {/* Skin cards in 2-column grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+            {group.skins.map(skinId => (
+              <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} />
+            ))}
+          </div>
+        </div>
+      ))}
 
-      {/* ── New animal pets ── */}
-      <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>🐾 Pet Baru</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Ganti petmu dengan hewan lain! Membeli pet baru tidak menghapus Tomi — kamu bisa ganti kapan saja.</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
-        {newPets.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
-      </div>
-
-      {/* ── Kelinsay skins ── */}
-      <div style={{ fontSize: 11, color: '#FB923C', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>🌅 Skin Kelinsay</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Skin khusus Kelinsay hanya terbuka setelah kamu memiliki pet Kelinsay.</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
-        {kelinsaySkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
-      </div>
-
-      {/* ── Monyang skins ── */}
-      <div style={{ fontSize: 11, color: '#C084FC', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>👑 Skin Monyang</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Skin khusus Monyang hanya terbuka setelah kamu memiliki pet Monyang.</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
-        {monyongSkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
-      </div>
-
-      {/* ── Nananaga skins ── */}
-      <div style={{ fontSize: 11, color: '#38BDF8', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>🔥 Skin Nananaga</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Skin khusus Nananaga hanya terbuka setelah kamu memiliki pet Nananaga.</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
-        {nananagaSkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
-      </div>
-
+      {/* ── Dead / revive block ── */}
       {pet.isDead && (
         <div style={{ marginBottom: 24, borderRadius: 18, background: 'linear-gradient(145deg,#1a0000,#2d0a0a)', border: '2px solid rgba(239,68,68,0.4)', padding: '20px 16px', textAlign: 'center' }}>
           <div style={{ fontSize: 52, marginBottom: 10 }}>💀</div>
@@ -333,6 +349,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
         </div>
       )}
 
+      {/* ── Food shop ── */}
       <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🌾 Toko Makanan Pet</div>
       {pet.isDead ? (
         <div style={{ padding: '16px', borderRadius: 14, background: 'rgba(239,68,68,0.07)', border: '1px dashed rgba(239,68,68,0.3)', textAlign: 'center', fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>

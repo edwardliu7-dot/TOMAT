@@ -1,5 +1,5 @@
 // ── MonyangSprite — sprite-sheet renderer untuk pet Monyang ──────────────────
-// Sprite: /monyang-sprite.png — 768×768, 6 cols × 6 rows, 128×128 per cell
+// All skins: 768×768, 6 cols × 6 rows, 128×128 per cell (uniform grid)
 // Rows: IDLE(0,5f) WALK(1,6f) HAPPY(2,6f) HUNGRY(3,5f) SLEEPING(4,5f) DEAD(5,5f)
 import React, { useMemo } from 'react'
 
@@ -21,7 +21,7 @@ const STATE_CFG = {
 const SKIN_SPRITE = {
   pet_monyong:        '/monyang-sprite.png',
   pet_monyong_raja:   '/monyang-raja.png',
-  pet_monyong_kosmik: '/monyang-sprite.png',   // no dedicated sheet yet — fallback to base
+  pet_monyong_kosmik: '/monyang-kosmik.png',
 }
 
 const _injected = new Set()

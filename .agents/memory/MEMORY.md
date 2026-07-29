@@ -22,3 +22,5 @@
 - [TOMAT Boss Raid](tomat-boss-raid.md) — Co-op event: guru creates via REST, students attack via socket; boss-state.js shared module; setIo() wires socket to REST layer; 60s cooldown per student; 100 HP per correct answer.
 - [TOMAT auth bootstrap resilience](tomat-auth-bootstrap-resilience.md) — session checks must time out so database/session-store outages cannot keep the splash screen visible forever.
 - [TOMAT profile contract](tomat-profile-contract.md) — normalize profile targets once, reuse access-checked data, and distinguish omitted photo updates from explicit null.
+- [TOMAT pet sprite sheets](tomat-pet-sprites.md) — all 9 skin sprite sheets are 768×768 6×6 uniform grid (128×128/cell); dead row has 4 frames for kelinsay skins, 5 for all others; NananagaSprite uses dedicated sheets (no CSS filter); PetTokoTab groups by Umum/Langka/Epic.
+- [TOMAT gameTheme JSX fix](tomat-gametheme-jsx.md) — gameTheme.js contained JSX and must stay as gameTheme.jsx; Vite refuses to parse JSX in .js files blocking the whole app.
