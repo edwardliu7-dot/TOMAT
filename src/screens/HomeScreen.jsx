@@ -144,7 +144,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
   ]
 
   return (
-    <main className={`home-screen ${isDesktop ? 'home-screen--desktop' : 'home-screen--mobile'}`}>
+    <main className={`home-screen ${isDesktop ? 'home-screen--desktop' : 'home-screen--mobile'} ${guruMode ? 'home-screen--guru' : ''}`}>
       <div className="home-screen__glow home-screen__glow--one" />
       <div className="home-screen__glow home-screen__glow--two" />
       <div className="home-screen__glow home-screen__glow--three" />
@@ -363,6 +363,13 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
         .home-bottom-nav { display:none; }
         @media (max-width:1100px) and (min-width:901px) { .home-content { padding-inline:24px; } .home-topbar { padding-inline:24px; } }
         @media (max-width:900px) {
+          /* Guru mode: banner kembali jadi fixed di bawah topbar agar tidak tertindih */
+          .home-screen--guru .home-teacher-mode {
+            position: fixed; top: calc(62px + env(safe-area-inset-top, 0px));
+            left: 0; right: 0; z-index: 11;
+          }
+          /* Tambah padding-top konten supaya tidak tertutup dua bar */
+          .home-screen--guru .home-content { padding-top: 122px; }
           .home-topbar { position:fixed; top:0; left:0; right:0; z-index:10; min-height:62px; padding:calc(10px + env(safe-area-inset-top, 0px)) 16px 10px; }
           .home-topbar__date { display:none; }
           .home-topbar__actions { width:100%; justify-content:flex-end; }

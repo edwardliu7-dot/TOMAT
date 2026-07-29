@@ -2123,7 +2123,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
 
   // ── Mobile layout — fixed shell: topbar + scroll area + bottom nav ──
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: '#0A0B14', overflow: 'hidden' }}>
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: '#0A0B14', overflow: 'hidden', touchAction: 'pan-y' }}>
       {/* Background blobs */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
         <div style={{ position: 'absolute', top: '-10%', right: '-15%', width: '60%', height: '45%', borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(100px)' }} />
