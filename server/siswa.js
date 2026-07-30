@@ -46,6 +46,53 @@ router.get('/tugas', async (req, res) => {
   }
 })
 
+// POST /api/siswa/tugas/laporan-keluar — record student exiting app during task session
+router.post('/tugas/laporan-keluar', async (req, res) => {
+  try {
+    const { tugasId, correctAtExit, totalQuestions } = req.body || {}
+    const tId = parseInt(tugasId, 10)
+    if (!Number.isFinite(tId)) {
+      return res.status(400).json({ error: 'Data tidak valid.' })
+    }
+    const kelas = await getMyKelas(req)
+    const { rows: tugasRows } = await pool.query(
+      'select * from tugas where id = $1 and kelas = $2 limit 1',
+      [tId, kelas]
+    )
+    if (!tugasRows[0]) return res.status(404).json({ error: 'Tugas tidak ditemukan.' })
+    const tugas = tugasRows[0]
+
+    // Record exit event
+    await pool.query(
+      `insert into task_exit_reports (student_id, tugas_id, correct_at_exit, total_questions)
+       values ($1, $2, $3, $4)`,
+      [
+        req.session.user.id,
+        tId,
+        Math.max(0, parseInt(correctAtExit, 10) || 0),
+        Math.max(1, parseInt(totalQuestions, 10) || tugas.total_questions),
+      ]
+    )
+
+    // Notify guru
+    const studentName = req.session.user.name || req.session.user.username || 'Siswa'
+    await notifyUser({
+      userId: tugas.guru_id,
+      role:   'guru',
+      type:   'task_exit',
+      title:  '⚠️ Siswa Keluar Saat Tugas',
+      body:   `${studentName} meninggalkan aplikasi saat mengerjakan ${tugas.game_name}. Soal direset otomatis (${correctAtExit ?? 0}/${tugas.total_questions} terjawab saat keluar).`,
+      url:    '/',
+      metadata: { tugasId: tId, studentId: req.session.user.id, correctAtExit: correctAtExit ?? 0 },
+    })
+
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('siswa/tugas/laporan-keluar error', err)
+    res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  }
+})
+
 // POST /api/siswa/nilai — submit result of a completed task
 router.post('/nilai', async (req, res) => {
   try {

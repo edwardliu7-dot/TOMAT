@@ -76,6 +76,8 @@ export function TaskProvider({ children, onTaskComplete }) {
   const [activeSession, setActiveSession] = useState(null)
   // submitError: shown to student when the server rejects the grade submission
   const [submitError, setSubmitError] = useState(null)
+  // exitWarning: true when student was caught leaving and task was auto-reset
+  const [exitWarning, setExitWarning] = useState(false)
 
   const onTaskCompleteRef = useRef(onTaskComplete)
   useEffect(() => { onTaskCompleteRef.current = onTaskComplete }, [onTaskComplete])
@@ -112,6 +114,16 @@ export function TaskProvider({ children, onTaskComplete }) {
   const endTaskSession = useCallback(() => {
     setActiveSession(null)
   }, [])
+
+  // Called by useTaskGuard when the student leaves mid-task.
+  // Zeros correctAnswers/wrongAnswers so questions restart from the beginning,
+  // and raises the exitWarning flag so the UI can show a penalty modal.
+  const resetTaskSession = useCallback(() => {
+    setActiveSession(s => s ? { ...s, correctAnswers: 0, wrongAnswers: 0 } : null)
+    setExitWarning(true)
+  }, [])
+
+  const clearExitWarning = useCallback(() => setExitWarning(false), [])
 
   // Shared helper: submit grade when all questions have been answered (correct or wrong).
   const submitGrade = useCallback((session, newCorrect, newWrong) => {
@@ -185,9 +197,12 @@ export function TaskProvider({ children, onTaskComplete }) {
     getTaskForGame,
     startTaskSession,
     endTaskSession,
+    resetTaskSession,
+    clearExitWarning,
     refresh,
     submitError,
     clearSubmitError,
+    exitWarning,
   }
 
   return (

@@ -20,6 +20,7 @@ import ShopScreen from './screens/ShopScreen'
 import LeaderboardScreen from './screens/LeaderboardScreen'
 import BadgesScreen from './screens/BadgesScreen'
 import TaskOverlay from './components/TaskOverlay'
+import TaskGuard from './components/TaskGuard'
 import CommunicationScreen from './screens/CommunicationScreen'
 import LobbyScreen from './screens/LobbyScreen'
 import DuelKatakScreen from './screens/DuelKatakScreen'
@@ -666,6 +667,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               </ErrorBoundary>
               {/* Floating task progress strip — shown during any task session */}
               <TaskOverlay />
+              {/* Anti-cheat: resets task and warns student if they leave mid-session */}
+              <TaskGuard />
               {/* Error toast when tugas submission fails */}
               <SubmitErrorToast />
               {/* Nananaga immunity activation toast */}

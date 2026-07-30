@@ -73,6 +73,20 @@ export async function ensureSchema() {
       check (correct_count <= total_questions)
     );
   `)
+  // Task exit reports — records when a student leaves the app during a task session.
+  await pool.query(`
+    create table if not exists task_exit_reports (
+      id            serial primary key,
+      student_id    text not null references students(id) on delete cascade,
+      tugas_id      int  not null references tugas(id)    on delete cascade,
+      correct_at_exit  int not null default 0,
+      total_questions  int not null default 0,
+      reported_at   timestamptz not null default now()
+    );
+    create index if not exists task_exit_reports_tugas_idx
+      on task_exit_reports (tugas_id, reported_at desc);
+  `)
+
   // Communication: private teacher/student messages and class forums.
   // Access is enforced in server/komunikasi.js using the exact class roster
   // and teaching assignments, not only the client-side visibility.
