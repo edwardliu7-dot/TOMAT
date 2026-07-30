@@ -370,6 +370,78 @@ export async function ensureSchema() {
     ['tema_api',   'tema', 'Api Merah',     2500, { accent: '#f59e0b', gradient: 'linear-gradient(135deg,#150502,#2d0a04)', swatches: ['#150502','#2d0a04','#f59e0b','#ef4444'], description: 'Gradien merah-oranye, aksen amber, overlay nyala.' }, 3],
     ['tema_salju', 'tema', 'Salju',         2000, { accent: '#7dd3fc', gradient: 'linear-gradient(135deg,#0a1929,#0f2744)', swatches: ['#0a1929','#0f2744','#7dd3fc','#e0f2fe'], description: 'Biru muda + putih, aksen ice-blue, partikel salju.' }, 4],
     ['tema_void',  'tema', 'Void',          8000, { accent: '#a855f7', gradient: 'linear-gradient(135deg,#000000,#0d0014)', swatches: ['#000000','#0d0014','#a855f7','#ec4899'], glow: true, limited: true, edition: 'LIMITED', description: 'Hitam pekat, aksen ungu neon, partikel void.' }, 5],
+    // ── Seasonal event items ───────────────────────────────────────────────────
+    // Kemerdekaan RI (July 15 – Aug 31)
+    ['bingkai_kemerdekaan', 'bingkai', 'Bingkai 17 Agustus', 2500, {
+      image: '/bingkai-api.png', border: '#E11D48', mixBlend: 'screen', spread: 0.30, glow: true,
+      cssFilter: 'hue-rotate(-10deg) saturate(2) brightness(1.1)',
+      eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
+      description: 'Bingkai merah-putih semangat kemerdekaan Indonesia.',
+    }, 50],
+    ['tema_nusantara', 'tema', 'Nusantara', 3000, {
+      accent: '#E11D48', gradient: 'linear-gradient(135deg,#1a0009,#2d0004)',
+      swatches: ['#1a0009','#2d0004','#E11D48','#F1F5F9'],
+      eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
+      description: 'Tema merah-putih semangat hari kemerdekaan.',
+    }, 51],
+    ['pet_kelinsay_merahputih', 'pet_skin', 'Kelinsay Merah Putih', 3500, {
+      tier: 'langka', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
+      eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
+      desc: 'Kelinsay berbaju merah putih, bersemangat merayakan kemerdekaan!',
+    }, 52],
+    // Halloween (Oct 1 – Oct 31)
+    ['bingkai_halloween', 'bingkai', 'Bingkai Spooky', 2000, {
+      image: '/bingkai-api.png', border: '#F97316', mixBlend: 'screen', spread: 0.30, glow: true,
+      cssFilter: 'hue-rotate(15deg) saturate(3) brightness(0.9)',
+      eventSlug: 'halloween', limited: true, edition: 'EVENT 2026',
+      description: 'Bingkai menyeramkan untuk malam Halloween.',
+    }, 53],
+    ['tema_halloween', 'tema', 'Malam Seram', 3500, {
+      accent: '#F97316', gradient: 'linear-gradient(135deg,#0a0503,#1a0e00)',
+      swatches: ['#0a0503','#1a0e00','#F97316','#7C3AED'],
+      eventSlug: 'halloween', limited: true, edition: 'EVENT 2026',
+      description: 'Tema malam gelap penuh misteri.',
+    }, 54],
+    ['pet_kelinsay_labu', 'pet_skin', 'Kelinsay Labu Hantu', 5500, {
+      tier: 'epic', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
+      eventSlug: 'halloween', limited: true, edition: 'EVENT 2026',
+      desc: 'Kostum labu Halloween yang seram tapi menggemaskan. Boo!',
+    }, 55],
+    // Natal & Tahun Baru (Dec 15 – Jan 10)
+    ['bingkai_natal', 'bingkai', 'Bingkai Bintang Natal', 2000, {
+      image: '/bingkai-es.png', border: '#22C55E', mixBlend: 'screen', spread: 0.30, glow: true,
+      cssFilter: 'hue-rotate(130deg) saturate(1.8)',
+      eventSlug: 'natal', limited: true, edition: 'EVENT 2026',
+      description: 'Bingkai hijau-merah semarak musim Natal.',
+    }, 56],
+    ['tema_natal', 'tema', 'Salju Natal', 3000, {
+      accent: '#22C55E', gradient: 'linear-gradient(135deg,#021408,#0d1f0d)',
+      swatches: ['#021408','#0d1f0d','#22C55E','#EF4444'],
+      eventSlug: 'natal', limited: true, edition: 'EVENT 2026',
+      description: 'Tema hijau-merah semarak hari Natal.',
+    }, 57],
+    ['pet_skin_natal', 'pet_skin', 'Tomi Natal', 3500, {
+      tier: 'langka',
+      eventSlug: 'natal', limited: true, edition: 'EVENT 2026',
+      desc: 'Topi Sinterklas merah, semangat bagi-bagi hadiah!',
+    }, 58],
+    // Ramadan Mubarak (Feb 18 – Mar 20)
+    ['bingkai_ramadan', 'bingkai', 'Bingkai Bintang Bulan', 2000, {
+      image: '/bingkai-void-king.png', border: '#7C3AED', mixBlend: 'screen', spread: 0.30, glow: true,
+      cssFilter: 'hue-rotate(200deg) saturate(1.5)',
+      eventSlug: 'ramadan', limited: true, edition: 'EVENT 2027',
+      description: 'Bingkai bintang dan bulan sabit Ramadan yang penuh berkah.',
+    }, 59],
+    ['spanduk_ramadan', 'spanduk', 'Spanduk Ramadan', 2500, {
+      gradient: 'linear-gradient(90deg,#06041a,#100028,#3b0764)',
+      eventSlug: 'ramadan', limited: true, edition: 'EVENT 2027',
+      description: 'Spanduk ungu malam penuh cahaya Ramadan.',
+    }, 60],
+    ['pet_skin_ramadan', 'pet_skin', 'Tomi Ramadan', 4000, {
+      tier: 'langka',
+      eventSlug: 'ramadan', limited: true, edition: 'EVENT 2027',
+      desc: 'Peci putih dan baju koko, siap menyambut bulan suci!',
+    }, 61],
     // Stiker — placed freely on banner canvas
     ['stiker_roket',   'stiker', 'Roket Belajar',  200,  { emoji: '🚀', tier: 'common' }, 1],
     ['stiker_api',     'stiker', 'Api Semangat',   200,  { emoji: '🔥', tier: 'common' }, 2],

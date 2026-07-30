@@ -12,6 +12,11 @@ export const BINGKAI_VISUALS = {
   bingkai_void_monarch: { image: '/bingkai-void-monarch.png', border: '#6366F1', mixBlend: 'screen', spread: 0.30, glow: true, limited: true, luxury: 'void' },
   bingkai_petal_rose: { image: '/petal-rose.png', border: '#F9A8D4', style: 'solid', spread: 0.25 },
   bingkai_garuda: { image: '/garuda.gif', border: '#F59E0B', style: 'solid', glow: true, spread: 0.55 },
+  // ── Seasonal event bingkai ─────────────────────────────────────────────────
+  bingkai_kemerdekaan: { image: '/bingkai-api.png', border: '#E11D48', mixBlend: 'screen', spread: 0.30, glow: true, cssFilter: 'hue-rotate(-10deg) saturate(2) brightness(1.1)', limited: true, eventSlug: 'kemerdekaan' },
+  bingkai_halloween:   { image: '/bingkai-api.png', border: '#F97316', mixBlend: 'screen', spread: 0.30, glow: true, cssFilter: 'hue-rotate(15deg) saturate(3) brightness(0.9)', limited: true, eventSlug: 'halloween' },
+  bingkai_natal:       { image: '/bingkai-es.png',  border: '#22C55E', mixBlend: 'screen', spread: 0.30, glow: true, cssFilter: 'hue-rotate(130deg) saturate(1.8)', limited: true, eventSlug: 'natal' },
+  bingkai_ramadan:     { image: '/bingkai-void-king.png', border: '#7C3AED', mixBlend: 'screen', spread: 0.30, glow: true, cssFilter: 'hue-rotate(200deg) saturate(1.5)', limited: true, eventSlug: 'ramadan' },
 }
 
 export const SPANDUK_VISUALS = {
@@ -29,11 +34,16 @@ export const TEMA_VISUALS = {
   tema_api:   { accent: '#f59e0b', gradient: 'linear-gradient(135deg,#150502,#2d0a04)', swatches: ['#150502','#2d0a04','#f59e0b','#ef4444'], label: 'Api Merah'   },
   tema_salju: { accent: '#7dd3fc', gradient: 'linear-gradient(135deg,#0a1929,#0f2744)', swatches: ['#0a1929','#0f2744','#7dd3fc','#e0f2fe'], label: 'Salju'        },
   tema_void:  { accent: '#a855f7', gradient: 'linear-gradient(135deg,#000000,#0d0014)', swatches: ['#000000','#0d0014','#a855f7','#ec4899'], label: 'Void', limited: true },
+  // ── Seasonal event tema ────────────────────────────────────────────────────
+  tema_nusantara: { accent: '#E11D48', gradient: 'linear-gradient(135deg,#1a0009,#2d0004)', swatches: ['#1a0009','#2d0004','#E11D48','#F1F5F9'], label: 'Nusantara', limited: true, eventSlug: 'kemerdekaan' },
+  tema_halloween: { accent: '#F97316', gradient: 'linear-gradient(135deg,#0a0503,#1a0e00)', swatches: ['#0a0503','#1a0e00','#F97316','#7C3AED'], label: 'Malam Seram', limited: true, eventSlug: 'halloween' },
+  tema_natal:     { accent: '#22C55E', gradient: 'linear-gradient(135deg,#021408,#0d1f0d)', swatches: ['#021408','#0d1f0d','#22C55E','#EF4444'], label: 'Salju Natal', limited: true, eventSlug: 'natal' },
 }
 
 export const STIKER_VISUALS = {}
 
 export const KATEGORI_LABELS = {
+  event:    '🎉 Event',
   bingkai:  'Bingkai',
   spanduk:  'Spanduk',
   tema:     'Tema',
@@ -124,6 +134,40 @@ export const PET_SKIN_INFO = {
     desc: 'Penguasa puncak gunung tertinggi berselimut salju abadi. Memberikan 3× kebal jawaban salah saat duel, turnamen, atau survival!',
     story: 'Penguasa puncak gunung tertinggi yang diselimuti salju abadi. Hembusan napas es milik Nananaga mampu membekukan ancaman dalam sekejap.',
     glow: 'rgba(56,189,248,0.60)', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga', rarity: 'epic',
+  },
+
+  // ── SEASONAL EVENT SKINS ─────────────────────────────────────────────────
+  pet_kelinsay_merahputih: {
+    nama: 'Kelinsay Merah Putih', tier: 'EVENT LANGKA', tierColor: '#E11D48',
+    desc: 'Kelinsay berbaju merah putih, bersemangat merayakan 81 tahun kemerdekaan!',
+    story: 'Dengan semangat merah putih membara di dadanya, Kelinsay bangga memeriahkan Hari Kemerdekaan Indonesia ke-81!',
+    glow: 'rgba(225,29,72,0.45)', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay', rarity: 'langka',
+    cssFilter: 'hue-rotate(340deg) saturate(2.5) brightness(1.05)',
+    eventSlug: 'kemerdekaan',
+  },
+  pet_kelinsay_labu: {
+    nama: 'Kelinsay Labu Hantu', tier: 'EVENT EPIC', tierColor: '#F97316',
+    desc: 'Kostum labu Halloween yang seram tapi menggemaskan. Boo!',
+    story: 'Di malam Halloween, Kelinsay berubah menjadi labu hantu paling menggemaskan di seluruh Negeri TOMAT! Boo!',
+    glow: 'rgba(249,115,22,0.55)', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay', rarity: 'epic',
+    cssFilter: 'sepia(0.7) hue-rotate(-20deg) saturate(4) brightness(0.88)',
+    eventSlug: 'halloween',
+  },
+  pet_skin_natal: {
+    nama: 'Tomi Natal', tier: 'EVENT LANGKA', tierColor: '#22C55E',
+    desc: 'Topi Sinterklas merah, semangat bagi-bagi hadiah buat siswa berprestasi!',
+    story: 'Ho-ho-ho! Tomi berganti topi Sinterklas dan siap membawa hadiah bagi semua pelajar berprestasi di Negeri TOMAT!',
+    glow: 'rgba(34,197,94,0.40)', rarity: 'langka',
+    cssFilter: 'hue-rotate(120deg) saturate(1.8) brightness(1.1)',
+    eventSlug: 'natal',
+  },
+  pet_skin_ramadan: {
+    nama: 'Tomi Ramadan', tier: 'EVENT LANGKA', tierColor: '#7C3AED',
+    desc: 'Peci putih dan baju koko, siap menyambut bulan suci Ramadan!',
+    story: 'Dengan peci putih dan baju koko yang rapi, Tomi mengajak semua siswa semangat belajar di bulan penuh berkah ini!',
+    glow: 'rgba(124,58,237,0.45)', rarity: 'langka',
+    cssFilter: 'sepia(0.5) hue-rotate(200deg) saturate(2)',
+    eventSlug: 'ramadan',
   },
 }
 
