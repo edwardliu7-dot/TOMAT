@@ -126,10 +126,12 @@ async function createServer() {
   const GH_CACHE_TTL = 10 * 60 * 1000 // 10 menit
 
   function semverToCode(tag) {
-    // "v1.2.3" atau "1.2.3" → 10203
+    // "v1.2.3" atau "1.2.3" → 123
+    // Harus cocok dengan skema versionCode di android/app/build.gradle:
+    //   major*100 + minor*10 + patch  (e.g. "1.3.2" → 132)
     const clean = tag.replace(/^v/, '')
     const parts = clean.split('.').map(n => parseInt(n, 10) || 0)
-    return (parts[0] || 0) * 10000 + (parts[1] || 0) * 100 + (parts[2] || 0)
+    return (parts[0] || 0) * 100 + (parts[1] || 0) * 10 + (parts[2] || 0)
   }
 
   app.get('/api/app/version-check', async (req, res) => {
