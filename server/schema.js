@@ -439,6 +439,13 @@ export async function ensureSchema() {
       finished_at timestamptz not null default now()
     );
   `)
+  await pool.query(`
+    alter table tournament_history
+      add column if not exists kelas_arr       text[]  default null,
+      add column if not exists runner_up_name  text    default null,
+      add column if not exists runner_up_id    text    default null,
+      add column if not exists third_place_names text[] default null;
+  `)
 
   // Hafalan setoran table — each row is one assessment by a guru for a student
   await pool.query(`

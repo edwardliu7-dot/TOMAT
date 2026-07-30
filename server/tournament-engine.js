@@ -17,8 +17,10 @@ async function saveTournamentHistory(tournament, status) {
     ) ?? 0
     await pool.query(
       `insert into tournament_history
-         (id, kelas, guru_id, game_key, status, champion_name, champion_id, total_participants, total_rounds, finished_at)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,now())
+         (id, kelas, guru_id, game_key, status, champion_name, champion_id,
+          total_participants, total_rounds, finished_at,
+          kelas_arr, runner_up_name, runner_up_id, third_place_names)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),$10,$11,$12,$13)
        on conflict (id) do nothing`,
       [
         tournament.id,
@@ -30,6 +32,10 @@ async function saveTournamentHistory(tournament, status) {
         tournament.champion?.userId ?? null,
         totalParticipants,
         tournament.rounds?.length ?? 0,
+        tournament.kelasArr ?? [tournament.kelas],
+        tournament.runnerUp?.name ?? null,
+        tournament.runnerUp?.userId ?? null,
+        tournament.semifinalists?.map(s => s.name) ?? null,
       ]
     )
   } catch (err) {
@@ -214,12 +220,38 @@ function checkRoundComplete(io, tournament) {
     // Turnamen selesai!
     tournament.status   = 'finished'
     tournament.champion = winners[0]
+
+    // ── Podium: runner-up & semifinalists ─────────────────────────────────
+    // Runner-up = loser of the final match
+    const finalMatch = round.matches.find(
+      m => m.player1 && m.player2 && ['finished','walkover'].includes(m.status)
+    )
+    if (finalMatch?.winner) {
+      const loser = finalMatch.winner.userId === finalMatch.player1.userId
+        ? finalMatch.player2 : finalMatch.player1
+      if (loser) tournament.runnerUp = loser
+    }
+    // Semifinalists = losers from second-to-last round (if it had ≥2 real matches)
+    if (tournament.rounds.length >= 2) {
+      const semiFinalRound = tournament.rounds[tournament.rounds.length - 2]
+      const sfLosers = semiFinalRound.matches
+        .filter(m => m.winner && m.player1 && m.player2)
+        .map(m => m.winner.userId === m.player1.userId ? m.player2 : m.player1)
+        .filter(Boolean)
+      if (sfLosers.length > 0) tournament.semifinalists = sfLosers
+    }
+
+    const finishedState = tournamentToClient(tournament)
     io.to(`tournament:${tournament.id}`).emit('tournament:finished', {
       champion: { userId: winners[0].userId, name: winners[0].name },
-      state:    tournamentToClient(tournament),
+      state:    finishedState,
     })
-    io.to(`kelas:${tournament.kelas}`).emit('tournament:finished', {
-      champion: { userId: winners[0].userId, name: winners[0].name },
+    // Emit to all kelas rooms
+    const allKelas = tournament.kelasArr || [tournament.kelas]
+    allKelas.forEach(k => {
+      io.to(`kelas:${k}`).emit('tournament:finished', {
+        champion: { userId: winners[0].userId, name: winners[0].name },
+      })
     })
     saveTournamentHistory(tournament, 'finished')
     return
@@ -239,10 +271,13 @@ function checkRoundComplete(io, tournament) {
 export function startTournamentRound_all(io, tournament) {
   const round = tournament.rounds[tournament.currentRound - 1]
 
-  // Notify semua peserta
-  io.to(`kelas:${tournament.kelas}`).emit('tournament:round-start', {
-    round: tournament.currentRound,
-    state: tournamentToClient(tournament),
+  // Notify semua peserta di semua kelas
+  const allKelasForRound = tournament.kelasArr || [tournament.kelas]
+  allKelasForRound.forEach(k => {
+    io.to(`kelas:${k}`).emit('tournament:round-start', {
+      round: tournament.currentRound,
+      state: tournamentToClient(tournament),
+    })
   })
 
   round.matches.forEach(match => {
