@@ -89,7 +89,8 @@ router.get('/kelas/:gradeNum', async (req, res) => {
     const prefix = prefixMap[grade]
     if (!prefix) return res.status(400).json({ error: 'Kelas tidak valid (7, 8, atau 9).' })
 
-    const leaderboard = await buildLeaderboard(`s.kelas LIKE $1`, [`${prefix}%`], req.session.user.id)
+    // Use regex anchor so 'VII' never matches 'VIII...' (LIKE 'VII%' would)
+    const leaderboard = await buildLeaderboard(`s.kelas ~ $1`, [`^${prefix}(\\s|$)`], req.session.user.id)
     const me = leaderboard.find(r => r.isMe) || null
     res.json({ grade, leaderboard, me })
   } catch (err) {
