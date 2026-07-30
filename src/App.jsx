@@ -19,6 +19,7 @@ import ProfileScreen from './screens/ProfileScreen'
 import ShopScreen from './screens/ShopScreen'
 import LeaderboardScreen from './screens/LeaderboardScreen'
 import BadgesScreen from './screens/BadgesScreen'
+import HafalanScreen from './screens/HafalanScreen'
 import TaskOverlay from './components/TaskOverlay'
 import TaskGuard from './components/TaskGuard'
 import CommunicationScreen from './screens/CommunicationScreen'
@@ -336,6 +337,7 @@ const SCREEN_TITLES = {
   grades: 'Nilai & Tugas',
   komunikasi: 'Chat',
   profile: 'Profil',
+  hafalan: 'Hafalan Interaktif',
   modeselect: 'Pilih Mode',
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
@@ -573,6 +575,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (current === 'lencana') {
       return <BadgesScreen goBack={goBack} />
+    }
+
+    if (current === 'hafalan') {
+      return <HafalanScreen goBack={goBack} />
     }
 
     if (current === 'komunikasi') {

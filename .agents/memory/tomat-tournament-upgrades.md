@@ -26,4 +26,11 @@ description: Multi-kelas tournament, auto round labels (Final/Semifinal/Perempat
 - `tournament_history` gets 4 new columns via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`:
   `kelas_arr text[]`, `runner_up_name text`, `runner_up_id text`, `third_place_names text[]`.
 
-**Why:** Teachers running school competitions wanted cross-class tournaments; named rounds and a podium make results more meaningful for students and parents.
+## Reward koin podium
+- `grantTournamentRewards(io, tournament)` di `tournament-engine.js` — dipanggil setelah `saveTournamentHistory`.
+- Langsung UPDATE DB (`coins + total_coins_earned`), kemudian emit `tournament:reward { amount, rank, newCoins }` via `emitToUser`.
+- Jumlah: rank 1 = 500, rank 2 = 250, rank 3 = 100 (konstanta `TOURNAMENT_REWARDS`).
+- Client: `TournamentWaitScreen` listen `tournament:reward`, panggil `syncCoins(newCoins)` dari PlayerContext (TANPA persistGain agar tidak double-count), tampilkan toast animasi 5 detik.
+- `syncCoins` ditambah ke PlayerContext sebagai method tersendiri yang hanya `setState` tanpa persist.
+
+**Why:** Teachers running school competitions wanted cross-class tournaments; named rounds and a podium make results more meaningful for students and parents. Coin rewards added to incentivize participation.

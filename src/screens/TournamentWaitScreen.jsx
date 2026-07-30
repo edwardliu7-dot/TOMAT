@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { connectSocket } from '../socket'
+import { usePlayer } from '../PlayerContext'
 
 function useIsDesktop() {
   const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
@@ -34,9 +35,14 @@ const STATUS_BADGE = {
   pending:       { bg: 'rgba(255,255,255,0.06)',  color: '#475569', label: '🔒 Menunggu' },
 }
 
+const RANK_LABEL = { 1: '🥇 Juara 1', 2: '🥈 Runner-up', 3: '🥉 Peringkat 3' }
+const RANK_COLOR = { 1: '#fbbf24', 2: '#94A3B8', 3: '#cd7c3a' }
+
 export default function TournamentWaitScreen({ tournamentId, myUserId, myName, goBack }) {
-  const [tournament, setTournament] = useState(null)
+  const [tournament,   setTournament]   = useState(null)
+  const [rewardToast,  setRewardToast]  = useState(null)  // { amount, rank }
   const isDesktop = useIsDesktop()
+  const { syncCoins } = usePlayer() || {}
 
   useEffect(() => {
     const socket = connectSocket()
@@ -56,10 +62,17 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
       if (state?.id === tournamentId) setTournament(state)
     })
 
+    socket.on('tournament:reward', ({ amount, rank, newCoins }) => {
+      setRewardToast({ amount, rank })
+      if (newCoins != null && syncCoins) syncCoins(newCoins)
+      setTimeout(() => setRewardToast(null), 5000)
+    })
+
     return () => {
       socket.off('tournament:state')
       socket.off('tournament:round-start')
       socket.off('tournament:finished')
+      socket.off('tournament:reward')
     }
   }, [tournamentId])
 
@@ -175,6 +188,30 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)', fontFamily: 'system-ui, sans-serif', color: '#fff' }}>
+      {/* Reward toast */}
+      {rewardToast && (
+        <div style={{
+          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999, pointerEvents: 'none',
+          background: 'linear-gradient(135deg,#1a2a1a,#0d1f0d)',
+          border: `1.5px solid ${RANK_COLOR[rewardToast.rank]}`,
+          borderRadius: 20, padding: '16px 24px',
+          display: 'flex', alignItems: 'center', gap: 14,
+          boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 24px ${RANK_COLOR[rewardToast.rank]}44`,
+          animation: 'rewardSlideIn 0.4s cubic-bezier(0.34,1.56,0.64,1)',
+          whiteSpace: 'nowrap',
+        }}>
+          <div style={{ fontSize: 32 }}>🪙</div>
+          <div>
+            <div style={{ fontSize: 11, color: RANK_COLOR[rewardToast.rank], fontWeight: 800, letterSpacing: 1 }}>
+              {RANK_LABEL[rewardToast.rank]}
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24', marginTop: 2 }}>
+              +{rewardToast.amount} Koin
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div style={{ background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.2)', padding: '14px 16px' }}>
         <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>
@@ -341,7 +378,10 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
         </button>
       </div>
 
-      <style>{`@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}`}</style>
+      <style>{`
+        @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        @keyframes rewardSlideIn{from{opacity:0;transform:translateX(-50%) translateY(-16px) scale(0.9)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+      `}</style>
     </div>
   )
 }

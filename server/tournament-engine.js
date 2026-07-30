@@ -174,6 +174,35 @@ export function handleTournamentAnswer(io, tournament, match, userId, value, soc
   }
 }
 
+// ─── Award coins to podium players ───────────────────────────────────────────
+const TOURNAMENT_REWARDS = { 1: 500, 2: 250, 3: 100 }
+
+async function grantTournamentRewards(io, tournament) {
+  const recipients = [
+    { player: tournament.champion,  rank: 1 },
+    { player: tournament.runnerUp,  rank: 2 },
+    ...(tournament.semifinalists || []).map(s => ({ player: s, rank: 3 })),
+  ].filter(r => r.player?.userId)
+
+  for (const { player, rank } of recipients) {
+    const amount = TOURNAMENT_REWARDS[rank]
+    try {
+      const { rows } = await pool.query(
+        `update students
+           set coins              = coins              + $1,
+               total_coins_earned = total_coins_earned + $1
+         where id = $2
+         returning coins`,
+        [amount, player.userId]
+      )
+      const newCoins = rows[0]?.coins
+      emitToUser(io, player.userId, 'tournament:reward', { amount, rank, newCoins })
+    } catch (err) {
+      console.error(`grantTournamentRewards rank ${rank} error:`, err)
+    }
+  }
+}
+
 // ─── Finish a match and determine winner ─────────────────────────────────────
 function finishTournamentMatch(io, tournament, match) {
   if (match.status === 'finished' || match.status === 'walkover') return
@@ -254,6 +283,7 @@ function checkRoundComplete(io, tournament) {
       })
     })
     saveTournamentHistory(tournament, 'finished')
+    grantTournamentRewards(io, tournament)
     return
   }
 
