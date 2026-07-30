@@ -142,7 +142,6 @@ export const PET_SKIN_INFO = {
     desc: 'Kelinsay berbaju merah putih, bersemangat merayakan 81 tahun kemerdekaan!',
     story: 'Dengan semangat merah putih membara di dadanya, Kelinsay bangga memeriahkan Hari Kemerdekaan Indonesia ke-81!',
     glow: 'rgba(225,29,72,0.45)', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay', rarity: 'langka',
-    cssFilter: 'hue-rotate(340deg) saturate(2.5) brightness(1.05)',
     eventSlug: 'kemerdekaan',
   },
   pet_kelinsay_labu: {

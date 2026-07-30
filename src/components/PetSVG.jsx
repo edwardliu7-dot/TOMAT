@@ -39,7 +39,6 @@ export const PET_NAMES = {
  * base sprite sheet can be reused without new image assets.
  */
 const EVENT_SKIN_FILTERS = {
-  pet_kelinsay_merahputih: 'hue-rotate(340deg) saturate(2.5) brightness(1.05)',
   pet_kelinsay_labu:       'sepia(0.7) hue-rotate(-20deg) saturate(4) brightness(0.88)',
   pet_skin_natal:          'hue-rotate(120deg) saturate(1.8) brightness(1.1)',
   pet_skin_ramadan:        'sepia(0.5) hue-rotate(200deg) saturate(2)',
