@@ -4,6 +4,7 @@ import { useTask } from '../TaskContext'
 import { useAuth } from '../AuthContext'
 import { usePet } from '../PetContext'
 import { UserAvatar } from '../components/shared'
+import SeasonalEventBanner from '../components/SeasonalEventBanner'
 import { getAccessibleGradesForUser } from '../kelasUtils'
 import { getPetName } from '../components/PetSVG'
 
@@ -100,7 +101,7 @@ function ZoneCard({ zone, locked, selected, onClick }) {
   )
 }
 
-export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop }) {
+export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop, openEventShop }) {
   const { player } = usePlayer()
   const { tasks, grades } = useTask()
   const { user } = useAuth()
@@ -137,6 +138,8 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
   }
 
   const quickLinks = [
+    { id: 'hafalan', icon: '🧮', label: 'Hafalan', sub: 'Flash Card & Kuis', accent: '#818cf8' },
+    { id: 'latihan-ujian', icon: '📝', label: 'Latihan Ujian', sub: 'UN & TKA', accent: '#C084FC' },
     { id: 'grades', icon: '📊', label: 'Nilai & Tugas', sub: `${grades.length} nilai tersimpan`, accent: '#818CF8' },
     { id: 'komunikasi', icon: '💬', label: 'Chat Guru', sub: 'Tanya gurumu', accent: '#67E8F9' },
     { id: 'toko', icon: '🛒', label: 'Toko', sub: `${formatNumber(player.coins)} koin`, accent: '#FBBF24' },
@@ -194,6 +197,8 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
             <div className="home-level__xp"><strong>{formatNumber(player.exp)} XP</strong><small>total EXP</small></div>
           </div>
         </section>
+
+        {!guruMode && <SeasonalEventBanner onOpenEventShop={openEventShop} />}
 
         {!guruMode && (
           <section className="home-mission">

@@ -52,6 +52,17 @@ function shuffle(arr) {
   return a
 }
 
+/**
+ * Label otomatis untuk tiap ronde berdasarkan jumlah pertandingan.
+ * matchCount = jumlah match di ronde tersebut.
+ */
+export function getRoundLabel(matchCount) {
+  if (matchCount <= 1) return 'Final'
+  if (matchCount <= 2) return 'Semifinal'
+  if (matchCount <= 4) return 'Perempat Final'
+  return `Babak ${matchCount * 2} Besar`
+}
+
 export function buildFirstRound(students) {
   const shuffled = shuffle(students)
   const matches  = []
@@ -81,10 +92,12 @@ export function tournamentToClient(t) {
   return {
     id:           t.id,
     kelas:        t.kelas,
+    kelasArr:     t.kelasArr || [t.kelas],
     gameKey:      t.gameKey,
     status:       t.status,
     currentRound: t.currentRound,
     rounds: t.rounds.map(round => ({
+      label: getRoundLabel(round.matches.length),
       matches: round.matches.map(m => ({
         id:      m.id,
         player1: m.player1 ? { userId: m.player1.userId, name: m.player1.name } : null,
@@ -95,6 +108,8 @@ export function tournamentToClient(t) {
         scores:  m.scores,
       })),
     })),
-    champion: t.champion ? { userId: t.champion.userId, name: t.champion.name } : null,
+    champion:      t.champion      ? { userId: t.champion.userId,      name: t.champion.name      } : null,
+    runnerUp:      t.runnerUp      ? { userId: t.runnerUp.userId,      name: t.runnerUp.name      } : null,
+    semifinalists: t.semifinalists ? t.semifinalists.map(s => ({ userId: s.userId, name: s.name })) : [],
   }
 }

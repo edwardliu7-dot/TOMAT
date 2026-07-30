@@ -19,6 +19,8 @@ import ProfileScreen from './screens/ProfileScreen'
 import ShopScreen from './screens/ShopScreen'
 import LeaderboardScreen from './screens/LeaderboardScreen'
 import BadgesScreen from './screens/BadgesScreen'
+import HafalanScreen from './screens/HafalanScreen'
+import LatihanUjianScreen from './screens/LatihanUjianScreen'
 import TaskOverlay from './components/TaskOverlay'
 import TaskGuard from './components/TaskGuard'
 import CommunicationScreen from './screens/CommunicationScreen'
@@ -35,6 +37,13 @@ import { DUEL_GAME_KEYS } from './gamesCatalog'
 import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
+import { getActiveEvents } from './data/seasonalEvents'
+
+/** Returns 'tema_merahputih' during Jul 15–Aug 31, otherwise null. */
+function getSeasonalTema() {
+  const active = getActiveEvents()
+  return active.some(e => e.slug === 'kemerdekaan') ? 'tema_merahputih' : null
+}
 
 const DUEL_INVITE_GAMES = [
   { key: 'katak',       emoji: '🐸', name: 'Katak Pelompat' },
@@ -336,6 +345,8 @@ const SCREEN_TITLES = {
   grades: 'Nilai & Tugas',
   komunikasi: 'Chat',
   profile: 'Profil',
+  hafalan: 'Hafalan Interaktif',
+  'latihan-ujian': 'Latihan Ujian',
   modeselect: 'Pilih Mode',
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
@@ -347,14 +358,26 @@ const SCREEN_TITLES = {
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const { user, logout } = useAuth()
 
-  // Set data-tema on <html> so GameThemeStyles can target structural elements only
+  // Set data-tema on <html> so GameThemeStyles can target structural elements only.
+  // During Kemerdekaan event (Jul 15–Aug 31) tema_merahputih overrides the user's
+  // equipped theme automatically and reverts when the event window closes.
   useEffect(() => {
-    if (user?.equippedTema) {
-      document.documentElement.setAttribute('data-tema', user.equippedTema)
-    } else {
+    function applyTema() {
+      const seasonal = getSeasonalTema()
+      const effective = seasonal || user?.equippedTema || null
+      if (effective) {
+        document.documentElement.setAttribute('data-tema', effective)
+      } else {
+        document.documentElement.removeAttribute('data-tema')
+      }
+    }
+    applyTema()
+    // Re-evaluate every minute so the override activates / deactivates live
+    const timer = setInterval(applyTema, 60_000)
+    return () => {
+      clearInterval(timer)
       document.documentElement.removeAttribute('data-tema')
     }
-    return () => { document.documentElement.removeAttribute('data-tema') }
   }, [user?.equippedTema])
 
   const [history, setHistory] = useState(['home'])
@@ -575,6 +598,14 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       return <BadgesScreen goBack={goBack} />
     }
 
+    if (current === 'hafalan') {
+      return <HafalanScreen goBack={goBack} />
+    }
+
+    if (current === 'latihan-ujian') {
+      return <LatihanUjianScreen goBack={goBack} />
+    }
+
     if (current === 'komunikasi') {
       return <CommunicationScreen goBack={goBack} initialTarget={komunikasiTarget} />
     }
@@ -644,7 +675,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'home') {
-      return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} openPetShop={() => { setTokoInitialTab('pet_skin'); navigate('toko') }} />
+      return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} openPetShop={() => { setTokoInitialTab('pet_skin'); navigate('toko') }} openEventShop={() => { setTokoInitialTab('event'); navigate('toko') }} />
     }
 
     const StaticScreen = STATIC_ROUTES[current] || HomeScreen
@@ -658,10 +689,12 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           <BabLockProvider>
             <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
-              {/* Inject CSS that filters ONLY structural nav/chrome elements */}
-              <GameThemeStyles temaId={user?.equippedTema} />
+              {/* Inject CSS that filters ONLY structural nav/chrome elements.
+                  Seasonal override (tema_merahputih during Jul 15–Aug 31) takes
+                  priority over the user's own equipped theme. */}
+              <GameThemeStyles temaId={getSeasonalTema() || user?.equippedTema} />
               {/* Tema particles overlay — rendered on top of all screens */}
-              <GameThemeOverlay temaId={user?.equippedTema} />
+              <GameThemeOverlay temaId={getSeasonalTema() || user?.equippedTema} />
               <ErrorBoundary key={current} onReset={goBack}>
                 {renderScreen()}
               </ErrorBoundary>
@@ -785,6 +818,7 @@ export default function App() {
       )
     }
     const guruNavigate = (key) => {
+      if (key === 'guruMengajar') { setGuruPracticeMode(true); return }
       window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
     }
     return (

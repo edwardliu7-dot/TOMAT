@@ -42,6 +42,7 @@ export const modules: ModuleMap = {
   "./components/mockups/tema/GameTemaApi.tsx": () => import("../components/mockups/tema/GameTemaApi.tsx"),
   "./components/mockups/tema/GameTemaDefault.tsx": () => import("../components/mockups/tema/GameTemaDefault.tsx"),
   "./components/mockups/tema/GameTemaHutan.tsx": () => import("../components/mockups/tema/GameTemaHutan.tsx"),
+  "./components/mockups/tema/GameTemaMerahPutih.tsx": () => import("../components/mockups/tema/GameTemaMerahPutih.tsx"),
   "./components/mockups/tema/GameTemaSalju.tsx": () => import("../components/mockups/tema/GameTemaSalju.tsx"),
   "./components/mockups/tema/GameTemaSpace.tsx": () => import("../components/mockups/tema/GameTemaSpace.tsx"),
   "./components/mockups/tema/GameTemaVoid.tsx": () => import("../components/mockups/tema/GameTemaVoid.tsx"),

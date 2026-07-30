@@ -15,6 +15,7 @@ import hafalanSiswaRouter from './hafalan-siswa.js'
 import komunikasiRouter from './komunikasi.js'
 import notifikasiRouter from './notifikasi.js'
 import petRouter from './pet.js'
+import eventMissionsRouter from './event-missions-router.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
 import { setupMultiplayer } from './multiplayer.js'
@@ -111,6 +112,7 @@ async function createServer() {
   app.use('/api/siswa', siswaRouter)
   app.use('/api/siswa/player', playerRouter)
   app.use('/api/siswa/toko', tokoRouter)
+  app.use('/api/siswa/event-missions', eventMissionsRouter)
   app.use('/api/siswa/papan-peringkat', papanPeringkatRouter)
   app.use('/api/siswa/lencana', lencanaRouter)
   app.use('/api/guru/hafalan', hafalanGuruRouter)

@@ -5,7 +5,7 @@ import { getAccessibleGrades } from './kelas.js'
 import { checkAndAwardBadges } from './gamify.js'
 import { notifyUser } from './notifications.js'
 import { getBossRaid, raidToClient } from './boss-state.js'
-import { computeHunger } from './pet-state.js'
+import { isStudentPetDead } from './pet-state.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
@@ -96,11 +96,7 @@ router.post('/tugas/laporan-keluar', async (req, res) => {
 // POST /api/siswa/nilai — submit result of a completed task
 router.post('/nilai', async (req, res) => {
   try {
-    const { rows: petRows } = await pool.query(
-      'select pet_hunger_until from students where id = $1',
-      [req.session.user.id],
-    )
-    if (computeHunger(petRows[0]?.pet_hunger_until).isDead) {
+    if (await isStudentPetDead(pool, req.session.user.id)) {
       return res.status(403).json({ error: 'Tomi sedang mati. Hidupkan Tomi kembali sebelum mengerjakan mode tugas.' })
     }
     const { tugasId, correctCount } = req.body || {}

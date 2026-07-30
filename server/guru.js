@@ -286,7 +286,10 @@ router.get('/tournament', async (req, res) => {
   try {
     const kelasDiampu = await getMyKelasDiampu(req)
     const active = [...tournaments.values()]
-      .filter(t => kelasDiampu.includes(t.kelas))
+      .filter(t => {
+        const arr = t.kelasArr || [t.kelas]
+        return arr.some(k => kelasDiampu.includes(k))
+      })
       .map(tournamentToClient)
     res.json({ tournaments: active })
   } catch (err) {
@@ -299,23 +302,33 @@ router.get('/tournament', async (req, res) => {
 router.post('/tournament', async (req, res) => {
   try {
     const kelasDiampu = await getMyKelasDiampu(req)
-    const { kelas, gameKey } = req.body || {}
+    const { kelas, kelasArr: rawKelasArr, gameKey } = req.body || {}
 
-    if (!kelas || !kelasDiampu.includes(kelas))
-      return res.status(403).json({ error: 'Kelas tidak valid.' })
+    // Support multi-kelas (kelasArr) or single kelas (backward compat)
+    const kelasArr = Array.isArray(rawKelasArr) && rawKelasArr.length > 0
+      ? rawKelasArr
+      : (kelas ? [kelas] : [])
+
+    if (kelasArr.length === 0)
+      return res.status(400).json({ error: 'Pilih minimal satu kelas.' })
+    const invalidKelas = kelasArr.filter(k => !kelasDiampu.includes(k))
+    if (invalidKelas.length > 0)
+      return res.status(403).json({ error: `Kelas tidak valid: ${invalidKelas.join(', ')}` })
     if (!SUPPORTED_TOURNAMENT_GAMES.includes(gameKey))
       return res.status(400).json({ error: `Game '${gameKey}' belum didukung untuk turnamen.` })
 
-    // Cek tidak ada turnamen aktif untuk kelas ini
-    const existing = [...tournaments.values()].find(
-      t => t.kelas === kelas && t.status !== 'finished'
-    )
-    if (existing) return res.status(409).json({ error: 'Turnamen masih aktif untuk kelas ini.' })
+    // Cek tidak ada turnamen aktif untuk kelas-kelas ini
+    const existing = [...tournaments.values()].find(t => {
+      const tArr = t.kelasArr || [t.kelas]
+      return tArr.some(k => kelasArr.includes(k)) && t.status !== 'finished'
+    })
+    if (existing) return res.status(409).json({ error: 'Turnamen masih aktif untuk salah satu kelas yang dipilih.' })
 
-    // Ambil semua siswa di kelas
+    // Ambil semua siswa dari semua kelas yang dipilih
+    const placeholders = kelasArr.map((_, i) => `$${i + 1}`).join(',')
     const { rows } = await pool.query(
-      'SELECT id AS "userId", name FROM students WHERE kelas = $1',
-      [kelas]
+      `SELECT id AS "userId", name, kelas FROM students WHERE kelas IN (${placeholders})`,
+      kelasArr
     )
     if (rows.length < 2)
       return res.status(400).json({ error: 'Minimal 2 siswa diperlukan untuk memulai turnamen.' })
@@ -323,10 +336,12 @@ router.post('/tournament', async (req, res) => {
     const students    = rows.map(r => ({ ...r, socketId: null }))
     const tournamentId = crypto.randomUUID()
     const firstRound  = buildFirstRound(students)
+    const primaryKelas = kelasArr[0]
 
     const tournament = {
       id:           tournamentId,
-      kelas,
+      kelas:        primaryKelas,
+      kelasArr,
       guruId:       req.session.user.id,
       gameKey,
       status:       'in-progress',
@@ -334,16 +349,20 @@ router.post('/tournament', async (req, res) => {
       rounds:       [firstRound],
       students,
       champion:     null,
+      runnerUp:     null,
+      semifinalists: [],
       createdAt:    Date.now(),
     }
     tournaments.set(tournamentId, tournament)
 
-    // Notify semua siswa di kelas via socket
+    // Notify semua siswa di semua kelas via socket
     const io = getTournamentIo()
-    io?.to(`kelas:${kelas}`).emit('tournament:started', {
-      tournamentId,
-      gameKey,
-      state: tournamentToClient(tournament),
+    kelasArr.forEach(k => {
+      io?.to(`kelas:${k}`).emit('tournament:started', {
+        tournamentId,
+        gameKey,
+        state: tournamentToClient(tournament),
+      })
     })
 
     // Mulai ronde 1
@@ -364,14 +383,60 @@ router.delete('/tournament/:id', async (req, res) => {
     const kelasDiampu = await getMyKelasDiampu(req)
     if (!kelasDiampu.includes(t.kelas)) return res.status(403).json({ error: 'Akses ditolak.' })
 
+    const wasFinished = t.status === 'finished'
     t.status = 'finished'
     const io = getTournamentIo()
     io?.to(`tournament:${t.id}`).emit('tournament:cancelled')
-    io?.to(`kelas:${t.kelas}`).emit('tournament:cancelled')
+    const tKelasArr = t.kelasArr || [t.kelas]
+    tKelasArr.forEach(k => io?.to(`kelas:${k}`).emit('tournament:cancelled'))
+
+    // Save to history with status 'cancelled' only if it wasn't already saved as 'finished'
+    if (!wasFinished) {
+      const totalParticipants = t.rounds?.[0]?.matches?.reduce(
+        (a, m) => a + (m.player1 ? 1 : 0) + (m.player2 ? 1 : 0), 0
+      ) ?? 0
+      await pool.query(
+        `insert into tournament_history
+           (id, kelas, guru_id, game_key, status, champion_name, champion_id,
+            total_participants, total_rounds, finished_at,
+            kelas_arr, runner_up_name, runner_up_id, third_place_names)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),$10,$11,$12,$13)
+         on conflict (id) do nothing`,
+        [t.id, t.kelas, t.guruId, t.gameKey, 'cancelled',
+         t.champion?.name ?? null, t.champion?.userId ?? null,
+         totalParticipants, t.rounds?.length ?? 0,
+         t.kelasArr ?? [t.kelas],
+         t.runnerUp?.name ?? null, t.runnerUp?.userId ?? null,
+         t.semifinalists?.map(s => s.name) ?? null]
+      )
+    }
+
     tournaments.delete(req.params.id)
     res.json({ ok: true })
   } catch (err) {
     console.error('guru/tournament DELETE error', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/guru/tournament/history — riwayat turnamen untuk kelas guru ini
+router.get('/tournament/history', async (req, res) => {
+  try {
+    const kelasDiampu = await getMyKelasDiampu(req)
+    if (!kelasDiampu.length) return res.json({ history: [] })
+    const placeholders = kelasDiampu.map((_, i) => `$${i + 1}`).join(',')
+    const { rows } = await pool.query(
+      `select id, kelas, game_key, status, champion_name, champion_id,
+              total_participants, total_rounds, finished_at
+       from tournament_history
+       where kelas in (${placeholders})
+       order by finished_at desc
+       limit 50`,
+      kelasDiampu
+    )
+    res.json({ history: rows })
+  } catch (err) {
+    console.error('guru/tournament/history GET error', err)
     res.status(500).json({ error: err.message })
   }
 })

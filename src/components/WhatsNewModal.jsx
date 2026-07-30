@@ -5,30 +5,25 @@ const STORAGE_KEY = `tomat_seen_whats_new_v${APP_VERSION}`
 
 const CHANGES = [
   {
-    icon: '🌟',
-    title: 'Bonus Keistimewaan Pet',
-    body: 'Setiap pet & skin kini punya keistimewaan unik yang aktif saat bermain: Tomi menambah Koin, Kelinsay menambah EXP, Monyang menambah keduanya, dan Nananaga membuat makanan lebih awet. Semakin tinggi skin, semakin besar bonusnya!',
+    icon: '🇮🇩',
+    title: 'Tema Merah Putih — HUT RI ke-81',
+    body: 'Setiap bulan Agustus, seluruh tampilan TOMAT berganti tema Merah Putih! Langit malam dengan kembang api, umbul-umbul, dan nuansa merah putih menyelimuti aplikasi. Tema ini aktif otomatis dan kembali normal setelah 31 Agustus.',
     highlight: true,
   },
   {
-    icon: '📖',
-    title: 'Kisah Pet di Toko',
-    body: 'Buka toko dan temukan cerita unik di balik setiap pet dan skin — dari Tomi si pahlawan emas, Kelinsay sahabat setia, Monyang raja usil, hingga Nananaga sang legenda Negeri TOMAT!',
+    icon: '🎆',
+    title: 'Event Kemerdekaan di Toko',
+    body: 'Dapatkan Bingkai Kemerdekaan, Spanduk HUT RI ke-81, dan Kelinsay Merah Putih lewat 3 misi event: jawab 17 soal benar, menangkan 8 duel, dan raih keduanya untuk bonus eksklusif!',
   },
   {
-    icon: '🐾',
-    title: 'Sistem HP Pet Diperbaiki',
-    body: 'Mengganti skin Tomi tidak lagi mereset HP-nya. Semua skin dalam satu pet berbagi HP yang sama — HP Tomi tetap, hanya penampilannya yang berubah.',
-  },
-  {
-    icon: '🎨',
-    title: 'Skin Dasar Bisa Dipakai Kembali',
-    body: 'Kamu bisa kembali ke Golden Marmut kapan saja lewat toko pet.',
+    icon: '📱',
+    title: 'Aset Tersimpan Offline',
+    body: 'Sprite pet, bingkai profil, dan aset event kini otomatis tersimpan di perangkat Android saat pertama kali dibuka. Gambar tetap tampil meski koneksi terputus.',
   },
   {
     icon: '🔧',
     title: 'Perbaikan & Penyempurnaan',
-    body: 'Perbaikan koneksi jaringan Android, penyempurnaan performa, dan berbagai peningkatan stabilitas.',
+    body: 'Perbaikan tampilan tema kustom, penyempurnaan performa, dan berbagai peningkatan stabilitas pada Android.',
   },
 ]
 
@@ -54,6 +49,35 @@ export function useWhatsNew() {
 }
 
 export default function WhatsNewModal({ onClose }) {
+  // Merah Putih theme accent when kemerdekaan event is active (Aug)
+  const now = new Date()
+  const isAugust = now.getMonth() + 1 === 8 ||
+    (now.getMonth() + 1 === 7 && now.getDate() >= 15)
+
+  const accent      = isAugust ? '#DC2626' : '#6366f1'
+  const accentSoft  = isAugust ? 'rgba(220,38,38,0.18)' : 'rgba(99,102,241,0.18)'
+  const accentBorder= isAugust ? 'rgba(220,38,38,0.30)' : 'rgba(99,102,241,0.30)'
+  const accentLight = isAugust ? '#fca5a5' : '#a5b4fc'
+  const headerBg    = isAugust
+    ? 'linear-gradient(135deg,#7f1d1d,#DC2626)'
+    : 'linear-gradient(135deg,#6366f1,#a855f7)'
+  const headerGlow  = isAugust
+    ? '0 4px 18px rgba(220,38,38,0.45)'
+    : '0 4px 18px rgba(99,102,241,0.45)'
+  const hlBg        = isAugust
+    ? 'linear-gradient(135deg,rgba(220,38,38,0.14),rgba(127,29,29,0.10))'
+    : 'linear-gradient(135deg,rgba(99,102,241,0.14),rgba(168,85,247,0.10))'
+  const hlBorder    = isAugust
+    ? '1px solid rgba(220,38,38,0.28)'
+    : '1px solid rgba(99,102,241,0.28)'
+  const hlTitle     = isAugust ? '#fca5a5' : '#c4b5fd'
+  const btnBg       = isAugust
+    ? 'linear-gradient(135deg,#7f1d1d,#DC2626)'
+    : 'linear-gradient(135deg,#6366f1,#8b5cf6)'
+  const btnGlow     = isAugust
+    ? '0 4px 20px rgba(220,38,38,0.40)'
+    : '0 4px 20px rgba(99,102,241,0.40)'
+
   return (
     <div
       style={{
@@ -80,22 +104,24 @@ export default function WhatsNewModal({ onClose }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
           <div style={{
             width: 46, height: 46, borderRadius: 14,
-            background: 'linear-gradient(135deg,#6366f1,#a855f7)',
+            background: headerBg,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 22, flexShrink: 0,
-            boxShadow: '0 4px 18px rgba(99,102,241,0.45)',
-          }}>🎉</div>
+            boxShadow: headerGlow,
+          }}>
+            {isAugust ? '🇮🇩' : '🎉'}
+          </div>
           <div>
             <div style={{ fontSize: 17, fontWeight: 800, color: '#f1f5f9', letterSpacing: 0.2 }}>
               Yang Baru di TOMAT
             </div>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4,
-              background: 'rgba(99,102,241,0.18)', border: '1px solid rgba(99,102,241,0.3)',
+              background: accentSoft, border: `1px solid ${accentBorder}`,
               borderRadius: 20, padding: '2px 10px',
             }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#818cf8' }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#a5b4fc', letterSpacing: 0.5 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: accentLight, letterSpacing: 0.5 }}>
                 Versi {APP_VERSION}
               </span>
             </div>
@@ -108,19 +134,18 @@ export default function WhatsNewModal({ onClose }) {
             <div
               key={i}
               style={{
-                background: c.highlight
-                  ? 'linear-gradient(135deg,rgba(99,102,241,0.14),rgba(168,85,247,0.10))'
-                  : 'rgba(255,255,255,0.04)',
-                border: c.highlight
-                  ? '1px solid rgba(99,102,241,0.28)'
-                  : '1px solid rgba(255,255,255,0.07)',
+                background: c.highlight ? hlBg : 'rgba(255,255,255,0.04)',
+                border: c.highlight ? hlBorder : '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 14, padding: '14px 16px',
                 display: 'flex', gap: 14, alignItems: 'flex-start',
               }}
             >
               <div style={{ fontSize: 22, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{c.icon}</div>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: c.highlight ? '#c4b5fd' : '#e2e8f0', marginBottom: 4 }}>
+                <div style={{
+                  fontSize: 13, fontWeight: 700, marginBottom: 4,
+                  color: c.highlight ? hlTitle : '#e2e8f0',
+                }}>
                   {c.title}
                 </div>
                 <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.55 }}>{c.body}</div>
@@ -129,36 +154,38 @@ export default function WhatsNewModal({ onClose }) {
           ))}
         </div>
 
-        {/* Pet bonus quick-ref */}
-        <div style={{
-          marginTop: 16,
-          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 14, padding: '12px 16px',
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: 1, marginBottom: 10 }}>
-            RINGKASAN BONUS PET
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {[
-              { pet: 'Tomi', bonus: 'Koin ↑',       color: '#F5A623', icon: '🐹' },
-              { pet: 'Kelinsay', bonus: 'EXP ↑',    color: '#34D399', icon: '🐰' },
-              { pet: 'Monyang', bonus: 'Koin+EXP ↑', color: '#C084FC', icon: '🐒' },
-              { pet: 'Nananaga', bonus: 'Stamina ↑', color: '#FB923C', icon: '🐉' },
-            ].map(({ pet, bonus, color, icon }) => (
-              <div key={pet} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{
-                  width: 30, height: 30, borderRadius: 9,
-                  background: `${color}22`, border: `1px solid ${color}44`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0,
-                }}>{icon}</div>
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{pet}</div>
-                  <div style={{ fontSize: 10, color, fontWeight: 600 }}>{bonus}</div>
+        {/* Event misi quick-ref — only during kemerdekaan window */}
+        {isAugust && (
+          <div style={{
+            marginTop: 16,
+            background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.18)',
+            borderRadius: 14, padding: '12px 16px',
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: 1, marginBottom: 10 }}>
+              MISI KEMERDEKAAN
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { num: '1', label: '17 Soal Benar', reward: 'Bingkai Kemerdekaan', icon: '🏅' },
+                { num: '2', label: '8 Duel Menang',  reward: 'Spanduk HUT RI ke-81', icon: '🎌' },
+                { num: '3', label: 'Selesaikan keduanya', reward: 'Kelinsay Merah Putih', icon: '🐰' },
+              ].map(m => (
+                <div key={m.num} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+                    background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.30)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13,
+                  }}>{m.icon}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{m.label}</div>
+                    <div style={{ fontSize: 10, color: '#fca5a5', fontWeight: 600 }}>→ {m.reward}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* CTA */}
         <button
@@ -166,13 +193,13 @@ export default function WhatsNewModal({ onClose }) {
           style={{
             width: '100%', marginTop: 20,
             padding: '14px', borderRadius: 14, border: 'none',
-            background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+            background: btnBg,
             color: '#fff', fontSize: 14, fontWeight: 800,
             cursor: 'pointer', fontFamily: 'inherit',
-            boxShadow: '0 4px 20px rgba(99,102,241,0.40)',
+            boxShadow: btnGlow,
           }}
         >
-          Siap Bermain! 🎮
+          {isAugust ? 'Merdeka! 🇮🇩' : 'Siap Bermain! 🎮'}
         </button>
       </div>
     </div>

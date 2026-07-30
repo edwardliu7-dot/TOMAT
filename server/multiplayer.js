@@ -5,6 +5,7 @@
 import { Server } from 'socket.io'
 import { pool } from './db.js'
 import { applyExp } from './gamify.js'
+import { incrementMissionProgress } from './event-missions.js'
 import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
 import { tournaments, tournamentToClient, getTournamentIo } from './tournament-state.js'
 import { startTournamentMatch, handleTournamentAnswer } from './tournament-engine.js'
@@ -80,6 +81,10 @@ function finishGame(io, room) {
     winner,
     scores: room.players.map(safePlayer),
   })
+  // Fire-and-forget: track duel win for Misi Pasukan Merah Putih
+  if (winner?.userId) {
+    incrementMissionProgress(winner.userId, 'kemerdekaan_2', 1).catch(() => {})
+  }
 }
 
 function leaveAllRooms(socket, io) {

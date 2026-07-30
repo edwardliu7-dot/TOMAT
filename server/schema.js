@@ -370,6 +370,43 @@ export async function ensureSchema() {
     ['tema_api',   'tema', 'Api Merah',     2500, { accent: '#f59e0b', gradient: 'linear-gradient(135deg,#150502,#2d0a04)', swatches: ['#150502','#2d0a04','#f59e0b','#ef4444'], description: 'Gradien merah-oranye, aksen amber, overlay nyala.' }, 3],
     ['tema_salju', 'tema', 'Salju',         2000, { accent: '#7dd3fc', gradient: 'linear-gradient(135deg,#0a1929,#0f2744)', swatches: ['#0a1929','#0f2744','#7dd3fc','#e0f2fe'], description: 'Biru muda + putih, aksen ice-blue, partikel salju.' }, 4],
     ['tema_void',  'tema', 'Void',          8000, { accent: '#a855f7', gradient: 'linear-gradient(135deg,#000000,#0d0014)', swatches: ['#000000','#0d0014','#a855f7','#ec4899'], glow: true, limited: true, edition: 'LIMITED', description: 'Hitam pekat, aksen ungu neon, partikel void.' }, 5],
+    // ── Seasonal event items ───────────────────────────────────────────────────
+    // Kemerdekaan RI (July 15 – Aug 31)
+    ['bingkai_kemerdekaan', 'bingkai', 'Bingkai 17 Agustus', 0, {
+      image: '/hutri81.png', border: '#E11D48', mixBlend: 'screen', spread: 0.30, glow: true,
+      sparkle: 'merahputih', eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
+      description: 'Bingkai merah-putih semangat kemerdekaan Indonesia.',
+      missionOnly: true, missionId: 'kemerdekaan_1',
+    }, 50],
+    ['spanduk_kemerdekaan', 'spanduk', 'Spanduk 17 Agustus', 0, {
+      image: '/81spanduk.png', gradient: 'linear-gradient(90deg,#1a0009,#7f0018,#2d0004)',
+      eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
+      description: 'Spanduk merah membara semangat kemerdekaan Indonesia.',
+      missionOnly: true, missionId: 'kemerdekaan_2',
+    }, 51],
+    ['pet_kelinsay_merahputih', 'pet_skin', 'Kelinsay Merah Putih', 0, {
+      tier: 'langka', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
+      eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
+      desc: 'Kelinsay berbaju merah putih, bersemangat merayakan kemerdekaan!',
+      missionOnly: true, missionId: 'kemerdekaan_3',
+    }, 52],
+    // Ramadan Mubarak (Feb 18 – Mar 20)
+    ['bingkai_ramadan', 'bingkai', 'Bingkai Bintang Bulan', 2000, {
+      image: '/bingkai-void-king.png', border: '#7C3AED', mixBlend: 'screen', spread: 0.30, glow: true,
+      cssFilter: 'hue-rotate(200deg) saturate(1.5)',
+      eventSlug: 'ramadan', limited: true, edition: 'EVENT 2027',
+      description: 'Bingkai bintang dan bulan sabit Ramadan yang penuh berkah.',
+    }, 59],
+    ['spanduk_ramadan', 'spanduk', 'Spanduk Ramadan', 2500, {
+      gradient: 'linear-gradient(90deg,#06041a,#100028,#3b0764)',
+      eventSlug: 'ramadan', limited: true, edition: 'EVENT 2027',
+      description: 'Spanduk ungu malam penuh cahaya Ramadan.',
+    }, 60],
+    ['pet_skin_ramadan', 'pet_skin', 'Tomi Ramadan', 4000, {
+      tier: 'langka',
+      eventSlug: 'ramadan', limited: true, edition: 'EVENT 2027',
+      desc: 'Peci putih dan baju koko, siap menyambut bulan suci!',
+    }, 61],
     // Stiker — placed freely on banner canvas
     ['stiker_roket',   'stiker', 'Roket Belajar',  200,  { emoji: '🚀', tier: 'common' }, 1],
     ['stiker_api',     'stiker', 'Api Semangat',   200,  { emoji: '🔥', tier: 'common' }, 2],
@@ -384,6 +421,15 @@ export async function ensureSchema() {
     ['stiker_naga',    'stiker', 'Sang Naga',      1500, { emoji: '🐉', tier: 'epic'   }, 11],
     ['stiker_galaksi', 'stiker', 'Galaksi',        1500, { emoji: '🌌', tier: 'epic'   }, 12],
   ]
+  // Remove discontinued event items so they don't linger in the DB
+  await pool.query(`
+    delete from shop_items where id in (
+      'tema_nusantara',
+      'bingkai_halloween', 'tema_halloween', 'pet_kelinsay_labu',
+      'bingkai_natal',     'tema_natal',     'pet_skin_natal'
+    )
+  `)
+
   for (const [id, kategori, nama, harga, visual, sortOrder] of shopItems) {
     await pool.query(
       `insert into shop_items (id, kategori, nama, harga, visual, sort_order)
@@ -422,6 +468,45 @@ export async function ensureSchema() {
         equipped_spanduk  = coalesce(nullif(equipped_spanduk, ''),  'spanduk_celestia_relic'),
         equipped_pet_skin = coalesce(nullif(equipped_pet_skin, ''), 'pet_skin_void')
     where id = 'tomat-demo'
+  `)
+
+  // ── Event mission progress ──────────────────────────────────────────────────
+  // One row per (student, mission). progress counts toward goal; completed_at
+  // is set when progress >= goal; reward_claimed_at is set when item is given.
+  await pool.query(`
+    create table if not exists event_mission_progress (
+      student_id        text not null references students(id) on delete cascade,
+      mission_id        text not null,
+      progress          int  not null default 0,
+      completed_at      timestamptz,
+      reward_claimed_at timestamptz,
+      primary key (student_id, mission_id)
+    );
+    create index if not exists event_mission_progress_student_idx
+      on event_mission_progress (student_id);
+  `)
+
+  // Tournament history — one row per finished/cancelled tournament
+  await pool.query(`
+    create table if not exists tournament_history (
+      id          text primary key,
+      kelas       text not null,
+      guru_id     text not null references gurus(id),
+      game_key    text not null,
+      status      text not null check (status in ('finished','cancelled')),
+      champion_name text,
+      champion_id   text,
+      total_participants int not null default 0,
+      total_rounds       int not null default 0,
+      finished_at timestamptz not null default now()
+    );
+  `)
+  await pool.query(`
+    alter table tournament_history
+      add column if not exists kelas_arr       text[]  default null,
+      add column if not exists runner_up_name  text    default null,
+      add column if not exists runner_up_id    text    default null,
+      add column if not exists third_place_names text[] default null;
   `)
 
   // Hafalan setoran table — each row is one assessment by a guru for a student

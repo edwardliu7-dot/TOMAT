@@ -1168,17 +1168,23 @@ function TurnamenTab({ kelasDiampu }) {
   const [spectate,       setSpectate]       = useState(null)
   const [spectateSliders,setSpectateSliders] = useState({})
   const [spectateQ,      setSpectateQ]       = useState(null)
-  const [form,         setForm]         = useState({ kelas: kelasDiampu[0] || '', gameKey: 'katak' })
+  const [form,         setForm]         = useState({ kelasArr: kelasDiampu.slice(0, 1), gameKey: 'katak' })
   const [liveFeed,     setLiveFeed]     = useState([])
   const [activeRound,  setActiveRound]  = useState(null) // for round pill navigation
+  const [history,      setHistory]      = useState([])
+  const [historyLoading, setHistoryLoading] = useState(true)
   const socketJoined   = useRef(false)
 
-  // Fetch current tournament state via REST on mount
+  // Fetch current tournament state + history via REST on mount
   useEffect(() => {
     apiCall('/api/guru/tournament').then(d => {
       setTournament(d.tournaments?.[0] || null)
       setLoading(false)
     }).catch(() => setLoading(false))
+    apiCall('/api/guru/tournament/history').then(d => {
+      setHistory(d.history || [])
+      setHistoryLoading(false)
+    }).catch(() => setHistoryLoading(false))
   }, [])
 
   // Connect socket for live updates (guru needs socket for real-time bracket)
@@ -1271,11 +1277,11 @@ function TurnamenTab({ kelasDiampu }) {
 
   const handleCreate = async (e) => {
     e.preventDefault()
-    if (!form.kelas || !form.gameKey) return
+    if (!form.kelasArr?.length || !form.gameKey) return
     setCreating(true)
     setError('')
     try {
-      const data = await apiCall('/api/guru/tournament', { method: 'POST', body: form })
+      const data = await apiCall('/api/guru/tournament', { method: 'POST', body: { kelasArr: form.kelasArr, gameKey: form.gameKey } })
       setTournament(data.tournament)
     } catch (err) {
       setError(err.message)
@@ -1314,16 +1320,48 @@ function TurnamenTab({ kelasDiampu }) {
         <div style={{ background: '#1A1D27', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1.5 }}>🏆 BUAT TURNAMEN BARU</div>
           <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Kelas */}
+            {/* Kelas — multi-select checkboxes */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={labelStyle}>KELAS</div>
-              <div style={{ position: 'relative' }}>
-                <select value={form.kelas} onChange={e => setForm(f => ({ ...f, kelas: e.target.value }))} style={{ ...inputStyle, appearance: 'none' }}>
-                  <option value="">Pilih kelas…</option>
-                  {kelasDiampu.map(k => <option key={k} value={k}>{k}</option>)}
-                </select>
-                <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94A3B8', fontSize: 12 }}>▼</div>
+              <div style={{ ...labelStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>KELAS</span>
+                <span style={{ fontSize: 10, color: '#67E8F9', fontWeight: 600 }}>
+                  {form.kelasArr.length === 0 ? 'Pilih minimal 1' : `${form.kelasArr.length} dipilih`}
+                </span>
               </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {kelasDiampu.map(k => {
+                  const checked = form.kelasArr.includes(k)
+                  return (
+                    <button key={k} type="button"
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        kelasArr: checked ? f.kelasArr.filter(x => x !== k) : [...f.kelasArr, k]
+                      }))}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+                        fontFamily: 'inherit', textAlign: 'left', border: 'none',
+                        background: checked ? 'rgba(103,232,249,0.1)' : 'rgba(255,255,255,0.04)',
+                        boxShadow: checked ? 'inset 0 0 0 1.5px #67E8F9' : 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+                      }}>
+                      <div style={{
+                        width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                        background: checked ? '#67E8F9' : 'transparent',
+                        border: `1.5px solid ${checked ? '#67E8F9' : '#475569'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {checked && <span style={{ color: '#0A1628', fontSize: 11, fontWeight: 900 }}>✓</span>}
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: checked ? 700 : 500, color: checked ? '#67E8F9' : '#94A3B8' }}>{k}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {form.kelasArr.length > 1 && (
+                <div style={{ fontSize: 11, color: '#f59e0b', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '6px 10px' }}>
+                  ⚔️ Turnamen Antar Kelas — siswa dari {form.kelasArr.length} kelas akan bersaing bersama
+                </div>
+              )}
             </div>
 
             {/* Game — horizontal scroll chips */}
@@ -1388,29 +1426,51 @@ function TurnamenTab({ kelasDiampu }) {
               🎯 Turnamen akan dimulai setelah kamu klik Mulai. Semua siswa online akan otomatis masuk.
             </div>
 
-            <button type="submit" disabled={creating || !form.kelas} style={{
-              background: creating || !form.kelas ? 'rgba(180,83,9,0.3)' : '#b45309',
+            <button type="submit" disabled={creating || !form.kelasArr?.length} style={{
+              background: creating || !form.kelasArr?.length ? 'rgba(180,83,9,0.3)' : '#b45309',
               color: '#fff', border: 'none', borderRadius: 14, padding: '16px',
-              fontSize: 16, fontWeight: 700, cursor: creating || !form.kelas ? 'default' : 'pointer',
-              fontFamily: 'inherit', opacity: creating || !form.kelas ? 0.5 : 1,
-              boxShadow: !creating && form.kelas ? '0 4px 12px rgba(180,83,9,0.3)' : 'none',
+              fontSize: 16, fontWeight: 700, cursor: creating || !form.kelasArr?.length ? 'default' : 'pointer',
+              fontFamily: 'inherit', opacity: creating || !form.kelasArr?.length ? 0.5 : 1,
+              boxShadow: !creating && form.kelasArr?.length ? '0 4px 12px rgba(180,83,9,0.3)' : 'none',
               marginTop: 8,
             }}>
-              {creating ? '⏳ Memulai…' : `🏆 Mulai Turnamen — ${form.kelas || '…'}`}
+              {creating
+                ? '⏳ Memulai…'
+                : form.kelasArr?.length > 1
+                  ? `🏆 Mulai Turnamen Antar Kelas (${form.kelasArr.length} kelas)`
+                  : `🏆 Mulai Turnamen — ${form.kelasArr?.[0] || '…'}`}
             </button>
           </form>
         </div>
       ) : (
         // ── Bracket View ─────────────────────────────────────────────────────
         <>
-          {/* Champion banner */}
+          {/* Podium / Champion banner */}
           {tournament.champion && (
-            <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontSize: 28 }}>🏆</div>
-              <div>
-                <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 800 }}>JUARA TURNAMEN</div>
-                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{tournament.champion.name}</div>
+            <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 16, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 28 }}>🏆</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 800 }}>JUARA TURNAMEN</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{tournament.champion.name}</div>
+                </div>
               </div>
+              {(tournament.runnerUp || tournament.semifinalists?.length > 0) && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {tournament.runnerUp && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(148,163,184,0.1)', borderRadius: 20, padding: '4px 10px' }}>
+                      <span>🥈</span>
+                      <span style={{ fontSize: 12, color: '#94A3B8', fontWeight: 700 }}>{tournament.runnerUp.name}</span>
+                    </div>
+                  )}
+                  {tournament.semifinalists?.map(s => (
+                    <div key={s.userId} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(205,124,58,0.1)', borderRadius: 20, padding: '4px 10px' }}>
+                      <span>🥉</span>
+                      <span style={{ fontSize: 12, color: '#cd7c3a', fontWeight: 700 }}>{s.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1439,6 +1499,7 @@ function TurnamenTab({ kelasDiampu }) {
                 const isLive = ri + 1 === tournament.currentRound && tournament.status !== 'finished'
                 const isDone = ri + 1 < tournament.currentRound
                 const isActive = displayRound === ri
+                const roundLabel = round.label || `Ronde ${ri + 1}`
                 return (
                   <button key={ri} onClick={() => setActiveRound(ri)} style={{
                     flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
@@ -1451,7 +1512,7 @@ function TurnamenTab({ kelasDiampu }) {
                       : '#64748B',
                     boxShadow: isActive ? `inset 0 0 0 1px ${isLive ? 'rgba(248,113,113,0.4)' : isDone ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.2)'}` : 'none',
                   }}>
-                    {isLive ? '🔴 ' : isDone ? '✓ ' : ''}Ronde {ri + 1}
+                    {isLive ? '🔴 ' : isDone ? '✓ ' : ''}{roundLabel}
                   </button>
                 )
               })}
@@ -1617,6 +1678,73 @@ function TurnamenTab({ kelasDiampu }) {
             )}
           </div>
         </>
+      )}
+
+      {/* Riwayat Turnamen — shown when no active tournament */}
+      {!tournament && (
+        <div style={{ background: '#1A1D27', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', padding: 20 }}>
+          <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800, letterSpacing: 1.5, marginBottom: 14 }}>📜 RIWAYAT TURNAMEN</div>
+          {historyLoading ? (
+            <div style={{ fontSize: 13, color: '#475569', textAlign: 'center', padding: '12px 0' }}>Memuat…</div>
+          ) : history.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#475569', textAlign: 'center', padding: '12px 0' }}>Belum ada turnamen yang pernah digelar.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {history.map(h => {
+                const gameLabel = TOURNAMENT_GAMES.find(g => g.key === h.game_key)?.label || h.game_key
+                const gameEmoji = gameLabel.split(' ')[0]
+                const gameName  = gameLabel.split(' ').slice(1).join(' ')
+                const isFinished = h.status === 'finished'
+                const date = new Date(h.finished_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                const time = new Date(h.finished_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                return (
+                  <div key={h.id} style={{
+                    background: '#111827', borderRadius: 12,
+                    border: `1px solid ${isFinished ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.06)'}`,
+                    padding: '12px 14px',
+                    display: 'flex', flexDirection: 'column', gap: 8,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                        <span style={{ fontSize: 18 }}>{gameEmoji}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gameName}</div>
+                          <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>
+                        {h.kelas_arr?.length > 1 ? `⚔️ ${h.kelas_arr.join(', ')}` : h.kelas}
+                      </div>
+                        </div>
+                      </div>
+                      <span style={{
+                        flexShrink: 0, fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20,
+                        background: isFinished ? 'rgba(251,191,36,0.12)' : 'rgba(239,68,68,0.12)',
+                        color: isFinished ? '#fbbf24' : '#f87171',
+                      }}>
+                        {isFinished ? '🏆 Selesai' : '🛑 Dibatalkan'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                      {isFinished && h.champion_name && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ fontSize: 13 }}>🥇</span>
+                          <span style={{ fontSize: 12, color: '#fbbf24', fontWeight: 700 }}>{h.champion_name}</span>
+                        </div>
+                      )}
+                      <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>👥</span> {h.total_participants} peserta
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>🔄</span> {h.total_rounds} ronde
+                      </div>
+                      <div style={{ fontSize: 11, color: '#475569', marginLeft: 'auto', textAlign: 'right' }}>
+                        {date} · {time}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Spectator bottom sheet */}
@@ -2142,7 +2270,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           </div>
 
           {/* Content */}
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px', maxWidth: 900 }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px 32px', width: '100%', maxWidth: 1280 }}>
             {tabContent}
           </div>
         </div>

@@ -1264,8 +1264,12 @@ export function Card({ children, style = {}, border = 'rgba(255,255,255,0.08)', 
 }
 
 export function Btn({ children, onClick, disabled, color = '#6366F1', textColor = '#fff', style = {} }) {
+  const handleClick = (e) => {
+    if (!disabled) import('../sfx.js').then(m => m.playSfx('click')).catch(() => {})
+    onClick?.(e)
+  }
   return (
-    <button onClick={onClick} disabled={disabled} style={{
+    <button onClick={handleClick} disabled={disabled} style={{
       background: disabled ? '#374151' : `linear-gradient(135deg, ${color}, #4F46E5)`,
       color: disabled ? '#6B7280' : textColor,
       border: '1px solid rgba(255,255,255,0.08)', borderRadius: 15, padding: '15px 20px',
@@ -1309,6 +1313,14 @@ export function OptionGrid({ options, onSelect, correct = null, disabled = false
 // task session counts the question as answered (preventing infinite retries).
 export function FeedbackBanner({ message, isCorrect, extras, correct, answer, onNext }) {
   const { recordWrongAnswer } = usePlayer()
+  React.useEffect(() => {
+    import('../sfx.js').then(m => {
+      const resolved = isCorrect !== undefined ? isCorrect : correct
+      if (resolved === true)  m.playSfx('correct')
+      if (resolved === false) m.playSfx('wrong')
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // Resolve which pattern is being used
   const resolvedIsCorrect = isCorrect !== undefined ? isCorrect : correct
   const resolvedMessage = message !== undefined
@@ -1400,6 +1412,13 @@ export function MultipleChoice({ options, selected, onSelect, correct = null, di
 // ── Unified answer feedback + "Next" button ───────────────────────────────────
 // Replaces the old FeedbackBanner usage in G8/G9 games.
 export function GameFeedback({ correct, correctAnswer, onNext, unit = '' }) {
+  React.useEffect(() => {
+    import('../sfx.js').then(m => {
+      if (correct === true)  m.playSfx('correct')
+      if (correct === false) m.playSfx('wrong')
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{

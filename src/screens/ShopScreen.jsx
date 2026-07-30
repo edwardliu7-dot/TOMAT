@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { playSfx } from '../sfx'
 import { TopBar, PlayerHeader } from '../components/shared'
 import { useAuth } from '../AuthContext'
 import { usePet } from '../PetContext'
@@ -6,6 +7,7 @@ import { usePlayer } from '../PlayerContext'
 import { KATEGORI_LABELS, PET_SKIN_INFO, PET_FOOD_CATALOG } from '../shopVisuals'
 import PetSVG, { PET_CSS, STATE_ANIMS, getPetName } from '../components/PetSVG'
 import { getPetBonusDisplay } from '../petBonuses'
+import { VISIBLE_EVENTS, isEventActive, getEventEndDate, formatCountdown, getUpcomingEvents, formatDaysUntil } from '../data/seasonalEvents'
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -29,7 +31,7 @@ async function apiCall(path, options = {}) {
   return data
 }
 
-const TABS = ['bingkai', 'spanduk', 'tema', 'pet_skin']
+const TABS = ['event', 'bingkai', 'spanduk', 'tema', 'pet_skin']
 
 // ── Rarity helpers ────────────────────────────────────────────────────────────
 function getItemRarity(item) {
@@ -110,10 +112,26 @@ function ItemVisual({ item }) {
       const outer = 80
       const sf = v.spread ?? 0.45
       const photoSz = Math.round(outer / (1 + 2 * sf))
+      const BINGKAI_SPARKLE_DOTS = [
+        { top: '5%',  left: '10%', delay: '0.0s', size: 3, color: '#E11D48' },
+        { top: '8%',  right: '8%', delay: '0.7s', size: 2, color: '#F1F5F9' },
+        { top: '50%', left: '0%',  delay: '1.2s', size: 2, color: '#F1F5F9' },
+        { top: '50%', right:'0%',  delay: '0.4s', size: 3, color: '#E11D48' },
+        { top: '88%', left: '12%', delay: '1.6s', size: 2, color: '#F1F5F9' },
+        { top: '85%', right:'10%', delay: '0.9s', size: 3, color: '#E11D48' },
+      ]
       return (
         <div style={{ position: 'relative', width: outer, height: outer, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: photoSz, height: photoSz, borderRadius: '50%', background: '#1E2128', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(photoSz * 0.45), position: 'relative', zIndex: 1 }}>🧑‍🎓</div>
-          <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 3, mixBlendMode: v.mixBlend ?? 'normal', filter: v.glow ? `drop-shadow(0 0 6px ${v.border}bb)` : 'none' }} />
+          <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 3, mixBlendMode: v.mixBlend ?? 'normal', filter: `${v.cssFilter ? v.cssFilter + ' ' : ''}${v.glow ? `drop-shadow(0 0 6px ${v.border}bb)` : ''}` || 'none' }} />
+          {v.sparkle === 'merahputih' && (
+            <>
+              <style>{`@keyframes bingkai-sparkle{0%,100%{opacity:0;transform:scale(0.3) rotate(0deg)}50%{opacity:1;transform:scale(1.2) rotate(45deg)}}`}</style>
+              {BINGKAI_SPARKLE_DOTS.map((d, i) => (
+                <div key={i} style={{ position: 'absolute', width: d.size, height: d.size, borderRadius: '50%', background: '#fff', top: d.top, left: d.left, right: d.right, boxShadow: `0 0 3px 1px ${d.color}, 0 0 7px 2px ${d.color}88`, animation: `bingkai-sparkle 2.4s ease-in-out ${d.delay} infinite`, opacity: 0, zIndex: 6, pointerEvents: 'none' }} />
+              ))}
+            </>
+          )}
         </div>
       )
     }
@@ -125,7 +143,10 @@ function ItemVisual({ item }) {
   }
   if (item.kategori === 'spanduk') {
     const v = item.visual || {}
-    return <div style={{ width: '100%', height: 64, borderRadius: 12, background: v.gradient || '#334155', boxShadow: v.glow ? '0 0 20px rgba(212,175,55,0.3)' : 'none', border: v.limited ? '1px solid rgba(212,175,55,0.55)' : 'none' }} />
+    const bg = v.image
+      ? `url(${v.image}) center/cover no-repeat, ${v.gradient || '#334155'}`
+      : v.gradient || '#334155'
+    return <div style={{ width: '100%', height: 64, borderRadius: 12, background: bg, boxShadow: v.glow ? '0 0 20px rgba(212,175,55,0.3)' : 'none', border: v.limited ? '1px solid rgba(212,175,55,0.55)' : 'none' }} />
   }
 
   if (item.kategori === 'tema') {
@@ -263,7 +284,7 @@ const SKIN_GROUPS = [
     color: '#34D399',
     bg: 'rgba(52,211,153,0.10)',
     border: 'rgba(52,211,153,0.22)',
-    skins: ['pet_kelinsay_senja', 'pet_kelinsay_malam'],
+    skins: ['pet_kelinsay_senja', 'pet_kelinsay_malam', 'pet_kelinsay_merahputih'],
   },
   {
     id: 'monyong',
@@ -337,8 +358,9 @@ function PetTokoTab({ data, onRefresh, setError }) {
     const owned = isGolden || data.ownedItemIds.includes(skinId)
     setBusyId(skinId); setLocalError('')
     try {
-      if (!owned) await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } })
+      if (!owned) { await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } }); playSfx('buy') }
       await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: skinId } })
+      playSfx('equip')
       await onRefresh(); await refreshMe(); refreshPet()
     } catch (err) { setLocalError(err.message) } finally { setBusyId(null) }
   }
@@ -354,7 +376,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const doRevive = async () => {
     setBusyId('revive'); setLocalError(''); setFeedSuccess('')
     const result = await revivePet()
-    if (result.ok) { setFeedSuccess('🐾 Pet baru sudah diadopsi!'); await onRefresh(); await refreshMe(); setTimeout(() => setFeedSuccess(''), 4000) }
+    if (result.ok) { playSfx('equip'); setFeedSuccess('🐾 Pet baru sudah diadopsi!'); await onRefresh(); await refreshMe(); setTimeout(() => setFeedSuccess(''), 4000) }
     else setLocalError(result.error)
     setBusyId(null)
   }
@@ -688,10 +710,317 @@ function ItemCard({ item, data, onBuy, onEquip, busyId }) {
   )
 }
 
+// ── MissionPanel — shows mission progress + claim buttons for one event ────────
+function MissionPanel({ ev, missions, onClaim, claimingId, claimError }) {
+  if (!missions || missions.length === 0) return null
+  return (
+    <div style={{ background: 'rgba(10,16,26,0.85)', padding: '14px 14px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
+        <span style={{
+          fontSize: 9, fontWeight: 900, letterSpacing: 2, color: ev.accent,
+          background: `${ev.accent}18`, borderRadius: 6, padding: '2px 7px', textTransform: 'uppercase',
+        }}>🎖️ Misi Event</span>
+        <div style={{ flex: 1, height: 1, background: `${ev.accent}28` }} />
+      </div>
+
+      {claimError && (
+        <div style={{ marginBottom: 10, padding: '8px 12px', borderRadius: 10, fontSize: 12, background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.25)', color: '#F87171' }}>{claimError}</div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+        {missions.map((m, idx) => {
+          const isAutoMission = m.requires?.length > 0
+          const pct = Math.min(100, Math.round((m.progress / m.goal) * 100))
+          const isBusy = claimingId === m.id
+
+          return (
+            <div key={m.id} style={{
+              borderRadius: 14,
+              border: `1px solid ${m.completed ? m.accent + '55' : 'rgba(255,255,255,0.07)'}`,
+              background: m.completed
+                ? `linear-gradient(135deg, ${m.accent}0d, rgba(10,16,26,0.9))`
+                : 'rgba(255,255,255,0.025)',
+              padding: '12px 14px',
+              opacity: (!m.completed && isAutoMission) ? 0.6 : 1,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                {/* Icon */}
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 20,
+                  background: m.completed ? `${m.accent}22` : 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${m.completed ? m.accent + '44' : 'rgba(255,255,255,0.08)'}`,
+                }}>{m.emoji}</div>
+
+                {/* Content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: m.completed ? '#fff' : '#CBD5E1' }}>
+                      Misi {idx + 1}: {m.nama}
+                    </span>
+                    {m.claimed && (
+                      <span style={{ fontSize: 9, fontWeight: 900, background: 'rgba(52,211,153,0.15)', color: '#34D399', borderRadius: 5, padding: '1px 5px' }}>✓ CLAIMED</span>
+                    )}
+                    {m.completed && !m.claimed && (
+                      <span style={{ fontSize: 9, fontWeight: 900, background: `${m.accent}22`, color: m.accent, borderRadius: 5, padding: '1px 5px', animation: 'tomat-pulse 1.8s ease-in-out infinite' }}>SELESAI!</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginBottom: 8, lineHeight: 1.4 }}>{m.deskripsi}</div>
+
+                  {/* For auto-missions (requires): show dependency chips */}
+                  {isAutoMission ? (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {m.requires.map(reqId => {
+                        const reqMission = missions.find(x => x.id === reqId)
+                        const done = reqMission?.completed
+                        return (
+                          <span key={reqId} style={{
+                            fontSize: 10, fontWeight: 700, borderRadius: 6, padding: '2px 7px',
+                            background: done ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.06)',
+                            color: done ? '#34D399' : '#64748B',
+                            border: `1px solid ${done ? 'rgba(52,211,153,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                          }}>
+                            {done ? '✓' : '○'} {reqMission?.nama || reqId}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    /* Progress bar */
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: 10, color: '#475569' }}>{m.unit}</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: m.completed ? m.accent : '#94A3B8' }}>
+                          {m.progress}/{m.goal}
+                        </span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', borderRadius: 99, transition: 'width 0.5s ease',
+                          width: `${pct}%`,
+                          background: m.completed
+                            ? `linear-gradient(90deg, ${m.accent}, ${m.accent}cc)`
+                            : `linear-gradient(90deg, ${ev.accent}88, ${ev.accent}44)`,
+                          boxShadow: m.completed ? `0 0 8px ${m.accent}66` : 'none',
+                        }} />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Claim button — only when completed and not yet claimed */}
+              {m.completed && !m.claimed && (
+                <button
+                  onClick={() => onClaim(m.id)}
+                  disabled={isBusy}
+                  style={{
+                    marginTop: 12, width: '100%', padding: '10px', borderRadius: 10,
+                    border: 'none', cursor: isBusy ? 'default' : 'pointer',
+                    fontFamily: 'inherit', fontSize: 12, fontWeight: 900,
+                    background: `linear-gradient(135deg, ${m.accent}, ${m.accent}cc)`,
+                    color: '#fff',
+                    boxShadow: `0 4px 14px ${m.accent}44`,
+                  }}
+                >
+                  {isBusy ? '…' : `🎁 Ambil Hadiah`}
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Divider before items */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
+        <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: '#64748B', textTransform: 'uppercase' }}>🛍️ Item Eksklusif</span>
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+      </div>
+    </div>
+  )
+}
+
+// ── EventTokoTab ──────────────────────────────────────────────────────────────
+function EventTokoTab({ data, onBuy, onEquip, busyId, activeEventSlugs, onRefresh }) {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Mission state
+  const [missionData, setMissionData] = useState({})   // { [eventSlug]: mission[] }
+  const [claimingId, setClaimingId]   = useState(null)
+  const [claimError, setClaimError]   = useState('')
+
+  const loadMissions = useCallback(async () => {
+    try {
+      const res = await apiCall('/api/siswa/event-missions')
+      const map = {}
+      for (const ev of res.events || []) map[ev.eventSlug] = ev.missions
+      setMissionData(map)
+    } catch {
+      // non-fatal — missions just won't show if offline
+    }
+  }, [])
+
+  useEffect(() => { loadMissions() }, [loadMissions])
+
+  const claimMission = async (missionId) => {
+    setClaimingId(missionId); setClaimError('')
+    try {
+      await apiCall(`/api/siswa/event-missions/${missionId}/claim`, { method: 'POST' })
+      playSfx('buy')
+      await loadMissions()
+      await onRefresh()  // refresh inventory so the claimed item shows as owned
+    } catch (err) {
+      setClaimError(err.message)
+    } finally {
+      setClaimingId(null)
+    }
+  }
+
+  // Adapter: PetCard needs a combined buy+equip callback
+  const { refreshMe } = useAuth()
+  const { refreshPet } = usePet()
+  const [petBusy, setPetBusy] = useState(null)
+  const [petError, setPetError] = useState('')
+  const makeBuyEquipSkin = (skinId) => async () => {
+    const owned = data.ownedItemIds.includes(skinId)
+    setPetBusy(skinId); setPetError('')
+    try {
+      if (!owned) await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } })
+      await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: skinId } })
+      playSfx(owned ? 'equip' : 'buy')
+      await onRefresh(); await refreshMe(); refreshPet()
+    } catch (err) { setPetError(err.message) } finally { setPetBusy(null) }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, paddingBottom: 40 }}>
+      {(petError) && (
+        <div style={{ padding: '10px 14px', borderRadius: 12, fontSize: 13, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171' }}>{petError}</div>
+      )}
+      {VISIBLE_EVENTS.map(ev => {
+        const isActive = activeEventSlugs.has(ev.slug)
+        const endDate  = isActive ? getEventEndDate(ev, now) : null
+        const msLeft   = endDate ? endDate - now : 0
+        const upcoming = !isActive ? getUpcomingEvents(now).find(u => u.slug === ev.slug) : null
+        const eventItems = data.items.filter(it => it.visual?.eventSlug === ev.slug)
+        const missions   = missionData[ev.slug] || []
+
+        return (
+          <div key={ev.slug} style={{ borderRadius: 20, overflow: 'hidden', border: `1px solid ${isActive ? ev.accent + '44' : 'rgba(255,255,255,0.06)'}`, boxShadow: isActive ? `0 0 24px ${ev.accent}18` : 'none' }}>
+            {/* Event header */}
+            <div style={{ background: ev.bgGradient, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ fontSize: 40, lineHeight: 1 }}>{ev.emoji}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 3 }}>{ev.name}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{ev.description}</div>
+              </div>
+              <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                {isActive ? (
+                  <>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: `${ev.accent}22`, border: `1px solid ${ev.accent}55`, borderRadius: 99, padding: '3px 10px', marginBottom: 4 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: ev.accent, boxShadow: `0 0 6px ${ev.accent}` }} />
+                      <span style={{ fontSize: 10, fontWeight: 900, color: ev.accent, letterSpacing: '0.1em' }}>AKTIF</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block' }}>{formatCountdown(msLeft)}</div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                    {upcoming ? `Mulai ${upcoming.nextStart.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}` : 'Tidak aktif'}
+                    {upcoming && <div style={{ color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{formatDaysUntil(upcoming.nextStart, now)}</div>}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mission panel (active events only) */}
+            {isActive && missions.length > 0 && (
+              <MissionPanel
+                ev={ev}
+                missions={missions}
+                onClaim={claimMission}
+                claimingId={claimingId}
+                claimError={claimError}
+              />
+            )}
+
+            {/* Event items */}
+            <div style={{ background: 'rgba(10,16,26,0.85)', padding: eventItems.length ? '14px 14px' : '10px 14px' }}>
+              {!isActive && missions.length === 0 && eventItems.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '16px 0', color: '#6B7280', fontSize: 13 }}>Belum ada item untuk event ini.</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+                  {eventItems.map(item => {
+                    const isMissionOnly = item.visual?.missionOnly
+                    const owned = data.ownedItemIds.includes(item.id)
+
+                    if (item.kategori === 'pet_skin') {
+                      const equippedSkin = data.equipped.pet_skin || 'golden'
+                      const skinBusy = petBusy === item.id || busyId === item.id
+                      const skinInfo = PET_SKIN_INFO[item.id]
+                      if (!skinInfo) return null
+                      return (
+                        <div key={item.id} style={{ position: 'relative' }}>
+                          <PetCard skinId={item.id} data={data} equippedSkin={equippedSkin} busyId={skinBusy ? item.id : null} onBuyEquip={makeBuyEquipSkin(item.id)} />
+                          {/* Mission-only badge when not yet owned */}
+                          {isMissionOnly && !owned && (
+                            <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, borderRadius: 8, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '5px 8px', backdropFilter: 'blur(4px)' }}>
+                              <span style={{ fontSize: 10, fontWeight: 900, color: '#F59E0B' }}>🎖️ Hanya via Misi</span>
+                            </div>
+                          )}
+                          {!isActive && (
+                            <div style={{ position: 'absolute', inset: 0, borderRadius: 18, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#94A3B8' }}>⏳ Belum dimulai</div>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    // Non-pet event item
+                    if (!isActive) {
+                      return (
+                        <div key={item.id} style={{ position: 'relative' }}>
+                          <ItemCard item={item} data={data} onBuy={() => {}} onEquip={onEquip} busyId={busyId} />
+                          <div style={{ position: 'absolute', inset: 0, borderRadius: 16, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#94A3B8' }}>⏳ Belum dimulai</div>
+                        </div>
+                      )
+                    }
+                    // Active, mission-only: block buy, show equip if owned
+                    if (isMissionOnly) {
+                      return (
+                        <div key={item.id} style={{
+                          background: '#1A1D27', borderRadius: 16, padding: 12,
+                          border: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 8,
+                        }}>
+                          <ItemCard item={item} data={data} onBuy={() => {}} onEquip={onEquip} busyId={busyId} />
+                          {!owned && (
+                            <div style={{ marginTop: -4, padding: '7px', borderRadius: 10, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.22)', textAlign: 'center', fontSize: 11, fontWeight: 800, color: '#F59E0B' }}>
+                              🎖️ Selesaikan Misi untuk mendapatkan
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    return <ItemCard key={item.id} item={item} data={data} onBuy={onBuy} onEquip={onEquip} busyId={busyId} />
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function ShopScreen({ goBack, initialTab }) {
   const { refreshMe } = useAuth()
   const isDesktop = useIsDesktop()
-  const [tab, setTab] = useState(initialTab || 'bingkai')
+  const [tab, setTab] = useState(initialTab || 'event')
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
@@ -705,7 +1034,7 @@ export default function ShopScreen({ goBack, initialTab }) {
 
   const buy = async (item) => {
     setError(''); setBusyId(item.id)
-    try { await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: item.id } }); await refresh() }
+    try { await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: item.id } }); playSfx('buy'); await refresh() }
     catch (err) { setError(err.message) } finally { setBusyId(null) }
   }
 
@@ -716,7 +1045,7 @@ export default function ShopScreen({ goBack, initialTab }) {
     const body = item.id === null
       ? { itemId: null, kategori: item.kategori }
       : { itemId: item.id }
-    try { await apiCall('/api/siswa/toko/pakai', { method: 'POST', body }); await refresh(); await refreshMe() }
+    try { await apiCall('/api/siswa/toko/pakai', { method: 'POST', body }); playSfx('equip'); await refresh(); await refreshMe() }
     catch (err) { setError(err.message) } finally { setBusyId(null) }
   }
 
@@ -744,6 +1073,7 @@ export default function ShopScreen({ goBack, initialTab }) {
 
   // ── Item grid ──
   const ItemGrid = () => {
+    if (tab === 'event') return <EventTokoTab data={data} onBuy={buy} onEquip={equip} busyId={busyId} activeEventSlugs={new Set(data.activeEvents || [])} onRefresh={refresh} />
     if (tab === 'pet_skin') return <PetTokoTab data={data} onRefresh={refresh} setError={setError} />
     if (tab === 'tema') return <TemaTokoTab data={data} onBuy={buy} onEquip={equip} busyId={busyId} onRefresh={refresh} refreshMe={refreshMe} setError={setError} />
     if (items.length === 0) return (

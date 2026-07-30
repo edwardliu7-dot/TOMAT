@@ -10,6 +10,15 @@
  *   Success grn ~#22c55e (hue 142°)
  */
 export const GAME_THEMES = {
+  // ── Seasonal event theme — auto-applied Jul 15–Aug 31, overrides equippedTema ──
+  tema_merahputih: {
+    label: 'Merah Putih',
+    // hue-rotate(165deg) = -195deg: shifts default cyan (195°) → 0°/360° red
+    filter: 'hue-rotate(165deg) saturate(1.4) brightness(0.88)',
+    particles: 'merahputih',
+    accent: '#DC2626',
+    seasonal: true,   // flag so shop UI can hide / label it differently
+  },
   tema_space: {
     label: 'Luar Angkasa',
     // Cyan stays cyan; slight contrast boost + slight darkening for "deep space" feel
@@ -78,11 +87,133 @@ export function getInverseFilter(temaId) {
  * marked [data-raw-image] receives the inverse filter to counteract the parent —
  * so profile photos, avatar frames, and pet sprites stay true-colour even inside
  * a filtered nav bar.
+ *
+ * tema_merahputih is a special case: near-black backgrounds have near-zero
+ * saturation so hue-rotate does nothing visible. We use direct colour overrides
+ * (with !important to beat React inline styles) instead.
  */
 export function GameThemeStyles({ temaId }) {
   const theme = getGameTheme(temaId)
   if (!theme) return null
 
+  // ── Special-case: Merah Putih seasonal theme ──────────────────────────────
+  if (temaId === 'tema_merahputih') {
+    // Build umbul-umbul SVG tile — 3 baris bendera, repeat-x saja.
+    // Named/rgb colors only — no '#' in data URL.
+    const flagW = 18, flagH = 22, step = 40
+    const ropeYs = [10, 38, 66]   // Y posisi tali per baris
+    const rowCount = 11            // bendera per baris
+    const rows = ropeYs.map((ry, ri) =>
+      Array.from({ length: rowCount }, (_, i) => {
+        const cx   = i * step + step / 2
+        const even = (i + ri) % 2 === 0
+        const fill = even ? 'crimson' : 'rgb(248,250,252)'
+        const op   = even ? 0.88 : 0.72
+        return `<polygon points="${cx - flagW/2},${ry} ${cx + flagW/2},${ry} ${cx},${ry + flagH}" fill="${fill}" opacity="${op}"/>`
+      }).join('')
+    )
+    const svgH = ropeYs[ropeYs.length - 1] + flagH + 10   // 98
+    const svgTile = `<svg xmlns="http://www.w3.org/2000/svg" width="440" height="${svgH}">`
+      + ropeYs.map(ry =>
+          `<line x1="0" y1="${ry}" x2="440" y2="${ry}" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>`
+        ).join('')
+      + rows.join('')
+      + `</svg>`
+    const encodedSvg = encodeURIComponent(svgTile)
+
+    const css = `
+      /* ── Page / root background ───────────────────────────────── */
+      html[data-tema="tema_merahputih"] body,
+      html[data-tema="tema_merahputih"] #root {
+        background: linear-gradient(180deg,#050814 0%,#080d1f 40%,#0d1130 65%,#110018 100%) !important;
+      }
+
+      /* ── Umbul-umbul — fixed full-screen tiling background ──────
+         Mengisi seluruh area; nav bar atas/bawah punya background
+         sendiri yang menutupinya, sehingga hanya terlihat di bagian
+         tengah konten (tidak terhalang header).               ── */
+      html[data-tema="tema_merahputih"] body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,${encodedSvg}");
+        background-repeat: repeat-x;
+        background-size: 440px ${svgH}px;
+        background-position: center center;
+      }
+      html[data-tema="tema_merahputih"] .home-screen,
+      html[data-tema="tema_merahputih"] .zone-screen,
+      html[data-tema="tema_merahputih"] .shop-screen,
+      html[data-tema="tema_merahputih"] .grades-screen,
+      html[data-tema="tema_merahputih"] .profile-screen,
+      html[data-tema="tema_merahputih"] .leaderboard-screen,
+      html[data-tema="tema_merahputih"] .badges-screen,
+      html[data-tema="tema_merahputih"] .communication-screen,
+      html[data-tema="tema_merahputih"] .hafalan-screen,
+      html[data-tema="tema_merahputih"] .latihan-ujian-screen {
+        background: transparent !important;
+      }
+
+      /* ── Top bar ──────────────────────────────────────────────── */
+      html[data-tema="tema_merahputih"] .tomat-topbar {
+        background: rgba(5,8,20,0.82) !important;
+        border-bottom-color: rgba(220,38,38,0.30) !important;
+        box-shadow: 0 2px 24px rgba(220,38,38,0.08) !important;
+      }
+      /* accent dots / text inside topbar */
+      html[data-tema="tema_merahputih"] .tomat-topbar .accent-text,
+      html[data-tema="tema_merahputih"] .tomat-topbar .level-badge {
+        color: #fca5a5 !important;
+      }
+
+      /* ── Player header (coin / XP bar) ────────────────────────── */
+      html[data-tema="tema_merahputih"] .tomat-player-header {
+        background: rgba(5,8,20,0.65) !important;
+        border-bottom-color: rgba(220,38,38,0.14) !important;
+      }
+
+      /* ── Bottom nav ───────────────────────────────────────────── */
+      html[data-tema="tema_merahputih"] .appshell-bottom-nav {
+        background: rgba(5,8,20,0.97) !important;
+        border-top: 1.5px solid rgba(220,38,38,0.28) !important;
+        box-shadow: 0 -4px 32px rgba(220,38,38,0.12) !important;
+      }
+      /* active tab indicator */
+      html[data-tema="tema_merahputih"] .appshell-bottom-nav .nav-active,
+      html[data-tema="tema_merahputih"] .appshell-bottom-nav [data-active="true"] {
+        color: #ef4444 !important;
+      }
+
+      /* ── Sidebar (desktop) ────────────────────────────────────── */
+      html[data-tema="tema_merahputih"] .tomat-sidebar {
+        background: #070410 !important;
+        border-right-color: rgba(220,38,38,0.20) !important;
+      }
+
+      /* ── Card / panel surfaces — shift to deep crimson-navy ───── */
+      html[data-tema="tema_merahputih"] .game-card,
+      html[data-tema="tema_merahputih"] .stat-card,
+      html[data-tema="tema_merahputih"] .info-card {
+        border-color: rgba(220,38,38,0.22) !important;
+      }
+
+      /* ── Protect images / sprites inside chrome from tinting ──── */
+      html[data-tema="tema_merahputih"] .tomat-topbar img,
+      html[data-tema="tema_merahputih"] .tomat-topbar canvas,
+      html[data-tema="tema_merahputih"] .tomat-topbar [data-raw-image],
+      html[data-tema="tema_merahputih"] .appshell-bottom-nav img,
+      html[data-tema="tema_merahputih"] .appshell-bottom-nav canvas,
+      html[data-tema="tema_merahputih"] .tomat-sidebar img,
+      html[data-tema="tema_merahputih"] .tomat-sidebar canvas {
+        filter: none !important;
+      }
+    `
+    return <style>{css}</style>
+  }
+
+  // ── Generic themes — filter-based ────────────────────────────────────────
   const f  = theme.filter
   const iv = getInverseFilter(temaId)   // counteract filter for images inside bars
 
@@ -125,11 +256,25 @@ function seededPositions(count, salt = 0) {
   }))
 }
 
-const STAR_POSITIONS  = seededPositions(70, 0)
-const LEAF_POSITIONS  = seededPositions(16, 11)
-const EMBER_POSITIONS = seededPositions(22, 23)
-const SNOW_POSITIONS  = seededPositions(28, 37)
-const VOID_POSITIONS  = seededPositions(30, 53)
+const STAR_POSITIONS        = seededPositions(70, 0)
+const LEAF_POSITIONS        = seededPositions(16, 11)
+const EMBER_POSITIONS       = seededPositions(22, 23)
+const SNOW_POSITIONS        = seededPositions(28, 37)
+const VOID_POSITIONS        = seededPositions(30, 53)
+const MERAHPUTIH_POSITIONS  = seededPositions(50, 79)
+
+// Umbul-umbul (triangle flag buntings) along two ropes
+const _MP_FLAG_COLS = 11
+const _MP_FLAGS_ROW1 = Array.from({ length: _MP_FLAG_COLS }, (_, i) => ({
+  x: (i / (_MP_FLAG_COLS - 1)) * 100,
+  y: 2 + Math.sin((i / (_MP_FLAG_COLS - 1)) * Math.PI) * 2.5,
+  isRed: i % 2 === 0,
+}))
+const _MP_FLAGS_ROW2 = Array.from({ length: _MP_FLAG_COLS }, (_, i) => ({
+  x: (i / (_MP_FLAG_COLS - 1)) * 100,
+  y: 7 + Math.sin((i / (_MP_FLAG_COLS - 1)) * Math.PI) * 2,
+  isRed: i % 2 !== 0,
+}))
 
 import React from 'react'
 
@@ -238,6 +383,102 @@ export function GameThemeOverlay({ temaId }) {
             mixBlendMode: 'screen',
           }} />
         ))}
+      </div>
+    )
+  }
+
+  if (theme.particles === 'merahputih') {
+    const red   = '#DC2626'
+    const redGlow = 'rgba(220,38,38,0.7)'
+    // z-index 1 — sits behind all navigation chrome (topbar z-30, bottom-nav z-50, etc.)
+    const mpBase = { ...base, zIndex: 1 }
+    return (
+      <div style={mpBase}>
+
+        {/* Full-screen background tint — shifts dark navy toward midnight crimson */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(180deg,rgba(12,2,2,0.18) 0%,rgba(6,0,10,0.10) 60%,rgba(20,0,4,0.20) 100%)',
+        }} />
+
+        {/* Night stars — straight opacity, no blendMode so they're visible */}
+        {MERAHPUTIH_POSITIONS.slice(0, 30).map((p, i) => (
+          <div key={`mp-star-${i}`} style={{
+            position: 'absolute',
+            left: `${p.x}%`, top: `${p.y}%`,
+            width: `${p.s}px`, height: `${p.s}px`,
+            borderRadius: '50%', background: '#fff',
+            opacity: +p.o * 0.6,
+          }} />
+        ))}
+
+        {/* Firework glow halos — blurred red/white light blooms */}
+        {[
+          { x: 14, y: 10, r: 80,  c: '#DC2626', op: 0.22 },
+          { x: 76, y:  7, r: 100, c: '#fff',     op: 0.10 },
+          { x: 48, y: 18, r: 70,  c: '#DC2626', op: 0.18 },
+          { x: 89, y: 24, r: 60,  c: '#fff',     op: 0.08 },
+          { x: 30, y: 28, r: 50,  c: '#DC2626', op: 0.14 },
+        ].map((b, i) => (
+          <div key={`mp-halo-${i}`} style={{
+            position: 'absolute',
+            left: `${b.x}%`, top: `${b.y}%`,
+            width: `${b.r}px`, height: `${b.r}px`,
+            transform: 'translate(-50%,-50%)',
+            borderRadius: '50%',
+            background: b.c,
+            filter: 'blur(28px)',
+            opacity: b.op,
+          }} />
+        ))}
+
+        {/* Firework burst dots — red & white, with glow */}
+        {MERAHPUTIH_POSITIONS.slice(30).map((p, i) => {
+          const isRed = i % 2 === 0
+          const c     = isRed ? red : '#F8FAFC'
+          const glow  = isRed ? redGlow : 'rgba(248,250,252,0.55)'
+          return (
+            <div key={`mp-dot-${i}`} style={{
+              position: 'absolute',
+              left: `${p.x}%`, top: `${p.y}%`,
+              width: `${p.s}px`, height: `${p.s}px`,
+              borderRadius: '50%', background: c,
+              boxShadow: `0 0 ${+p.s * 4}px ${glow}`,
+              opacity: +p.o * 0.7,
+            }} />
+          )
+        })}
+
+        {/* Confetti slivers — red & white */}
+        {Array.from({ length: 24 }, (_, i) => ({
+          left:  ((i * 121.1 + 9) % 100).toFixed(1),
+          top:   ((i * 77.3  + 5) % 100).toFixed(1),
+          w: 5 + (i % 3) * 2,
+          h: 2 + (i % 2),
+          rot: ((i * 41) % 180 - 90),
+          color: i % 2 === 0 ? red : 'rgba(248,250,252,0.75)',
+        })).map((c, i) => (
+          <div key={`mp-conf-${i}`} style={{
+            position: 'absolute',
+            left: `${c.left}%`, top: `${c.top}%`,
+            width: `${c.w}px`, height: `${c.h}px`,
+            background: c.color, borderRadius: 1,
+            transform: `rotate(${c.rot}deg)`,
+            opacity: 0.12 + (i % 5) * 0.04,
+          }} />
+        ))}
+
+        {/* Red glow line along top — like a celebration banner highlight */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+          background: 'linear-gradient(90deg,transparent 5%,rgba(220,38,38,0.6) 30%,rgba(248,250,252,0.4) 50%,rgba(220,38,38,0.6) 70%,transparent 95%)',
+        }} />
+
+        {/* Horizon ambient glow — celebration lights from below */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '12%',
+          background: 'linear-gradient(0deg,rgba(127,29,29,0.18) 0%,transparent 100%)',
+        }} />
       </div>
     )
   }

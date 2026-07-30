@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import PetSVG, { PET_CSS, STATE_ANIMS, getPetName } from './PetSVG'
 import { usePet } from '../PetContext'
 import { useAuth } from '../AuthContext'
+import { playSfx, skinToSfxKey } from '../sfx'
 
 const PET_SIZE        = 76
 const TICK_MS         = 40      // ~25 fps
@@ -287,9 +288,10 @@ function PetWidget({ pet, onHungryClick }) {
     if (longPressRef.current) {
       clearTimeout(longPressRef.current)
       longPressRef.current = null
+      playSfx('happy_' + skinToSfxKey(pet.skin))
       triggerInteraction('happy', 1800)
     }
-  }, [triggerInteraction])
+  }, [triggerInteraction, pet.skin])
 
   const mirrorX = dir === -1
   const anim    = STATE_ANIMS[petState] || STATE_ANIMS.idle

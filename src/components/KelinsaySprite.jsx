@@ -19,9 +19,10 @@ const STATE_CFG = {
 
 // Skin → sprite sheet mapping
 const SKIN_SPRITE = {
-  pet_kelinsay:       '/kelinsay-sprite.png',
-  pet_kelinsay_senja: '/kelinsay-senja.png',
-  pet_kelinsay_malam: '/kelinsay-malam.png',
+  pet_kelinsay:            '/kelinsay-sprite.png',
+  pet_kelinsay_senja:      '/kelinsay-senja.png',
+  pet_kelinsay_malam:      '/kelinsay-malam.png',
+  pet_kelinsay_merahputih: '/81.png',
 }
 
 const _injected = new Set()

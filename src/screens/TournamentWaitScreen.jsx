@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { connectSocket } from '../socket'
+import { usePlayer } from '../PlayerContext'
 
 function useIsDesktop() {
   const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
@@ -34,9 +35,14 @@ const STATUS_BADGE = {
   pending:       { bg: 'rgba(255,255,255,0.06)',  color: '#475569', label: '🔒 Menunggu' },
 }
 
+const RANK_LABEL = { 1: '🥇 Juara 1', 2: '🥈 Runner-up', 3: '🥉 Peringkat 3' }
+const RANK_COLOR = { 1: '#fbbf24', 2: '#94A3B8', 3: '#cd7c3a' }
+
 export default function TournamentWaitScreen({ tournamentId, myUserId, myName, goBack }) {
-  const [tournament, setTournament] = useState(null)
+  const [tournament,   setTournament]   = useState(null)
+  const [rewardToast,  setRewardToast]  = useState(null)  // { amount, rank }
   const isDesktop = useIsDesktop()
+  const { syncCoins } = usePlayer() || {}
 
   useEffect(() => {
     const socket = connectSocket()
@@ -56,10 +62,17 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
       if (state?.id === tournamentId) setTournament(state)
     })
 
+    socket.on('tournament:reward', ({ amount, rank, newCoins }) => {
+      setRewardToast({ amount, rank })
+      if (newCoins != null && syncCoins) syncCoins(newCoins)
+      setTimeout(() => setRewardToast(null), 5000)
+    })
+
     return () => {
       socket.off('tournament:state')
       socket.off('tournament:round-start')
       socket.off('tournament:finished')
+      socket.off('tournament:reward')
     }
   }, [tournamentId])
 
@@ -101,23 +114,72 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
     return { text: 'Menunggu ronde berikutnya…', color: '#94A3B8' }
   })()
 
-  // Juara
+  // ── Podium Juara ───────────────────────────────────────────────────────────
   if (tournament?.status === 'finished' && tournament?.champion) {
-    const iAmChampion = tournament.champion.userId === myUserId
+    const champion     = tournament.champion
+    const runnerUp     = tournament.runnerUp
+    const semis        = tournament.semifinalists || []
+    const iAmChampion  = champion.userId === myUserId
+    const iAmRunnerUp  = runnerUp?.userId === myUserId
+    const iAmSemi      = semis.some(s => s.userId === myUserId)
+
+    const myResult = iAmChampion ? '🏆 Kamu Juara!' : iAmRunnerUp ? '🥈 Runner-up!' : iAmSemi ? '🥉 Peringkat 3!' : '🎉 Turnamen Selesai!'
+    const myResultColor = iAmChampion ? '#fbbf24' : iAmRunnerUp ? '#94A3B8' : iAmSemi ? '#cd7c3a' : '#67E8F9'
+
+    const PodiumCard = ({ rank, player, highlight, emoji, accentColor, height }) => player ? (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flex: 1,
+      }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%',
+          background: `linear-gradient(135deg, ${accentColor}33, ${accentColor}11)`,
+          border: `2.5px solid ${accentColor}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 22, boxShadow: highlight ? `0 0 20px ${accentColor}55` : 'none',
+        }}>{emoji}</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: accentColor, textAlign: 'center', lineHeight: 1.3, maxWidth: 80 }}>{player.name}</div>
+        <div style={{
+          background: accentColor, color: '#000', borderRadius: 8, padding: '6px 0',
+          width: '100%', textAlign: 'center', fontSize: 11, fontWeight: 900,
+          height, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start',
+          alignItems: 'center', paddingTop: 8,
+        }}>
+          <div style={{ fontSize: 18 }}>{rank}</div>
+        </div>
+      </div>
+    ) : null
+
     return (
       <div style={{
         minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: 16, fontFamily: 'system-ui, sans-serif', color: '#fff', padding: 24, textAlign: 'center',
+        gap: 24, fontFamily: 'system-ui, sans-serif', color: '#fff', padding: '24px 20px', textAlign: 'center',
       }}>
-        <div style={{ fontSize: 72 }}>{iAmChampion ? '🏆' : '🎉'}</div>
-        <div style={{ fontSize: 24, fontWeight: 900, color: '#fbbf24' }}>
-          {iAmChampion ? 'Kamu Juara Turnamen!' : 'Turnamen Selesai!'}
+        <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 2 }}>🏆 TURNAMEN SELESAI</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: myResultColor }}>{myResult}</div>
+
+        {/* Podium */}
+        <div style={{
+          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 20, padding: '24px 20px', width: '100%', maxWidth: 360,
+        }}>
+          <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 20 }}>PODIUM</div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', justifyContent: 'center' }}>
+            {/* Peringkat 2 */}
+            <PodiumCard rank="🥈" player={runnerUp} highlight={iAmRunnerUp} emoji="🥈" accentColor="#94A3B8" height={60} />
+            {/* Juara 1 */}
+            <PodiumCard rank="🥇" player={champion} highlight={iAmChampion} emoji="👑" accentColor="#fbbf24" height={80} />
+            {/* Peringkat 3 */}
+            <PodiumCard rank="🥉" player={semis[0] || null} highlight={iAmSemi} emoji="🥉" accentColor="#cd7c3a" height={50} />
+          </div>
+          {semis.length > 1 && (
+            <div style={{ marginTop: 12, fontSize: 11, color: '#64748B' }}>
+              🥉 {semis.map(s => s.name).join(' & ')} — Peringkat 3
+            </div>
+          )}
         </div>
-        <div style={{ fontSize: 16, color: '#94A3B8' }}>
-          {iAmChampion ? 'Selamat! Kamu memenangkan turnamen!' : `Juara: ${tournament.champion.name}`}
-        </div>
-        <button onClick={goBack} style={{ marginTop: 16, background: '#0e7490', border: 'none', borderRadius: 14, padding: '14px 32px', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+
+        <button onClick={goBack} style={{ background: '#0e7490', border: 'none', borderRadius: 14, padding: '14px 40px', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
           ← Kembali
         </button>
       </div>
@@ -126,16 +188,42 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)', fontFamily: 'system-ui, sans-serif', color: '#fff' }}>
+      {/* Reward toast */}
+      {rewardToast && (
+        <div style={{
+          position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999, pointerEvents: 'none',
+          background: 'linear-gradient(135deg,#1a2a1a,#0d1f0d)',
+          border: `1.5px solid ${RANK_COLOR[rewardToast.rank]}`,
+          borderRadius: 20, padding: '16px 24px',
+          display: 'flex', alignItems: 'center', gap: 14,
+          boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 24px ${RANK_COLOR[rewardToast.rank]}44`,
+          animation: 'rewardSlideIn 0.4s cubic-bezier(0.34,1.56,0.64,1)',
+          whiteSpace: 'nowrap',
+        }}>
+          <div style={{ fontSize: 32 }}>🪙</div>
+          <div>
+            <div style={{ fontSize: 11, color: RANK_COLOR[rewardToast.rank], fontWeight: 800, letterSpacing: 1 }}>
+              {RANK_LABEL[rewardToast.rank]}
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24', marginTop: 2 }}>
+              +{rewardToast.amount} Koin
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div style={{ background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.2)', padding: '14px 16px' }}>
         <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>
           🏆 TURNAMEN AKTIF{tournament ? ` • ${GAME_LABELS[tournament.gameKey] || tournament.gameKey}` : ''}
         </div>
         <div style={{ fontSize: 16, fontWeight: 900 }}>
-          {tournament ? `Ronde ${tournament.currentRound}` : 'Memuat…'}
+          {tournament
+            ? (tournament.rounds?.[tournament.currentRound - 1]?.label || `Ronde ${tournament.currentRound}`)
+            : 'Memuat…'}
         </div>
         <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 3 }}>
-          Ronde berikutnya mulai otomatis setelah semua match selesai
+          Babak berikutnya mulai otomatis setelah semua match selesai
         </div>
       </div>
 
@@ -170,7 +258,7 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
             {tournament?.rounds?.map((round, ri) => (
               <div key={ri} style={{ minWidth: 220, flex: '0 0 auto' }}>
                 <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
-                  RONDE {ri + 1}{ri + 1 === tournament.currentRound ? ' ⚡' : ''}
+                  {(round.label || `RONDE ${ri + 1}`).toUpperCase()}{ri + 1 === tournament.currentRound ? ' ⚡' : ''}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {round.matches.map((m, mi) => {
@@ -219,7 +307,7 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
             {tournament?.rounds?.map((round, ri) => (
               <div key={ri}>
                 <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>
-                  RONDE {ri + 1}{ri + 1 === tournament.currentRound ? ' (SEKARANG)' : ''}
+                  {(round.label || `RONDE ${ri + 1}`).toUpperCase()}{ri + 1 === tournament.currentRound ? ' (SEKARANG)' : ''}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {round.matches.map((m, mi) => {
@@ -290,7 +378,10 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
         </button>
       </div>
 
-      <style>{`@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}`}</style>
+      <style>{`
+        @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        @keyframes rewardSlideIn{from{opacity:0;transform:translateX(-50%) translateY(-16px) scale(0.9)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+      `}</style>
     </div>
   )
 }
