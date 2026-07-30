@@ -121,13 +121,13 @@ export function PlayerProvider({ children }) {
     setNewBadges(b => b.filter(x => x.id !== badgeId))
   }, [])
 
-  return (
   // Server-authoritative sync — use when server has ALREADY updated DB (e.g. tournament reward).
   // Does NOT call persistGain, so there's no double-counting.
   const syncCoins = useCallback((newBalance) => {
     setPlayer(p => ({ ...p, coins: newBalance }))
   }, [])
 
+  return (
     <PlayerContext.Provider value={{ player, addCoins, addExp, syncCoins, recordWrongAnswer, reportSurvivalStreak, newBadges, dismissBadge }}>
       {children}
     </PlayerContext.Provider>

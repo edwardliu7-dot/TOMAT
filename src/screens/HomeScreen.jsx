@@ -138,6 +138,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
 
   const quickLinks = [
     { id: 'hafalan', icon: '🧮', label: 'Hafalan', sub: 'Flash Card & Kuis', accent: '#818cf8' },
+    { id: 'latihan-ujian', icon: '📝', label: 'Latihan Ujian', sub: 'UN & TKA', accent: '#C084FC' },
     { id: 'grades', icon: '📊', label: 'Nilai & Tugas', sub: `${grades.length} nilai tersimpan`, accent: '#818CF8' },
     { id: 'komunikasi', icon: '💬', label: 'Chat Guru', sub: 'Tanya gurumu', accent: '#67E8F9' },
     { id: 'toko', icon: '🛒', label: 'Toko', sub: `${formatNumber(player.coins)} koin`, accent: '#FBBF24' },

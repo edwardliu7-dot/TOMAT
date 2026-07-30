@@ -20,6 +20,7 @@ import ShopScreen from './screens/ShopScreen'
 import LeaderboardScreen from './screens/LeaderboardScreen'
 import BadgesScreen from './screens/BadgesScreen'
 import HafalanScreen from './screens/HafalanScreen'
+import LatihanUjianScreen from './screens/LatihanUjianScreen'
 import TaskOverlay from './components/TaskOverlay'
 import TaskGuard from './components/TaskGuard'
 import CommunicationScreen from './screens/CommunicationScreen'
@@ -338,6 +339,7 @@ const SCREEN_TITLES = {
   komunikasi: 'Chat',
   profile: 'Profil',
   hafalan: 'Hafalan Interaktif',
+  'latihan-ujian': 'Latihan Ujian',
   modeselect: 'Pilih Mode',
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
@@ -579,6 +581,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (current === 'hafalan') {
       return <HafalanScreen goBack={goBack} />
+    }
+
+    if (current === 'latihan-ujian') {
+      return <LatihanUjianScreen goBack={goBack} />
     }
 
     if (current === 'komunikasi') {
