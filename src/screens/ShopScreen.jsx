@@ -711,7 +711,7 @@ function ItemCard({ item, data, onBuy, onEquip, busyId }) {
 }
 
 // ── EventTokoTab ──────────────────────────────────────────────────────────────
-function EventTokoTab({ data, onBuy, onEquip, busyId, activeEventSlugs }) {
+function EventTokoTab({ data, onBuy, onEquip, busyId, activeEventSlugs, onRefresh }) {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -720,6 +720,7 @@ function EventTokoTab({ data, onBuy, onEquip, busyId, activeEventSlugs }) {
 
   // Adapter: PetCard needs a combined buy+equip callback
   const { refreshMe } = useAuth()
+  const { refreshPet } = usePet()
   const [petBusy, setPetBusy] = useState(null)
   const [petError, setPetError] = useState('')
   const makeBuyEquipSkin = (skinId) => async () => {
@@ -729,9 +730,7 @@ function EventTokoTab({ data, onBuy, onEquip, busyId, activeEventSlugs }) {
       if (!owned) await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } })
       await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: skinId } })
       playSfx(owned ? 'equip' : 'buy')
-      await refreshMe()
-      // Trigger a data reload via a buy call with a dummy item to reuse parent refresh
-      onBuy && onBuy({ id: skinId, _noAction: true })
+      await onRefresh(); await refreshMe(); refreshPet()
     } catch (err) { setPetError(err.message) } finally { setPetBusy(null) }
   }
 
@@ -873,7 +872,7 @@ export default function ShopScreen({ goBack, initialTab }) {
 
   // ── Item grid ──
   const ItemGrid = () => {
-    if (tab === 'event') return <EventTokoTab data={data} onBuy={buy} onEquip={equip} busyId={busyId} activeEventSlugs={new Set(data.activeEvents || [])} />
+    if (tab === 'event') return <EventTokoTab data={data} onBuy={buy} onEquip={equip} busyId={busyId} activeEventSlugs={new Set(data.activeEvents || [])} onRefresh={refresh} />
     if (tab === 'pet_skin') return <PetTokoTab data={data} onRefresh={refresh} setError={setError} />
     if (tab === 'tema') return <TemaTokoTab data={data} onBuy={buy} onEquip={equip} busyId={busyId} onRefresh={refresh} refreshMe={refreshMe} setError={setError} />
     if (items.length === 0) return (
