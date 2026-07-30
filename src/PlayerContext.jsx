@@ -75,11 +75,16 @@ export function PlayerProvider({ children }) {
   const addExp = useCallback((amount) => {
     setPlayer(p => {
       let { level, exp, maxExp } = p
+      const prevLevel = level
       exp += amount
       while (exp >= maxExp) {
         exp -= maxExp
         level += 1
         maxExp = Math.floor(maxExp * 1.5)
+      }
+      if (level > prevLevel) {
+        // Defer side-effect outside the setState call
+        setTimeout(() => import('./sfx.js').then(m => m.playSfx('levelup')).catch(() => {}), 0)
       }
       return { ...p, level, exp, maxExp }
     })
