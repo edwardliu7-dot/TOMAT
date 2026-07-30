@@ -128,18 +128,20 @@ export function GameThemeStyles({ temaId }) {
         background: linear-gradient(180deg,#050814 0%,#080d1f 40%,#0d1130 65%,#110018 100%) !important;
       }
 
-      /* ── Umbul-umbul — fixed background strip at the very top ─── */
+      /* ── Umbul-umbul — fixed full-screen tiling background ──────
+         Mengisi seluruh area; nav bar atas/bawah punya background
+         sendiri yang menutupinya, sehingga hanya terlihat di bagian
+         tengah konten (tidak terhalang header).               ── */
       html[data-tema="tema_merahputih"] body::before {
         content: '';
         position: fixed;
-        top: 0; left: 0; right: 0;
-        height: 68px;
+        inset: 0;
         z-index: 0;
         pointer-events: none;
         background-image: url("data:image/svg+xml,${encodedSvg}");
-        background-repeat: repeat-x;
+        background-repeat: repeat;
         background-size: 440px 62px;
-        background-position: top left;
+        background-position: center center;
       }
       html[data-tema="tema_merahputih"] .home-screen,
       html[data-tema="tema_merahputih"] .zone-screen,
