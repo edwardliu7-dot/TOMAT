@@ -23,6 +23,63 @@ export default function SeasonalEventBanner({ onOpenEventShop }) {
     const msLeft  = endDate - now
     const countdown = formatCountdown(msLeft)
 
+    // Kemerdekaan gets a dedicated image banner
+    if (ev.slug === 'kemerdekaan') {
+      return (
+        <div
+          style={{
+            position: 'relative', overflow: 'hidden',
+            borderRadius: 20, marginBottom: 20,
+            cursor: 'pointer',
+            border: '1.5px solid rgba(220,38,38,0.35)',
+            boxShadow: '0 0 32px rgba(220,38,38,0.18)',
+          }}
+          onClick={onOpenEventShop}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => e.key === 'Enter' && onOpenEventShop?.()}
+        >
+          {/* Full-width event banner image */}
+          <img
+            src="/banner event 81.png"
+            alt="Event Kemerdekaan RI ke-81"
+            style={{ width: '100%', display: 'block', borderRadius: '18px 18px 0 0' }}
+          />
+
+          {/* Bottom strip — countdown + CTA */}
+          <div style={{
+            background: 'linear-gradient(90deg,#3f0000,#7f1d1d,#9b1c1c)',
+            padding: '10px 16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: 10, borderRadius: '0 0 18px 18px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18, lineHeight: 1 }}>🇮🇩</span>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 900, color: '#fff', letterSpacing: 0.5 }}>
+                  Kemerdekaan RI ke-81
+                </div>
+                <div style={{
+                  fontSize: 10, color: 'rgba(252,165,165,0.85)', display: 'flex', alignItems: 'center', gap: 4,
+                }}>
+                  ⏰ Berakhir dalam {countdown}
+                </div>
+              </div>
+            </div>
+            <div style={{
+              fontSize: 11, fontWeight: 900, color: '#fff',
+              background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
+              borderRadius: 10, padding: '5px 12px', letterSpacing: 0.5,
+              whiteSpace: 'nowrap',
+            }}>
+              Lihat Hadiah ›
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Generic active event banner (non-kemerdekaan)
     return (
       <div
         style={{

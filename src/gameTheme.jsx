@@ -10,6 +10,15 @@
  *   Success grn ~#22c55e (hue 142°)
  */
 export const GAME_THEMES = {
+  // ── Seasonal event theme — auto-applied Jul 15–Aug 31, overrides equippedTema ──
+  tema_merahputih: {
+    label: 'Merah Putih',
+    // hue-rotate(165deg) = -195deg: shifts default cyan (195°) → 0°/360° red
+    filter: 'hue-rotate(165deg) saturate(1.4) brightness(0.88)',
+    particles: 'merahputih',
+    accent: '#DC2626',
+    seasonal: true,   // flag so shop UI can hide / label it differently
+  },
   tema_space: {
     label: 'Luar Angkasa',
     // Cyan stays cyan; slight contrast boost + slight darkening for "deep space" feel
@@ -125,11 +134,25 @@ function seededPositions(count, salt = 0) {
   }))
 }
 
-const STAR_POSITIONS  = seededPositions(70, 0)
-const LEAF_POSITIONS  = seededPositions(16, 11)
-const EMBER_POSITIONS = seededPositions(22, 23)
-const SNOW_POSITIONS  = seededPositions(28, 37)
-const VOID_POSITIONS  = seededPositions(30, 53)
+const STAR_POSITIONS        = seededPositions(70, 0)
+const LEAF_POSITIONS        = seededPositions(16, 11)
+const EMBER_POSITIONS       = seededPositions(22, 23)
+const SNOW_POSITIONS        = seededPositions(28, 37)
+const VOID_POSITIONS        = seededPositions(30, 53)
+const MERAHPUTIH_POSITIONS  = seededPositions(50, 79)
+
+// Umbul-umbul (triangle flag buntings) along two ropes
+const _MP_FLAG_COLS = 11
+const _MP_FLAGS_ROW1 = Array.from({ length: _MP_FLAG_COLS }, (_, i) => ({
+  x: (i / (_MP_FLAG_COLS - 1)) * 100,
+  y: 2 + Math.sin((i / (_MP_FLAG_COLS - 1)) * Math.PI) * 2.5,
+  isRed: i % 2 === 0,
+}))
+const _MP_FLAGS_ROW2 = Array.from({ length: _MP_FLAG_COLS }, (_, i) => ({
+  x: (i / (_MP_FLAG_COLS - 1)) * 100,
+  y: 7 + Math.sin((i / (_MP_FLAG_COLS - 1)) * Math.PI) * 2,
+  isRed: i % 2 !== 0,
+}))
 
 import React from 'react'
 
@@ -238,6 +261,111 @@ export function GameThemeOverlay({ temaId }) {
             mixBlendMode: 'screen',
           }} />
         ))}
+      </div>
+    )
+  }
+
+  if (theme.particles === 'merahputih') {
+    const red   = '#DC2626'
+    const white = 'rgba(248,250,252,0.85)'
+    return (
+      <div style={base}>
+        {/* Night stars */}
+        {MERAHPUTIH_POSITIONS.slice(0, 30).map((p, i) => (
+          <div key={`mp-star-${i}`} style={{
+            position: 'absolute',
+            left: `${p.x}%`, top: `${p.y}%`,
+            width: `${p.s}px`, height: `${p.s}px`,
+            borderRadius: '50%', background: '#fff',
+            opacity: +p.o * 0.55,
+            mixBlendMode: 'screen',
+          }} />
+        ))}
+
+        {/* Firework glow halos */}
+        {[
+          { x: 15, y: 12, r: 52, c: red },
+          { x: 75, y:  8, r: 64, c: white },
+          { x: 48, y: 20, r: 44, c: red },
+          { x: 88, y: 25, r: 36, c: white },
+        ].map((b, i) => (
+          <div key={`mp-halo-${i}`} style={{
+            position: 'absolute',
+            left: `${b.x}%`, top: `${b.y}%`,
+            width: `${b.r}px`, height: `${b.r}px`,
+            transform: 'translate(-50%,-50%)',
+            borderRadius: '50%',
+            background: b.c,
+            filter: 'blur(20px)',
+            opacity: 0.14,
+            mixBlendMode: 'screen',
+          }} />
+        ))}
+
+        {/* Firework burst dots — red & white */}
+        {MERAHPUTIH_POSITIONS.slice(30).map((p, i) => {
+          const isRed = i % 2 === 0
+          const c = isRed ? red : white
+          return (
+            <div key={`mp-dot-${i}`} style={{
+              position: 'absolute',
+              left: `${p.x}%`, top: `${p.y}%`,
+              width: `${p.s * 0.9}px`, height: `${p.s * 0.9}px`,
+              borderRadius: '50%', background: c,
+              boxShadow: `0 0 ${+p.s * 3}px ${c}`,
+              opacity: +p.o * 0.55,
+              mixBlendMode: 'screen',
+            }} />
+          )
+        })}
+
+        {/* Confetti slivers — red & white */}
+        {Array.from({ length: 20 }, (_, i) => ({
+          left:  ((i * 121.1 + 9) % 100).toFixed(1),
+          top:   ((i * 77.3  + 5) % 100).toFixed(1),
+          w: 4 + (i % 3) * 2,
+          h: 2 + (i % 2),
+          rot: ((i * 41) % 180 - 90),
+          color: i % 2 === 0 ? red : 'rgba(248,250,252,0.6)',
+        })).map((c, i) => (
+          <div key={`mp-conf-${i}`} style={{
+            position: 'absolute',
+            left: `${c.left}%`, top: `${c.top}%`,
+            width: `${c.w}px`, height: `${c.h}px`,
+            background: c.color, borderRadius: 1,
+            transform: `rotate(${c.rot}deg)`,
+            opacity: 0.08 + (i % 5) * 0.03,
+            mixBlendMode: 'screen',
+          }} />
+        ))}
+
+        {/* Umbul-umbul SVG — two rows of triangle buntings across the top */}
+        <svg
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '13%', pointerEvents: 'none' }}
+          viewBox="0 0 100 13"
+          preserveAspectRatio="none"
+        >
+          {/* Rope lines */}
+          <polyline points={_MP_FLAGS_ROW1.map(f => `${f.x},${f.y}`).join(' ')}
+            fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="0.15" />
+          <polyline points={_MP_FLAGS_ROW2.map(f => `${f.x},${f.y}`).join(' ')}
+            fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="0.15" />
+          {/* Flags */}
+          {[..._MP_FLAGS_ROW1, ..._MP_FLAGS_ROW2].map((f, i) => (
+            <polygon key={`umbul-${i}`}
+              points={`${f.x - 2},${f.y} ${f.x + 2},${f.y} ${f.x},${f.y + 3.5}`}
+              fill={f.isRed ? '#DC2626' : '#F8FAFC'}
+              opacity="0.45"
+            />
+          ))}
+        </svg>
+
+        {/* Horizon red glow at the bottom */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '8%',
+          background: 'linear-gradient(0deg, rgba(220,38,38,0.10) 0%, transparent 100%)',
+          mixBlendMode: 'screen',
+        }} />
       </div>
     )
   }
