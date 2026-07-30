@@ -98,11 +98,48 @@ export function GameThemeStyles({ temaId }) {
 
   // ── Special-case: Merah Putih seasonal theme ──────────────────────────────
   if (temaId === 'tema_merahputih') {
+    // Build umbul-umbul SVG tile (400×62px) as a repeating background-image.
+    // Using named/rgb colors so '#' never appears in the data URL.
+    const flagW = 18, flagH = 22, step = 40
+    const flags1 = Array.from({ length: 11 }, (_, i) => {
+      const cx = i * step + step / 2
+      const fill = i % 2 === 0 ? 'crimson' : 'rgb(248,250,252)'
+      const op   = i % 2 === 0 ? 0.88 : 0.72
+      return `<polygon points="${cx - flagW/2},10 ${cx + flagW/2},10 ${cx},${10 + flagH}" fill="${fill}" opacity="${op}"/>`
+    }).join('')
+    const flags2 = Array.from({ length: 11 }, (_, i) => {
+      const cx = i * step + step / 2
+      const fill = i % 2 === 0 ? 'rgb(248,250,252)' : 'crimson'
+      const op   = i % 2 === 0 ? 0.72 : 0.88
+      return `<polygon points="${cx - flagW/2},34 ${cx + flagW/2},34 ${cx},${34 + flagH}" fill="${fill}" opacity="${op}"/>`
+    }).join('')
+    const svgTile = `<svg xmlns="http://www.w3.org/2000/svg" width="440" height="62">`
+      + `<line x1="0" y1="10" x2="440" y2="10" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>`
+      + flags1
+      + `<line x1="0" y1="34" x2="440" y2="34" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>`
+      + flags2
+      + `</svg>`
+    const encodedSvg = encodeURIComponent(svgTile)
+
     const css = `
       /* ── Page / root background ───────────────────────────────── */
       html[data-tema="tema_merahputih"] body,
       html[data-tema="tema_merahputih"] #root {
         background: linear-gradient(180deg,#050814 0%,#080d1f 40%,#0d1130 65%,#110018 100%) !important;
+      }
+
+      /* ── Umbul-umbul — fixed background strip at the very top ─── */
+      html[data-tema="tema_merahputih"] body::before {
+        content: '';
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 68px;
+        z-index: 0;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,${encodedSvg}");
+        background-repeat: repeat-x;
+        background-size: 440px 62px;
+        background-position: top left;
       }
       html[data-tema="tema_merahputih"] .home-screen,
       html[data-tema="tema_merahputih"] .zone-screen,
@@ -351,8 +388,10 @@ export function GameThemeOverlay({ temaId }) {
   if (theme.particles === 'merahputih') {
     const red   = '#DC2626'
     const redGlow = 'rgba(220,38,38,0.7)'
+    // z-index 1 — sits behind all navigation chrome (topbar z-30, bottom-nav z-50, etc.)
+    const mpBase = { ...base, zIndex: 1 }
     return (
-      <div style={base}>
+      <div style={mpBase}>
 
         {/* Full-screen background tint — shifts dark navy toward midnight crimson */}
         <div style={{
@@ -426,27 +465,6 @@ export function GameThemeOverlay({ temaId }) {
             opacity: 0.12 + (i % 5) * 0.04,
           }} />
         ))}
-
-        {/* Umbul-umbul SVG — two rows of triangle buntings across the very top */}
-        <svg
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '15%', pointerEvents: 'none' }}
-          viewBox="0 0 100 15"
-          preserveAspectRatio="none"
-        >
-          {/* Rope lines */}
-          <polyline points={_MP_FLAGS_ROW1.map(f => `${f.x},${f.y}`).join(' ')}
-            fill="none" stroke="rgba(255,255,255,0.20)" strokeWidth="0.18" />
-          <polyline points={_MP_FLAGS_ROW2.map(f => `${f.x},${f.y}`).join(' ')}
-            fill="none" stroke="rgba(255,255,255,0.20)" strokeWidth="0.18" />
-          {/* Triangle flags */}
-          {[..._MP_FLAGS_ROW1, ..._MP_FLAGS_ROW2].map((f, i) => (
-            <polygon key={`umbul-${i}`}
-              points={`${f.x - 2.2},${f.y} ${f.x + 2.2},${f.y} ${f.x},${f.y + 4}`}
-              fill={f.isRed ? '#DC2626' : '#F8FAFC'}
-              opacity={f.isRed ? '0.82' : '0.70'}
-            />
-          ))}
-        </svg>
 
         {/* Red glow line along top — like a celebration banner highlight */}
         <div style={{

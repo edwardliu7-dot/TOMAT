@@ -27,8 +27,12 @@ export const SEASONAL_EVENTS = [
     startMonth: 2,  startDay: 18,
     endMonth:   3,  endDay:   20,
     itemIds: ['bingkai_ramadan', 'spanduk_ramadan', 'pet_skin_ramadan'],
+    hidden: true,   // hide from shop & banner until ready
   },
 ]
+
+/** All events that are visible (not hidden). */
+export const VISIBLE_EVENTS = SEASONAL_EVENTS.filter(e => !e.hidden)
 
 export function isEventActive(event, now = new Date()) {
   const m = now.getMonth() + 1
@@ -41,12 +45,12 @@ export function isEventActive(event, now = new Date()) {
 }
 
 export function getActiveEvents(now = new Date()) {
-  return SEASONAL_EVENTS.filter(ev => isEventActive(ev, now))
+  return VISIBLE_EVENTS.filter(ev => isEventActive(ev, now))
 }
 
 /** Get next upcoming event (soonest startDate in future). */
 export function getUpcomingEvents(now = new Date()) {
-  return SEASONAL_EVENTS.filter(ev => !isEventActive(ev, now))
+  return VISIBLE_EVENTS.filter(ev => !isEventActive(ev, now))
     .map(ev => {
       // Compute next start date
       const year = now.getFullYear()

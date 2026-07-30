@@ -7,7 +7,7 @@ import { usePlayer } from '../PlayerContext'
 import { KATEGORI_LABELS, PET_SKIN_INFO, PET_FOOD_CATALOG } from '../shopVisuals'
 import PetSVG, { PET_CSS, STATE_ANIMS, getPetName } from '../components/PetSVG'
 import { getPetBonusDisplay } from '../petBonuses'
-import { SEASONAL_EVENTS, isEventActive, getEventEndDate, formatCountdown, getUpcomingEvents, formatDaysUntil } from '../data/seasonalEvents'
+import { VISIBLE_EVENTS, isEventActive, getEventEndDate, formatCountdown, getUpcomingEvents, formatDaysUntil } from '../data/seasonalEvents'
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -902,7 +902,7 @@ function EventTokoTab({ data, onBuy, onEquip, busyId, activeEventSlugs, onRefres
       {(petError) && (
         <div style={{ padding: '10px 14px', borderRadius: 12, fontSize: 13, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171' }}>{petError}</div>
       )}
-      {SEASONAL_EVENTS.map(ev => {
+      {VISIBLE_EVENTS.map(ev => {
         const isActive = activeEventSlugs.has(ev.slug)
         const endDate  = isActive ? getEventEndDate(ev, now) : null
         const msLeft   = endDate ? endDate - now : 0
