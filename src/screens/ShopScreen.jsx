@@ -7,6 +7,7 @@ import { usePlayer } from '../PlayerContext'
 import { KATEGORI_LABELS, PET_SKIN_INFO, PET_FOOD_CATALOG } from '../shopVisuals'
 import PetSVG, { PET_CSS, STATE_ANIMS, getPetName } from '../components/PetSVG'
 import { getPetBonusDisplay } from '../petBonuses'
+import { SEASONAL_EVENTS, isEventActive, getEventEndDate, formatCountdown, getUpcomingEvents, formatDaysUntil } from '../data/seasonalEvents'
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -30,7 +31,7 @@ async function apiCall(path, options = {}) {
   return data
 }
 
-const TABS = ['bingkai', 'spanduk', 'tema', 'pet_skin']
+const TABS = ['event', 'bingkai', 'spanduk', 'tema', 'pet_skin']
 
 // ── Rarity helpers ────────────────────────────────────────────────────────────
 function getItemRarity(item) {
@@ -114,7 +115,7 @@ function ItemVisual({ item }) {
       return (
         <div style={{ position: 'relative', width: outer, height: outer, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: photoSz, height: photoSz, borderRadius: '50%', background: '#1E2128', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(photoSz * 0.45), position: 'relative', zIndex: 1 }}>🧑‍🎓</div>
-          <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 3, mixBlendMode: v.mixBlend ?? 'normal', filter: v.glow ? `drop-shadow(0 0 6px ${v.border}bb)` : 'none' }} />
+          <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 3, mixBlendMode: v.mixBlend ?? 'normal', filter: `${v.cssFilter ? v.cssFilter + ' ' : ''}${v.glow ? `drop-shadow(0 0 6px ${v.border}bb)` : ''}` || 'none' }} />
         </div>
       )
     }
@@ -690,10 +691,117 @@ function ItemCard({ item, data, onBuy, onEquip, busyId }) {
   )
 }
 
+// ── EventTokoTab ──────────────────────────────────────────────────────────────
+function EventTokoTab({ data, onBuy, onEquip, busyId, activeEventSlugs }) {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Adapter: PetCard needs a combined buy+equip callback
+  const { refreshMe } = useAuth()
+  const [petBusy, setPetBusy] = useState(null)
+  const [petError, setPetError] = useState('')
+  const makeBuyEquipSkin = (skinId) => async () => {
+    const owned = data.ownedItemIds.includes(skinId)
+    setPetBusy(skinId); setPetError('')
+    try {
+      if (!owned) await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } })
+      await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: skinId } })
+      playSfx(owned ? 'equip' : 'buy')
+      await refreshMe()
+      // Trigger a data reload via a buy call with a dummy item to reuse parent refresh
+      onBuy && onBuy({ id: skinId, _noAction: true })
+    } catch (err) { setPetError(err.message) } finally { setPetBusy(null) }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, paddingBottom: 40 }}>
+      {petError && (
+        <div style={{ padding: '10px 14px', borderRadius: 12, fontSize: 13, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171' }}>{petError}</div>
+      )}
+      {SEASONAL_EVENTS.map(ev => {
+        const isActive = activeEventSlugs.has(ev.slug)
+        const endDate  = isActive ? getEventEndDate(ev, now) : null
+        const msLeft   = endDate ? endDate - now : 0
+        const upcoming = !isActive ? getUpcomingEvents(now).find(u => u.slug === ev.slug) : null
+        const eventItems = data.items.filter(it => it.visual?.eventSlug === ev.slug)
+
+        return (
+          <div key={ev.slug} style={{ borderRadius: 20, overflow: 'hidden', border: `1px solid ${isActive ? ev.accent + '44' : 'rgba(255,255,255,0.06)'}`, boxShadow: isActive ? `0 0 24px ${ev.accent}18` : 'none' }}>
+            {/* Event header */}
+            <div style={{ background: ev.bgGradient, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ fontSize: 40, lineHeight: 1 }}>{ev.emoji}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 3 }}>{ev.name}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{ev.description}</div>
+              </div>
+              <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                {isActive ? (
+                  <>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: `${ev.accent}22`, border: `1px solid ${ev.accent}55`, borderRadius: 99, padding: '3px 10px', marginBottom: 4 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: ev.accent, boxShadow: `0 0 6px ${ev.accent}` }} />
+                      <span style={{ fontSize: 10, fontWeight: 900, color: ev.accent, letterSpacing: '0.1em' }}>AKTIF</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block' }}>{formatCountdown(msLeft)}</div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                    {upcoming ? `Mulai ${upcoming.nextStart.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}` : 'Tidak aktif'}
+                    {upcoming && <div style={{ color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{formatDaysUntil(upcoming.nextStart, now)}</div>}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Event items */}
+            <div style={{ background: 'rgba(10,16,26,0.85)', padding: eventItems.length ? '14px 14px' : '10px 14px' }}>
+              {eventItems.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '16px 0', color: '#6B7280', fontSize: 13 }}>Belum ada item untuk event ini.</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+                  {eventItems.map(item => {
+                    if (item.kategori === 'pet_skin') {
+                      const equippedSkin = data.equipped.pet_skin || 'golden'
+                      const skinBusy = petBusy === item.id || busyId === item.id
+                      const skinInfo = PET_SKIN_INFO[item.id]
+                      if (!skinInfo) return null
+                      // Wrap PetCard with disabled overlay when event not active
+                      return (
+                        <div key={item.id} style={{ position: 'relative' }}>
+                          <PetCard skinId={item.id} data={data} equippedSkin={equippedSkin} busyId={skinBusy ? item.id : null} onBuyEquip={makeBuyEquipSkin(item.id)} />
+                          {!isActive && (
+                            <div style={{ position: 'absolute', inset: 0, borderRadius: 18, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#94A3B8' }}>⏳ Belum dimulai</div>
+                          )}
+                        </div>
+                      )
+                    }
+                    // For non-pet items, wrap ItemCard with event-inactive overlay
+                    if (!isActive) {
+                      return (
+                        <div key={item.id} style={{ position: 'relative' }}>
+                          <ItemCard item={item} data={data} onBuy={() => {}} onEquip={onEquip} busyId={busyId} />
+                          <div style={{ position: 'absolute', inset: 0, borderRadius: 16, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#94A3B8' }}>⏳ Belum dimulai</div>
+                        </div>
+                      )
+                    }
+                    return <ItemCard key={item.id} item={item} data={data} onBuy={onBuy} onEquip={onEquip} busyId={busyId} />
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function ShopScreen({ goBack, initialTab }) {
   const { refreshMe } = useAuth()
   const isDesktop = useIsDesktop()
-  const [tab, setTab] = useState(initialTab || 'bingkai')
+  const [tab, setTab] = useState(initialTab || 'event')
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
@@ -746,6 +854,7 @@ export default function ShopScreen({ goBack, initialTab }) {
 
   // ── Item grid ──
   const ItemGrid = () => {
+    if (tab === 'event') return <EventTokoTab data={data} onBuy={buy} onEquip={equip} busyId={busyId} activeEventSlugs={new Set(data.activeEvents || [])} />
     if (tab === 'pet_skin') return <PetTokoTab data={data} onRefresh={refresh} setError={setError} />
     if (tab === 'tema') return <TemaTokoTab data={data} onBuy={buy} onEquip={equip} busyId={busyId} onRefresh={refresh} refreshMe={refreshMe} setError={setError} />
     if (items.length === 0) return (

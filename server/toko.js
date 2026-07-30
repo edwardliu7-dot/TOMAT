@@ -28,6 +28,8 @@ router.get('/', async (req, res) => {
     ])
     const student = studentRes.rows[0]
     if (!student) return res.status(404).json({ error: 'Siswa tidak ditemukan.' })
+    const { getActiveEvents } = await import('./seasonal-events.js')
+    const activeEvents = getActiveEvents()
     res.json({
       items: itemsRes.rows,
       ownedItemIds: ownedRes.rows.map(r => r.item_id),
@@ -39,6 +41,7 @@ router.get('/', async (req, res) => {
         stiker:    student.equipped_stiker,
         pet_skin:  student.equipped_pet_skin,
       },
+      activeEvents: activeEvents.map(ev => ev.slug),
     })
   } catch (err) {
     console.error('toko list error', err)
@@ -78,6 +81,14 @@ router.post('/beli', async (req, res) => {
       if (prerequisiteRows.length === 0) {
         await client.query('rollback')
         return res.status(403).json({ error: 'Kamu harus memiliki pet dasarnya terlebih dahulu.' })
+      }
+    }
+    if (item.visual?.eventSlug) {
+      const { SEASONAL_EVENTS, isEventActive } = await import('./seasonal-events.js')
+      const ev = SEASONAL_EVENTS.find(e => e.slug === item.visual.eventSlug)
+      if (!ev || !isEventActive(ev)) {
+        await client.query('rollback')
+        return res.status(403).json({ error: 'Event ini sudah berakhir. Item tidak dapat dibeli.' })
       }
     }
     const { rows: studentRows } = await client.query(

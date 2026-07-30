@@ -4,6 +4,7 @@ import { useTask } from '../TaskContext'
 import { useAuth } from '../AuthContext'
 import { usePet } from '../PetContext'
 import { UserAvatar } from '../components/shared'
+import SeasonalEventBanner from '../components/SeasonalEventBanner'
 import { getAccessibleGradesForUser } from '../kelasUtils'
 import { getPetName } from '../components/PetSVG'
 
@@ -100,7 +101,7 @@ function ZoneCard({ zone, locked, selected, onClick }) {
   )
 }
 
-export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop }) {
+export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop, openEventShop }) {
   const { player } = usePlayer()
   const { tasks, grades } = useTask()
   const { user } = useAuth()
@@ -196,6 +197,8 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
             <div className="home-level__xp"><strong>{formatNumber(player.exp)} XP</strong><small>total EXP</small></div>
           </div>
         </section>
+
+        {!guruMode && <SeasonalEventBanner onOpenEventShop={openEventShop} />}
 
         {!guruMode && (
           <section className="home-mission">

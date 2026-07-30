@@ -1,0 +1,112 @@
+Lanjutkan implementasi fitur Seasonal Events di TOMAT. Pekerjaan sudah setengah jalan — berikut yang sudah selesai dan yang masih perlu dikerjakan.
+
+✅ Sudah selesai
+server/seasonal-events.js — konfigurasi event (Kemerdekaan/Halloween/Natal/Ramadan) + fungsi isEventActive, getActiveEvents, getActiveEventItemIds
+src/data/seasonalEvents.js — mirror client-side + formatCountdown, formatDaysUntil, getUpcomingEvents
+src/components/SeasonalEventBanner.jsx — banner di HomeScreen, menampilkan event aktif dengan countdown dan teaser event berikutnya
+src/shopVisuals.js — sudah ditambahkan:
+KATEGORI_LABELS.event = '🎉 Event'
+4 event bingkai di BINGKAI_VISUALS (masing-masing punya cssFilter dan eventSlug)
+3 event tema di TEMA_VISUALS (tema_nusantara, tema_halloween, tema_natal)
+spanduk_ramadan di SPANDUK_VISUALS
+4 event pet skins di PET_SKIN_INFO (pet_kelinsay_merahputih, pet_kelinsay_labu, pet_skin_natal, pet_skin_ramadan) — masing-masing punya cssFilter dan eventSlug
+src/components/PetSVG.jsx — ditambahkan EVENT_SKIN_FILTERS, prop cssFilter, wrapping dengan <div style={{ filter }}>, dan nama event skins di PET_NAMES
+server/schema.js — 12 event shop items sudah di-seed (sort_order 50–61)
+❌ Belum dikerjakan — lanjutkan dari sini
+1. server/toko.js
+A. GET /api/siswa/toko — tambahkan activeEvents ke response:
+
+import { getActiveEvents } from './seasonal-events.js'
+// ...di dalam handler GET:
+const activeEvents = getActiveEvents()
+res.json({
+  items: itemsRes.rows,
+  ownedItemIds: ...,
+  coins: ...,
+  equipped: ...,
+  activeEvents: activeEvents.map(ev => ev.slug),  // ← tambahkan ini
+})
+
+B. POST /api/siswa/toko/beli — validasi event masih aktif sebelum purchase. Setelah cek prerequisite pet (baris ~82), tambahkan:
+
+if (item.visual?.eventSlug) {
+  const { SEASONAL_EVENTS, isEventActive } = await import('./seasonal-events.js')
+  const ev = SEASONAL_EVENTS.find(e => e.slug === item.visual.eventSlug)
+  if (!ev || !isEventActive(ev)) {
+    await client.query('rollback')
+    return res.status(403).json({ error: 'Event ini sudah berakhir. Item tidak dapat dibeli.' })
+  }
+}
+
+2. src/screens/ShopScreen.jsx
+A. Ubah TABS di baris 33:
+
+const TABS = ['event', 'bingkai', 'spanduk', 'tema', 'pet_skin']
+
+B. Tambahkan import di atas:
+
+import { SEASONAL_EVENTS, isEventActive, getEventEndDate, formatCountdown, getUpcomingEvents, formatDaysUntil } from '../data/seasonalEvents'
+
+C. Update ItemVisual di baris 117 — tambahkan cssFilter ke bingkai image filter:
+
+// Baris 117 — ubah filter prop pada <img>:
+filter: `${v.cssFilter ? v.cssFilter + ' ' : ''}${v.glow ? `drop-shadow(0 0 6px ${v.border}bb)` : ''}`
+
+D. Di baris 749–750, tambahkan handler tab 'event' sebelum pet_skin:
+
+if (tab === 'event') return <EventTokoTab data={data} onBuy={buy} onEquip={equip} busyId={busyId} activeEventSlugs={new Set(data.activeEvents || [])} />
+
+E. Tambahkan komponen EventTokoTab sebelum export default function ShopScreen. Komponennya menampilkan:
+
+Untuk setiap SEASONAL_EVENTS:
+Header card (gradient ev.bgGradient, emoji besar, nama, status AKTIF + countdown ATAU "Mulai [tanggal]")
+Grid item-item event (filter data.items by item.visual?.eventSlug === ev.slug)
+Untuk kategori === 'pet_skin': gunakan PetCard (sudah support event skins via PET_SKIN_INFO)
+Untuk bingkai/spanduk/tema: gunakan ItemCard
+Jika event tidak aktif: tombol beli di-disable dengan label ⏳ Belum dimulai
+Contoh struktur EventTokoTab:
+
+function EventTokoTab({ data, onBuy, onEquip, busyId, activeEventSlugs }) {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {SEASONAL_EVENTS.map(ev => {
+        const isActive = activeEventSlugs.has(ev.slug)
+        const endDate  = isActive ? getEventEndDate(ev, now) : null
+        const msLeft   = endDate ? endDate - now : 0
+        const upcoming = !isActive ? getUpcomingEvents(now).find(u => u.slug === ev.slug) : null
+        const eventItems = data.items.filter(it => it.visual?.eventSlug === ev.slug)
+        // ... render event section
+      })}
+    </div>
+  )
+}
+
+3. src/screens/HomeScreen.jsx
+A. Tambahkan props openEventShop dan import banner:
+
+import SeasonalEventBanner from '../components/SeasonalEventBanner'
+export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop, openEventShop }) {
+
+B. Render banner di dalam <main>, sebelum section zona (kira-kira baris 160–165, setelah blok guru mode):
+
+{!guruMode && <SeasonalEventBanner onOpenEventShop={openEventShop} />}
+
+4. src/App.jsx
+Tambahkan openEventShop di baris 659 (saat render HomeScreen), mirip openPetShop:
+
+// Baris 659 — tambahkan prop openEventShop:
+openEventShop={() => { setTokoInitialTab('event'); navigate('toko') }}
+
+Setelah semua selesai
+Restart workflow TOMAT Web App
+Screenshot app untuk verifikasi:
+Banner event di HomeScreen (Kemerdekaan RI aktif hari ini)
+Tab "🎉 Event" di ShopScreen menampilkan 3 item Kemerdekaan
+Preview bingkai kemerdekaan menampilkan CSS filter merah
+Pet Kelinsay Merah Putih menampilkan CSS filter
+Suggest deploy ke user
