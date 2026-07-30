@@ -13,7 +13,7 @@ export const BINGKAI_VISUALS = {
   bingkai_petal_rose: { image: '/petal-rose.png', border: '#F9A8D4', style: 'solid', spread: 0.25 },
   bingkai_garuda: { image: '/garuda.gif', border: '#F59E0B', style: 'solid', glow: true, spread: 0.55 },
   // ── Seasonal event bingkai ─────────────────────────────────────────────────
-  bingkai_kemerdekaan: { image: '/bingkai-api.png', border: '#E11D48', mixBlend: 'screen', spread: 0.30, glow: true, cssFilter: 'hue-rotate(-10deg) saturate(2) brightness(1.1)', limited: true, eventSlug: 'kemerdekaan' },
+  bingkai_kemerdekaan: { image: '/hutri81.png', border: '#E11D48', mixBlend: 'screen', spread: 0.30, glow: true, limited: true, sparkle: 'merahputih', eventSlug: 'kemerdekaan' },
   bingkai_halloween:   { image: '/bingkai-api.png', border: '#F97316', mixBlend: 'screen', spread: 0.30, glow: true, cssFilter: 'hue-rotate(15deg) saturate(3) brightness(0.9)', limited: true, eventSlug: 'halloween' },
   bingkai_natal:       { image: '/bingkai-es.png',  border: '#22C55E', mixBlend: 'screen', spread: 0.30, glow: true, cssFilter: 'hue-rotate(130deg) saturate(1.8)', limited: true, eventSlug: 'natal' },
   bingkai_ramadan:     { image: '/bingkai-void-king.png', border: '#7C3AED', mixBlend: 'screen', spread: 0.30, glow: true, cssFilter: 'hue-rotate(200deg) saturate(1.5)', limited: true, eventSlug: 'ramadan' },

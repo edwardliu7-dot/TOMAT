@@ -373,9 +373,8 @@ export async function ensureSchema() {
     // ── Seasonal event items ───────────────────────────────────────────────────
     // Kemerdekaan RI (July 15 – Aug 31)
     ['bingkai_kemerdekaan', 'bingkai', 'Bingkai 17 Agustus', 2500, {
-      image: '/bingkai-api.png', border: '#E11D48', mixBlend: 'screen', spread: 0.30, glow: true,
-      cssFilter: 'hue-rotate(-10deg) saturate(2) brightness(1.1)',
-      eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
+      image: '/hutri81.png', border: '#E11D48', mixBlend: 'screen', spread: 0.30, glow: true,
+      sparkle: 'merahputih', eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
       description: 'Bingkai merah-putih semangat kemerdekaan Indonesia.',
     }, 50],
     ['spanduk_kemerdekaan', 'spanduk', 'Spanduk 17 Agustus', 2000, {

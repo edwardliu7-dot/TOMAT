@@ -112,10 +112,26 @@ function ItemVisual({ item }) {
       const outer = 80
       const sf = v.spread ?? 0.45
       const photoSz = Math.round(outer / (1 + 2 * sf))
+      const BINGKAI_SPARKLE_DOTS = [
+        { top: '5%',  left: '10%', delay: '0.0s', size: 3, color: '#E11D48' },
+        { top: '8%',  right: '8%', delay: '0.7s', size: 2, color: '#F1F5F9' },
+        { top: '50%', left: '0%',  delay: '1.2s', size: 2, color: '#F1F5F9' },
+        { top: '50%', right:'0%',  delay: '0.4s', size: 3, color: '#E11D48' },
+        { top: '88%', left: '12%', delay: '1.6s', size: 2, color: '#F1F5F9' },
+        { top: '85%', right:'10%', delay: '0.9s', size: 3, color: '#E11D48' },
+      ]
       return (
         <div style={{ position: 'relative', width: outer, height: outer, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: photoSz, height: photoSz, borderRadius: '50%', background: '#1E2128', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(photoSz * 0.45), position: 'relative', zIndex: 1 }}>🧑‍🎓</div>
           <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 3, mixBlendMode: v.mixBlend ?? 'normal', filter: `${v.cssFilter ? v.cssFilter + ' ' : ''}${v.glow ? `drop-shadow(0 0 6px ${v.border}bb)` : ''}` || 'none' }} />
+          {v.sparkle === 'merahputih' && (
+            <>
+              <style>{`@keyframes bingkai-sparkle{0%,100%{opacity:0;transform:scale(0.3) rotate(0deg)}50%{opacity:1;transform:scale(1.2) rotate(45deg)}}`}</style>
+              {BINGKAI_SPARKLE_DOTS.map((d, i) => (
+                <div key={i} style={{ position: 'absolute', width: d.size, height: d.size, borderRadius: '50%', background: '#fff', top: d.top, left: d.left, right: d.right, boxShadow: `0 0 3px 1px ${d.color}, 0 0 7px 2px ${d.color}88`, animation: `bingkai-sparkle 2.4s ease-in-out ${d.delay} infinite`, opacity: 0, zIndex: 6, pointerEvents: 'none' }} />
+              ))}
+            </>
+          )}
         </div>
       )
     }
