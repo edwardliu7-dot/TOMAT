@@ -689,10 +689,12 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           <BabLockProvider>
             <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
-              {/* Inject CSS that filters ONLY structural nav/chrome elements */}
-              <GameThemeStyles temaId={user?.equippedTema} />
+              {/* Inject CSS that filters ONLY structural nav/chrome elements.
+                  Seasonal override (tema_merahputih during Jul 15–Aug 31) takes
+                  priority over the user's own equipped theme. */}
+              <GameThemeStyles temaId={getSeasonalTema() || user?.equippedTema} />
               {/* Tema particles overlay — rendered on top of all screens */}
-              <GameThemeOverlay temaId={user?.equippedTema} />
+              <GameThemeOverlay temaId={getSeasonalTema() || user?.equippedTema} />
               <ErrorBoundary key={current} onReset={goBack}>
                 {renderScreen()}
               </ErrorBoundary>

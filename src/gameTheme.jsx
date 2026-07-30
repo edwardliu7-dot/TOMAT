@@ -87,11 +87,94 @@ export function getInverseFilter(temaId) {
  * marked [data-raw-image] receives the inverse filter to counteract the parent —
  * so profile photos, avatar frames, and pet sprites stay true-colour even inside
  * a filtered nav bar.
+ *
+ * tema_merahputih is a special case: near-black backgrounds have near-zero
+ * saturation so hue-rotate does nothing visible. We use direct colour overrides
+ * (with !important to beat React inline styles) instead.
  */
 export function GameThemeStyles({ temaId }) {
   const theme = getGameTheme(temaId)
   if (!theme) return null
 
+  // ── Special-case: Merah Putih seasonal theme ──────────────────────────────
+  if (temaId === 'tema_merahputih') {
+    const css = `
+      /* ── Page / root background ───────────────────────────────── */
+      html[data-tema="tema_merahputih"] body,
+      html[data-tema="tema_merahputih"] #root {
+        background: linear-gradient(180deg,#050814 0%,#080d1f 40%,#0d1130 65%,#110018 100%) !important;
+      }
+      html[data-tema="tema_merahputih"] .home-screen,
+      html[data-tema="tema_merahputih"] .zone-screen,
+      html[data-tema="tema_merahputih"] .shop-screen,
+      html[data-tema="tema_merahputih"] .grades-screen,
+      html[data-tema="tema_merahputih"] .profile-screen,
+      html[data-tema="tema_merahputih"] .leaderboard-screen,
+      html[data-tema="tema_merahputih"] .badges-screen,
+      html[data-tema="tema_merahputih"] .communication-screen,
+      html[data-tema="tema_merahputih"] .hafalan-screen,
+      html[data-tema="tema_merahputih"] .latihan-ujian-screen {
+        background: transparent !important;
+      }
+
+      /* ── Top bar ──────────────────────────────────────────────── */
+      html[data-tema="tema_merahputih"] .tomat-topbar {
+        background: rgba(5,8,20,0.82) !important;
+        border-bottom-color: rgba(220,38,38,0.30) !important;
+        box-shadow: 0 2px 24px rgba(220,38,38,0.08) !important;
+      }
+      /* accent dots / text inside topbar */
+      html[data-tema="tema_merahputih"] .tomat-topbar .accent-text,
+      html[data-tema="tema_merahputih"] .tomat-topbar .level-badge {
+        color: #fca5a5 !important;
+      }
+
+      /* ── Player header (coin / XP bar) ────────────────────────── */
+      html[data-tema="tema_merahputih"] .tomat-player-header {
+        background: rgba(5,8,20,0.65) !important;
+        border-bottom-color: rgba(220,38,38,0.14) !important;
+      }
+
+      /* ── Bottom nav ───────────────────────────────────────────── */
+      html[data-tema="tema_merahputih"] .appshell-bottom-nav {
+        background: rgba(5,8,20,0.97) !important;
+        border-top: 1.5px solid rgba(220,38,38,0.28) !important;
+        box-shadow: 0 -4px 32px rgba(220,38,38,0.12) !important;
+      }
+      /* active tab indicator */
+      html[data-tema="tema_merahputih"] .appshell-bottom-nav .nav-active,
+      html[data-tema="tema_merahputih"] .appshell-bottom-nav [data-active="true"] {
+        color: #ef4444 !important;
+      }
+
+      /* ── Sidebar (desktop) ────────────────────────────────────── */
+      html[data-tema="tema_merahputih"] .tomat-sidebar {
+        background: #070410 !important;
+        border-right-color: rgba(220,38,38,0.20) !important;
+      }
+
+      /* ── Card / panel surfaces — shift to deep crimson-navy ───── */
+      html[data-tema="tema_merahputih"] .game-card,
+      html[data-tema="tema_merahputih"] .stat-card,
+      html[data-tema="tema_merahputih"] .info-card {
+        border-color: rgba(220,38,38,0.22) !important;
+      }
+
+      /* ── Protect images / sprites inside chrome from tinting ──── */
+      html[data-tema="tema_merahputih"] .tomat-topbar img,
+      html[data-tema="tema_merahputih"] .tomat-topbar canvas,
+      html[data-tema="tema_merahputih"] .tomat-topbar [data-raw-image],
+      html[data-tema="tema_merahputih"] .appshell-bottom-nav img,
+      html[data-tema="tema_merahputih"] .appshell-bottom-nav canvas,
+      html[data-tema="tema_merahputih"] .tomat-sidebar img,
+      html[data-tema="tema_merahputih"] .tomat-sidebar canvas {
+        filter: none !important;
+      }
+    `
+    return <style>{css}</style>
+  }
+
+  // ── Generic themes — filter-based ────────────────────────────────────────
   const f  = theme.filter
   const iv = getInverseFilter(temaId)   // counteract filter for images inside bars
 
@@ -267,27 +350,34 @@ export function GameThemeOverlay({ temaId }) {
 
   if (theme.particles === 'merahputih') {
     const red   = '#DC2626'
-    const white = 'rgba(248,250,252,0.85)'
+    const redGlow = 'rgba(220,38,38,0.7)'
     return (
       <div style={base}>
-        {/* Night stars */}
+
+        {/* Full-screen background tint — shifts dark navy toward midnight crimson */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(180deg,rgba(12,2,2,0.18) 0%,rgba(6,0,10,0.10) 60%,rgba(20,0,4,0.20) 100%)',
+        }} />
+
+        {/* Night stars — straight opacity, no blendMode so they're visible */}
         {MERAHPUTIH_POSITIONS.slice(0, 30).map((p, i) => (
           <div key={`mp-star-${i}`} style={{
             position: 'absolute',
             left: `${p.x}%`, top: `${p.y}%`,
             width: `${p.s}px`, height: `${p.s}px`,
             borderRadius: '50%', background: '#fff',
-            opacity: +p.o * 0.55,
-            mixBlendMode: 'screen',
+            opacity: +p.o * 0.6,
           }} />
         ))}
 
-        {/* Firework glow halos */}
+        {/* Firework glow halos — blurred red/white light blooms */}
         {[
-          { x: 15, y: 12, r: 52, c: red },
-          { x: 75, y:  8, r: 64, c: white },
-          { x: 48, y: 20, r: 44, c: red },
-          { x: 88, y: 25, r: 36, c: white },
+          { x: 14, y: 10, r: 80,  c: '#DC2626', op: 0.22 },
+          { x: 76, y:  7, r: 100, c: '#fff',     op: 0.10 },
+          { x: 48, y: 18, r: 70,  c: '#DC2626', op: 0.18 },
+          { x: 89, y: 24, r: 60,  c: '#fff',     op: 0.08 },
+          { x: 30, y: 28, r: 50,  c: '#DC2626', op: 0.14 },
         ].map((b, i) => (
           <div key={`mp-halo-${i}`} style={{
             position: 'absolute',
@@ -296,37 +386,36 @@ export function GameThemeOverlay({ temaId }) {
             transform: 'translate(-50%,-50%)',
             borderRadius: '50%',
             background: b.c,
-            filter: 'blur(20px)',
-            opacity: 0.14,
-            mixBlendMode: 'screen',
+            filter: 'blur(28px)',
+            opacity: b.op,
           }} />
         ))}
 
-        {/* Firework burst dots — red & white */}
+        {/* Firework burst dots — red & white, with glow */}
         {MERAHPUTIH_POSITIONS.slice(30).map((p, i) => {
           const isRed = i % 2 === 0
-          const c = isRed ? red : white
+          const c     = isRed ? red : '#F8FAFC'
+          const glow  = isRed ? redGlow : 'rgba(248,250,252,0.55)'
           return (
             <div key={`mp-dot-${i}`} style={{
               position: 'absolute',
               left: `${p.x}%`, top: `${p.y}%`,
-              width: `${p.s * 0.9}px`, height: `${p.s * 0.9}px`,
+              width: `${p.s}px`, height: `${p.s}px`,
               borderRadius: '50%', background: c,
-              boxShadow: `0 0 ${+p.s * 3}px ${c}`,
-              opacity: +p.o * 0.55,
-              mixBlendMode: 'screen',
+              boxShadow: `0 0 ${+p.s * 4}px ${glow}`,
+              opacity: +p.o * 0.7,
             }} />
           )
         })}
 
         {/* Confetti slivers — red & white */}
-        {Array.from({ length: 20 }, (_, i) => ({
+        {Array.from({ length: 24 }, (_, i) => ({
           left:  ((i * 121.1 + 9) % 100).toFixed(1),
           top:   ((i * 77.3  + 5) % 100).toFixed(1),
-          w: 4 + (i % 3) * 2,
+          w: 5 + (i % 3) * 2,
           h: 2 + (i % 2),
           rot: ((i * 41) % 180 - 90),
-          color: i % 2 === 0 ? red : 'rgba(248,250,252,0.6)',
+          color: i % 2 === 0 ? red : 'rgba(248,250,252,0.75)',
         })).map((c, i) => (
           <div key={`mp-conf-${i}`} style={{
             position: 'absolute',
@@ -334,37 +423,41 @@ export function GameThemeOverlay({ temaId }) {
             width: `${c.w}px`, height: `${c.h}px`,
             background: c.color, borderRadius: 1,
             transform: `rotate(${c.rot}deg)`,
-            opacity: 0.08 + (i % 5) * 0.03,
-            mixBlendMode: 'screen',
+            opacity: 0.12 + (i % 5) * 0.04,
           }} />
         ))}
 
-        {/* Umbul-umbul SVG — two rows of triangle buntings across the top */}
+        {/* Umbul-umbul SVG — two rows of triangle buntings across the very top */}
         <svg
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '13%', pointerEvents: 'none' }}
-          viewBox="0 0 100 13"
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '15%', pointerEvents: 'none' }}
+          viewBox="0 0 100 15"
           preserveAspectRatio="none"
         >
           {/* Rope lines */}
           <polyline points={_MP_FLAGS_ROW1.map(f => `${f.x},${f.y}`).join(' ')}
-            fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="0.15" />
+            fill="none" stroke="rgba(255,255,255,0.20)" strokeWidth="0.18" />
           <polyline points={_MP_FLAGS_ROW2.map(f => `${f.x},${f.y}`).join(' ')}
-            fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="0.15" />
-          {/* Flags */}
+            fill="none" stroke="rgba(255,255,255,0.20)" strokeWidth="0.18" />
+          {/* Triangle flags */}
           {[..._MP_FLAGS_ROW1, ..._MP_FLAGS_ROW2].map((f, i) => (
             <polygon key={`umbul-${i}`}
-              points={`${f.x - 2},${f.y} ${f.x + 2},${f.y} ${f.x},${f.y + 3.5}`}
+              points={`${f.x - 2.2},${f.y} ${f.x + 2.2},${f.y} ${f.x},${f.y + 4}`}
               fill={f.isRed ? '#DC2626' : '#F8FAFC'}
-              opacity="0.45"
+              opacity={f.isRed ? '0.82' : '0.70'}
             />
           ))}
         </svg>
 
-        {/* Horizon red glow at the bottom */}
+        {/* Red glow line along top — like a celebration banner highlight */}
         <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: '8%',
-          background: 'linear-gradient(0deg, rgba(220,38,38,0.10) 0%, transparent 100%)',
-          mixBlendMode: 'screen',
+          position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+          background: 'linear-gradient(90deg,transparent 5%,rgba(220,38,38,0.6) 30%,rgba(248,250,252,0.4) 50%,rgba(220,38,38,0.6) 70%,transparent 95%)',
+        }} />
+
+        {/* Horizon ambient glow — celebration lights from below */}
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '12%',
+          background: 'linear-gradient(0deg,rgba(127,29,29,0.18) 0%,transparent 100%)',
         }} />
       </div>
     )
