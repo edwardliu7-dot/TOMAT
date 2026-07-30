@@ -19,28 +19,6 @@ export const SEASONAL_EVENTS = [
     itemIds: ['bingkai_kemerdekaan', 'tema_nusantara', 'pet_kelinsay_merahputih'],
   },
   {
-    slug: 'halloween',
-    name: 'Malam Halloween',
-    emoji: '🎃',
-    description: 'Selamat datang di malam paling menyeramkan sepanjang tahun!',
-    accent: '#F97316',
-    bgGradient: 'linear-gradient(135deg,#0a0503,#1a0e00)',
-    startMonth: 10, startDay: 1,
-    endMonth:   10, endDay:   31,
-    itemIds: ['bingkai_halloween', 'tema_halloween', 'pet_kelinsay_labu'],
-  },
-  {
-    slug: 'natal',
-    name: 'Natal & Tahun Baru',
-    emoji: '🎄',
-    description: 'Selamat merayakan musim paling ceria dan penuh kegembiraan!',
-    accent: '#22C55E',
-    bgGradient: 'linear-gradient(135deg,#021408,#0d1f0d)',
-    startMonth: 12, startDay: 15,
-    endMonth:   1,  endDay:   10,   // year-spanning
-    itemIds: ['bingkai_natal', 'tema_natal', 'pet_skin_natal'],
-  },
-  {
     slug: 'ramadan',
     name: 'Ramadan Mubarak',
     emoji: '🌙',
