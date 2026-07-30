@@ -71,6 +71,63 @@ function MessageStatus({ message }) {
   )
 }
 
+/* ── Sticker constants ────────────────────────────────────────── */
+const STICKER_PREFIX = '[sticker]'
+
+const STICKER_PACKS = [
+  {
+    id: 'semangat', label: '💪 Semangat',
+    stickers: ['💪','🔥','⭐','🚀','🎯','👑','🌟','✨','😤','🏆','🥇','💥','⚡','🎉','🎊','🥳'],
+  },
+  {
+    id: 'ekspresi', label: '😊 Ekspresi',
+    stickers: ['😊','😍','🥰','😎','🤩','😂','🥹','😅','🙈','😭','🤔','😱','😘','🤗','😇','😆'],
+  },
+  {
+    id: 'math', label: '📐 Matematika',
+    stickers: ['🧮','📐','📏','🔢','💡','📚','📝','🎓','🏫','📊','🔍','🧪','🖊️','📖','🔬','🗒️'],
+  },
+  {
+    id: 'respon', label: '👍 Respon',
+    stickers: ['👍','👏','🙌','💯','❤️','🤝','✌️','🙏','🫶','😘','🤜','🫂','👋','🤞','💪','✅'],
+  },
+]
+
+function StickerPicker({ onSelect, onClose }) {
+  const [activePack, setActivePack] = React.useState(0)
+  return (
+    <div style={{ background: '#0A1628', borderTop: '1px solid rgba(99,102,241,0.15)', flexShrink: 0 }}>
+      {/* Pack tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {STICKER_PACKS.map((pack, idx) => (
+          <button key={pack.id} onClick={() => setActivePack(idx)}
+            style={{ flex: 1, minWidth: 0, border: 'none', background: 'none', padding: '8px 4px', cursor: 'pointer',
+              color: activePack === idx ? '#818CF8' : '#475569', fontSize: 10, fontWeight: 800,
+              borderBottom: activePack === idx ? '2px solid #818CF8' : '2px solid transparent',
+              fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {pack.label}
+          </button>
+        ))}
+        <button onClick={onClose} aria-label="Tutup stiker"
+          style={{ border: 'none', background: 'none', color: '#475569', cursor: 'pointer', padding: '8px 10px', fontSize: 14, flexShrink: 0 }}>✕</button>
+      </div>
+      {/* Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 2, padding: '8px 10px', maxHeight: 128, overflowY: 'auto', scrollbarWidth: 'thin' }}>
+        {STICKER_PACKS[activePack].stickers.map(emoji => (
+          <button key={emoji} onClick={() => onSelect(emoji)} title={emoji}
+            style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 26, padding: '4px 2px',
+              borderRadius: 8, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.1s' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.15)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+            {emoji}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function EmptyMessages({ forum }) {
   return (
     <div style={{ padding: '48px 20px', textAlign: 'center', color: '#64748B' }}>
@@ -81,29 +138,61 @@ function EmptyMessages({ forum }) {
   )
 }
 
+function MessageBubble({ message, own, forum, onProfileClick }) {
+  const isSticker = message.body?.startsWith(STICKER_PREFIX)
+  const stickerEmoji = isSticker ? message.body.slice(STICKER_PREFIX.length) : null
+
+  if (isSticker) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: own ? 'flex-end' : 'flex-start', gap: 2 }}>
+        {forum && !own && (
+          <button onClick={() => onProfileClick?.({ id: message.sender_id, role: message.sender_role, name: message.sender_name })}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 0, border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <UserAvatar user={{ name: message.sender_name, role: message.sender_role, photoUrl: message.sender_photo_url, equippedBingkai: message.sender_equipped_bingkai }} size={18} />
+            <span style={{ color: message.sender_role === 'guru' ? '#C4B5FD' : '#67E8F9', fontSize: 10, fontWeight: 800 }}>
+              {message.sender_name || 'Pengguna'}
+            </span>
+          </button>
+        )}
+        <div style={{ fontSize: 62, lineHeight: 1, userSelect: 'none', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}>
+          {stickerEmoji}
+        </div>
+        <div style={{ color: '#475569', fontSize: 9, display: 'flex', alignItems: 'center', gap: 3 }}>
+          {formatTime(message.created_at)}
+          {own && !forum && <MessageStatus message={message} />}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ maxWidth: '82%', background: own ? 'linear-gradient(135deg, #6366F1, #7C3AED)' : '#0E1E35', border: `1px solid ${own ? 'rgba(165,180,252,0.35)' : 'rgba(99,102,241,0.12)'}`, borderRadius: own ? '15px 15px 4px 15px' : '15px 15px 15px 4px', padding: '9px 12px' }}>
+      {forum && !own && (
+        <button onClick={() => onProfileClick?.({ id: message.sender_id, role: message.sender_role, name: message.sender_name })} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 0, border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', color: '#fff', marginBottom: 5 }} title="Lihat profil">
+          <UserAvatar user={{ name: message.sender_name, role: message.sender_role, photoUrl: message.sender_photo_url, equippedBingkai: message.sender_equipped_bingkai }} size={24} />
+          <span style={{ color: message.sender_role === 'guru' ? '#C4B5FD' : '#67E8F9', fontSize: 10, fontWeight: 800 }}>
+            {message.sender_name || 'Pengguna'} · {message.sender_role === 'guru' ? 'Guru' : 'Siswa'}
+          </span>
+        </button>
+      )}
+      <div style={{ color: '#fff', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{message.body}</div>
+      <div style={{ color: own ? 'rgba(255,255,255,0.65)' : '#64748B', fontSize: 9, marginTop: 5, textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+        {formatTime(message.created_at)}
+        {own && !forum && <MessageStatus message={message} />}
+      </div>
+    </div>
+  )
+}
+
 function MessageList({ messages, user, forum, onProfileClick }) {
   if (messages.length === 0) return <EmptyMessages forum={forum} />
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
       {messages.map(message => {
-        const own = message.sender_id === user.id && message.sender_role === user.role
+        const own = String(message.sender_id) === String(user.id) && message.sender_role === user.role
         return (
-            <div key={message.id} style={{ display: 'flex', justifyContent: own ? 'flex-end' : 'flex-start' }}>
-            <div style={{ maxWidth: '82%', background: own ? 'linear-gradient(135deg, #6366F1, #7C3AED)' : '#0E1E35', border: `1px solid ${own ? 'rgba(165,180,252,0.35)' : 'rgba(99,102,241,0.12)'}`, borderRadius: own ? '15px 15px 4px 15px' : '15px 15px 15px 4px', padding: '9px 12px' }}>
-              {forum && !own && (
-                <button onClick={() => onProfileClick?.({ id: message.sender_id, role: message.sender_role, name: message.sender_name })} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 0, border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', color: '#fff', marginBottom: 5 }} title="Lihat profil">
-                  <UserAvatar user={{ name: message.sender_name, role: message.sender_role, photoUrl: message.sender_photo_url, equippedBingkai: message.sender_equipped_bingkai }} size={24} />
-                  <span style={{ color: message.sender_role === 'guru' ? '#C4B5FD' : '#67E8F9', fontSize: 10, fontWeight: 800 }}>
-                    {message.sender_name || 'Pengguna'} · {message.sender_role === 'guru' ? 'Guru' : 'Siswa'}
-                  </span>
-                </button>
-              )}
-              <div style={{ color: '#fff', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{message.body}</div>
-              <div style={{ color: own ? 'rgba(255,255,255,0.65)' : '#64748B', fontSize: 9, marginTop: 5, textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                {formatTime(message.created_at)}
-                {own && !forum && <MessageStatus message={message} />}
-              </div>
-            </div>
+          <div key={message.id} style={{ display: 'flex', justifyContent: own ? 'flex-end' : 'flex-start' }}>
+            <MessageBubble message={message} own={own} forum={forum} onProfileClick={onProfileClick} />
           </div>
         )
       })}
@@ -169,6 +258,7 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
   // On desktop, sidebar is always open; on mobile it toggles
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [unreadDetail, setUnreadDetail] = useState({ perContact: {}, perForum: {} })
+  const [stickerOpen, setStickerOpen] = useState(false)
   const messageScrollRef = useRef(null)
   const shouldScrollToBottomRef = useRef(true)
   const previousLatestMessageIdRef = useRef(null)
@@ -301,21 +391,45 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
     finally { setSending(false) }
   }
 
+  const sendSticker = async emoji => {
+    setStickerOpen(false)
+    const path = tab === 'private'
+      ? `/api/komunikasi/private/${selectedContact.role}/${encodeURIComponent(selectedContact.id)}/messages`
+      : `/api/komunikasi/forum/${encodeURIComponent(selectedClass)}/messages`
+    setSending(true); setError('')
+    try {
+      await apiCall(path, { method: 'POST', body: { body: `${STICKER_PREFIX}${emoji}` } })
+      shouldScrollToBottomRef.current = true; await loadMessages()
+    } catch (err) { setError(err.message) }
+    finally { setSending(false) }
+  }
+
   const selectTab = nextTab => {
     setTab(nextTab); setMessages([]); previousLatestMessageIdRef.current = null
-    shouldScrollToBottomRef.current = true; setError('')
+    shouldScrollToBottomRef.current = true; setError(''); setStickerOpen(false)
     if (isMobile) setSidebarOpen(true)
   }
 
   const selectContact = contact => {
     setSelectedContact(contact); setMessages([]); previousLatestMessageIdRef.current = null
     shouldScrollToBottomRef.current = true; setError('')
+    // Optimistically clear the unread badge immediately on click
+    const key = `${contact.role}:${contact.id}`
+    setUnreadDetail(prev => ({
+      ...prev,
+      perContact: { ...prev.perContact, [key]: 0 },
+    }))
     if (isMobile) setSidebarOpen(false)
   }
 
   const selectClass = kelas => {
     setSelectedClass(kelas); setMessages([]); previousLatestMessageIdRef.current = null
     shouldScrollToBottomRef.current = true; setError('')
+    // Optimistically clear forum badge immediately on click
+    setUnreadDetail(prev => ({
+      ...prev,
+      perForum: { ...prev.perForum, [kelas]: 0 },
+    }))
     if (isMobile) setSidebarOpen(false)
   }
 
@@ -387,7 +501,23 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
           ? <div style={{ color: '#64748B', fontSize: 12, textAlign: 'center', padding: 30 }}>Memuat pesan…</div>
           : <MessageList messages={messages} user={user} forum={tab === 'forum'} onProfileClick={openProfile} />}
       </div>
+      {/* Sticker picker — sits between messages and input, pushes form naturally */}
+      {stickerOpen && (
+        <StickerPicker
+          onSelect={emoji => sendSticker(emoji)}
+          onClose={() => setStickerOpen(false)}
+        />
+      )}
       <form onSubmit={sendMessage} style={{ display: 'flex', gap: 8, padding: isMobile ? '10px 12px' : 10, paddingBottom: isMobile ? 'max(10px, env(safe-area-inset-bottom))' : 10, borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+        {/* Sticker toggle button */}
+        <button type="button"
+          onClick={() => setStickerOpen(v => !v)}
+          disabled={!activeTitle || activeTitle === 'Pilih kontak' || activeTitle === 'Pilih kelas'}
+          title="Stiker"
+          aria-label="Buka stiker"
+          style={{ width: isMobile ? 40 : 36, height: isMobile ? 40 : 36, border: `1px solid ${stickerOpen ? 'rgba(129,140,248,0.6)' : 'rgba(99,102,241,0.18)'}`, borderRadius: 10, background: stickerOpen ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.04)', color: stickerOpen ? '#818CF8' : '#64748B', cursor: 'pointer', fontSize: isMobile ? 20 : 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-end', marginBottom: 1 }}>
+          🎭
+        </button>
         <textarea value={body} onChange={e => setBody(e.target.value.slice(0, 2000))}
           placeholder={tab === 'forum' ? 'Tulis pesan untuk kelas…' : 'Tulis pesan…'}
           rows={2}
@@ -395,7 +525,7 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
           style={{ flex: 1, resize: 'none', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 11, background: '#0E1E35', color: '#fff', padding: '9px 10px', fontFamily: 'inherit', fontSize: isMobile ? 14 : 12, outline: 'none', boxSizing: 'border-box' }} />
         <button type="submit"
           disabled={sending || !body.trim() || (!selectedContact && tab === 'private') || (!selectedClass && tab === 'forum')}
-          style={{ width: isMobile ? 68 : 62, border: 'none', borderRadius: 11, background: sending ? '#374151' : 'linear-gradient(135deg,#6366F1,#7C3AED)', color: '#fff', fontSize: isMobile ? 13 : 11, fontWeight: 800, cursor: sending ? 'default' : 'pointer', fontFamily: 'inherit', boxShadow: sending ? 'none' : '0 4px 18px rgba(99,102,241,.28)' }}>
+          style={{ width: isMobile ? 68 : 62, border: 'none', borderRadius: 11, background: sending ? '#374151' : 'linear-gradient(135deg,#6366F1,#7C3AED)', color: '#fff', fontSize: isMobile ? 13 : 11, fontWeight: 800, cursor: sending ? 'default' : 'pointer', fontFamily: 'inherit', boxShadow: sending ? 'none' : '0 4px 18px rgba(99,102,241,.28)', alignSelf: 'flex-end' }}>
           {sending ? '…' : 'Kirim'}
         </button>
       </form>
