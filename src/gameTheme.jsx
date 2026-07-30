@@ -98,26 +98,26 @@ export function GameThemeStyles({ temaId }) {
 
   // ── Special-case: Merah Putih seasonal theme ──────────────────────────────
   if (temaId === 'tema_merahputih') {
-    // Build umbul-umbul SVG tile (400×62px) as a repeating background-image.
-    // Using named/rgb colors so '#' never appears in the data URL.
+    // Build umbul-umbul SVG tile — 3 baris bendera, repeat-x saja.
+    // Named/rgb colors only — no '#' in data URL.
     const flagW = 18, flagH = 22, step = 40
-    const flags1 = Array.from({ length: 11 }, (_, i) => {
-      const cx = i * step + step / 2
-      const fill = i % 2 === 0 ? 'crimson' : 'rgb(248,250,252)'
-      const op   = i % 2 === 0 ? 0.88 : 0.72
-      return `<polygon points="${cx - flagW/2},10 ${cx + flagW/2},10 ${cx},${10 + flagH}" fill="${fill}" opacity="${op}"/>`
-    }).join('')
-    const flags2 = Array.from({ length: 11 }, (_, i) => {
-      const cx = i * step + step / 2
-      const fill = i % 2 === 0 ? 'rgb(248,250,252)' : 'crimson'
-      const op   = i % 2 === 0 ? 0.72 : 0.88
-      return `<polygon points="${cx - flagW/2},34 ${cx + flagW/2},34 ${cx},${34 + flagH}" fill="${fill}" opacity="${op}"/>`
-    }).join('')
-    const svgTile = `<svg xmlns="http://www.w3.org/2000/svg" width="440" height="62">`
-      + `<line x1="0" y1="10" x2="440" y2="10" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>`
-      + flags1
-      + `<line x1="0" y1="34" x2="440" y2="34" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>`
-      + flags2
+    const ropeYs = [10, 38, 66]   // Y posisi tali per baris
+    const rowCount = 11            // bendera per baris
+    const rows = ropeYs.map((ry, ri) =>
+      Array.from({ length: rowCount }, (_, i) => {
+        const cx   = i * step + step / 2
+        const even = (i + ri) % 2 === 0
+        const fill = even ? 'crimson' : 'rgb(248,250,252)'
+        const op   = even ? 0.88 : 0.72
+        return `<polygon points="${cx - flagW/2},${ry} ${cx + flagW/2},${ry} ${cx},${ry + flagH}" fill="${fill}" opacity="${op}"/>`
+      }).join('')
+    )
+    const svgH = ropeYs[ropeYs.length - 1] + flagH + 10   // 98
+    const svgTile = `<svg xmlns="http://www.w3.org/2000/svg" width="440" height="${svgH}">`
+      + ropeYs.map(ry =>
+          `<line x1="0" y1="${ry}" x2="440" y2="${ry}" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>`
+        ).join('')
+      + rows.join('')
       + `</svg>`
     const encodedSvg = encodeURIComponent(svgTile)
 
@@ -139,8 +139,8 @@ export function GameThemeStyles({ temaId }) {
         z-index: 0;
         pointer-events: none;
         background-image: url("data:image/svg+xml,${encodedSvg}");
-        background-repeat: repeat;
-        background-size: 440px 62px;
+        background-repeat: repeat-x;
+        background-size: 440px ${svgH}px;
         background-position: center center;
       }
       html[data-tema="tema_merahputih"] .home-screen,
