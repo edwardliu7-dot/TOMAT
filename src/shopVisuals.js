@@ -20,6 +20,7 @@ export const BINGKAI_VISUALS = {
 }
 
 export const SPANDUK_VISUALS = {
+  spanduk_kemerdekaan: { gradient: 'linear-gradient(90deg,#1a0009,#7f0018,#2d0004)', limited: true, eventSlug: 'kemerdekaan' },
   spanduk_galaksi: { gradient: 'linear-gradient(90deg,#312e81,#581c87,#000)' },
   spanduk_hutan: { gradient: 'linear-gradient(90deg,#064e3b,#134e4a)' },
   spanduk_retro: { gradient: 'linear-gradient(90deg,#374151,#111827)' },
@@ -35,7 +36,6 @@ export const TEMA_VISUALS = {
   tema_salju: { accent: '#7dd3fc', gradient: 'linear-gradient(135deg,#0a1929,#0f2744)', swatches: ['#0a1929','#0f2744','#7dd3fc','#e0f2fe'], label: 'Salju'        },
   tema_void:  { accent: '#a855f7', gradient: 'linear-gradient(135deg,#000000,#0d0014)', swatches: ['#000000','#0d0014','#a855f7','#ec4899'], label: 'Void', limited: true },
   // ── Seasonal event tema ────────────────────────────────────────────────────
-  tema_nusantara: { accent: '#E11D48', gradient: 'linear-gradient(135deg,#1a0009,#2d0004)', swatches: ['#1a0009','#2d0004','#E11D48','#F1F5F9'], label: 'Nusantara', limited: true, eventSlug: 'kemerdekaan' },
   tema_halloween: { accent: '#F97316', gradient: 'linear-gradient(135deg,#0a0503,#1a0e00)', swatches: ['#0a0503','#1a0e00','#F97316','#7C3AED'], label: 'Malam Seram', limited: true, eventSlug: 'halloween' },
   tema_natal:     { accent: '#22C55E', gradient: 'linear-gradient(135deg,#021408,#0d1f0d)', swatches: ['#021408','#0d1f0d','#22C55E','#EF4444'], label: 'Salju Natal', limited: true, eventSlug: 'natal' },
 }

@@ -16,7 +16,7 @@ export const SEASONAL_EVENTS = [
     bgGradient: 'linear-gradient(135deg,#1a0009,#2d0a04)',
     startMonth: 7,  startDay: 15,
     endMonth:   8,  endDay:   31,
-    itemIds: ['bingkai_kemerdekaan', 'tema_nusantara', 'pet_kelinsay_merahputih'],
+    itemIds: ['bingkai_kemerdekaan', 'spanduk_kemerdekaan', 'pet_kelinsay_merahputih'],
   },
   {
     slug: 'ramadan',

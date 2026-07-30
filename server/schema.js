@@ -378,11 +378,10 @@ export async function ensureSchema() {
       eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
       description: 'Bingkai merah-putih semangat kemerdekaan Indonesia.',
     }, 50],
-    ['tema_nusantara', 'tema', 'Nusantara', 3000, {
-      accent: '#E11D48', gradient: 'linear-gradient(135deg,#1a0009,#2d0004)',
-      swatches: ['#1a0009','#2d0004','#E11D48','#F1F5F9'],
+    ['spanduk_kemerdekaan', 'spanduk', 'Spanduk 17 Agustus', 2000, {
+      gradient: 'linear-gradient(90deg,#1a0009,#7f0018,#2d0004)',
       eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
-      description: 'Tema merah-putih semangat hari kemerdekaan.',
+      description: 'Spanduk merah membara semangat kemerdekaan Indonesia.',
     }, 51],
     ['pet_kelinsay_merahputih', 'pet_skin', 'Kelinsay Merah Putih', 3500, {
       tier: 'langka', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
