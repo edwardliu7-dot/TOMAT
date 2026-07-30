@@ -424,6 +424,22 @@ export async function ensureSchema() {
     where id = 'tomat-demo'
   `)
 
+  // Tournament history — one row per finished/cancelled tournament
+  await pool.query(`
+    create table if not exists tournament_history (
+      id          text primary key,
+      kelas       text not null,
+      guru_id     text not null references gurus(id),
+      game_key    text not null,
+      status      text not null check (status in ('finished','cancelled')),
+      champion_name text,
+      champion_id   text,
+      total_participants int not null default 0,
+      total_rounds       int not null default 0,
+      finished_at timestamptz not null default now()
+    );
+  `)
+
   // Hafalan setoran table — each row is one assessment by a guru for a student
   await pool.query(`
     create table if not exists hafalan_setoran (

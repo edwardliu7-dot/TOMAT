@@ -785,6 +785,7 @@ export default function App() {
       )
     }
     const guruNavigate = (key) => {
+      if (key === 'guruMengajar') { setGuruPracticeMode(true); return }
       window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
     }
     return (

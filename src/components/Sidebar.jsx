@@ -39,6 +39,7 @@ const GURU_NAV = [
   { key: 'guruTurnamen',   emoji: '🏆', label: 'Turnamen' },
   { key: 'guruKunci',      emoji: '🔒', label: 'Kunci Bab' },
   { key: 'guruKomunikasi', emoji: '💬', label: 'Komunikasi' },
+  { key: 'guruMengajar',   emoji: '🖥️', label: 'Mode Mengajar' },
 ]
 
 function NavItem({ item, isActive, onClick }) {

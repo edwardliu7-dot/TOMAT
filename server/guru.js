@@ -364,14 +364,54 @@ router.delete('/tournament/:id', async (req, res) => {
     const kelasDiampu = await getMyKelasDiampu(req)
     if (!kelasDiampu.includes(t.kelas)) return res.status(403).json({ error: 'Akses ditolak.' })
 
+    const wasFinished = t.status === 'finished'
     t.status = 'finished'
     const io = getTournamentIo()
     io?.to(`tournament:${t.id}`).emit('tournament:cancelled')
     io?.to(`kelas:${t.kelas}`).emit('tournament:cancelled')
+
+    // Save to history with status 'cancelled' only if it wasn't already saved as 'finished'
+    if (!wasFinished) {
+      const totalParticipants = t.rounds?.[0]?.matches?.reduce(
+        (a, m) => a + (m.player1 ? 1 : 0) + (m.player2 ? 1 : 0), 0
+      ) ?? 0
+      await pool.query(
+        `insert into tournament_history
+           (id, kelas, guru_id, game_key, status, champion_name, champion_id, total_participants, total_rounds, finished_at)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,now())
+         on conflict (id) do nothing`,
+        [t.id, t.kelas, t.guruId, t.gameKey, 'cancelled',
+         t.champion?.name ?? null, t.champion?.userId ?? null,
+         totalParticipants, t.rounds?.length ?? 0]
+      )
+    }
+
     tournaments.delete(req.params.id)
     res.json({ ok: true })
   } catch (err) {
     console.error('guru/tournament DELETE error', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/guru/tournament/history — riwayat turnamen untuk kelas guru ini
+router.get('/tournament/history', async (req, res) => {
+  try {
+    const kelasDiampu = await getMyKelasDiampu(req)
+    if (!kelasDiampu.length) return res.json({ history: [] })
+    const placeholders = kelasDiampu.map((_, i) => `$${i + 1}`).join(',')
+    const { rows } = await pool.query(
+      `select id, kelas, game_key, status, champion_name, champion_id,
+              total_participants, total_rounds, finished_at
+       from tournament_history
+       where kelas in (${placeholders})
+       order by finished_at desc
+       limit 50`,
+      kelasDiampu
+    )
+    res.json({ history: rows })
+  } catch (err) {
+    console.error('guru/tournament/history GET error', err)
     res.status(500).json({ error: err.message })
   }
 })

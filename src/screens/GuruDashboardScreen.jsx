@@ -1171,14 +1171,20 @@ function TurnamenTab({ kelasDiampu }) {
   const [form,         setForm]         = useState({ kelas: kelasDiampu[0] || '', gameKey: 'katak' })
   const [liveFeed,     setLiveFeed]     = useState([])
   const [activeRound,  setActiveRound]  = useState(null) // for round pill navigation
+  const [history,      setHistory]      = useState([])
+  const [historyLoading, setHistoryLoading] = useState(true)
   const socketJoined   = useRef(false)
 
-  // Fetch current tournament state via REST on mount
+  // Fetch current tournament state + history via REST on mount
   useEffect(() => {
     apiCall('/api/guru/tournament').then(d => {
       setTournament(d.tournaments?.[0] || null)
       setLoading(false)
     }).catch(() => setLoading(false))
+    apiCall('/api/guru/tournament/history').then(d => {
+      setHistory(d.history || [])
+      setHistoryLoading(false)
+    }).catch(() => setHistoryLoading(false))
   }, [])
 
   // Connect socket for live updates (guru needs socket for real-time bracket)
@@ -1617,6 +1623,71 @@ function TurnamenTab({ kelasDiampu }) {
             )}
           </div>
         </>
+      )}
+
+      {/* Riwayat Turnamen — shown when no active tournament */}
+      {!tournament && (
+        <div style={{ background: '#1A1D27', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', padding: 20 }}>
+          <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800, letterSpacing: 1.5, marginBottom: 14 }}>📜 RIWAYAT TURNAMEN</div>
+          {historyLoading ? (
+            <div style={{ fontSize: 13, color: '#475569', textAlign: 'center', padding: '12px 0' }}>Memuat…</div>
+          ) : history.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#475569', textAlign: 'center', padding: '12px 0' }}>Belum ada turnamen yang pernah digelar.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {history.map(h => {
+                const gameLabel = TOURNAMENT_GAMES.find(g => g.key === h.game_key)?.label || h.game_key
+                const gameEmoji = gameLabel.split(' ')[0]
+                const gameName  = gameLabel.split(' ').slice(1).join(' ')
+                const isFinished = h.status === 'finished'
+                const date = new Date(h.finished_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                const time = new Date(h.finished_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                return (
+                  <div key={h.id} style={{
+                    background: '#111827', borderRadius: 12,
+                    border: `1px solid ${isFinished ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.06)'}`,
+                    padding: '12px 14px',
+                    display: 'flex', flexDirection: 'column', gap: 8,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                        <span style={{ fontSize: 18 }}>{gameEmoji}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gameName}</div>
+                          <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{h.kelas}</div>
+                        </div>
+                      </div>
+                      <span style={{
+                        flexShrink: 0, fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20,
+                        background: isFinished ? 'rgba(251,191,36,0.12)' : 'rgba(239,68,68,0.12)',
+                        color: isFinished ? '#fbbf24' : '#f87171',
+                      }}>
+                        {isFinished ? '🏆 Selesai' : '🛑 Dibatalkan'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                      {isFinished && h.champion_name && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ fontSize: 13 }}>🥇</span>
+                          <span style={{ fontSize: 12, color: '#fbbf24', fontWeight: 700 }}>{h.champion_name}</span>
+                        </div>
+                      )}
+                      <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>👥</span> {h.total_participants} peserta
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>🔄</span> {h.total_rounds} ronde
+                      </div>
+                      <div style={{ fontSize: 11, color: '#475569', marginLeft: 'auto', textAlign: 'right' }}>
+                        {date} · {time}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Spectator bottom sheet */}
@@ -2142,7 +2213,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
           </div>
 
           {/* Content */}
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px', maxWidth: 900 }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px 32px', width: '100%', maxWidth: 1280 }}>
             {tabContent}
           </div>
         </div>

@@ -8,6 +8,34 @@
  */
 import { genTournamentQ } from './tournament-questions.js'
 import { tournaments, tournamentToClient, buildFirstRound, getTournamentIo } from './tournament-state.js'
+import { pool } from './db.js'
+
+async function saveTournamentHistory(tournament, status) {
+  try {
+    const totalParticipants = tournament.rounds?.[0]?.matches?.reduce(
+      (a, m) => a + (m.player1 ? 1 : 0) + (m.player2 ? 1 : 0), 0
+    ) ?? 0
+    await pool.query(
+      `insert into tournament_history
+         (id, kelas, guru_id, game_key, status, champion_name, champion_id, total_participants, total_rounds, finished_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,now())
+       on conflict (id) do nothing`,
+      [
+        tournament.id,
+        tournament.kelas,
+        tournament.guruId,
+        tournament.gameKey,
+        status,
+        tournament.champion?.name ?? null,
+        tournament.champion?.userId ?? null,
+        totalParticipants,
+        tournament.rounds?.length ?? 0,
+      ]
+    )
+  } catch (err) {
+    console.error('saveTournamentHistory error', err)
+  }
+}
 
 const TOURNAMENT_MAX_ROUNDS  = 7
 const WALKOVER_TIMEOUT_MS    = 60_000   // 60 detik jika tidak join
@@ -193,6 +221,7 @@ function checkRoundComplete(io, tournament) {
     io.to(`kelas:${tournament.kelas}`).emit('tournament:finished', {
       champion: { userId: winners[0].userId, name: winners[0].name },
     })
+    saveTournamentHistory(tournament, 'finished')
     return
   }
 
