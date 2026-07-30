@@ -20,7 +20,7 @@ export const BINGKAI_VISUALS = {
 }
 
 export const SPANDUK_VISUALS = {
-  spanduk_kemerdekaan: { gradient: 'linear-gradient(90deg,#1a0009,#7f0018,#2d0004)', limited: true, eventSlug: 'kemerdekaan' },
+  spanduk_kemerdekaan: { image: '/81spanduk.png', gradient: 'linear-gradient(90deg,#1a0009,#7f0018,#2d0004)', limited: true, eventSlug: 'kemerdekaan' },
   spanduk_galaksi: { gradient: 'linear-gradient(90deg,#312e81,#581c87,#000)' },
   spanduk_hutan: { gradient: 'linear-gradient(90deg,#064e3b,#134e4a)' },
   spanduk_retro: { gradient: 'linear-gradient(90deg,#374151,#111827)' },

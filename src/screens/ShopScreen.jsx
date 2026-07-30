@@ -143,7 +143,10 @@ function ItemVisual({ item }) {
   }
   if (item.kategori === 'spanduk') {
     const v = item.visual || {}
-    return <div style={{ width: '100%', height: 64, borderRadius: 12, background: v.gradient || '#334155', boxShadow: v.glow ? '0 0 20px rgba(212,175,55,0.3)' : 'none', border: v.limited ? '1px solid rgba(212,175,55,0.55)' : 'none' }} />
+    const bg = v.image
+      ? `url(${v.image}) center/cover no-repeat, ${v.gradient || '#334155'}`
+      : v.gradient || '#334155'
+    return <div style={{ width: '100%', height: 64, borderRadius: 12, background: bg, boxShadow: v.glow ? '0 0 20px rgba(212,175,55,0.3)' : 'none', border: v.limited ? '1px solid rgba(212,175,55,0.55)' : 'none' }} />
   }
 
   if (item.kategori === 'tema') {

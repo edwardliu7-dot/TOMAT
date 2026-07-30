@@ -378,7 +378,7 @@ export async function ensureSchema() {
       description: 'Bingkai merah-putih semangat kemerdekaan Indonesia.',
     }, 50],
     ['spanduk_kemerdekaan', 'spanduk', 'Spanduk 17 Agustus', 2000, {
-      gradient: 'linear-gradient(90deg,#1a0009,#7f0018,#2d0004)',
+      image: '/81spanduk.png', gradient: 'linear-gradient(90deg,#1a0009,#7f0018,#2d0004)',
       eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
       description: 'Spanduk merah membara semangat kemerdekaan Indonesia.',
     }, 51],
