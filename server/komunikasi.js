@@ -27,7 +27,9 @@ async function getStudentClass(studentId) {
 
 async function canPrivateChat(user, otherId, otherRole) {
   if (otherRole !== 'guru' && otherRole !== 'siswa') return false
-  if (user.role === otherRole || user.id === otherId) return false
+  // Prevent same-role chat. Do NOT compare user.id === otherId: gurus and
+  // students have separate ID sequences so numeric IDs can overlap.
+  if (user.role === otherRole) return false
 
   if (user.role === 'guru') {
     const classes = await getGuruClasses(user.id)
@@ -225,7 +227,7 @@ router.get('/unread', async (req, res) => {
     await pool.query(
       `update pesan_pribadi
        set delivered_at = coalesce(delivered_at, now())
-       where recipient_id = $1 and recipient_role = $2
+       where recipient_id = $1::text and recipient_role = $2
          and delivered_at is null`,
       [user.id, user.role]
     )
@@ -254,13 +256,13 @@ router.get('/unread', async (req, res) => {
       const keyIndex = privateReadParams.length + 1
       privateReadParams.push(contact.role, contact.id)
       privateConditions.push(`(
-        p.sender_id = $${keyIndex + 1} and p.sender_role = $${keyIndex}
-        and p.recipient_id = $1 and p.recipient_role = $2
+        p.sender_id = $${keyIndex + 1}::text and p.sender_role = $${keyIndex}
+        and p.recipient_id = $1::text and p.recipient_role = $2
         and p.id > coalesce((
            select d.last_read_message_id from komunikasi_dibaca d
-          where d.reader_id = $1 and d.reader_role = $2
+          where d.reader_id = $1::text and d.reader_role = $2
             and d.conversation_type = 'private'
-            and d.conversation_key = $${keyIndex} || ':' || $${keyIndex + 1}
+            and d.conversation_key = $${keyIndex} || ':' || $${keyIndex + 1}::text
         ), 0)
       )`)
     })
@@ -288,11 +290,11 @@ router.get('/unread', async (req, res) => {
         `select count(*)::int as count
          from pesan_forum_kelas p
          where p.kelas = any($3::text[])
-           and not (p.sender_id = $1 and p.sender_role = $2)
+           and not (p.sender_id = $1::text and p.sender_role = $2)
            and p.id > coalesce((
              select max(d.last_read_message_id)
              from komunikasi_dibaca d
-             where d.reader_id = $1 and d.reader_role = $2
+             where d.reader_id = $1::text and d.reader_role = $2
                and d.conversation_type = 'forum'
                and d.conversation_key = p.kelas
            ), 0)`,
@@ -317,10 +319,10 @@ router.get('/unread-detail', async (req, res) => {
     const { rows: privateRows } = await pool.query(
       `select p.sender_id, p.sender_role, count(*)::int as cnt
        from pesan_pribadi p
-       where p.recipient_id = $1 and p.recipient_role = $2
+       where p.recipient_id = $1::text and p.recipient_role = $2
          and p.id > coalesce((
            select d.last_read_message_id from komunikasi_dibaca d
-           where d.reader_id = $1 and d.reader_role = $2
+           where d.reader_id = $1::text and d.reader_role = $2
              and d.conversation_type = 'private'
              and d.conversation_key = p.sender_role || ':' || p.sender_id
          ), 0)
@@ -345,10 +347,10 @@ router.get('/unread-detail', async (req, res) => {
         `select p.kelas, count(*)::int as cnt
          from pesan_forum_kelas p
          where p.kelas = any($3::text[])
-           and not (p.sender_id = $1 and p.sender_role = $2)
+           and not (p.sender_id = $1::text and p.sender_role = $2)
            and p.id > coalesce((
              select d.last_read_message_id from komunikasi_dibaca d
-             where d.reader_id = $1 and d.reader_role = $2
+             where d.reader_id = $1::text and d.reader_role = $2
                and d.conversation_type = 'forum'
                and d.conversation_key = p.kelas
            ), 0)
@@ -379,22 +381,26 @@ router.post('/read', async (req, res) => {
     let key
     let latestQuery
     let latestParams
+    let otherRole, otherId
     if (type === 'private') {
-      const otherRole = req.body?.otherRole
-      const otherId = req.body?.otherId
+      otherRole = req.body?.otherRole
+      otherId = req.body?.otherId
       if (!(await canPrivateChat(user, otherId, otherRole))) {
         return res.status(403).json({ error: 'Anda tidak memiliki akses ke percakapan ini.' })
       }
       key = `${otherRole}:${otherId}`
+      // Cast IDs to text — sender_id/recipient_id columns are text, but
+      // user.id from session may arrive as an integer. Explicit cast avoids
+      // operator mismatch that causes max(id) to silently return NULL.
       latestQuery = `
         select max(id) as last_read_message_id
         from pesan_pribadi
         where (
-          sender_id = $1 and sender_role = $2
-          and recipient_id = $3 and recipient_role = $4
+          sender_id = $1::text and sender_role = $2
+          and recipient_id = $3::text and recipient_role = $4
         ) or (
-          sender_id = $3 and sender_role = $4
-          and recipient_id = $1 and recipient_role = $2
+          sender_id = $3::text and sender_role = $4
+          and recipient_id = $1::text and recipient_role = $2
         )`
       latestParams = [user.id, user.role, otherId, otherRole]
     } else {
@@ -419,8 +425,8 @@ router.post('/read', async (req, res) => {
          set delivered_at = coalesce(delivered_at, now()),
              read_at = coalesce(read_at, now())
          where id <= $5
-           and sender_id = $3 and sender_role = $4
-           and recipient_id = $1 and recipient_role = $2`,
+           and sender_id = $3::text and sender_role = $4
+           and recipient_id = $1::text and recipient_role = $2`,
         [user.id, user.role, otherId, otherRole, lastReadMessageId]
       )
     }
