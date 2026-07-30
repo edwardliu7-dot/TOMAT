@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { playSfx } from '../sfx'
 import { TopBar, PlayerHeader } from '../components/shared'
 import { useAuth } from '../AuthContext'
 import { usePet } from '../PetContext'
@@ -337,8 +338,9 @@ function PetTokoTab({ data, onRefresh, setError }) {
     const owned = isGolden || data.ownedItemIds.includes(skinId)
     setBusyId(skinId); setLocalError('')
     try {
-      if (!owned) await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } })
+      if (!owned) { await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } }); playSfx('buy') }
       await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: skinId } })
+      playSfx('equip')
       await onRefresh(); await refreshMe(); refreshPet()
     } catch (err) { setLocalError(err.message) } finally { setBusyId(null) }
   }
@@ -354,7 +356,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const doRevive = async () => {
     setBusyId('revive'); setLocalError(''); setFeedSuccess('')
     const result = await revivePet()
-    if (result.ok) { setFeedSuccess('🐾 Pet baru sudah diadopsi!'); await onRefresh(); await refreshMe(); setTimeout(() => setFeedSuccess(''), 4000) }
+    if (result.ok) { playSfx('equip'); setFeedSuccess('🐾 Pet baru sudah diadopsi!'); await onRefresh(); await refreshMe(); setTimeout(() => setFeedSuccess(''), 4000) }
     else setLocalError(result.error)
     setBusyId(null)
   }
@@ -705,7 +707,7 @@ export default function ShopScreen({ goBack, initialTab }) {
 
   const buy = async (item) => {
     setError(''); setBusyId(item.id)
-    try { await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: item.id } }); await refresh() }
+    try { await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: item.id } }); playSfx('buy'); await refresh() }
     catch (err) { setError(err.message) } finally { setBusyId(null) }
   }
 
@@ -716,7 +718,7 @@ export default function ShopScreen({ goBack, initialTab }) {
     const body = item.id === null
       ? { itemId: null, kategori: item.kategori }
       : { itemId: item.id }
-    try { await apiCall('/api/siswa/toko/pakai', { method: 'POST', body }); await refresh(); await refreshMe() }
+    try { await apiCall('/api/siswa/toko/pakai', { method: 'POST', body }); playSfx('equip'); await refresh(); await refreshMe() }
     catch (err) { setError(err.message) } finally { setBusyId(null) }
   }
 

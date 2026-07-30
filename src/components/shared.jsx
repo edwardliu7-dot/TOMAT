@@ -1264,8 +1264,12 @@ export function Card({ children, style = {}, border = 'rgba(255,255,255,0.08)', 
 }
 
 export function Btn({ children, onClick, disabled, color = '#6366F1', textColor = '#fff', style = {} }) {
+  const handleClick = (e) => {
+    if (!disabled) import('../sfx.js').then(m => m.playSfx('click')).catch(() => {})
+    onClick?.(e)
+  }
   return (
-    <button onClick={onClick} disabled={disabled} style={{
+    <button onClick={handleClick} disabled={disabled} style={{
       background: disabled ? '#374151' : `linear-gradient(135deg, ${color}, #4F46E5)`,
       color: disabled ? '#6B7280' : textColor,
       border: '1px solid rgba(255,255,255,0.08)', borderRadius: 15, padding: '15px 20px',
