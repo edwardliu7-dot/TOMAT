@@ -3,6 +3,7 @@ import { pool } from './db.js'
 import { requireAuth, requireRole } from './auth.js'
 import { applyExp, checkAndAwardBadges } from './gamify.js'
 import { getPetBonus } from './pet-bonuses.js'
+import { incrementMissionProgress } from './event-missions.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
@@ -73,6 +74,10 @@ router.post('/gain', async (req, res) => {
     )
     await client.query('commit')
     const newBadges = await checkAndAwardBadges(req.session.user.id)
+    // Fire-and-forget: count each /gain call (1 correct answer) toward misi lomba 17-an
+    if (coinsGain > 0) {
+      incrementMissionProgress(req.session.user.id, 'kemerdekaan_1', 1).catch(() => {})
+    }
     res.json({ player: playerFields(updatedRows[0]), newBadges })
   } catch (err) {
     await client.query('rollback').catch(() => {})

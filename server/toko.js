@@ -83,6 +83,10 @@ router.post('/beli', async (req, res) => {
         return res.status(403).json({ error: 'Kamu harus memiliki pet dasarnya terlebih dahulu.' })
       }
     }
+    if (item.visual?.missionOnly) {
+      await client.query('rollback')
+      return res.status(403).json({ error: 'Item ini hanya bisa didapatkan melalui Misi Event, bukan dibeli dengan koin.' })
+    }
     if (item.visual?.eventSlug) {
       const { SEASONAL_EVENTS, isEventActive } = await import('./seasonal-events.js')
       const ev = SEASONAL_EVENTS.find(e => e.slug === item.visual.eventSlug)

@@ -372,20 +372,23 @@ export async function ensureSchema() {
     ['tema_void',  'tema', 'Void',          8000, { accent: '#a855f7', gradient: 'linear-gradient(135deg,#000000,#0d0014)', swatches: ['#000000','#0d0014','#a855f7','#ec4899'], glow: true, limited: true, edition: 'LIMITED', description: 'Hitam pekat, aksen ungu neon, partikel void.' }, 5],
     // ── Seasonal event items ───────────────────────────────────────────────────
     // Kemerdekaan RI (July 15 – Aug 31)
-    ['bingkai_kemerdekaan', 'bingkai', 'Bingkai 17 Agustus', 2500, {
+    ['bingkai_kemerdekaan', 'bingkai', 'Bingkai 17 Agustus', 0, {
       image: '/hutri81.png', border: '#E11D48', mixBlend: 'screen', spread: 0.30, glow: true,
       sparkle: 'merahputih', eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
       description: 'Bingkai merah-putih semangat kemerdekaan Indonesia.',
+      missionOnly: true, missionId: 'kemerdekaan_1',
     }, 50],
-    ['spanduk_kemerdekaan', 'spanduk', 'Spanduk 17 Agustus', 2000, {
+    ['spanduk_kemerdekaan', 'spanduk', 'Spanduk 17 Agustus', 0, {
       image: '/81spanduk.png', gradient: 'linear-gradient(90deg,#1a0009,#7f0018,#2d0004)',
       eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
       description: 'Spanduk merah membara semangat kemerdekaan Indonesia.',
+      missionOnly: true, missionId: 'kemerdekaan_2',
     }, 51],
-    ['pet_kelinsay_merahputih', 'pet_skin', 'Kelinsay Merah Putih', 3500, {
+    ['pet_kelinsay_merahputih', 'pet_skin', 'Kelinsay Merah Putih', 0, {
       tier: 'langka', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
       eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
       desc: 'Kelinsay berbaju merah putih, bersemangat merayakan kemerdekaan!',
+      missionOnly: true, missionId: 'kemerdekaan_3',
     }, 52],
     // Ramadan Mubarak (Feb 18 – Mar 20)
     ['bingkai_ramadan', 'bingkai', 'Bingkai Bintang Bulan', 2000, {
@@ -465,6 +468,22 @@ export async function ensureSchema() {
         equipped_spanduk  = coalesce(nullif(equipped_spanduk, ''),  'spanduk_celestia_relic'),
         equipped_pet_skin = coalesce(nullif(equipped_pet_skin, ''), 'pet_skin_void')
     where id = 'tomat-demo'
+  `)
+
+  // ── Event mission progress ──────────────────────────────────────────────────
+  // One row per (student, mission). progress counts toward goal; completed_at
+  // is set when progress >= goal; reward_claimed_at is set when item is given.
+  await pool.query(`
+    create table if not exists event_mission_progress (
+      student_id        text not null references students(id) on delete cascade,
+      mission_id        text not null,
+      progress          int  not null default 0,
+      completed_at      timestamptz,
+      reward_claimed_at timestamptz,
+      primary key (student_id, mission_id)
+    );
+    create index if not exists event_mission_progress_student_idx
+      on event_mission_progress (student_id);
   `)
 
   // Tournament history — one row per finished/cancelled tournament
