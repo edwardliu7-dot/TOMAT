@@ -88,10 +88,11 @@ router.post('/login', async (req, res) => {
     }
     
     req.session.user = {
-      id: user.id,
+      id:       user.id,
       role,
-      name: user.name || user.username || null,
-      kelas: role === 'siswa' ? (user.kelas || null) : null,
+      name:     user.name || user.username || null,
+      username: user.username || null,
+      kelas:    role === 'siswa' ? (user.kelas || null) : null,
     }
     res.json({ user: sanitizeUser(user, role) })
   } catch (err) {
@@ -118,11 +119,21 @@ router.get('/me', async (req, res) => {
       req.session.destroy(() => {})
       return res.status(401).json({ error: 'Sesi tidak valid.' })
     }
-    // Backfill kelas into session in case it was missing (older sessions)
+    // Backfill missing fields into session (older sessions may lack these)
+    let needsSave = false
     if (session.role === 'siswa' && session.kelas === undefined) {
       session.kelas = user.kelas || null
-      req.session.save(() => {})
+      needsSave = true
     }
+    if (!session.name) {
+      session.name = user.name || user.username || null
+      needsSave = true
+    }
+    if (!session.username) {
+      session.username = user.username || null
+      needsSave = true
+    }
+    if (needsSave) req.session.save(() => {})
     res.json({ user: sanitizeUser(user, session.role) })
   } catch (err) {
     console.error('me error', err)
