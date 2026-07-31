@@ -1204,7 +1204,7 @@ function TurnamenTab({ kelasDiampu }) {
       .then(({ students: all }) => {
         const filtered = (all || []).filter(s => form.kelasArr.includes(s.kelas))
         setStudents(filtered)
-        setForm(f => ({ ...f, selectedStudentIds: null }))
+        setForm(f => ({ ...f, selectedStudentIds: filtered.map(s => String(s.userId)) }))
       })
       .catch(() => {})
       .finally(() => setStudentsLoading(false))
@@ -1310,12 +1310,7 @@ function TurnamenTab({ kelasDiampu }) {
     }
   }, [spectate?.id])
 
-  const getSelectedIds = () => {
-    if (form.selectedStudentIds == null) return students.map(s => String(s.userId))
-    return form.selectedStudentIds
-  }
-  // NOTE: selectedStudentIds is always an explicit string[] after students load;
-  // null is only the pre-load placeholder (no students yet).
+  const getSelectedIds = () => form.selectedStudentIds
 
   // Helper: inisialisasi manualTeams saat count berubah, pertahankan anggota yang sudah ada
   const initManualTeams = (count, existingTeams, allStudentIds) => {
@@ -1373,7 +1368,7 @@ function TurnamenTab({ kelasDiampu }) {
     setError('')
     try {
       const body = { kelasArr: form.kelasArr, gameKey: form.gameKey }
-      if (form.selectedStudentIds && form.selectedStudentIds.length < students.length) {
+      if (form.selectedStudentIds.length < students.length) {
         body.selectedStudentIds = form.selectedStudentIds
       }
       body.mode = form.mode
@@ -1499,7 +1494,7 @@ function TurnamenTab({ kelasDiampu }) {
                         const allIds = students.map(s => String(s.userId))
                         const curIds = getSelectedIds()
                         const allSelected = curIds.length === students.length
-                        setForm(f => ({ ...f, selectedStudentIds: allSelected ? [] : null }))
+                        setForm(f => ({ ...f, selectedStudentIds: allSelected ? [] : allIds }))
                       }}
                       style={{
                         alignSelf: 'flex-start', padding: '5px 12px', borderRadius: 20,
