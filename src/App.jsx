@@ -12,6 +12,9 @@ import HomeScreen from './screens/HomeScreen'
 import Grade7ZoneScreen from './screens/Grade7ZoneScreen'
 import Grade8ZoneScreen from './screens/Grade8ZoneScreen'
 import Grade9ZoneScreen from './screens/Grade9ZoneScreen'
+import Ipa7ZoneScreen from './screens/Ipa7ZoneScreen'
+import Ipa8ZoneScreen from './screens/Ipa8ZoneScreen'
+import Ipa9ZoneScreen from './screens/Ipa9ZoneScreen'
 import ModeSelectScreen from './screens/ModeSelectScreen'
 import TaskResultScreen from './screens/TaskResultScreen'
 import GradesScreen from './screens/GradesScreen'
@@ -273,6 +276,25 @@ class ErrorBoundary extends Component {
   }
 }
 
+// Placeholder untuk game IPA yang belum diimplementasikan
+function IpaGamePlaceholder({ onBack }) {
+  return (
+    <div style={{ minHeight: '100vh', background: '#071321', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 }}>
+      <div style={{ fontSize: 56 }}>🔬</div>
+      <div style={{ color: '#22c55e', fontSize: 20, fontWeight: 800, textAlign: 'center' }}>Segera Hadir!</div>
+      <div style={{ color: '#94A3B8', fontSize: 14, textAlign: 'center', maxWidth: 300, lineHeight: 1.6 }}>
+        Game IPA ini sedang dalam pengembangan. Pantau terus pembaruan aplikasi ya!
+      </div>
+      <button
+        onClick={onBack}
+        style={{ marginTop: 8, background: '#22c55e', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+      >
+        ← Kembali
+      </button>
+    </div>
+  )
+}
+
 // Lazy-load all game components — each is fetched only when the student first opens that game
 const GAME_ROUTES = {
   termometer:         { name: 'Termometer Penyelamat',          emoji: '🌡️', Component: React.lazy(() => import('./minigames/TermometerGame')) },
@@ -330,15 +352,29 @@ const GAME_ROUTES = {
   g9sinyalkerucut:    { name: 'Zona Pancaran Sinyal',         emoji: '📡', Component: React.lazy(() => import('./minigames/G9SinyalKerucutGame')) },
   g9bintang:          { name: 'Kompresi Inti Bintang',        emoji: '⭐', Component: React.lazy(() => import('./minigames/G9BintangGame')) },
   g9upgradekapal:     { name: 'Upgrade Kapal Induk',          emoji: '🚀', Component: React.lazy(() => import('./minigames/G9UpgradeKapalGame')) },
+  // IPA — placeholder sampai game diimplementasikan
+  ipa7pengukuran:     { name: 'Precision Measurement Lab',        emoji: '📏', Component: IpaGamePlaceholder },
+  ipa7zat:            { name: 'Fluid & Molecular Quest',          emoji: '💧', Component: IpaGamePlaceholder },
+  ipa7suhu:           { name: 'Thermal Control Center',           emoji: '🌡️', Component: IpaGamePlaceholder },
+  ipa7gaya:           { name: 'Physics Arena: Motion & Force',    emoji: '⚡', Component: IpaGamePlaceholder },
+  ipa8sel:            { name: 'Microscope Explorer & Cell Builder',emoji: '🔬', Component: IpaGamePlaceholder },
+  ipa8pencernaan:     { name: 'Nutrient Test & Blood Transfusion', emoji: '🩸', Component: IpaGamePlaceholder },
+  ipa8pernapasan:     { name: 'Respiration & Kidney Factory',      emoji: '🫁', Component: IpaGamePlaceholder },
+  ipa9koordinasi:     { name: 'Homeostasis Balancer',             emoji: '🧠', Component: IpaGamePlaceholder },
+  ipa9adiktif:        { name: 'Body Defender: Say No to Drugs',   emoji: '🛡️', Component: IpaGamePlaceholder },
+  ipa9reproduksi:     { name: 'Life Cycle & Propagation Match',   emoji: '🌱', Component: IpaGamePlaceholder },
 }
 
-const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen, komunikasi: CommunicationScreen }
+const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen, ipa7: Ipa7ZoneScreen, ipa8: Ipa8ZoneScreen, ipa9: Ipa9ZoneScreen, komunikasi: CommunicationScreen }
 
 const SCREEN_TITLES = {
   home: 'Beranda',
   grade7: 'Zona Kelas 7',
   grade8: 'Zona Kelas 8',
   grade9: 'Zona Kelas 9',
+  ipa7: 'IPA Kelas 7',
+  ipa8: 'IPA Kelas 8',
+  ipa9: 'IPA Kelas 9',
   toko: 'Toko',
   papanperingkat: 'Papan Peringkat',
   lencana: 'Lencana',
