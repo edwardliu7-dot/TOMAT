@@ -7,7 +7,7 @@
  * tanpa menunggu lawan menjawab.
  */
 import { genTournamentQ } from './tournament-questions.js'
-import { tournaments, tournamentToClient, buildFirstRound, getTournamentIo } from './tournament-state.js'
+import { tournaments, tournamentToClient, buildFirstRound, buildFirstRoundFromTeams, getTournamentIo } from './tournament-state.js'
 import { pool } from './db.js'
 
 async function saveTournamentHistory(tournament, status) {
@@ -289,7 +289,18 @@ function checkRoundComplete(io, tournament) {
 
   // Lanjut ke ronde berikutnya
   tournament.currentRound++
-  const nextRound = buildFirstRound(winners)
+  let nextRound
+  if (tournament.mode === 'kelompok' && tournament.teams) {
+    const winningTeams = [...new Map(
+      winners
+        .filter(w => w.teamId)
+        .map(w => [w.teamId, tournament.teams.find(t => t.id === w.teamId)])
+        .filter(([, t]) => t)
+    ).values()]
+    nextRound = buildFirstRoundFromTeams(winningTeams, tournament.currentRound)
+  } else {
+    nextRound = buildFirstRound(winners)
+  }
   tournament.rounds.push(nextRound)
 
   setTimeout(() => {

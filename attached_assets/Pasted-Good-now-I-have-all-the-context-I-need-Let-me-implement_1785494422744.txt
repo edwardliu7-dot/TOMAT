@@ -1,0 +1,23 @@
+Good, now I have all the context I need. Let me implement all the changes:
+
+server/guru.js — Update POST /api/guru/tournament
+src/screens/GuruDashboardScreen.jsx — Update TurnamenTab (state, useEffect, form, handleCreate, UI sections)
+src/screens/TournamentWaitScreen.jsx — Update ClassicBracket/PlayerSlot
+Let me start implementing these changes. I'll do them in parallel where possible.
+
+For server/guru.js, the changes are:
+
+Update the POST handler to accept new params and filter/build teams accordingly
+For GuruDashboardScreen.jsx, I need to expand the form state to include students and loading states, add a useEffect to fetch students, update the handleCreate function, and add new UI sections for participant students and tournament mode selection
+For TournamentWaitScreen.jsx, I'll update the bracket and player slot components to handle the kelompok mode
+Writing the implementation... Setting up the tournament object with the primary kelas, all kelas arrays, and initial round data, then I need to update the GuruDashboardScreen component to add student state management and handle the new filtering and grouping logic.
+
+Now I'm planning the UI structure with sections for kelas selection, student participants, game settings, tournament mode, and conditional group configuration, plus I need to set up the manual team assignment logic with color assignments and team building as students are selected. I need to clarify the student ID field names across the API responses. The GET /api/guru/students endpoint returns students with an id property, while the tournament POST endpoint aliases it as userId. Since I'm filtering the student list by these IDs, I need to make sure the selectedStudentIds array uses the correct field name when matching against the database records.
+
+For the handleCreate function, I'm computing which students are actually selected—if selectedStudentIds is null, that means all students are included, otherwise it's the specific array of selected IDs. Then I only send selectedStudentIds in the request body if there's actually a filter applied (meaning fewer students are selected than the total available).
+
+Now I need to update the GuruDashboardScreen component itself. I'm adding state for the students list and a loading flag, then modifying the form state to include the new selectedStudentIds and mode fields that track which students are selected and what mode we're in.
+
+I'll add a useEffect hook to load the students data, then update the handleCreate function to work with these new fields. Finally, I need to insert two new UI sections into the form—one for selecting student participants and another for choosing the tournament mode.
+
+For the TournamentWaitScreen changes, I'm realizing that ClassicBracket currently uses a hardcoded player height constant, so I'll need to make that dynamic based on the tournament mode and update how player slots display the team information.
