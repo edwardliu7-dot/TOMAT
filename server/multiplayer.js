@@ -5,7 +5,8 @@
 import { Server } from 'socket.io'
 import { pool } from './db.js'
 import { applyExp } from './gamify.js'
-import { onCorrectAnswer, onDuelWin } from './gameplay-events.js'
+import { onCorrectAnswer, onDuelWin, onCorrectAnswerWithResult, onDuelWinWithResult } from './gameplay-events.js'
+import { EVENT_MISSIONS } from './event-missions.js'
 import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
 import { tournaments, tournamentToClient, getTournamentIo } from './tournament-state.js'
 import { startTournamentMatch, handleTournamentAnswer } from './tournament-engine.js'
@@ -96,8 +97,35 @@ async function finishGame(io, room) {
     } catch (err) {
       console.error('[duel:win] coin award error:', err)
     }
-    // Delegate duel-win side-effects to the centralized gameplay event bus.
-    onDuelWin(winner.userId)
+    // Delegate duel-win side-effects; await so we can emit mission:progress socket event.
+    const duelWinResult = await onDuelWinWithResult(winner.userId)
+    if (duelWinResult && duelWinResult.delta > 0) {
+      const mission = EVENT_MISSIONS.find(m => m.id === 'kemerdekaan_2')
+      const payload = {
+        missionId:   'kemerdekaan_2',
+        nama:        mission?.nama  ?? 'Pasukan Merah Putih',
+        emoji:       mission?.emoji ?? '⚔️',
+        delta:       duelWinResult.delta,
+        newProgress: duelWinResult.progress,
+        goal:        duelWinResult.goal,
+        completed:   duelWinResult.justCompleted,
+      }
+      for (const [, s] of io.sockets.sockets) {
+        if (String(s.data?.userId) === String(winner.userId)) s.emit('mission:progress', payload)
+      }
+      for (const autoId of (duelWinResult.autoCompleted || [])) {
+        const am = EVENT_MISSIONS.find(m => m.id === autoId)
+        if (!am) continue
+        for (const [, s] of io.sockets.sockets) {
+          if (String(s.data?.userId) === String(winner.userId)) {
+            s.emit('mission:progress', {
+              missionId: autoId, nama: am.nama, emoji: am.emoji ?? '🦅',
+              delta: 0, newProgress: am.goal, goal: am.goal, completed: true,
+            })
+          }
+        }
+      }
+    }
   }
 
   io.to(room.code).emit('duel:game-over', {
@@ -314,8 +342,29 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const correct = (value === player.currentQ.answer)
       if (correct) player.score++
 
-      // Delegate correct-answer side-effects to the centralized gameplay event bus.
-      if (correct) onCorrectAnswer(user.id)
+      // Delegate correct-answer side-effects; await so we can emit mission:progress.
+      if (correct) {
+        const result = await onCorrectAnswerWithResult(user.id)
+        if (result && result.delta > 0) {
+          const m1 = EVENT_MISSIONS.find(m => m.id === 'kemerdekaan_1')
+          socket.emit('mission:progress', {
+            missionId:   'kemerdekaan_1',
+            nama:        m1?.nama  ?? 'Lomba 17-an',
+            emoji:       m1?.emoji ?? '🎯',
+            delta:       result.delta,
+            newProgress: result.progress,
+            goal:        result.goal,
+            completed:   result.justCompleted,
+          })
+          for (const autoId of (result.autoCompleted || [])) {
+            const am = EVENT_MISSIONS.find(m => m.id === autoId)
+            if (am) socket.emit('mission:progress', {
+              missionId: autoId, nama: am.nama, emoji: am.emoji ?? '🦅',
+              delta: 0, newProgress: am.goal, goal: am.goal, completed: true,
+            })
+          }
+        }
+      }
 
       const opponent = room.players.find(p => p.userId !== user.id)
 
@@ -741,7 +790,7 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const round = t.rounds[t.currentRound - 1]
       const match = round?.matches.find(m => m.id === matchId)
       if (!match) return
-      handleTournamentAnswer(io, t, match, user.id, value, socket)
+      await handleTournamentAnswer(io, t, match, user.id, value, socket)
     })
 
     // Siswa: Nananaga immunity — kirim soal bonus tanpa menambah round tournament
