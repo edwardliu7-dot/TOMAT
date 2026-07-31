@@ -446,17 +446,66 @@ const GAME_ROUTES = {
   g9sinyalkerucut:    { name: 'Zona Pancaran Sinyal',         emoji: '📡', Component: React.lazy(() => import('./minigames/G9SinyalKerucutGame')) },
   g9bintang:          { name: 'Kompresi Inti Bintang',        emoji: '⭐', Component: React.lazy(() => import('./minigames/G9BintangGame')) },
   g9upgradekapal:     { name: 'Upgrade Kapal Induk',          emoji: '🚀', Component: React.lazy(() => import('./minigames/G9UpgradeKapalGame')) },
-  // IPA — placeholder sampai game diimplementasikan
-  ipa7pengukuran:     { name: 'Precision Measurement Lab',        emoji: '📏', Component: React.lazy(() => import('./minigames/Ipa7PengukuranGame')) },
-  ipa7zat:            { name: 'Fluid & Molecular Quest',          emoji: '💧', Component: React.lazy(() => import('./minigames/Ipa7ZatGame')) },
-  ipa7suhu:           { name: 'Thermal Control Center',           emoji: '🌡️', Component: React.lazy(() => import('./minigames/Ipa7SuhuGame')) },
-  ipa7gaya:           { name: 'Physics Arena: Motion & Force',    emoji: '⚡', Component: React.lazy(() => import('./minigames/Ipa7GayaGame')) },
-  ipa8sel:            { name: 'Microscope Explorer & Cell Builder',emoji: '🔬', Component: IpaGamePlaceholder },
-  ipa8pencernaan:     { name: 'Nutrient Test & Blood Transfusion', emoji: '🩸', Component: IpaGamePlaceholder },
-  ipa8pernapasan:     { name: 'Respiration & Kidney Factory',      emoji: '🫁', Component: IpaGamePlaceholder },
-  ipa9koordinasi:     { name: 'Homeostasis Balancer',             emoji: '🧠', Component: IpaGamePlaceholder },
-  ipa9adiktif:        { name: 'Body Defender: Say No to Drugs',   emoji: '🛡️', Component: IpaGamePlaceholder },
-  ipa9reproduksi:     { name: 'Life Cycle & Propagation Match',   emoji: '🌱', Component: IpaGamePlaceholder },
+  // IPA Kelas 7 — BAB 1
+  ipa7b1t1: { name: 'Unit Converter Dash',          emoji: '📏', Component: IpaGamePlaceholder },
+  ipa7b1t2: { name: 'Baku vs Non-Baku Sort',        emoji: '⚖️', Component: IpaGamePlaceholder },
+  ipa7b1t3: { name: 'Lab Measurement Simulator',    emoji: '🔬', Component: IpaGamePlaceholder },
+  // IPA Kelas 7 — BAB 2
+  ipa7b2t1: { name: 'Matter Inspector',             emoji: '🧪', Component: IpaGamePlaceholder },
+  ipa7b2t2: { name: 'Phase Change Master',          emoji: '❄️', Component: IpaGamePlaceholder },
+  ipa7b2t3: { name: 'Cohesion vs Adhesion Lab',     emoji: '💧', Component: IpaGamePlaceholder },
+  ipa7b2t4: { name: 'Capillary Tube Challenge',     emoji: '🌿', Component: IpaGamePlaceholder },
+  // IPA Kelas 7 — BAB 3
+  ipa7b3t1: { name: 'Thermometer Reader',           emoji: '🌡️', Component: IpaGamePlaceholder },
+  ipa7b3t2: { name: 'Temperature Converter Wheel',  emoji: '🔄', Component: IpaGamePlaceholder },
+  ipa7b3t3: { name: 'Thermal Expansion Builder',    emoji: '🔩', Component: IpaGamePlaceholder },
+  // IPA Kelas 7 — BAB 4
+  ipa7b4t1: { name: 'Force Application Quest',      emoji: '💪', Component: IpaGamePlaceholder },
+  ipa7b4t2: { name: 'Resultant Tug of War',         emoji: '⚖️', Component: IpaGamePlaceholder },
+  ipa7b4t3: { name: 'Motion Classifier',            emoji: '🏃', Component: IpaGamePlaceholder },
+  ipa7b4t4: { name: 'Speed vs Velocity Pilot',      emoji: '✈️', Component: IpaGamePlaceholder },
+  ipa7b4t5: { name: "Newton's Law Arena",            emoji: '⚡', Component: IpaGamePlaceholder },
+  // IPA Kelas 8 — BAB 1
+  ipa8b1t1: { name: 'History Timeline Puzzle',      emoji: '🕰️', Component: IpaGamePlaceholder },
+  ipa8b1t2: { name: 'Microscope Selector',          emoji: '🔭', Component: IpaGamePlaceholder },
+  ipa8b1t3: { name: 'Cell Organelle Sorter',        emoji: '🧫', Component: IpaGamePlaceholder },
+  ipa8b1t4: { name: 'Specialized Cell Match',       emoji: '🔬', Component: IpaGamePlaceholder },
+  ipa8b1t5: { name: 'Stem Cell Regenerator',        emoji: '🌱', Component: IpaGamePlaceholder },
+  // IPA Kelas 8 — BAB 2
+  ipa8b2t1: { name: 'Nutritional Plate Balance',    emoji: '🥗', Component: IpaGamePlaceholder },
+  ipa8b2t2: { name: 'Virtual Food Reagent Test',    emoji: '🧪', Component: IpaGamePlaceholder },
+  ipa8b2t3: { name: 'Digestive Track Runner',       emoji: '🫁', Component: IpaGamePlaceholder },
+  ipa8b2t4: { name: 'Digestive Hospital Clinic',    emoji: '🏥', Component: IpaGamePlaceholder },
+  ipa8b2t5: { name: 'Circulatory System Navigator', emoji: '❤️', Component: IpaGamePlaceholder },
+  ipa8b2t6: { name: 'Blood Component Defender',     emoji: '🩸', Component: IpaGamePlaceholder },
+  ipa8b2t7: { name: 'Blood Transfusion Match',      emoji: '💉', Component: IpaGamePlaceholder },
+  ipa8b2t8: { name: 'Cardiovascular Healthy Life',  emoji: '🫀', Component: IpaGamePlaceholder },
+  // IPA Kelas 8 — BAB 3
+  ipa8b3t1: { name: 'Organ Anatomy Builder',        emoji: '🫀', Component: IpaGamePlaceholder },
+  ipa8b3t2: { name: 'Organ Function Cards',         emoji: '🃏', Component: IpaGamePlaceholder },
+  ipa8b3t3: { name: 'Breathing Mechanism Pump',     emoji: '🫁', Component: IpaGamePlaceholder },
+  ipa8b3t4: { name: 'Alveoli Gas Exchange',         emoji: '💨', Component: IpaGamePlaceholder },
+  ipa8b3t5: { name: 'Nephron Urine Factory',        emoji: '🧫', Component: IpaGamePlaceholder },
+  ipa8b3t6: { name: 'Medical Case Analyzer',        emoji: '🩺', Component: IpaGamePlaceholder },
+  ipa8b3t7: { name: 'Healthy Habit Choice',         emoji: '🏃', Component: IpaGamePlaceholder },
+  // IPA Kelas 9 — BAB 1
+  ipa9b1t1: { name: 'Body Command Center',           emoji: '🧠', Component: IpaGamePlaceholder },
+  ipa9b1t2: { name: 'Neuron Network Relay',          emoji: '⚡', Component: IpaGamePlaceholder },
+  ipa9b1t3: { name: 'Hormone Gland Factory',         emoji: '🏭', Component: IpaGamePlaceholder },
+  ipa9b1t4: { name: 'Homeostasis Stabilizer',        emoji: '⚖️', Component: IpaGamePlaceholder },
+  ipa9b1t5: { name: 'Daily Stress Survival',         emoji: '🧘', Component: IpaGamePlaceholder },
+  // IPA Kelas 9 — BAB 2
+  ipa9b2t1: { name: 'Addictive Substance Quiz',      emoji: '⚠️', Component: IpaGamePlaceholder },
+  ipa9b2t2: { name: 'Substance Categorizer',         emoji: '🗂️', Component: IpaGamePlaceholder },
+  ipa9b2t3: { name: 'Impact Simulator',              emoji: '💔', Component: IpaGamePlaceholder },
+  ipa9b2t4: { name: 'Substance Flashcards',          emoji: '🃏', Component: IpaGamePlaceholder },
+  ipa9b2t5: { name: 'Consequence Analyzer',          emoji: '📊', Component: IpaGamePlaceholder },
+  ipa9b2t6: { name: 'Say No Challenge',              emoji: '🛡️', Component: IpaGamePlaceholder },
+  // IPA Kelas 9 — BAB 3
+  ipa9b3t1: { name: 'Reproductive Anatomy Puzzle',   emoji: '🧬', Component: IpaGamePlaceholder },
+  ipa9b3t2: { name: 'Human Life Stages Timeline',    emoji: '👶', Component: IpaGamePlaceholder },
+  ipa9b3t3: { name: 'Reproductive Health Guardian',  emoji: '🏥', Component: IpaGamePlaceholder },
+  ipa9b3t4: { name: 'Flora & Fauna Breeder',         emoji: '🌱', Component: IpaGamePlaceholder },
 }
 
 const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen, ipa7: Ipa7ZoneScreen, ipa8: Ipa8ZoneScreen, ipa9: Ipa9ZoneScreen, komunikasi: CommunicationScreen }
