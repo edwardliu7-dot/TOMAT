@@ -7,6 +7,31 @@
 import { pool } from './db.js'
 import { isEventActive, SEASONAL_EVENTS } from './seasonal-events.js'
 
+/**
+ * Idempotent table bootstrap — runs once when this module is first imported.
+ * Ensures the table exists even if the server was deployed before ensureSchema()
+ * added this block.  Safe to call multiple times.
+ */
+async function _ensureTable() {
+  try {
+    await pool.query(`
+      create table if not exists event_mission_progress (
+        student_id        text not null references students(id) on delete cascade,
+        mission_id        text not null,
+        progress          int  not null default 0,
+        completed_at      timestamptz,
+        reward_claimed_at timestamptz,
+        primary key (student_id, mission_id)
+      );
+      create index if not exists event_mission_progress_student_idx
+        on event_mission_progress (student_id);
+    `)
+  } catch (err) {
+    console.error('[event-missions] table bootstrap error:', err.message)
+  }
+}
+_ensureTable()
+
 export const EVENT_MISSIONS = [
   {
     id: 'kemerdekaan_1',
