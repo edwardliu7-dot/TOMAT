@@ -96,6 +96,13 @@ export async function incrementMissionProgress(studentId, missionId, delta = 1) 
     const ev = SEASONAL_EVENTS.find(e => e.slug === mission.eventSlug)
     if (!ev || !isEventActive(ev)) return null
 
+    // Read current progress first so we can compute the actual delta applied.
+    const { rows: prevRows } = await pool.query(`
+      select progress from event_mission_progress
+      where student_id = $1 and mission_id = $2
+    `, [studentId, missionId])
+    const prevProgress = prevRows[0]?.progress ?? 0
+
     const { rows } = await pool.query(`
       insert into event_mission_progress (student_id, mission_id, progress)
       values ($1, $2, least($3, $4))
@@ -117,10 +124,11 @@ export async function incrementMissionProgress(studentId, missionId, delta = 1) 
 
     const row = rows[0]
     const justCompleted = row.completed_at !== null
+    const actualDelta = Math.max(0, row.progress - prevProgress)
 
     const autoCompleted = await _autoCompleteRequires(studentId, mission.eventSlug)
 
-    return { progress: row.progress, goal: mission.goal, justCompleted, autoCompleted }
+    return { progress: row.progress, goal: mission.goal, justCompleted, autoCompleted, delta: actualDelta }
   } catch (err) {
     console.error('incrementMissionProgress error', err)
     return null

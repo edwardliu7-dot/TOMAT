@@ -18,7 +18,7 @@
 
 import { incrementMissionProgress } from './event-missions.js'
 
-// ─── Internal helper ──────────────────────────────────────────────────────────
+// ─── Internal helpers ─────────────────────────────────────────────────────────
 /**
  * Kirim satu increment ke sebuah misi. Fire-and-forget.
  * @param {string} studentId
@@ -30,6 +30,24 @@ function fire(studentId, missionId, delta = 1) {
   incrementMissionProgress(studentId, missionId, delta).catch(err => {
     console.error(`[gameplay-events] ${missionId} increment error (student=${studentId}):`, err.message)
   })
+}
+
+/**
+ * Sama seperti fire(), tapi awaitable dan mengembalikan hasil dari
+ * incrementMissionProgress (atau null jika error / misi sudah selesai).
+ * @param {string} studentId
+ * @param {string} missionId
+ * @param {number} [delta=1]
+ * @returns {Promise<{progress, goal, justCompleted, autoCompleted, delta}|null>}
+ */
+async function fireAndReturn(studentId, missionId, delta = 1) {
+  if (!studentId) return null
+  try {
+    return await incrementMissionProgress(studentId, missionId, delta)
+  } catch (err) {
+    console.error(`[gameplay-events] ${missionId} increment error (student=${studentId}):`, err.message)
+    return null
+  }
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -53,6 +71,16 @@ export function onCorrectAnswer(studentId) {
 }
 
 /**
+ * Versi awaitable dari onCorrectAnswer.
+ * Mengembalikan hasil incrementMissionProgress agar caller bisa menyertakan
+ * progress delta di response/socket emit.
+ */
+export async function onCorrectAnswerWithResult(studentId) {
+  console.log(`[gameplay-events] onCorrectAnswerWithResult → student=${studentId}`)
+  return fireAndReturn(studentId, 'kemerdekaan_1')
+}
+
+/**
  * onDuelWin(winnerId)
  *
  * Dipanggil ketika seorang siswa memenangkan pertandingan duel 1v1.
@@ -69,6 +97,16 @@ export function onCorrectAnswer(studentId) {
 export function onDuelWin(winnerId) {
   console.log(`[gameplay-events] onDuelWin → winner=${winnerId}`)
   fire(winnerId, 'kemerdekaan_2')
+}
+
+/**
+ * Versi awaitable dari onDuelWin.
+ * Mengembalikan hasil incrementMissionProgress agar caller bisa emit socket
+ * "mission:progress" ke pemenang duel.
+ */
+export async function onDuelWinWithResult(winnerId) {
+  console.log(`[gameplay-events] onDuelWinWithResult → winner=${winnerId}`)
+  return fireAndReturn(winnerId, 'kemerdekaan_2')
 }
 
 /**
