@@ -172,8 +172,8 @@ export const PET_SKIN_INFO = {
 
 // Hardcoded food catalog for shop display (matches server/pet.js PET_FOODS)
 export const PET_FOOD_CATALOG = [
-  { id: 'wortel_kecil',  nama: 'Wortel Kecil',  emoji: '🥕', harga: 30,  dur: '2 jam',  color: '#F5A623' },
-  { id: 'sayuran_segar', nama: 'Sayuran Segar', emoji: '🥦', harga: 80,  dur: '6 jam',  color: '#34D399' },
-  { id: 'buah_premium',  nama: 'Buah Premium',  emoji: '🍓', harga: 200, dur: '16 jam', color: '#F472B6' },
-  { id: 'pesta_mewah',   nama: 'Pesta Mewah',   emoji: '🫐', harga: 500, dur: '3 hari', color: '#A78BFA' },
+  { id: 'wortel_kecil',  nama: 'Wortel Kecil',  emoji: '🥕', harga: 10,  dur: '2 jam',  color: '#F5A623' },
+  { id: 'sayuran_segar', nama: 'Sayuran Segar', emoji: '🥦', harga: 25,  dur: '6 jam',  color: '#34D399' },
+  { id: 'buah_premium',  nama: 'Buah Premium',  emoji: '🍓', harga: 40,  dur: '16 jam', color: '#F472B6' },
+  { id: 'pesta_mewah',   nama: 'Pesta Mewah',   emoji: '🫐', harga: 50,  dur: '3 hari', color: '#A78BFA' },
 ]
