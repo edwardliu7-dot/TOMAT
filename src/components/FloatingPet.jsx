@@ -44,7 +44,7 @@ function PetWidget({ pet, onHungryClick }) {
   const [xFrac,     setXFrac]     = useState(initPos?.x ?? 0.15)
   const [yFrac,     setYFrac]     = useState(initPos?.y ?? 0.72)
   const [dir,       setDir]       = useState(1)
-  const [petState,  setPetState]  = useState('walk')
+  const [petState,  setPetState]  = useState(pet.isDead ? 'dead' : 'walk')
   const [showBubble,setShowBubble]= useState(false)
 
   const xRef    = useRef(initPos?.x ?? 0.15)
@@ -71,8 +71,10 @@ function PetWidget({ pet, onHungryClick }) {
       velX.current = 0
       velY.current = 0
       savePos(xRef.current, yRef.current)
+      setPetState('dead')   // tick exits early when locked, so we must force dead state here
     } else if (!overrideStateRef.current) {
       lockedRef.current = false
+      setPetState('idle')   // resume from idle so the sprite snaps back cleanly
     }
   }, [pet.isDead])
 
