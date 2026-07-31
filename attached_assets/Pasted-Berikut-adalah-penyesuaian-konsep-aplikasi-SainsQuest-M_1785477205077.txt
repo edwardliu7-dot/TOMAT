@@ -1,0 +1,163 @@
+Berikut adalah penyesuaian konsep aplikasi *SainsQuest: MiniLab* yang dirancang khusus berdasarkan target pembelajaran dan silabus IPA Kelas 7, 8, dan 9 yang kamu lampirkan.
+
+---
+
+## 🎯 Konsep Utama Aplikasi
+
+Aplikasi ini mengusung metode *Briefing & Quest. Setiap topik menyajikan materi singkat berfokus pada target kurikulum, lalu diuji melalui *minigame interaktif yang mensimulasikan penerapan materi tersebut.
+
+---
+
+## 📚 Struktur Kurikulum & Konsep Minigame
+
+### 1. Kelas 7: Fondasi Measurement, Zat, Suhu, & Gerak
+
+#### BAB 1: Besaran dan Pengukuran pada Makhluk Hidup dan Benda Lainnya
+
+
+
+* *Target:* Konversi satuan, pengukuran baku vs tak baku, serta penggunaan alat ukur yang tepat.
+
+
+* 🎮 *Minigame: *Precision Measurement Lab**
+* *Mekanisme Game:* Pemain mengukur objek biologis dan fisik (seperti daun, air, atau massa batu) menggunakan alat ukur yang sesuai (jangka sorong, neraca, atau mistar). Pemain juga harus memutar "Roda Konversi" untuk mengubah nilai satuan (m ke cm, kg ke gram, atau detik ke jam) secara akurat dalam batasan waktu.
+
+
+
+
+
+#### BAB 2: Zat, Wujud Zat, dan Perubahannya
+
+
+
+* *Target:* Sifat zat, perubahan wujud, kohesi & adhesi, serta kapilaritas.
+
+
+* 🎮 *Minigame: *Fluid & Molecular Quest**
+* *Mekanisme Game:* Pemain mengontrol tetesan cairan di papan labirin. Pemain harus memanfaatkan gaya *Adhesi* (cairan menempel pada dinding) dan *Kohesi* (cairan menyatu) untuk menavigasi celah sempit, serta memicu fenomena *Kapilaritas* agar air dapat merambat naik pada pipa kapiler untuk menyirami tanaman.
+
+
+
+
+
+#### BAB 3: Suhu, Pemuaian, dan Kalor
+
+
+
+* *Target:* Penggunaan termometer, konversi suhu (Celsius ke Fahrenheit/Kelvin/Reamur), dan pemuaian zat.
+
+
+* 🎮 *Minigame: *Thermal Control Center**
+* *Mekanisme Game:* Pemain menjadi teknisi suhu. Pemain harus membaca termometer dan dengan cepat mengonversi nilai suhu Celsius ke skala lain agar mesin tidak overheat. Pada sesi lain, pemain menyusun sambungan rel kereta api atau kabel listrik dengan memberi celah pemuaian yang pas berdasarkan jenis zatnya.
+
+
+
+
+
+#### BAB 4: Gaya dan Gerak
+
+
+
+* *Target:* Macam-macam gaya, mengukur gaya segaris/berlawanan, jenis gerak, kelajuan vs kecepatan, dan Hukum Newton.
+
+
+* 🎮 *Minigame: *Physics Arena: Motion & Force**
+* *Mekanisme Game:* Pemain menarik/mendorong benda dengan mengatur besaran gaya segaris (searah maupun berlawanan arah). Di arena lintasan, pemain membedakan jarak vs perpindahan untuk menghitung *Kelajuan vs Kecepatan*, serta menerapkan Hukum Newton (misal: dorongan roket atau efek inersia pada mobil yang direm).
+
+
+
+
+
+---
+
+### 2. Kelas 8: Biologi Sel & Sistem Organ Manusia
+
+#### BAB 1: Pengenalan Sel
+
+
+
+* *Target:* Sejarah & jenis mikroskop, perbedaan sel hewan & tumbuhan, spesialisasi sel, dan peran sel punca (pluripoten/totipoten).
+
+
+* 🎮 *Minigame: *Microscope Explorer & Cell Builder**
+* *Mekanisme Game:* Pemain menggunakan virtual mikroskop (mengatur fokus kasar dan halus) untuk mengamati sampel. Pemain bertugas memisahkan sel hewan dan sel tumbuhan berdasarkan ketiadaan/keberadaan dinding sel dan kloroplas, serta mencocokkan sel punca (totipoten/pluripoten) ke jaringan yang membutuhkan regenerasi.
+
+
+
+
+
+#### BAB 2: Sistem Pencernaan dan Peredaran Darah
+
+
+
+* *Target:* Uji makanan & zat gizi, organ pencernaan & kelainannya, serta organ, struktur darah, golongan darah, dan penyakit sirkulasi.
+
+
+* 🎮 *Minigame: *Nutrient Test & Blood Transfusion Master**
+* *Mekanisme Game:*
+1. *Uji Makanan:* Pemain meneteskan reagen (Lugol, Biuret, Benedict) ke sampel makanan dan mengidentifikasi perubahan warnanya.
+
+
+2. *Peredaran Darah:* Pemain mengarahkan aliran darah di jantung dan pembuluh darah, memisahkan komponen darah (sel darah merah, putih, trombosit), serta mencocokkan tipe golongan darah donor-resipien tanpa memicu penggumpalan.
+
+
+
+
+
+
+
+#### BAB 3: Sistem Pernapasan dan Ekskresi
+
+
+
+* *Target:* Organ & fungsi pernapasan/ekskresi, mekanisme inspirasi/ekspirasi, pertukaran gas di alveolus, pembentukan urin di ginjal, serta kelainan/pola hidup sehat.
+
+
+* 🎮 *Minigame: *Respiration & Kidney Factory**
+* *Mekanisme Game:* Pemain mengontrol paru-paru saat inspirasi/ekspirasi dan memandu molekul $O_2$ serta $CO_2$ di alveolus. Di level ginjal, pemain memilah cairan melalui 3 tahap: *Filtrasi* (di glomerulus), *Reabsorpsi, dan **Augmentasi* untuk menghasilkan urin murni sambil menghindari indikasi penyakit.
+
+
+
+
+
+---
+
+### 3. Kelas 9: Sistem Regulasi, Kesehatan Zat, & Reproduksi
+
+#### BAB 1: Sistem Koordinasi dan Homeostasis Manusia
+
+
+
+* *Target:* Sistem saraf pusat/tepi, hormon, homeostasis (suhu, gula darah, cairan), dan penerapannya.
+
+
+* 🎮 *Minigame: *Homeostasis Balancer**
+* *Mekanisme Game:* Pemain menjadi "Pusat Kontrol Otak". Ketika suhu tubuh naik, pemain harus memicu respon berkeringat; saat kadar gula darah naik, pemain melepaskan insulin; dan ketika tubuh dehidrasi, pemain mengaktifkan hormon penyerap air. Pemain juga menghubungkan jalur saraf sensorik dan motorik untuk merespon impuls.
+
+
+
+
+
+#### BAB 2: Zat Adiktif dan Psikotropika
+
+
+
+* *Target:* Pengertian, jenis, dampak negatif zat adiktif/psikotropika, dan upaya pencegahannya.
+
+
+* 🎮 *Minigame: *Body Defender: Say No to Drugs**
+* *Mekanisme Game:* Game berbasis strategi di mana pemain harus menghadang molekul racun zat adiktif/psikotropika yang mencoba merusak sel saraf dan organ tubuh. Di akhir level, pemain memilih keputusan/tindakan pencegahan yang tepat dalam skenario sosial untuk menolak ajakan penggunaan zat berbahaya.
+
+
+
+
+
+#### BAB 3: Sistem Reproduksi pada Makhluk Hidup
+
+
+
+* *Target:* Organ reproduksi manusia, pertumbuhan/perkembangan, kelainan/penyakit, serta cara reproduksi tumbuhan & hewan.
+
+
+* 🎮 *Minigame: *Life Cycle & Propagation Match**
+* *Mekanisme Game:* Pemain mencocokkan organ reproduksi manusia dengan fungsinya serta mengidentifikasi kelainan/penyakitnya. Pada mode biologi lingkungan, pemain mengelompokkan cara reproduksi tumbuhan (vegetatif/generatif) dan hewan (ovipar, vivipar, ovovivipar, atau fragmentasi) untuk membantu ekosistem berkembang pesat.
