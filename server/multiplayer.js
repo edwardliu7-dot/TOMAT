@@ -5,7 +5,7 @@
 import { Server } from 'socket.io'
 import { pool } from './db.js'
 import { applyExp } from './gamify.js'
-import { incrementMissionProgress } from './event-missions.js'
+import { onCorrectAnswer, onDuelWin, onCorrectAnswerWithResult, onDuelWinWithResult } from './gameplay-events.js'
 import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
 import { tournaments, tournamentToClient, getTournamentIo } from './tournament-state.js'
 import { startTournamentMatch, handleTournamentAnswer } from './tournament-engine.js'
@@ -63,7 +63,7 @@ function startPlayerRound(io, room, player) {
   })
 }
 
-function finishGame(io, room) {
+async function finishGame(io, room) {
   if (room._finishingGame) return
   room._finishingGame = true
   room.status = 'finished'
@@ -77,14 +77,40 @@ function finishGame(io, room) {
     // Only one player left (other disconnected from leaderboard) — remaining wins
     winner = safePlayer(p0)
   }
+
+  // Award 15 coins + track kemerdekaan_2 for the winner (server-authoritative).
+  // BUG FIX: previously only tracked kemerdekaan_2 but never actually awarded coins,
+  // even though GameOverScreen displayed "+15 koin".
+  let winnerNewCoins = null
+  if (winner?.userId) {
+    try {
+      const { rows } = await pool.query(
+        `update students
+           set coins              = coins              + 15,
+               total_coins_earned = total_coins_earned + 15
+         where id = $1
+         returning coins`,
+        [winner.userId]
+      )
+      winnerNewCoins = rows[0]?.coins ?? null
+    } catch (err) {
+      console.error('[duel:win] coin award error:', err)
+    }
+    // onDuelWinWithResult returns Array<MissionDelta> already formatted —
+    // no need to import EVENT_MISSIONS here (RULES.md §16).
+    const duelWinDeltas = await onDuelWinWithResult(winner.userId)
+    for (const delta of duelWinDeltas) {
+      for (const [, s] of io.sockets.sockets) {
+        if (String(s.data?.userId) === String(winner.userId)) s.emit('mission:progress', delta)
+      }
+    }
+  }
+
   io.to(room.code).emit('duel:game-over', {
     winner,
     scores: room.players.map(safePlayer),
+    winnerNewCoins,   // new field: client uses this to sync coin display without double-counting
   })
-  // Fire-and-forget: track duel win for Misi Pasukan Merah Putih
-  if (winner?.userId) {
-    incrementMissionProgress(winner.userId, 'kemerdekaan_2', 1).catch(() => {})
-  }
 }
 
 function leaveAllRooms(socket, io) {
@@ -293,6 +319,13 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       player.lastAnswer = value
       const correct = (value === player.currentQ.answer)
       if (correct) player.score++
+
+      // onCorrectAnswerWithResult returns Array<MissionDelta> already formatted —
+      // no need to import EVENT_MISSIONS here (RULES.md §16).
+      if (correct) {
+        const deltas = await onCorrectAnswerWithResult(user.id)
+        for (const delta of deltas) socket.emit('mission:progress', delta)
+      }
 
       const opponent = room.players.find(p => p.userId !== user.id)
 
@@ -606,6 +639,49 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     // TOURNAMENT — spectator (guru) + player (siswa) events
     // ════════════════════════════════════════════════════════════════════════
 
+    // Siswa: cek apakah ada turnamen aktif setelah refresh halaman.
+    // Mencari turnamen mana pun yang masih berjalan dan siswa ini termasuk peserta.
+    socket.on('tournament:check-active', () => {
+      if (user.role !== 'siswa') return
+      for (const [tournamentId, t] of tournaments) {
+        if (t.status !== 'in-progress') continue
+        const isParticipant = t.students?.some(s => String(s.userId) === String(user.id))
+        if (!isParticipant) continue
+
+        // Bergabung ke room bracket agar menerima update
+        socket.join(`tournament:${tournamentId}`)
+
+        // Cari match aktif (waiting-join atau in-progress) untuk siswa ini di ronde saat ini
+        const round = t.rounds[t.currentRound - 1]
+        let pendingMatch = null
+        if (round) {
+          pendingMatch = round.matches.find(m =>
+            (m.player1?.userId === user.id || m.player2?.userId === user.id) &&
+            ['waiting-join', 'in-progress'].includes(m.status)
+          )
+        }
+
+        if (pendingMatch) {
+          const opponent = pendingMatch.player1?.userId === user.id
+            ? pendingMatch.player2 : pendingMatch.player1
+          socket.emit('tournament:active-state', {
+            tournamentId,
+            match: {
+              matchId:    pendingMatch.id,
+              opponent:   opponent ? { userId: opponent.userId, name: opponent.name } : null,
+              gameKey:    t.gameKey,
+              round:      t.currentRound,
+            },
+          })
+        } else {
+          // Turnamen masih berjalan tapi tidak ada match pending untuk siswa ini
+          // (mungkin sudah menang/kalah di ronde ini, menunggu ronde berikutnya)
+          socket.emit('tournament:active-state', { tournamentId, match: null })
+        }
+        return // Satu siswa hanya bisa ada di satu turnamen aktif
+      }
+    })
+
     // Guru/siswa: join tournament room untuk melihat bracket live.
     // Siswa hanya boleh melihat turnamen yang memang diikutinya.
     socket.on('tournament:spectate', ({ tournamentId } = {}) => {
@@ -675,7 +751,7 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const round = t.rounds[t.currentRound - 1]
       const match = round?.matches.find(m => m.id === matchId)
       if (!match) return
-      handleTournamentAnswer(io, t, match, user.id, value, socket)
+      await handleTournamentAnswer(io, t, match, user.id, value, socket)
     })
 
     // Siswa: Nananaga immunity — kirim soal bonus tanpa menambah round tournament

@@ -18,7 +18,7 @@ function getPetEmoji(skinId, isDead, isStarving) {
   return '🐾'
 }
 
-const ZONES = [
+const ZONES_MATEMATIKA = [
   {
     id: 'grade7',
     grade: 7,
@@ -57,6 +57,48 @@ const ZONES = [
     soft: 'rgba(52,211,153,0.08)',
     babs: ['BAB I: SPLDV', 'BAB II: Lingkaran', 'BAB III: Bangun Ruang'],
     missions: 31,
+  },
+]
+
+const ZONES_IPA = [
+  {
+    id: 'ipa7',
+    grade: 7,
+    label: 'KELAS VII IPA',
+    title: 'Lab Sains Kelas 7',
+    icon: '🌿',
+    subject: 'Pengukuran, Zat, Suhu & Gerak',
+    description: 'Eksplorasi dunia fisika dan kimia dasar.',
+    accent: '#22c55e',
+    soft: 'rgba(34,197,94,0.08)',
+    babs: ['BAB I: Besaran & Pengukuran', 'BAB II: Zat & Perubahannya', 'BAB III: Suhu & Kalor', 'BAB IV: Gaya & Gerak'],
+    missions: 4,
+  },
+  {
+    id: 'ipa8',
+    grade: 8,
+    label: 'KELAS VIII IPA',
+    title: 'Lab Biologi Kelas 8',
+    icon: '🔬',
+    subject: 'Sel, Pencernaan & Pernapasan',
+    description: 'Selami dunia sel dan sistem organ manusia.',
+    accent: '#3b82f6',
+    soft: 'rgba(59,130,246,0.08)',
+    babs: ['BAB I: Pengenalan Sel', 'BAB II: Pencernaan & Peredaran Darah', 'BAB III: Pernapasan & Ekskresi'],
+    missions: 3,
+  },
+  {
+    id: 'ipa9',
+    grade: 9,
+    label: 'KELAS IX IPA',
+    title: 'Lab Sains Kelas 9',
+    icon: '🧠',
+    subject: 'Koordinasi, Zat Adiktif & Reproduksi',
+    description: 'Pelajari sistem regulasi dan reproduksi makhluk hidup.',
+    accent: '#a855f7',
+    soft: 'rgba(168,85,247,0.08)',
+    babs: ['BAB I: Sistem Koordinasi', 'BAB II: Zat Adiktif & Psikotropika', 'BAB III: Sistem Reproduksi'],
+    missions: 3,
   },
 ]
 
@@ -109,6 +151,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
   const isDesktop = useIsDesktop()
   const [activeZone, setActiveZone] = useState(null)
   const [notice, setNotice] = useState('')
+  const [activeSubject, setActiveSubject] = useState('matematika')
   const accessibleGrades = getAccessibleGradesForUser(user)
   const pendingTasks = tasks.filter(task => task.status === 'active')
   const nextTask = pendingTasks[0] || null
@@ -121,7 +164,8 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
     return () => clearTimeout(timer)
   }, [notice])
 
-  const zones = ZONES.map(zone => ({
+  const zonesSource = activeSubject === 'ipa' ? ZONES_IPA : ZONES_MATEMATIKA
+  const zones = zonesSource.map(zone => ({
     ...zone,
     locked: !accessibleGrades.includes(zone.grade),
   }))
@@ -135,6 +179,11 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
     }
     if (activeZone === zone.id) navigate(zone.id)
     else setActiveZone(zone.id)
+  }
+
+  const handleSubjectSwitch = subject => {
+    setActiveSubject(subject)
+    setActiveZone(null)
   }
 
   const quickLinks = [
@@ -237,6 +286,37 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
           <div><h2>Zona petualangan <span>3 ZONA</span></h2><p>Pilih jalur yang ingin kamu taklukkan.</p></div>
           <button type="button" onClick={() => showNotice('Semua zona yang tersedia sudah tampil di sini.')}>Lihat semua →</button>
         </section>
+
+        {/* Subject toggle — Matematika / IPA */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, padding: '0 2px' }}>
+          <button
+            type="button"
+            onClick={() => handleSubjectSwitch('matematika')}
+            style={{
+              flex: 1, padding: '10px 16px', borderRadius: 12, border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 13, fontWeight: 800, transition: 'all 0.2s',
+              background: activeSubject === 'matematika' ? 'linear-gradient(135deg,#FBBF24,#F59E0B)' : 'rgba(255,255,255,0.06)',
+              color: activeSubject === 'matematika' ? '#071321' : '#94A3B8',
+              boxShadow: activeSubject === 'matematika' ? '0 2px 12px rgba(251,191,36,0.3)' : 'none',
+            }}
+          >
+            📐 Matematika
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSubjectSwitch('ipa')}
+            style={{
+              flex: 1, padding: '10px 16px', borderRadius: 12, border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 13, fontWeight: 800, transition: 'all 0.2s',
+              background: activeSubject === 'ipa' ? 'linear-gradient(135deg,#22c55e,#16a34a)' : 'rgba(255,255,255,0.06)',
+              color: activeSubject === 'ipa' ? '#fff' : '#94A3B8',
+              boxShadow: activeSubject === 'ipa' ? '0 2px 12px rgba(34,197,94,0.3)' : 'none',
+            }}
+          >
+            🔬 IPA
+          </button>
+        </div>
+
         <section className="home-zones">
           {zones.map(zone => (
             <ZoneCard key={zone.id} zone={zone} locked={zone.locked} selected={activeZone === zone.id} onClick={() => openZone(zone)} />

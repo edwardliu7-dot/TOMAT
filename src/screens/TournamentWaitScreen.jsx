@@ -2,66 +2,267 @@ import React, { useEffect, useState } from 'react'
 import { connectSocket } from '../socket'
 import { usePlayer } from '../PlayerContext'
 
-function useIsDesktop() {
-  const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
-  React.useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)')
-    setDesk(mq.matches)
-    const h = e => setDesk(e.matches)
-    mq.addEventListener('change', h)
-    return () => mq.removeEventListener('change', h)
-  }, [])
-  return desk
-}
-
-function useIsMd() {
-  const [md, setMd] = React.useState(() => window.innerWidth >= 768)
-  React.useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)')
-    setMd(mq.matches)
-    const h = e => setMd(e.matches)
-    mq.addEventListener('change', h)
-    return () => mq.removeEventListener('change', h)
-  }, [])
-  return md
-}
-
-const STATUS_BADGE = {
-  finished:      { bg: 'rgba(16,185,129,0.15)',   color: '#10b981', label: '✅ Selesai' },
-  'in-progress': { bg: 'rgba(245,158,11,0.15)',   color: '#f59e0b', label: '⚡ Berlangsung' },
-  'waiting-join':{ bg: 'rgba(103,232,249,0.12)',  color: '#67E8F9', label: '⏳ Segera Mulai' },
-  walkover:      { bg: 'rgba(239,68,68,0.12)',    color: '#f87171', label: '⏩ Walkover' },
-  bye:           { bg: 'rgba(52,211,153,0.12)',   color: '#34D399', label: '🟢 BYE' },
-  pending:       { bg: 'rgba(255,255,255,0.06)',  color: '#475569', label: '🔒 Menunggu' },
-}
-
 const RANK_LABEL = { 1: '🥇 Juara 1', 2: '🥈 Runner-up', 3: '🥉 Peringkat 3' }
 const RANK_COLOR = { 1: '#fbbf24', 2: '#94A3B8', 3: '#cd7c3a' }
 
+// ── Classic single-elimination bracket ─────────────────────────────────────
+// Renders a horizontal bracket: rounds as columns, match cards connected by
+// SVG lines, trophy on the far right — matching the reference layout.
+function ClassicBracket({ rounds, myUserId, currentRound, mode }) {
+  const isKelompok = mode === 'kelompok'
+  const PLAYER_H = isKelompok ? 42 : 30   // dua baris teks untuk kelompok
+  const MATCH_H  = PLAYER_H * 2 + 1       // two rows + 1 px divider
+  const MATCH_W  = 158         // width of each match card
+  const V_GAP    = 14          // vertical gap between match slots in round 1
+  const CONN_W   = 44          // horizontal space between round columns (for lines)
+  const TROPHY_W = 56          // trophy column width
+  const LABEL_H  = 22          // height of round-label row above bracket
+
+  if (!rounds || rounds.length === 0) return null
+
+  const baseSlot = MATCH_H + V_GAP          // slot height in round 1
+  const slotAt   = r => Math.pow(2, r) * baseSlot
+  // Top of match card (relative to bracket area, not including label row)
+  const matchTop = (r, m) => { const s = slotAt(r); return m * s + (s - MATCH_H) / 2 }
+
+  const numRounds  = rounds.length
+  const firstCount = rounds[0].matches.length
+  const bracketH   = Math.max(firstCount * baseSlot, MATCH_H + 20)
+  const totalH     = bracketH + LABEL_H
+  const totalW     = numRounds * MATCH_W + (numRounds - 1) * CONN_W + CONN_W + TROPHY_W + 8
+
+  // All SVG y-coords use matchCY (adds LABEL_H so lines start below labels)
+  const matchCY = (r, m) => matchTop(r, m) + LABEL_H + MATCH_H / 2
+
+  const LINE_C = 'rgba(255,255,255,0.14)'
+  const LINE_W = 1.5
+
+  // Individual player name row inside a match card
+  function PlayerSlot({ player, match }) {
+    const isMe     = player?.userId === myUserId
+    const isWinner = match.winner?.userId === player?.userId
+    const isLoser  = match.winner && !isWinner && !!player
+    const isBye    = !player && match.status === 'bye'
+    const nameColor = isLoser  ? '#263040'
+                    : isWinner ? '#34D399'
+                    : isMe     ? '#67E8F9'
+                    : '#5a6a80'
+
+    if (isKelompok && player?.teamName) {
+      // Mode kelompok: nama tim (bold) + nama representatif (kecil)
+      return (
+        <div style={{
+          height: PLAYER_H, display: 'flex', alignItems: 'center',
+          padding: '0 8px', gap: 4,
+          background: isWinner ? 'rgba(16,185,129,0.13)'
+                    : isMe     ? 'rgba(103,232,249,0.08)'
+                    : 'transparent',
+        }}>
+          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: nameColor }}>
+              {(isMe ? '🐸 ' : '') + player.teamName}
+            </span>
+            <span style={{ fontSize: 9, color: '#3a4a5a', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              ({player.name})
+            </span>
+          </div>
+          {isWinner && <span style={{ fontSize: 9, color: '#34D399', flexShrink: 0 }}>✓</span>}
+          {!isWinner && match.scores?.[player?.userId] != null && (
+            <span style={{ fontSize: 9, color: '#fbbf24', flexShrink: 0, fontWeight: 700 }}>
+              {match.scores[player.userId]}
+            </span>
+          )}
+        </div>
+      )
+    }
+
+    return (
+      <div style={{
+        height: PLAYER_H, display: 'flex', alignItems: 'center',
+        padding: '0 8px', gap: 4,
+        background: isWinner ? 'rgba(16,185,129,0.13)'
+                  : isMe     ? 'rgba(103,232,249,0.08)'
+                  : 'transparent',
+      }}>
+        <span style={{
+          fontSize: 11, fontWeight: isWinner ? 800 : 600,
+          flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          color: nameColor,
+        }}>
+          {player ? (isMe ? '🐸 ' : '') + player.name
+                  : isBye ? 'BYE' : '—'}
+        </span>
+        {isWinner && (
+          <span style={{ fontSize: 9, color: '#34D399', flexShrink: 0 }}>✓</span>
+        )}
+        {!isWinner && match.scores?.[player?.userId] != null && (
+          <span style={{ fontSize: 9, color: '#fbbf24', flexShrink: 0, fontWeight: 700 }}>
+            {match.scores[player.userId]}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch', paddingBottom: 4 }}>
+      <div style={{ position: 'relative', width: totalW, height: totalH }}>
+
+        {/* ── Round labels ── */}
+        {rounds.map((round, ri) => {
+          const isCurrent = (ri + 1) === currentRound
+          return (
+            <div key={`lbl-${ri}`} style={{
+              position: 'absolute',
+              left: ri * (MATCH_W + CONN_W), top: 0,
+              width: MATCH_W, height: LABEL_H,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 9, fontWeight: 800, letterSpacing: 1.2,
+              color: isCurrent ? '#f59e0b' : '#2d3d52',
+              textTransform: 'uppercase',
+            }}>
+              {round.label || `Ronde ${ri + 1}`}{isCurrent ? ' ⚡' : ''}
+            </div>
+          )
+        })}
+
+        {/* ── SVG connector lines (drawn behind match cards) ── */}
+        <svg style={{
+          position: 'absolute', left: 0, top: 0,
+          width: totalW, height: totalH,
+          overflow: 'visible', pointerEvents: 'none',
+        }}>
+          {rounds.slice(0, -1).map((round, ri) => {
+            const x1   = ri * (MATCH_W + CONN_W) + MATCH_W
+            const x2   = (ri + 1) * (MATCH_W + CONN_W)
+            const xMid = (x1 + x2) / 2
+            return rounds[ri + 1].matches.map((_, nmi) => {
+              const topI = nmi * 2
+              const botI = nmi * 2 + 1
+              const cy1  = matchCY(ri, topI)
+              const cy2  = botI < round.matches.length ? matchCY(ri, botI) : cy1
+              const cyN  = matchCY(ri + 1, nmi)
+              return (
+                <g key={`cn-${ri}-${nmi}`}>
+                  {/* top match → mid */}
+                  <line x1={x1} y1={cy1} x2={xMid} y2={cy1} stroke={LINE_C} strokeWidth={LINE_W} />
+                  {/* bot match → mid */}
+                  {botI < round.matches.length && (
+                    <line x1={x1} y1={cy2} x2={xMid} y2={cy2} stroke={LINE_C} strokeWidth={LINE_W} />
+                  )}
+                  {/* vertical join */}
+                  <line x1={xMid} y1={cy1} x2={xMid} y2={cy2} stroke={LINE_C} strokeWidth={LINE_W} />
+                  {/* mid → next match */}
+                  <line x1={xMid} y1={cyN} x2={x2} y2={cyN} stroke={LINE_C} strokeWidth={LINE_W} />
+                </g>
+              )
+            })
+          })}
+          {/* Final match → trophy */}
+          {(() => {
+            const lr   = numRounds - 1
+            const fx   = lr * (MATCH_W + CONN_W) + MATCH_W
+            const fy   = matchCY(lr, 0)
+            const ty   = totalH / 2
+            const xEnd = totalW - TROPHY_W / 2 - 4
+            return (
+              <g>
+                <line x1={fx} y1={fy} x2={fx + CONN_W * 0.45} y2={fy} stroke={LINE_C} strokeWidth={LINE_W} />
+                {Math.abs(fy - ty) > 3 && (
+                  <line x1={fx + CONN_W * 0.45} y1={fy} x2={fx + CONN_W * 0.45} y2={ty} stroke={LINE_C} strokeWidth={LINE_W} />
+                )}
+                <line x1={fx + CONN_W * 0.45} y1={ty} x2={xEnd - TROPHY_W * 0.3} y2={ty} stroke={LINE_C} strokeWidth={LINE_W} />
+              </g>
+            )
+          })()}
+        </svg>
+
+        {/* ── Match cards ── */}
+        {rounds.map((round, ri) =>
+          round.matches.map((match, mi) => {
+            const isMyM  = match.player1?.userId === myUserId || match.player2?.userId === myUserId
+            const isLive = match.status === 'in-progress'
+            const isDone = match.status === 'finished' || !!match.winner
+            const bColor = isLive ? '#67E8F9'
+                         : isMyM  ? 'rgba(103,232,249,0.38)'
+                         : isDone ? 'rgba(255,255,255,0.05)'
+                         : 'rgba(255,255,255,0.10)'
+            return (
+              <div key={`m-${ri}-${mi}`} style={{
+                position: 'absolute',
+                left: ri * (MATCH_W + CONN_W),
+                top:  matchTop(ri, mi) + LABEL_H,
+                width: MATCH_W,
+                background: isDone ? '#0d1320' : '#141927',
+                border: `1.5px solid ${bColor}`,
+                borderRadius: 8,
+                overflow: 'hidden',
+                boxShadow: isLive ? '0 0 16px rgba(103,232,249,0.18)' : 'none',
+              }}>
+                <PlayerSlot player={match.player1} match={match} />
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                <PlayerSlot player={match.player2} match={match} />
+                {isLive && (
+                  <div style={{
+                    position: 'absolute', top: 2, right: 5,
+                    fontSize: 8, color: '#67E8F9', fontWeight: 900, letterSpacing: 0.5,
+                  }}>LIVE</div>
+                )}
+              </div>
+            )
+          })
+        )}
+
+        {/* ── Trophy ── */}
+        <div style={{
+          position: 'absolute', right: 4,
+          top: '50%', transform: 'translateY(-50%)',
+          width: TROPHY_W, textAlign: 'center',
+          fontSize: 36, lineHeight: 1,
+          filter: 'drop-shadow(0 0 14px rgba(251,191,36,0.45))',
+        }}>
+          🏆
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main screen ─────────────────────────────────────────────────────────────
+const GAME_LABELS = {
+  katak:           '🐸 Katak Pelompat',
+  termometer:      '🌡️ Termometer',
+  pabrikrobot:     '🤖 Pabrik Robot',
+  gembok:          '⚙️ Gembok Roda Gigi',
+  mercusuar:       '🏮 Mercusuar',
+  sporajamur:      '🍄 Spora Jamur',
+  scanner:         '💎 Scanner Permata',
+  g8selramuan:     '🧪 Penggandaan Sel Ramuan',
+  g8racunminiatur: '☠️ Ekstraksi Racun Miniatur',
+  g8kristal:       '💎 Pemisahan Elemen Kristal',
+  g8fusienergi:    '⚗️ Fusi Energi Alkemis',
+  g8mantraakar:    '✨ Penyederhanaan Mantra Akar',
+  g8geolog:        '⛏️ Ekspedisi Geolog Kerajaan',
+}
+
 export default function TournamentWaitScreen({ tournamentId, myUserId, myName, goBack }) {
-  const [tournament,   setTournament]   = useState(null)
-  const [rewardToast,  setRewardToast]  = useState(null)  // { amount, rank }
-  const isDesktop = useIsDesktop()
+  const [tournament, setTournament]  = useState(null)
+  const [rewardToast, setRewardToast] = useState(null)
   const { syncCoins } = usePlayer() || {}
 
   useEffect(() => {
     const socket = connectSocket()
-
-    // Minta state turnamen saat ini
     socket.emit('tournament:spectate', { tournamentId })
 
-    socket.on('tournament:state', (state) => {
+    socket.on('tournament:state', state => {
       if (state?.id === tournamentId) setTournament(state)
     })
-
     socket.on('tournament:round-start', ({ state }) => {
       if (state?.id === tournamentId) setTournament(state)
     })
-
     socket.on('tournament:finished', ({ state }) => {
       if (state?.id === tournamentId) setTournament(state)
     })
-
     socket.on('tournament:reward', ({ amount, rank, newCoins }) => {
       setRewardToast({ amount, rank })
       if (newCoins != null && syncCoins) syncCoins(newCoins)
@@ -76,24 +277,7 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
     }
   }, [tournamentId])
 
-  const GAME_LABELS = {
-    katak:          '🐸 Katak Pelompat',
-    termometer:     '🌡️ Termometer',
-    pabrikrobot:    '🤖 Pabrik Robot',
-    gembok:         '⚙️ Gembok Roda Gigi',
-    mercusuar:      '🏮 Mercusuar',
-    sporajamur:     '🍄 Spora Jamur',
-    scanner:        '💎 Scanner Permata',
-    // Grade 8 BAB I — Bilangan Berpangkat
-    g8selramuan:    '🧪 Penggandaan Sel Ramuan',
-    g8racunminiatur:'☠️ Ekstraksi Racun Miniatur',
-    g8kristal:      '💎 Pemisahan Elemen Kristal',
-    g8fusienergi:   '⚗️ Fusi Energi Alkemis',
-    g8mantraakar:   '✨ Penyederhanaan Mantra Akar',
-    g8geolog:       '⛏️ Ekspedisi Geolog Kerajaan',
-  }
-
-  // Cari status saya di turnamen
+  // ── My status in this round ─────────────────────────────────────────────
   const myMatchInCurrentRound = tournament ? (() => {
     const round = tournament.rounds?.[tournament.currentRound - 1]
     return round?.matches?.find(
@@ -108,43 +292,52 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
       if (winner.userId === myUserId) return { text: '✅ Lolos ke ronde berikutnya!', color: '#10b981' }
       return { text: '😤 Kamu kalah — tetap semangat!', color: '#f87171' }
     }
-    if (myMatchInCurrentRound.status === 'in-progress') return { text: '⚡ Sedang bertanding', color: '#f59e0b' }
-    if (myMatchInCurrentRound.status === 'waiting-join') return { text: '⏳ Menunggu kamu bergabung…', color: '#67E8F9' }
-    if (myMatchInCurrentRound.status === 'bye') return { text: '🟢 BYE — Kamu langsung lolos!', color: '#34D399' }
+    if (myMatchInCurrentRound.status === 'in-progress')   return { text: '⚡ Sedang bertanding', color: '#f59e0b' }
+    if (myMatchInCurrentRound.status === 'waiting-join')  return { text: '⏳ Menunggu kamu bergabung…', color: '#67E8F9' }
+    if (myMatchInCurrentRound.status === 'bye')           return { text: '🟢 BYE — Kamu langsung lolos!', color: '#34D399' }
     return { text: 'Menunggu ronde berikutnya…', color: '#94A3B8' }
   })()
 
-  // ── Podium Juara ───────────────────────────────────────────────────────────
+  // ── Podium (tournament finished) ───────────────────────────────────────
   if (tournament?.status === 'finished' && tournament?.champion) {
-    const champion     = tournament.champion
-    const runnerUp     = tournament.runnerUp
-    const semis        = tournament.semifinalists || []
-    const iAmChampion  = champion.userId === myUserId
-    const iAmRunnerUp  = runnerUp?.userId === myUserId
-    const iAmSemi      = semis.some(s => s.userId === myUserId)
-
-    const myResult = iAmChampion ? '🏆 Kamu Juara!' : iAmRunnerUp ? '🥈 Runner-up!' : iAmSemi ? '🥉 Peringkat 3!' : '🎉 Turnamen Selesai!'
+    const champion    = tournament.champion
+    const runnerUp    = tournament.runnerUp
+    const semis       = tournament.semifinalists || []
+    const iAmChampion = champion.userId === myUserId
+    const iAmRunnerUp = runnerUp?.userId === myUserId
+    const iAmSemi     = semis.some(s => s.userId === myUserId)
+    const myResult    = iAmChampion ? '🏆 Kamu Juara!'
+                      : iAmRunnerUp ? '🥈 Runner-up!'
+                      : iAmSemi     ? '🥉 Peringkat 3!'
+                      : '🎉 Turnamen Selesai!'
     const myResultColor = iAmChampion ? '#fbbf24' : iAmRunnerUp ? '#94A3B8' : iAmSemi ? '#cd7c3a' : '#67E8F9'
 
     const PodiumCard = ({ rank, player, highlight, emoji, accentColor, height }) => player ? (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flex: 1,
-      }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flex: 1 }}>
         <div style={{
           width: 56, height: 56, borderRadius: '50%',
-          background: `linear-gradient(135deg, ${accentColor}33, ${accentColor}11)`,
+          background: `linear-gradient(135deg,${accentColor}33,${accentColor}11)`,
           border: `2.5px solid ${accentColor}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, boxShadow: highlight ? `0 0 20px ${accentColor}55` : 'none',
+          fontSize: 22,
+          boxShadow: highlight ? `0 0 20px ${accentColor}55` : 'none',
         }}>{emoji}</div>
-        <div style={{ fontSize: 12, fontWeight: 800, color: accentColor, textAlign: 'center', lineHeight: 1.3, maxWidth: 80 }}>{player.name}</div>
+        <div style={{ textAlign: 'center', lineHeight: 1.3, maxWidth: 80 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: accentColor }}>
+            {player.teamName || player.name}
+          </div>
+          {player.teamName && (
+            <div style={{ fontSize: 9, color: '#475569', fontStyle: 'italic', marginTop: 2 }}>
+              ({player.name})
+            </div>
+          )}
+        </div>
         <div style={{
-          background: accentColor, color: '#000', borderRadius: 8, padding: '6px 0',
-          width: '100%', textAlign: 'center', fontSize: 11, fontWeight: 900,
-          height, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start',
-          alignItems: 'center', paddingTop: 8,
+          background: accentColor, color: '#000', borderRadius: 8, padding: '8px 0',
+          width: '100%', textAlign: 'center', fontSize: 18, fontWeight: 900,
+          height, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 8,
         }}>
-          <div style={{ fontSize: 18 }}>{rank}</div>
+          {rank}
         </div>
       </div>
     ) : null
@@ -153,24 +346,21 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
       <div style={{
         minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: 24, fontFamily: 'system-ui, sans-serif', color: '#fff', padding: '24px 20px', textAlign: 'center',
+        gap: 24, fontFamily: 'system-ui, sans-serif', color: '#fff',
+        padding: '24px 20px', textAlign: 'center',
       }}>
         <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 2 }}>🏆 TURNAMEN SELESAI</div>
         <div style={{ fontSize: 22, fontWeight: 900, color: myResultColor }}>{myResult}</div>
 
-        {/* Podium */}
         <div style={{
           background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 20, padding: '24px 20px', width: '100%', maxWidth: 360,
         }}>
           <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 20 }}>PODIUM</div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', justifyContent: 'center' }}>
-            {/* Peringkat 2 */}
-            <PodiumCard rank="🥈" player={runnerUp} highlight={iAmRunnerUp} emoji="🥈" accentColor="#94A3B8" height={60} />
-            {/* Juara 1 */}
-            <PodiumCard rank="🥇" player={champion} highlight={iAmChampion} emoji="👑" accentColor="#fbbf24" height={80} />
-            {/* Peringkat 3 */}
-            <PodiumCard rank="🥉" player={semis[0] || null} highlight={iAmSemi} emoji="🥉" accentColor="#cd7c3a" height={50} />
+            <PodiumCard rank="🥈" player={runnerUp}       highlight={iAmRunnerUp} emoji="🥈" accentColor="#94A3B8" height={60} />
+            <PodiumCard rank="🥇" player={champion}       highlight={iAmChampion} emoji="👑" accentColor="#fbbf24" height={80} />
+            <PodiumCard rank="🥉" player={semis[0]||null} highlight={iAmSemi}     emoji="🥉" accentColor="#cd7c3a" height={50} />
           </div>
           {semis.length > 1 && (
             <div style={{ marginTop: 12, fontSize: 11, color: '#64748B' }}>
@@ -179,15 +369,21 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
           )}
         </div>
 
-        <button onClick={goBack} style={{ background: '#0e7490', border: 'none', borderRadius: 14, padding: '14px 40px', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={goBack} style={{
+          background: '#0e7490', border: 'none', borderRadius: 14,
+          padding: '14px 40px', color: '#fff', fontSize: 14, fontWeight: 800,
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}>
           ← Kembali
         </button>
       </div>
     )
   }
 
+  // ── Active tournament view ──────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)', fontFamily: 'system-ui, sans-serif', color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#080f1c 0%,#0a1422 100%)', fontFamily: 'system-ui, sans-serif', color: '#fff' }}>
+
       {/* Reward toast */}
       {rewardToast && (
         <div style={{
@@ -212,8 +408,9 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
           </div>
         </div>
       )}
+
       {/* Header */}
-      <div style={{ background: 'rgba(245,158,11,0.08)', borderBottom: '1px solid rgba(245,158,11,0.2)', padding: '14px 16px' }}>
+      <div style={{ background: 'rgba(245,158,11,0.07)', borderBottom: '1px solid rgba(245,158,11,0.18)', padding: '14px 16px' }}>
         <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>
           🏆 TURNAMEN AKTIF{tournament ? ` • ${GAME_LABELS[tournament.gameKey] || tournament.gameKey}` : ''}
         </div>
@@ -222,165 +419,91 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
             ? (tournament.rounds?.[tournament.currentRound - 1]?.label || `Ronde ${tournament.currentRound}`)
             : 'Memuat…'}
         </div>
-        <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 3 }}>
+        <div style={{ fontSize: 12, color: '#64748B', marginTop: 3 }}>
           Babak berikutnya mulai otomatis setelah semua match selesai
         </div>
       </div>
 
-      <div style={{ padding: '16px 16px 40px', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: isDesktop ? 'none' : undefined }}>
-        {/* Summary strip on desktop */}
-        {isDesktop && tournament && (
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 12, padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 13, color: '#f59e0b', fontWeight: 700 }}>🎮 {GAME_LABELS[tournament.gameKey] || tournament.gameKey}</span>
-            </div>
-            <div style={{ background: 'rgba(103,232,249,0.08)', border: '1px solid rgba(103,232,249,0.2)', borderRadius: 12, padding: '10px 16px' }}>
-              <span style={{ fontSize: 13, color: '#67E8F9', fontWeight: 700 }}>Ronde {tournament.currentRound} / {tournament.rounds?.length}</span>
-            </div>
-          </div>
-        )}
+      <div style={{ padding: '16px 16px 40px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-        {/* My status */}
-        <div style={{ background: 'rgba(103,232,249,0.06)', border: '1.5px solid rgba(103,232,249,0.3)', borderRadius: 16, padding: '14px 16px' }}>
-          <div style={{ fontSize: 11, color: '#67E8F9', fontWeight: 700, marginBottom: 10 }}>STATUS KAMU</div>
+        {/* My status strip */}
+        <div style={{
+          background: 'rgba(103,232,249,0.05)',
+          border: '1.5px solid rgba(103,232,249,0.25)',
+          borderRadius: 14, padding: '12px 14px',
+        }}>
+          <div style={{ fontSize: 10, color: '#67E8F9', fontWeight: 700, marginBottom: 8, letterSpacing: 1 }}>STATUS KAMU</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#0e7490,#0284c7)', border: '2px solid #67E8F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🐸</div>
+            <div style={{
+              width: 40, height: 40, borderRadius: '50%',
+              background: 'linear-gradient(135deg,#0e7490,#0284c7)',
+              border: '2px solid #67E8F9',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0,
+            }}>🐸</div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800 }}>{myName} <span style={{ fontSize: 11, color: '#67E8F9', background: 'rgba(103,232,249,0.12)', padding: '2px 8px', borderRadius: 20 }}>KAMU</span></div>
+              <div style={{ fontSize: 13, fontWeight: 800 }}>
+                {myName}{' '}
+                <span style={{ fontSize: 10, color: '#67E8F9', background: 'rgba(103,232,249,0.12)', padding: '2px 8px', borderRadius: 20 }}>KAMU</span>
+              </div>
               <div style={{ fontSize: 12, fontWeight: 700, marginTop: 3, color: myStatus.color }}>{myStatus.text}</div>
             </div>
           </div>
         </div>
 
-        {/* Bracket — horizontal on desktop, vertical on mobile */}
-        {isDesktop ? (
-          <div style={{ display: 'flex', gap: 24, overflowX: 'auto', paddingBottom: 8 }}>
-            {tournament?.rounds?.map((round, ri) => (
-              <div key={ri} style={{ minWidth: 220, flex: '0 0 auto' }}>
-                <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
-                  {(round.label || `RONDE ${ri + 1}`).toUpperCase()}{ri + 1 === tournament.currentRound ? ' ⚡' : ''}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {round.matches.map((m, mi) => {
-                    const badge = STATUS_BADGE[m.status] || STATUS_BADGE.pending
-                    const isMyMatch = m.player1?.userId === myUserId || m.player2?.userId === myUserId
-                    const isLive = m.status === 'in-progress'
-                    return (
-                      <div key={mi} style={{
-                        background: isMyMatch ? 'rgba(103,232,249,0.06)' : '#1A1D27',
-                        border: `1.5px solid ${isLive ? '#67E8F9' : isMyMatch ? 'rgba(103,232,249,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                        borderRadius: 14, padding: '12px 14px',
-                        boxShadow: isLive ? '0 0 12px rgba(103,232,249,0.15)' : 'none',
-                      }}>
-                        {isLive && <div style={{ fontSize: 9, color: '#67E8F9', fontWeight: 800, letterSpacing: 1, marginBottom: 6 }}>⚡ LIVE</div>}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ flex: 1 }}>
-                            {[m.player1, m.player2].map((p, pi) => p ? (
-                              <div key={pi}>
-                                {pi === 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '5px 0' }} />}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <span style={{ fontSize: 12, fontWeight: m.winner?.userId === p.userId ? 800 : 600, color: m.winner && m.winner.userId !== p.userId ? '#475569' : p.userId === myUserId ? '#67E8F9' : '#94A3B8' }}>
-                                    {p.userId === myUserId ? '🐸 ' : ''}{p.name}
-                                  </span>
-                                  {m.scores?.[p.userId] !== undefined && (
-                                    <span style={{ fontSize: 12, fontWeight: 800, color: pi === 0 ? '#67E8F9' : '#f59e0b' }}>{m.scores[p.userId]}</span>
-                                  )}
-                                </div>
-                              </div>
-                            ) : null)}
-                          </div>
-                          <div style={{ flexShrink: 0 }}>
-                            <span style={{ background: badge.bg, color: badge.color, fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 20, display: 'block' }}>{badge.label}</span>
-                            {m.winner && <div style={{ fontSize: 9, color: '#10b981', marginTop: 4, fontWeight: 600 }}>🏅 {m.winner.name}</div>}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
+        {/* ── Classic bracket visual ── */}
+        {tournament ? (
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 16, padding: '16px 12px',
+          }}>
+            <div style={{ fontSize: 10, color: '#2d3d52', fontWeight: 700, letterSpacing: 1, marginBottom: 12, textTransform: 'uppercase' }}>
+              Bracket Turnamen
+            </div>
+            <ClassicBracket
+              rounds={tournament.rounds}
+              myUserId={myUserId}
+              currentRound={tournament.currentRound}
+              mode={tournament.mode}
+            />
           </div>
         ) : (
-          /* Mobile: vertical stacked rounds */
-          <>
-            {tournament?.rounds?.map((round, ri) => (
-              <div key={ri}>
-                <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>
-                  {(round.label || `RONDE ${ri + 1}`).toUpperCase()}{ri + 1 === tournament.currentRound ? ' (SEKARANG)' : ''}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {round.matches.map((m, mi) => {
-                    const badge = STATUS_BADGE[m.status] || STATUS_BADGE.pending
-                    const isMyMatch = m.player1?.userId === myUserId || m.player2?.userId === myUserId
-                    return (
-                      <div key={mi} style={{
-                        background: isMyMatch ? 'rgba(103,232,249,0.06)' : '#1A1D27',
-                        border: `1.5px solid ${isMyMatch ? 'rgba(103,232,249,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                        borderRadius: 14, padding: '12px 14px',
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ flex: 1 }}>
-                            {[m.player1, m.player2].map((p, pi) => p ? (
-                              <div key={pi}>
-                                {pi === 1 && <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '5px 0' }} />}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <span style={{ fontSize: 13, fontWeight: m.winner?.userId === p.userId ? 800 : 600, color: m.winner && m.winner.userId !== p.userId ? '#475569' : p.userId === myUserId ? '#67E8F9' : '#94A3B8' }}>
-                                    {p.userId === myUserId ? '🐸 ' : ''}{p.name}
-                                  </span>
-                                  {m.scores?.[p.userId] !== undefined && (
-                                    <span style={{ fontSize: 12, fontWeight: 800, color: pi === 0 ? '#67E8F9' : '#f59e0b' }}>{m.scores[p.userId]}</span>
-                                  )}
-                                </div>
-                              </div>
-                            ) : null)}
-                          </div>
-                          <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                            <span style={{ background: badge.bg, color: badge.color, fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, display: 'block' }}>{badge.label}</span>
-                            {m.winner && <div style={{ fontSize: 10, color: '#10b981', marginTop: 4, fontWeight: 600 }}>🏅 {m.winner.name}</div>}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-
-        {/* Loading */}
-        {!tournament && (
-          <div style={{ textAlign: 'center', padding: '32px 0' }}>
+          /* Loading skeleton */
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
               {[0,1,2].map(i => (
-                <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', animation: `bounce 1.2s ease-in-out ${i*0.2}s infinite` }} />
+                <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />
               ))}
             </div>
-            <div style={{ fontSize: 12, color: '#475569' }}>Memuat bracket…</div>
+            <div style={{ fontSize: 12, color: '#2d3d52' }}>Memuat bracket…</div>
           </div>
         )}
 
-        {/* Waiting animation */}
+        {/* Waiting pulse */}
         {tournament && (
-          <div style={{ textAlign: 'center', padding: '8px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 5 }}>
               {[0,1,2].map(i => (
-                <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', opacity: 0.6, animation: `bounce 1.2s ease-in-out ${i*0.2}s infinite` }} />
+                <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', opacity: 0.5, animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />
               ))}
             </div>
-            <div style={{ fontSize: 12, color: '#475569' }}>Menunggu semua match selesai…</div>
+            <div style={{ fontSize: 11, color: '#2d3d52' }}>Menunggu semua match selesai…</div>
           </div>
         )}
 
-        <button onClick={goBack} style={{ marginTop: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px', color: '#475569', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={goBack} style={{
+          marginTop: 4,
+          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 12, padding: '12px', color: '#2d3d52', fontSize: 13,
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}>
           ← Keluar Turnamen
         </button>
       </div>
 
       <style>{`
-        @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-        @keyframes rewardSlideIn{from{opacity:0;transform:translateX(-50%) translateY(-16px) scale(0.9)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+        @keyframes bounce { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+        @keyframes rewardSlideIn { from { opacity:0; transform:translateX(-50%) translateY(-16px) scale(0.9) } to { opacity:1; transform:translateX(-50%) translateY(0) scale(1) } }
       `}</style>
     </div>
   )

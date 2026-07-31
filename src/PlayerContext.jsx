@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { useAuth } from './AuthContext'
+import { PET_COIN_MULT, PET_EXP_MULT } from './petBonuses'
 
 export const PlayerContext = createContext(null)
 
@@ -29,6 +30,9 @@ export const CORRECT_ANSWER_COIN_REWARD = 15
 export function PlayerProvider({ children }) {
   const { user } = useAuth()
   const isSiswa = user?.role === 'siswa'
+  const skinId   = user?.equippedPetSkin || 'golden'
+  const coinMult = PET_COIN_MULT[skinId] ?? 1.0
+  const expMult  = PET_EXP_MULT[skinId]  ?? 1.0
   const [player, setPlayer] = useState({
     name: user?.name || 'SiswaHebat',
     coins: isSiswa ? (user?.coins ?? 0) : 150,
@@ -37,6 +41,8 @@ export function PlayerProvider({ children }) {
     maxExp: isSiswa ? (user?.maxExp ?? 100) : 500,
   })
   const [newBadges, setNewBadges] = useState([])
+  const [missionToasts, setMissionToasts] = useState([])  // Array<MissionDelta & { id }>
+  const [missionClaims, setMissionClaims] = useState([])  // Array<MissionDelta> yang baru completed
 
   useEffect(() => {
     if (user?.name) {
@@ -59,24 +65,40 @@ export function PlayerProvider({ children }) {
   }, [user?.id])
 
   const addCoins = useCallback((amount) => {
-    const reward = amount === 50 ? CORRECT_ANSWER_COIN_REWARD : amount
+    // `base` is the raw gameplay reward; server will apply pet multiplier independently.
+    // We apply the same multiplier client-side for an accurate optimistic display.
+    const base   = amount === 50 ? CORRECT_ANSWER_COIN_REWARD : amount
+    const reward = Math.round(base * coinMult)
     setPlayer(p => ({ ...p, coins: p.coins + reward }))
     if (isSiswa) {
-      persistGain(reward, 0).then(data => {
+      persistGain(base, 0).then(data => {
         if (data?.player) {
           // Reconcile with server's authoritative coin balance to prevent drift.
           setPlayer(p => ({ ...p, coins: data.player.coins, level: data.player.level, exp: data.player.exp, maxExp: data.player.maxExp }))
         }
         if (data?.newBadges?.length) setNewBadges(b => [...b, ...data.newBadges])
+        // missionDeltas: Array<MissionDelta> dari gameplay-events.js — sudah terformat,
+        // tidak perlu lookup EVENT_MISSIONS di sini (RULES.md §16).
+        if (data?.missionDeltas?.length) {
+          const toasts = data.missionDeltas.map(d => ({
+            ...d,
+            id: `${d.missionId}-${Date.now()}-${Math.random()}`,
+          }))
+          setMissionToasts(q => [...q, ...toasts])
+          const newlyCompleted = data.missionDeltas.filter(d => d.completed)
+          if (newlyCompleted.length) setMissionClaims(q => [...q, ...newlyCompleted])
+        }
       })
     }
-  }, [isSiswa])
+  }, [isSiswa, coinMult])
 
   const addExp = useCallback((amount) => {
+    // Apply pet EXP multiplier client-side (server applies the same)
+    const boosted = Math.round(amount * expMult)
     setPlayer(p => {
       let { level, exp, maxExp } = p
       const prevLevel = level
-      exp += amount
+      exp += boosted
       while (exp >= maxExp) {
         exp -= maxExp
         level += 1
@@ -98,7 +120,7 @@ export function PlayerProvider({ children }) {
         if (data?.newBadges?.length) setNewBadges(b => [...b, ...data.newBadges])
       })
     }
-  }, [isSiswa])
+  }, [isSiswa, expMult])
 
   // Called by games when a wrong answer is confirmed. In free-play this is a
   // no-op; TaskContext overrides it to advance the task session counter so that
@@ -121,6 +143,25 @@ export function PlayerProvider({ children }) {
     setNewBadges(b => b.filter(x => x.id !== badgeId))
   }, [])
 
+  const dismissMissionToast = useCallback((id) => {
+    setMissionToasts(q => q.filter(t => t.id !== id))
+  }, [])
+
+  const dismissMissionClaim = useCallback((missionId) => {
+    setMissionClaims(q => q.filter(m => m.missionId !== missionId))
+  }, [])
+
+  /**
+   * Dipanggil dari App.jsx socket listener saat server emit "mission:progress".
+   * Payload sudah terformat dari gameplay-events.js — langsung masuk ke queue.
+   */
+  const pushMissionProgress = useCallback((data) => {
+    if (!data || data.delta <= 0) return
+    const toast = { ...data, id: `${data.missionId}-${Date.now()}-${Math.random()}` }
+    setMissionToasts(q => [...q, toast])
+    if (data.completed) setMissionClaims(q => [...q, data])
+  }, [])
+
   // Server-authoritative sync — use when server has ALREADY updated DB (e.g. tournament reward).
   // Does NOT call persistGain, so there's no double-counting.
   const syncCoins = useCallback((newBalance) => {
@@ -128,7 +169,12 @@ export function PlayerProvider({ children }) {
   }, [])
 
   return (
-    <PlayerContext.Provider value={{ player, addCoins, addExp, syncCoins, recordWrongAnswer, reportSurvivalStreak, newBadges, dismissBadge }}>
+    <PlayerContext.Provider value={{
+      player, addCoins, addExp, syncCoins, recordWrongAnswer, reportSurvivalStreak,
+      newBadges, dismissBadge,
+      missionToasts, missionClaims,
+      dismissMissionToast, dismissMissionClaim, pushMissionProgress,
+    }}>
       {children}
     </PlayerContext.Provider>
   )

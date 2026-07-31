@@ -3,7 +3,7 @@ import { pool } from './db.js'
 import { requireAuth, requireRole } from './auth.js'
 import { applyExp, checkAndAwardBadges } from './gamify.js'
 import { getPetBonus } from './pet-bonuses.js'
-import { incrementMissionProgress } from './event-missions.js'
+import { onCorrectAnswerWithResult } from './gameplay-events.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
@@ -74,11 +74,16 @@ router.post('/gain', async (req, res) => {
     )
     await client.query('commit')
     const newBadges = await checkAndAwardBadges(req.session.user.id)
-    // Fire-and-forget: count each /gain call (1 correct answer) toward misi lomba 17-an
-    if (coinsGain > 0) {
-      incrementMissionProgress(req.session.user.id, 'kemerdekaan_1', 1).catch(() => {})
-    }
-    res.json({ player: playerFields(updatedRows[0]), newBadges })
+    // One correct minigame answer = one /gain call with coinsGain > 0.
+    // Await mission progress so we can include delta info in the response for
+    // the client to show MissionProgressToast / MissionClaimNotification.
+    // onCorrectAnswerWithResult returns Array<MissionDelta> already formatted —
+    // no need to import EVENT_MISSIONS here (RULES.md §16: gameplay-events.js is
+    // the single source of truth for mission side-effects).
+    const missionDeltas = coinsGain > 0
+      ? await onCorrectAnswerWithResult(req.session.user.id)
+      : []
+    res.json({ player: playerFields(updatedRows[0]), newBadges, gainedCoins: boostedCoins, gainedExp: boostedExp, missionDeltas })
   } catch (err) {
     await client.query('rollback').catch(() => {})
     console.error('player/gain error', err)

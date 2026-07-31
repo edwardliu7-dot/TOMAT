@@ -20,7 +20,11 @@ export function getTournamentIo()   { return _io }
  *   currentRound: number,
  *   rounds: Round[],       // index 0 = ronde 1
  *   students: Student[],   // semua peserta
+ *   mode: 'individual' | 'kelompok',
+ *   teams: Team[] | null,  // hanya jika mode === 'kelompok'
  *   champion: Student | null,
+ *   runnerUp: Student | null,
+ *   semifinalists: Student[],
  *   createdAt: number,
  * }
  *
@@ -40,7 +44,9 @@ export function getTournamentIo()   { return _io }
  *   _currentQ: object,     // soal aktif (server-only)
  * }
  *
- * Student: { userId, name, kelas, socketId | null }
+ * Student: { userId, name, kelas, socketId | null, teamId?, teamName? }
+ *
+ * Team: { id, name, members: Student[] }
  */
 
 function shuffle(arr) {
@@ -86,6 +92,68 @@ export function buildFirstRound(students) {
   return { matches }
 }
 
+/**
+ * Bagi siswa ke N kelompok secara acak (round-robin setelah shuffle).
+ */
+export function buildTeams(students, count) {
+  const shuffled = shuffle(students)
+  const teams = Array.from({ length: count }, (_, i) => ({
+    id:      crypto.randomUUID(),
+    name:    `Kelompok ${i + 1}`,
+    members: [],
+  }))
+  shuffled.forEach((s, i) => {
+    teams[i % count].members.push(s)
+  })
+  return teams
+}
+
+/**
+ * Pilih representatif untuk babak tertentu (rotasi per ronde).
+ */
+export function getTeamRepresentative(team, roundNumber) {
+  const idx = (roundNumber - 1) % team.members.length
+  return { ...team.members[idx], teamId: team.id, teamName: team.name, socketId: null }
+}
+
+/**
+ * Buat ronde dari daftar tim — representatif bergilir per ronde.
+ */
+export function buildFirstRoundFromTeams(teams, roundNumber = 1) {
+  const shuffled = shuffle(teams)
+  const matches  = []
+  for (let i = 0; i < shuffled.length; i += 2) {
+    const team1 = shuffled[i]
+    const team2 = shuffled[i + 1] || null
+    const p1 = getTeamRepresentative(team1, roundNumber)
+    const p2 = team2 ? getTeamRepresentative(team2, roundNumber) : null
+    matches.push({
+      id:            crypto.randomUUID(),
+      player1:       p1,
+      player2:       p2,
+      winner:        null,
+      status:        p2 === null ? 'bye' : 'pending',
+      roomCode:      null,
+      scores:        {},
+      walkoverTimer: null,
+      _round:        0,
+      _answers:      {},
+      _currentQ:     null,
+    })
+  }
+  return { matches }
+}
+
+function playerDTO(p) {
+  if (!p) return null
+  return {
+    userId:   p.userId,
+    name:     p.name,
+    teamId:   p.teamId   || null,
+    teamName: p.teamName || null,
+  }
+}
+
 /** Strip Map → safe DTO untuk dikirim ke client */
 export function tournamentToClient(t) {
   if (!t) return null
@@ -95,21 +163,25 @@ export function tournamentToClient(t) {
     kelasArr:     t.kelasArr || [t.kelas],
     gameKey:      t.gameKey,
     status:       t.status,
+    mode:         t.mode || 'individual',
+    teams:        t.teams
+                    ? t.teams.map(tm => ({ id: tm.id, name: tm.name, memberCount: tm.members.length }))
+                    : null,
     currentRound: t.currentRound,
     rounds: t.rounds.map(round => ({
       label: getRoundLabel(round.matches.length),
       matches: round.matches.map(m => ({
         id:      m.id,
-        player1: m.player1 ? { userId: m.player1.userId, name: m.player1.name } : null,
-        player2: m.player2 ? { userId: m.player2.userId, name: m.player2.name } : null,
-        winner:  m.winner  ? { userId: m.winner.userId,  name: m.winner.name  } : null,
+        player1: playerDTO(m.player1),
+        player2: playerDTO(m.player2),
+        winner:  playerDTO(m.winner),
         status:  m.status,
         roomCode: m.roomCode,
         scores:  m.scores,
       })),
     })),
-    champion:      t.champion      ? { userId: t.champion.userId,      name: t.champion.name      } : null,
-    runnerUp:      t.runnerUp      ? { userId: t.runnerUp.userId,      name: t.runnerUp.name      } : null,
-    semifinalists: t.semifinalists ? t.semifinalists.map(s => ({ userId: s.userId, name: s.name })) : [],
+    champion:      playerDTO(t.champion),
+    runnerUp:      playerDTO(t.runnerUp),
+    semifinalists: t.semifinalists ? t.semifinalists.map(playerDTO) : [],
   }
 }

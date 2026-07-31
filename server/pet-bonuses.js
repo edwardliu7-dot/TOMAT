@@ -18,7 +18,8 @@ export const PET_BONUSES = {
   // ── Kelinsay — EXP booster ──────────────────────────────────────────────────
   pet_kelinsay:       { coinMult: 1.00, expMult: 1.15, hungerMult: 1.00 }, // umum
   pet_kelinsay_senja: { coinMult: 1.00, expMult: 1.25, hungerMult: 1.00 }, // umum
-  pet_kelinsay_malam: { coinMult: 1.00, expMult: 1.40, hungerMult: 1.00 }, // epic
+  pet_kelinsay_malam:      { coinMult: 1.00, expMult: 1.40, hungerMult: 1.00 }, // epic
+  pet_kelinsay_merahputih: { coinMult: 1.00, expMult: 1.75, hungerMult: 1.00 }, // missionOnly (event eksklusif)
 
   // ── Monyang — koin + EXP booster ────────────────────────────────────────────
   pet_monyong:        { coinMult: 1.20, expMult: 1.20, hungerMult: 1.00 }, // langka (was 1.10)

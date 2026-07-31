@@ -112,7 +112,7 @@ function ScoreBar({ myName, oppName, myScore, oppScore, round, maxRounds }) {
 }
 
 // ─── Leaderboard Wait Screen ──────────────────────────────────────────────────
-function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, round, onLeave }) {
+function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, round, onLeave, onViewBracket, bracketState }) {
   return (
     <div style={{
       minHeight: '100vh', background: 'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)',
@@ -188,13 +188,49 @@ function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, round, onLe
           </div>
         </div>
 
+        {/* Other ongoing matches in this round */}
+        {bracketState && (() => {
+          const round = bracketState.rounds?.[bracketState.currentRound - 1]
+          const others = round?.matches?.filter(m =>
+            m.player1?.userId !== myName && m.player2?.userId !== myName &&
+            ['in-progress', 'waiting-join', 'finished'].includes(m.status)
+          ) || []
+          if (!others.length) return null
+          return (
+            <div style={{
+              background: '#1A1D27', border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 12, padding: '12px 14px', width: '100%', boxSizing: 'border-box',
+            }}>
+              <div style={{ fontSize: 10, color: '#475569', fontWeight: 700, letterSpacing: 1.5, marginBottom: 8 }}>
+                PERTANDINGAN RONDE {bracketState.currentRound}
+              </div>
+              {others.slice(0, 3).map((m, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, fontSize: 12 }}>
+                  <span style={{ color: '#94A3B8' }}>{m.player1?.name || 'BYE'} vs {m.player2?.name || 'BYE'}</span>
+                  <span style={{ fontSize: 11, color: m.status === 'finished' ? '#10b981' : m.status === 'in-progress' ? '#f59e0b' : '#475569', fontWeight: 700 }}>
+                    {m.status === 'finished' ? '✅' : m.status === 'in-progress' ? '⚡' : '⏳'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
+
+        {onViewBracket && (
+          <button onClick={onViewBracket} style={{
+            background: '#0e7490', border: 'none', borderRadius: 14,
+            padding: '14px 24px', color: '#fff', fontSize: 14, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit', width: '100%', maxWidth: 300,
+            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+          }}>
+            🏆 Lihat Bracket Turnamen
+          </button>
+        )}
         <button onClick={onLeave} style={{
-          background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14,
-          padding: '16px 24px', color: '#fff', fontSize: 15, fontWeight: 600,
-          cursor: 'pointer', fontFamily: 'inherit', width: '100%', maxWidth: 300,
-          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+          background: 'transparent', border: 'none', color: '#475569', fontSize: 12,
+          cursor: 'pointer', fontFamily: 'inherit',
         }}>
-          <span style={{ color: '#94A3B8' }}>←</span> Keluar Turnamen
+          ← Keluar Turnamen
         </button>
       </div>
     </div>
@@ -277,6 +313,12 @@ export default function TournamentMatchScreen({
 
   // Leaderboard state (while waiting for opponent to finish)
   const [leaderboardData, setLeaderboardData] = useState(null)
+  const [bracketState,   setBracketState]   = useState(null)
+
+  // Per-question countdown timer
+  const MATCH_TIMER_SECONDS = 30
+  const [timeLeft, setTimeLeft] = useState(MATCH_TIMER_SECONDS)
+  const timerIntervalRef = useRef(null)
 
   const sliderThrottle = useRef(null)
   const matchIdRef     = useRef(matchId)
@@ -302,6 +344,7 @@ export default function TournamentMatchScreen({
       setMyCorrect(null)
       setCorrectAnswer(null)
       setPhase('playing')
+      setTimeLeft(MATCH_TIMER_SECONDS)
     })
 
     // Hasil jawabanku — brief feedback, soal berikutnya datang otomatis ~1.2s
@@ -352,6 +395,13 @@ export default function TournamentMatchScreen({
       })
       setScores(finalScores)
       setPhase('leaderboard')
+      // Subscribe to bracket so the waiting screen shows live match updates
+      getSocket()?.emit('tournament:spectate', { tournamentId: tournIdRef.current })
+    })
+
+    // Live bracket update (received after spectate join above)
+    socket.on('tournament:state', (state) => {
+      if (state?.id === tournIdRef.current) setBracketState(state)
     })
 
     // Match selesai — works from any phase including leaderboard
@@ -371,10 +421,34 @@ export default function TournamentMatchScreen({
       socket.off('tournament:answer-result')
       socket.off('tournament:score-update')
       socket.off('tournament:self-finished')
+      socket.off('tournament:state')
       socket.off('tournament:match-over')
       socket.off('tournament:opponent-slider')
     }
   }, [myUserId, myName])
+
+  // Countdown — runs while playing, resets when phase leaves 'playing'
+  useEffect(() => {
+    if (phase !== 'playing') {
+      clearInterval(timerIntervalRef.current)
+      timerIntervalRef.current = null
+      return
+    }
+    timerIntervalRef.current = setInterval(() => {
+      setTimeLeft(t => Math.max(0, t - 1))
+    }, 1000)
+    return () => {
+      clearInterval(timerIntervalRef.current)
+      timerIntervalRef.current = null
+    }
+  }, [phase])
+
+  // Auto-submit when timer runs out
+  useEffect(() => {
+    if (timeLeft === 0 && phase === 'playing' && !myAnswered) {
+      submitAnswer()
+    }
+  }, [timeLeft, phase, myAnswered, submitAnswer])
 
   const emitSlider = useCallback((val) => {
     if (sliderThrottle.current) return
@@ -431,11 +505,13 @@ export default function TournamentMatchScreen({
         oppName={leaderboardData.oppName}
         round={round}
         onLeave={goBack}
+        onViewBracket={onMatchOver}
+        bracketState={bracketState}
       />
     )
   }
 
-  // ── Match over screen ──────────────────────────────────────────────────────
+  // ── Match over screen — navigates to bracket ───────────────────────────────
   if (phase === 'match-over' && matchResult) {
     return (
       <MatchOverScreen
@@ -444,7 +520,7 @@ export default function TournamentMatchScreen({
         myUserId={myUserId}
         myName={myName}
         oppName={opponent?.name}
-        onLeave={goBack}
+        onLeave={onMatchOver}
       />
     )
   }
@@ -475,6 +551,21 @@ export default function TournamentMatchScreen({
           myAnswered={myAnswered}
           myCorrect={myCorrect}
         />
+      )}
+      {/* Per-question countdown timer */}
+      {phase === 'playing' && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 6 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: '50%',
+            background: timeLeft <= 10 ? 'rgba(239,68,68,0.15)' : 'rgba(103,232,249,0.08)',
+            border: `2.5px solid ${timeLeft <= 10 ? '#ef4444' : '#67E8F9'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 15, fontWeight: 900,
+            color: timeLeft <= 10 ? '#ef4444' : '#67E8F9',
+            transition: 'border-color 0.3s, color 0.3s, background 0.3s',
+            boxShadow: timeLeft <= 5 ? '0 0 12px rgba(239,68,68,0.4)' : 'none',
+          }}>{timeLeft}</div>
+        </div>
       )}
       {/* Question text */}
       <div style={{ textAlign: 'center', marginTop: gameKey === 'katak' ? 8 : 0, marginBottom: 16 }}>

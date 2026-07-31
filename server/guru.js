@@ -5,7 +5,7 @@ import { getGuruGrades } from './kelas.js'
 import { notifyClassStudents } from './notifications.js'
 import { createBossRaid, endBossRaid, getBossRaid, bossRaids, raidToClient } from './boss-state.js'
 import { SUPPORTED_TOURNAMENT_GAMES, genTournamentQ } from './tournament-questions.js'
-import { tournaments, tournamentToClient, buildFirstRound, getTournamentIo } from './tournament-state.js'
+import { tournaments, tournamentToClient, buildFirstRound, buildTeams, buildFirstRoundFromTeams, getTournamentIo } from './tournament-state.js'
 import { startTournamentRound_all } from './tournament-engine.js'
 
 const router = express.Router()
@@ -302,7 +302,13 @@ router.get('/tournament', async (req, res) => {
 router.post('/tournament', async (req, res) => {
   try {
     const kelasDiampu = await getMyKelasDiampu(req)
-    const { kelas, kelasArr: rawKelasArr, gameKey } = req.body || {}
+    const {
+      kelas, kelasArr: rawKelasArr, gameKey,
+      selectedStudentIds,          // string[] | undefined
+      mode = 'individual',         // 'individual' | 'kelompok'
+      teamCount,                   // number (auto kelompok)
+      teams: manualTeams,          // [{name, memberIds}] (manual kelompok)
+    } = req.body || {}
 
     // Support multi-kelas (kelasArr) or single kelas (backward compat)
     const kelasArr = Array.isArray(rawKelasArr) && rawKelasArr.length > 0
@@ -330,13 +336,53 @@ router.post('/tournament', async (req, res) => {
       `SELECT id AS "userId", name, kelas FROM students WHERE kelas IN (${placeholders})`,
       kelasArr
     )
-    if (rows.length < 2)
+
+    // Filter berdasarkan selectedStudentIds jika diberikan
+    let filteredRows = rows
+    if (Array.isArray(selectedStudentIds) && selectedStudentIds.length > 0) {
+      const idSet = new Set(selectedStudentIds.map(String))
+      filteredRows = rows.filter(r => idSet.has(String(r.userId)))
+    }
+
+    if (filteredRows.length < 2)
       return res.status(400).json({ error: 'Minimal 2 siswa diperlukan untuk memulai turnamen.' })
 
-    const students    = rows.map(r => ({ ...r, socketId: null }))
+    const students    = filteredRows.map(r => ({ ...r, socketId: null }))
     const tournamentId = crypto.randomUUID()
-    const firstRound  = buildFirstRound(students)
     const primaryKelas = kelasArr[0]
+
+    // Bangun ronde pertama berdasarkan mode
+    let firstRound
+    let teams = null
+
+    if (mode === 'kelompok') {
+      if (Array.isArray(manualTeams) && manualTeams.length >= 2) {
+        // Mode manual: bangun teams dari manualTeams
+        teams = manualTeams.map((t, i) => {
+          const members = (t.memberIds || [])
+            .map(mid => students.find(s => String(s.userId) === String(mid)))
+            .filter(Boolean)
+          return {
+            id:      crypto.randomUUID(),
+            name:    t.name || `Kelompok ${i + 1}`,
+            members,
+          }
+        })
+        // Validasi
+        const emptyTeam = teams.find(t => t.members.length === 0)
+        if (emptyTeam) return res.status(400).json({ error: 'Semua kelompok harus memiliki minimal 1 anggota.' })
+        const filledTeams = teams.filter(t => t.members.length > 0)
+        if (filledTeams.length < 2) return res.status(400).json({ error: 'Minimal 2 kelompok diperlukan.' })
+      } else {
+        // Mode auto
+        const n = Math.max(2, Math.min(8, Number(teamCount) || 2))
+        if (n > students.length) return res.status(400).json({ error: 'Jumlah kelompok melebihi jumlah siswa.' })
+        teams = buildTeams(students, n)
+      }
+      firstRound = buildFirstRoundFromTeams(teams, 1)
+    } else {
+      firstRound = buildFirstRound(students)
+    }
 
     const tournament = {
       id:           tournamentId,
@@ -345,6 +391,8 @@ router.post('/tournament', async (req, res) => {
       guruId:       req.session.user.id,
       gameKey,
       status:       'in-progress',
+      mode:         mode === 'kelompok' ? 'kelompok' : 'individual',
+      teams,
       currentRound: 1,
       rounds:       [firstRound],
       students,

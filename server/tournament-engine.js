@@ -7,8 +7,9 @@
  * tanpa menunggu lawan menjawab.
  */
 import { genTournamentQ } from './tournament-questions.js'
-import { tournaments, tournamentToClient, buildFirstRound, getTournamentIo } from './tournament-state.js'
+import { tournaments, tournamentToClient, buildFirstRound, buildFirstRoundFromTeams, getTournamentIo } from './tournament-state.js'
 import { pool } from './db.js'
+import { onCorrectAnswer, onTournamentWin, onCorrectAnswerWithResult } from './gameplay-events.js'
 
 async function saveTournamentHistory(tournament, status) {
   try {
@@ -108,7 +109,7 @@ export function startTournamentMatch(io, tournament, match) {
 }
 
 // ─── Handle a player's answer ─────────────────────────────────────────────────
-export function handleTournamentAnswer(io, tournament, match, userId, value, socket) {
+export async function handleTournamentAnswer(io, tournament, match, userId, value, socket) {
   match._playerRounds   = match._playerRounds   || {}
   match._playerFinished = match._playerFinished || {}
   match._playerCurrentQ = match._playerCurrentQ || {}
@@ -121,6 +122,13 @@ export function handleTournamentAnswer(io, tournament, match, userId, value, soc
 
   const correct = (value === currentQ.answer)
   if (correct) match.scores[userId] = (match.scores[userId] || 0) + 1
+
+  // onCorrectAnswerWithResult returns Array<MissionDelta> already formatted —
+  // no need to import EVENT_MISSIONS here (RULES.md §16).
+  if (correct) {
+    const deltas = await onCorrectAnswerWithResult(userId)
+    for (const delta of deltas) emitToUser(io, userId, 'mission:progress', delta)
+  }
 
   // Hapus soal aktif untuk mencegah double-submit
   match._playerCurrentQ[userId] = null
@@ -232,6 +240,9 @@ function finishTournamentMatch(io, tournament, match) {
 
   io.to(`tournament:${tournament.id}`).emit('tournament:state', tournamentToClient(tournament))
 
+  // Delegate tournament-win side-effects to the centralized gameplay event bus.
+  onTournamentWin(match.winner.userId)
+
   checkRoundComplete(io, tournament)
 }
 
@@ -289,7 +300,18 @@ function checkRoundComplete(io, tournament) {
 
   // Lanjut ke ronde berikutnya
   tournament.currentRound++
-  const nextRound = buildFirstRound(winners)
+  let nextRound
+  if (tournament.mode === 'kelompok' && tournament.teams) {
+    const winningTeams = [...new Map(
+      winners
+        .filter(w => w.teamId)
+        .map(w => [w.teamId, tournament.teams.find(t => t.id === w.teamId)])
+        .filter(([, t]) => t)
+    ).values()]
+    nextRound = buildFirstRoundFromTeams(winningTeams, tournament.currentRound)
+  } else {
+    nextRound = buildFirstRound(winners)
+  }
   tournament.rounds.push(nextRound)
 
   setTimeout(() => {

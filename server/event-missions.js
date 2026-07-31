@@ -83,40 +83,67 @@ export function getMissionsForEvent(eventSlug) {
  * - Auto-completes dependent missions (requires[]) when prerequisites are met.
  * Fire-and-forget safe — errors are logged, never thrown.
  */
+/**
+ * Increment mission progress for a student.
+ * Returns { progress, goal, justCompleted, autoCompleted: string[] }
+ * or null if: mission already complete, event not active, or error.
+ * Fire-and-forget safe — errors are caught and logged, never thrown.
+ */
 export async function incrementMissionProgress(studentId, missionId, delta = 1) {
   try {
     const mission = EVENT_MISSIONS.find(m => m.id === missionId)
-    if (!mission) return
+    if (!mission) return null
     const ev = SEASONAL_EVENTS.find(e => e.slug === mission.eventSlug)
-    if (!ev || !isEventActive(ev)) return
+    if (!ev || !isEventActive(ev)) return null
 
-    await pool.query(`
+    // Read current progress first so we can compute the actual delta applied.
+    const { rows: prevRows } = await pool.query(`
+      select progress from event_mission_progress
+      where student_id = $1 and mission_id = $2
+    `, [studentId, missionId])
+    const prevProgress = prevRows[0]?.progress ?? 0
+
+    const { rows } = await pool.query(`
       insert into event_mission_progress (student_id, mission_id, progress)
-      values ($1, $2, least($3, $4))
+      values ($1, $2, least($3::int, $4::int))
       on conflict (student_id, mission_id) do update
         set
-          progress = least(event_mission_progress.progress + $3, $4),
+          progress = least(event_mission_progress.progress + $3::int, $4::int),
           completed_at = case
             when event_mission_progress.completed_at is null
-                 and least(event_mission_progress.progress + $3, $4) >= $4
+                 and least(event_mission_progress.progress + $3::int, $4::int) >= $4::int
             then now()
             else event_mission_progress.completed_at
           end
         where event_mission_progress.completed_at is null
+      returning progress, completed_at
     `, [studentId, missionId, delta, mission.goal])
 
-    await _autoCompleteRequires(studentId, mission.eventSlug)
+    // No rows returned → mission was already completed (WHERE clause blocked the update)
+    if (rows.length === 0) return null
+
+    const row = rows[0]
+    const justCompleted = row.completed_at !== null
+    const actualDelta = Math.max(0, row.progress - prevProgress)
+
+    const autoCompleted = await _autoCompleteRequires(studentId, mission.eventSlug)
+
+    return { progress: row.progress, goal: mission.goal, justCompleted, autoCompleted, delta: actualDelta }
   } catch (err) {
     console.error('incrementMissionProgress error', err)
+    return null
   }
 }
 
-/** Auto-complete missions whose `requires` list is fully satisfied. */
+/**
+ * Auto-complete missions whose `requires` list is fully satisfied.
+ * Returns array of mission IDs that were NEWLY auto-completed this call.
+ */
 async function _autoCompleteRequires(studentId, eventSlug) {
   const autoMissions = EVENT_MISSIONS.filter(
     m => m.eventSlug === eventSlug && m.requires.length > 0
   )
-  if (autoMissions.length === 0) return
+  if (autoMissions.length === 0) return []
 
   const allIds = EVENT_MISSIONS.filter(m => m.eventSlug === eventSlug).map(m => m.id)
   const { rows } = await pool.query(`
@@ -125,17 +152,21 @@ async function _autoCompleteRequires(studentId, eventSlug) {
   `, [studentId, allIds])
 
   const done = new Set(rows.map(r => r.mission_id))
+  const newlyCompleted = []
   for (const mission of autoMissions) {
     if (done.has(mission.id)) continue
     if (!mission.requires.every(id => done.has(id))) continue
-    await pool.query(`
+    const { rowCount } = await pool.query(`
       insert into event_mission_progress (student_id, mission_id, progress, completed_at)
       values ($1, $2, $3, now())
       on conflict (student_id, mission_id) do update
         set progress = $3,
             completed_at = coalesce(event_mission_progress.completed_at, now())
+        where event_mission_progress.completed_at is null
     `, [studentId, mission.id, mission.goal])
+    if (rowCount > 0) newlyCompleted.push(mission.id)
   }
+  return newlyCompleted
 }
 
 /**

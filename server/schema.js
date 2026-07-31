@@ -240,6 +240,8 @@ export async function ensureSchema() {
     alter table students add column if not exists equipped_tema text;
     alter table students add column if not exists equipped_stiker text;
     alter table students add column if not exists stiker_layout jsonb not null default '[]';
+    alter table students add column if not exists last_login_bonus_date date;
+    alter table students add column if not exists login_streak int not null default 0;
   `)
 
   // Widen the kategori check constraint to include pet_skin (idempotent)

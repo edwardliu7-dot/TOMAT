@@ -30,4 +30,15 @@ export function applyNativePatch() {
     }
     return _fetch(resource, init)
   }
+
+  // Patch XMLHttpRequest → same treatment for any library that bypasses fetch
+  const _XHR = window.XMLHttpRequest
+  window.XMLHttpRequest = class extends _XHR {
+    open(method, url, ...rest) {
+      if (typeof url === 'string' && url.startsWith('/')) {
+        url = PROD + url
+      }
+      return super.open(method, url, ...rest)
+    }
+  }
 }

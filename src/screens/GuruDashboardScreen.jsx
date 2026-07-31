@@ -1160,6 +1160,17 @@ const MATCH_STATUS_BADGE = {
   pending:        { bg: 'rgba(255,255,255,0.06)', color: '#475569', label: '🔒 Menunggu' },
 }
 
+const TEAM_COLORS = [
+  '#67E8F9', // cyan
+  '#f59e0b', // amber
+  '#a78bfa', // violet
+  '#34d399', // emerald
+  '#f472b6', // pink
+  '#fb923c', // orange
+  '#60a5fa', // blue
+  '#a3e635', // lime
+]
+
 function TurnamenTab({ kelasDiampu }) {
   const [tournament,   setTournament]   = useState(null)
   const [loading,      setLoading]      = useState(true)
@@ -1168,12 +1179,36 @@ function TurnamenTab({ kelasDiampu }) {
   const [spectate,       setSpectate]       = useState(null)
   const [spectateSliders,setSpectateSliders] = useState({})
   const [spectateQ,      setSpectateQ]       = useState(null)
-  const [form,         setForm]         = useState({ kelasArr: kelasDiampu.slice(0, 1), gameKey: 'katak' })
+  const [form,         setForm]         = useState({
+    kelasArr:           kelasDiampu.slice(0, 1),
+    gameKey:            'katak',
+    selectedStudentIds: null,
+    mode:               'individual',
+    teamCount:          2,
+    teamAssignment:     'auto',   // 'auto' | 'manual'
+    manualTeams:        [],       // [{ name, memberIds: string[] }]
+  })
+  const [students,       setStudents]       = useState([])
+  const [studentsLoading,setStudentsLoading] = useState(false)
   const [liveFeed,     setLiveFeed]     = useState([])
   const [activeRound,  setActiveRound]  = useState(null) // for round pill navigation
   const [history,      setHistory]      = useState([])
   const [historyLoading, setHistoryLoading] = useState(true)
   const socketJoined   = useRef(false)
+
+  // Load siswa when kelasArr changes
+  useEffect(() => {
+    if (!form.kelasArr.length) { setStudents([]); return }
+    setStudentsLoading(true)
+    apiCall('/api/guru/students')
+      .then(({ students: all }) => {
+        const filtered = (all || []).filter(s => form.kelasArr.includes(s.kelas))
+        setStudents(filtered)
+        setForm(f => ({ ...f, selectedStudentIds: filtered.map(s => String(s.userId)) }))
+      })
+      .catch(() => {})
+      .finally(() => setStudentsLoading(false))
+  }, [form.kelasArr.join(',')])
 
   // Fetch current tournament state + history via REST on mount
   useEffect(() => {
@@ -1275,13 +1310,76 @@ function TurnamenTab({ kelasDiampu }) {
     }
   }, [spectate?.id])
 
+  const getSelectedIds = () => form.selectedStudentIds
+
+  // Helper: inisialisasi manualTeams saat count berubah, pertahankan anggota yang sudah ada
+  const initManualTeams = (count, existingTeams, allStudentIds) => {
+    const teams = Array.from({ length: count }, (_, i) => ({
+      name: existingTeams[i]?.name || `Kelompok ${i + 1}`,
+      memberIds: existingTeams[i]?.memberIds || [],
+    }))
+    return teams
+  }
+
+  // Helper: klik siswa dalam manual assignment
+  const handleManualAssign = (studentId) => {
+    setForm(f => {
+      const teams = f.manualTeams.length === f.teamCount
+        ? f.manualTeams
+        : initManualTeams(f.teamCount, f.manualTeams, [])
+      const currentTeamIdx = teams.findIndex(t => t.memberIds.includes(studentId))
+      if (currentTeamIdx === -1) {
+        // belum ditugaskan → masuk ke tim dengan anggota paling sedikit
+        const minIdx = teams.reduce((mi, t, i) => t.memberIds.length < teams[mi].memberIds.length ? i : mi, 0)
+        const next = teams.map((t, i) => i === minIdx
+          ? { ...t, memberIds: [...t.memberIds, studentId] }
+          : t)
+        return { ...f, manualTeams: next }
+      } else {
+        const nextTeamIdx = (currentTeamIdx + 1) % (teams.length + 1)
+        if (nextTeamIdx === teams.length) {
+          // kembali ke belum ditugaskan
+          const next = teams.map((t, i) => i === currentTeamIdx
+            ? { ...t, memberIds: t.memberIds.filter(id => id !== studentId) }
+            : t)
+          return { ...f, manualTeams: next }
+        } else {
+          // pindah ke tim berikutnya
+          const next = teams.map((t, i) => {
+            if (i === currentTeamIdx) return { ...t, memberIds: t.memberIds.filter(id => id !== studentId) }
+            if (i === nextTeamIdx)    return { ...t, memberIds: [...t.memberIds, studentId] }
+            return t
+          })
+          return { ...f, manualTeams: next }
+        }
+      }
+    })
+  }
+
   const handleCreate = async (e) => {
     e.preventDefault()
     if (!form.kelasArr?.length || !form.gameKey) return
+    const selectedIds = getSelectedIds()
+    if (selectedIds.length < 2) {
+      setError('Minimal 2 siswa diperlukan.')
+      return
+    }
     setCreating(true)
     setError('')
     try {
-      const data = await apiCall('/api/guru/tournament', { method: 'POST', body: { kelasArr: form.kelasArr, gameKey: form.gameKey } })
+      const body = { kelasArr: form.kelasArr, gameKey: form.gameKey }
+      if (form.selectedStudentIds.length < students.length) {
+        body.selectedStudentIds = form.selectedStudentIds
+      }
+      body.mode = form.mode
+      if (form.mode === 'kelompok') {
+        if (form.teamAssignment === 'manual' && form.manualTeams.length >= 2) {
+          body.teams = form.manualTeams.map(t => ({ name: t.name, memberIds: t.memberIds }))
+        } else {
+          body.teamCount = form.teamCount
+        }
+      }
+      const data = await apiCall('/api/guru/tournament', { method: 'POST', body })
       setTournament(data.tournament)
     } catch (err) {
       setError(err.message)
@@ -1364,6 +1462,112 @@ function TurnamenTab({ kelasDiampu }) {
               )}
             </div>
 
+            {/* Siswa Peserta — checklist */}
+            {form.kelasArr.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ ...labelStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>SISWA PESERTA</span>
+                  {studentsLoading ? (
+                    <span style={{ fontSize: 10, color: '#64748B' }}>Memuat…</span>
+                  ) : (
+                    <span style={{ fontSize: 10, color: '#67E8F9', fontWeight: 600 }}>
+                      {getSelectedIds().length} / {students.length} dipilih
+                    </span>
+                  )}
+                </div>
+
+                {studentsLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[1,2,3].map(i => (
+                      <div key={i} style={{ height: 38, borderRadius: 10, background: 'rgba(255,255,255,0.05)', animation: 'pulse 1.5s infinite' }} />
+                    ))}
+                  </div>
+                ) : students.length === 0 ? (
+                  <div style={{ fontSize: 12, color: '#64748B', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, textAlign: 'center' }}>
+                    Tidak ada siswa di kelas ini
+                  </div>
+                ) : (
+                  <>
+                    {/* Tombol Pilih Semua */}
+                    <button type="button"
+                      onClick={() => {
+                        const allIds = students.map(s => String(s.userId))
+                        const curIds = getSelectedIds()
+                        const allSelected = curIds.length === students.length
+                        setForm(f => ({ ...f, selectedStudentIds: allSelected ? [] : allIds }))
+                      }}
+                      style={{
+                        alignSelf: 'flex-start', padding: '5px 12px', borderRadius: 20,
+                        fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                        background: getSelectedIds().length === students.length
+                          ? 'rgba(103,232,249,0.12)' : 'rgba(255,255,255,0.06)',
+                        border: getSelectedIds().length === students.length
+                          ? '1px solid #67E8F9' : '1px solid rgba(255,255,255,0.1)',
+                        color: getSelectedIds().length === students.length ? '#67E8F9' : '#94A3B8',
+                      }}>
+                      {getSelectedIds().length === students.length ? '✓ Semua Dipilih' : 'Pilih Semua'}
+                    </button>
+
+                    {/* Daftar siswa per kelas */}
+                    {form.kelasArr.map(kls => {
+                      const siswaDiKelas = students.filter(s => s.kelas === kls)
+                      if (!siswaDiKelas.length) return null
+                      const selectedIds = getSelectedIds()
+                      return (
+                        <div key={kls} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {form.kelasArr.length > 1 && (
+                            <div style={{ fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 0.8, paddingLeft: 2, marginBottom: 2 }}>
+                              {kls}
+                            </div>
+                          )}
+                          {siswaDiKelas.map(s => {
+                            const id = String(s.userId)
+                            const checked = selectedIds.includes(id)
+                            return (
+                              <button key={id} type="button"
+                                onClick={() => {
+                                  const cur = getSelectedIds()
+                                  const next = cur.includes(id)
+                                    ? cur.filter(x => x !== id)
+                                    : [...cur, id]
+                                  setForm(f => ({ ...f, selectedStudentIds: next }))
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 10,
+                                  padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
+                                  fontFamily: 'inherit', textAlign: 'left', border: 'none',
+                                  background: checked ? 'rgba(103,232,249,0.07)' : 'rgba(255,255,255,0.03)',
+                                  boxShadow: checked ? 'inset 0 0 0 1px rgba(103,232,249,0.3)' : 'inset 0 0 0 1px rgba(255,255,255,0.07)',
+                                }}>
+                                <div style={{
+                                  width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                                  background: checked ? '#67E8F9' : 'transparent',
+                                  border: `1.5px solid ${checked ? '#67E8F9' : '#475569'}`,
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                  {checked && <span style={{ color: '#0A1628', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                                </div>
+                                <span style={{ fontSize: 13, fontWeight: checked ? 600 : 400, color: checked ? '#e2e8f0' : '#64748B' }}>
+                                  {s.name}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )
+                    })}
+
+                    {/* Peringatan jika < 2 */}
+                    {getSelectedIds().length < 2 && (
+                      <div style={{ fontSize: 11, color: '#f87171', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 8, padding: '6px 10px' }}>
+                        ⚠️ Pilih minimal 2 siswa untuk memulai turnamen
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Game — horizontal scroll chips */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={labelStyle}>GAME</div>
@@ -1397,6 +1601,196 @@ function TurnamenTab({ kelasDiampu }) {
               )}
             </div>
 
+            {/* Mode Turnamen */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={labelStyle}>MODE TURNAMEN</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[
+                  { value: 'individual', label: 'Individual', desc: 'Tiap siswa bertanding sendiri' },
+                  { value: 'kelompok',   label: 'Kelompok',   desc: 'Siswa dibagi menjadi tim' },
+                ].map(opt => {
+                  const sel = form.mode === opt.value
+                  return (
+                    <button key={opt.value} type="button"
+                      onClick={() => setForm(f => ({ ...f, mode: opt.value }))}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+                        fontFamily: 'inherit', textAlign: 'left', border: 'none',
+                        background: sel ? 'rgba(103,232,249,0.07)' : 'rgba(255,255,255,0.03)',
+                        boxShadow: sel ? 'inset 0 0 0 1.5px #67E8F9' : 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+                      }}>
+                      <div style={{
+                        width: 16, height: 16, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box',
+                        border: sel ? '5px solid #67E8F9' : '1.5px solid #475569',
+                        background: sel ? '#111827' : 'transparent',
+                      }} />
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: sel ? '#67E8F9' : '#94A3B8' }}>{opt.label}</div>
+                        <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>{opt.desc}</div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Pengaturan Kelompok */}
+            {form.mode === 'kelompok' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(103,232,249,0.03)', border: '1px solid rgba(103,232,249,0.12)', borderRadius: 14, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, color: '#67E8F9', fontWeight: 800, letterSpacing: 1.2 }}>PENGATURAN KELOMPOK</div>
+
+                {/* Jumlah kelompok */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, letterSpacing: 0.8 }}>JUMLAH KELOMPOK</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <button type="button"
+                      onClick={() => setForm(f => ({ ...f, teamCount: Math.max(2, f.teamCount - 1), manualTeams: [] }))}
+                      style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      −
+                    </button>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: '#67E8F9', minWidth: 24, textAlign: 'center' }}>{form.teamCount}</span>
+                    <button type="button"
+                      onClick={() => setForm(f => ({ ...f, teamCount: Math.min(8, f.teamCount + 1), manualTeams: [] }))}
+                      style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      +
+                    </button>
+                    <span style={{ fontSize: 11, color: '#475569' }}>min 2, max 8</span>
+                  </div>
+                </div>
+
+                {/* Toggle auto / manual */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, letterSpacing: 0.8 }}>PEMBAGIAN</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[{ v: 'auto', label: 'Otomatis' }, { v: 'manual', label: 'Manual' }].map(opt => {
+                      const sel = form.teamAssignment === opt.v
+                      return (
+                        <button key={opt.v} type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            teamAssignment: opt.v,
+                            manualTeams: opt.v === 'manual'
+                              ? initManualTeams(f.teamCount, f.manualTeams, getSelectedIds())
+                              : f.manualTeams,
+                          }))}
+                          style={{
+                            padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
+                            fontFamily: 'inherit', fontSize: 12, fontWeight: sel ? 700 : 500,
+                            background: sel ? '#67E8F9' : 'rgba(255,255,255,0.06)',
+                            border: sel ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                            color: sel ? '#0A1628' : '#94A3B8',
+                          }}>
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Konten sesuai assignment */}
+                {form.teamAssignment === 'auto' ? (
+                  <div style={{ fontSize: 11, color: '#64748B', background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '8px 10px', lineHeight: 1.6 }}>
+                    ℹ️ Server akan membagi <strong style={{ color: '#94A3B8' }}>{getSelectedIds().length} siswa</strong> ke{' '}
+                    <strong style={{ color: '#67E8F9' }}>{form.teamCount} kelompok</strong> secara acak
+                    {' '}(±{Math.ceil(getSelectedIds().length / form.teamCount)} siswa/kelompok)
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {/* Kelompok cards */}
+                    {Array.from({ length: form.teamCount }, (_, i) => {
+                      const team = form.manualTeams[i] || { name: `Kelompok ${i + 1}`, memberIds: [] }
+                      const color = TEAM_COLORS[i % TEAM_COLORS.length]
+                      const memberNames = team.memberIds
+                        .map(id => students.find(s => String(s.userId) === id)?.name)
+                        .filter(Boolean)
+                      return (
+                        <div key={i} style={{ borderRadius: 10, border: `1px solid ${color}33`, background: `${color}08`, padding: '8px 10px' }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color, marginBottom: 6 }}>
+                            {team.name} ({memberNames.length} anggota)
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {memberNames.length === 0
+                              ? <span style={{ fontSize: 11, color: '#475569', fontStyle: 'italic' }}>Belum ada anggota</span>
+                              : memberNames.map((n, j) => (
+                                <span key={j} style={{
+                                  fontSize: 11, padding: '2px 8px', borderRadius: 12,
+                                  background: `${color}22`, color, border: `1px solid ${color}44`, fontWeight: 600,
+                                }}>{n}</span>
+                              ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    {/* Belum ditugaskan */}
+                    {(() => {
+                      const assignedIds = (form.manualTeams || []).flatMap(t => t.memberIds)
+                      const unassigned = students
+                        .filter(s => getSelectedIds().includes(String(s.userId)) && !assignedIds.includes(String(s.userId)))
+                      if (unassigned.length === 0) return null
+                      return (
+                        <div style={{ borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: '8px 10px' }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', marginBottom: 6 }}>
+                            Belum ditugaskan ({unassigned.length})
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {unassigned.map(s => (
+                              <span key={s.userId} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', color: '#64748B', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                {s.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Semua siswa — klik untuk assign */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ fontSize: 11, color: '#475569', fontWeight: 700, letterSpacing: 0.8 }}>KLIK SISWA UNTUK PINDAHKAN KELOMPOK</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {students.filter(s => getSelectedIds().includes(String(s.userId))).map(s => {
+                          const id = String(s.userId)
+                          const teams = form.manualTeams || []
+                          const teamIdx = teams.findIndex(t => t.memberIds.includes(id))
+                          const color = teamIdx >= 0 ? TEAM_COLORS[teamIdx % TEAM_COLORS.length] : '#475569'
+                          const label = teamIdx >= 0 ? `Kel.${teamIdx + 1}` : '—'
+                          return (
+                            <button key={id} type="button"
+                              onClick={() => handleManualAssign(id)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 5,
+                                padding: '4px 10px', borderRadius: 20, cursor: 'pointer',
+                                fontFamily: 'inherit', fontSize: 11, fontWeight: 600,
+                                background: teamIdx >= 0 ? `${color}22` : 'rgba(255,255,255,0.05)',
+                                border: `1px solid ${teamIdx >= 0 ? color + '55' : 'rgba(255,255,255,0.1)'}`,
+                                color,
+                              }}>
+                              <span>{s.name}</span>
+                              <span style={{ fontSize: 9, opacity: 0.7 }}>{label}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Peringatan belum ditugaskan */}
+                    {(() => {
+                      const assignedIds = (form.manualTeams || []).flatMap(t => t.memberIds)
+                      const unassignedCount = students
+                        .filter(s => getSelectedIds().includes(String(s.userId)) && !assignedIds.includes(String(s.userId))).length
+                      if (unassignedCount === 0) return null
+                      return (
+                        <div style={{ fontSize: 11, color: '#f59e0b', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '6px 10px' }}>
+                          ⚠️ {unassignedCount} siswa belum ditugaskan ke kelompok mana pun
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Format — cosmetic radio */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={labelStyle}>FORMAT</div>
@@ -1426,12 +1820,12 @@ function TurnamenTab({ kelasDiampu }) {
               🎯 Turnamen akan dimulai setelah kamu klik Mulai. Semua siswa online akan otomatis masuk.
             </div>
 
-            <button type="submit" disabled={creating || !form.kelasArr?.length} style={{
-              background: creating || !form.kelasArr?.length ? 'rgba(180,83,9,0.3)' : '#b45309',
+            <button type="submit" disabled={creating || !form.kelasArr?.length || getSelectedIds().length < 2} style={{
+              background: creating || !form.kelasArr?.length || getSelectedIds().length < 2 ? 'rgba(180,83,9,0.3)' : '#b45309',
               color: '#fff', border: 'none', borderRadius: 14, padding: '16px',
-              fontSize: 16, fontWeight: 700, cursor: creating || !form.kelasArr?.length ? 'default' : 'pointer',
-              fontFamily: 'inherit', opacity: creating || !form.kelasArr?.length ? 0.5 : 1,
-              boxShadow: !creating && form.kelasArr?.length ? '0 4px 12px rgba(180,83,9,0.3)' : 'none',
+              fontSize: 16, fontWeight: 700, cursor: creating || !form.kelasArr?.length || getSelectedIds().length < 2 ? 'default' : 'pointer',
+              fontFamily: 'inherit', opacity: creating || !form.kelasArr?.length || getSelectedIds().length < 2 ? 0.5 : 1,
+              boxShadow: !creating && form.kelasArr?.length && getSelectedIds().length >= 2 ? '0 4px 12px rgba(180,83,9,0.3)' : 'none',
               marginTop: 8,
             }}>
               {creating

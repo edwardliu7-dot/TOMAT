@@ -94,7 +94,38 @@ router.post('/login', async (req, res) => {
       username: user.username || null,
       kelas:    role === 'siswa' ? (user.kelas || null) : null,
     }
-    res.json({ user: sanitizeUser(user, role) })
+
+    // Award daily login bonus on fresh login (siswa only) — same logic as /me
+    let dailyBonus = null
+    if (role === 'siswa') {
+      const today     = new Date().toISOString().slice(0, 10)
+      const lastDate  = user.last_login_bonus_date
+        ? new Date(user.last_login_bonus_date).toISOString().slice(0, 10)
+        : null
+      if (lastDate !== today) {
+        const yesterday  = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+        const newStreak  = lastDate === yesterday ? (user.login_streak || 0) + 1 : 1
+        const STREAK_COINS = [50, 75, 100, 125, 150, 175, 200]
+        const bonusCoins = STREAK_COINS[Math.min(newStreak - 1, 6)]
+        try {
+          await pool.query(
+            `update students
+                set coins              = coins + $2,
+                    total_coins_earned = total_coins_earned + $2,
+                    last_login_bonus_date = current_date,
+                    login_streak       = $3
+              where id = $1`,
+            [user.id, bonusCoins, newStreak]
+          )
+          dailyBonus = { coins: bonusCoins, streak: newStreak }
+        } catch (bonusErr) {
+          console.error('login daily bonus error', bonusErr)
+          // Non-fatal — login still succeeds
+        }
+      }
+    }
+
+    res.json({ user: sanitizeUser(user, role), dailyBonus })
   } catch (err) {
     console.error('login error', err)
     res.status(500).json({ error: 'Terjadi kesalahan server saat login.' })
@@ -134,7 +165,39 @@ router.get('/me', async (req, res) => {
       needsSave = true
     }
     if (needsSave) req.session.save(() => {})
-    res.json({ user: sanitizeUser(user, session.role) })
+
+    // Daily login bonus (siswa only) — awarded once per calendar day
+    let dailyBonus = null
+    if (session.role === 'siswa') {
+      const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD local-ish (UTC)
+      const lastDate = user.last_login_bonus_date
+        ? new Date(user.last_login_bonus_date).toISOString().slice(0, 10)
+        : null
+      if (lastDate !== today) {
+        const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+        const newStreak  = lastDate === yesterday ? (user.login_streak || 0) + 1 : 1
+        const STREAK_COINS = [50, 75, 100, 125, 150, 175, 200]
+        const bonusCoins = STREAK_COINS[Math.min(newStreak - 1, 6)]
+        try {
+          await pool.query(
+            `update students
+               set coins              = coins + $2,
+                   total_coins_earned = total_coins_earned + $2,
+                   last_login_bonus_date = current_date,
+                   login_streak       = $3
+             where id = $1`,
+            [session.id, bonusCoins, newStreak]
+          )
+          user.coins = (user.coins || 0) + bonusCoins
+          dailyBonus = { coins: bonusCoins, streak: newStreak }
+        } catch (bonusErr) {
+          console.error('daily bonus error', bonusErr)
+          // Non-fatal — still return the user
+        }
+      }
+    }
+
+    res.json({ user: sanitizeUser(user, session.role), dailyBonus })
   } catch (err) {
     console.error('me error', err)
     res.status(500).json({ error: 'Terjadi kesalahan server.' })

@@ -1,7 +1,7 @@
-import React, { useState, useCallback, Component, Suspense, useEffect } from 'react'
+import React, { useState, useCallback, Component, Suspense, useEffect, useRef } from 'react'
 import { PetProvider } from './PetContext'
 import FloatingPet from './components/FloatingPet'
-import { PlayerProvider } from './PlayerContext'
+import { PlayerProvider, usePlayer } from './PlayerContext'
 import { TaskProvider, useTask } from './TaskContext'
 import { BabLockProvider } from './BabLockContext'
 import { useAuth } from './AuthContext'
@@ -12,6 +12,9 @@ import HomeScreen from './screens/HomeScreen'
 import Grade7ZoneScreen from './screens/Grade7ZoneScreen'
 import Grade8ZoneScreen from './screens/Grade8ZoneScreen'
 import Grade9ZoneScreen from './screens/Grade9ZoneScreen'
+import Ipa7ZoneScreen from './screens/Ipa7ZoneScreen'
+import Ipa8ZoneScreen from './screens/Ipa8ZoneScreen'
+import Ipa9ZoneScreen from './screens/Ipa9ZoneScreen'
 import ModeSelectScreen from './screens/ModeSelectScreen'
 import TaskResultScreen from './screens/TaskResultScreen'
 import GradesScreen from './screens/GradesScreen'
@@ -37,7 +40,15 @@ import { DUEL_GAME_KEYS } from './gamesCatalog'
 import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
+import MissionProgressToast from './components/MissionProgressToast'
+import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
+import { startBgm, stopBgm } from './bgm'
+import {
+  requestNotificationPermission,
+  createNotificationChannels,
+  showLocalNotification,
+} from './capacitorNotify'
 
 /** Returns 'tema_merahputih' during Jul 15–Aug 31, otherwise null. */
 function getSeasonalTema() {
@@ -187,6 +198,100 @@ function DuelGamePickerModal({ target, onPick, onCancel }) {
     </div>
   )
 }
+// ── Daily login bonus modal ────────────────────────────────────────────────────
+// Shown once per day when the server confirms a fresh login streak reward.
+// dailyBonus shape: { coins, streak, nextMilestone }
+function DailyBonusModal({ bonus, onDismiss }) {
+  if (!bonus) return null
+
+  const { coins = 100, streak = 1, nextMilestone = 7 } = bonus
+  const cyclePos = streak % 7 === 0 ? 7 : streak % 7   // 1–7, never 0
+  const progressPct = (cyclePos / 7) * 100
+  const streakDisplay = cyclePos
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10005,
+      background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '0 20px',
+      fontFamily: 'system-ui, sans-serif',
+    }}>
+      <div style={{
+        width: '100%', maxWidth: 380,
+        background: 'linear-gradient(135deg,#1a1020,#0d1a2e)',
+        border: '2px solid rgba(251,191,36,0.55)',
+        borderRadius: 28, padding: '32px 24px 24px',
+        boxShadow: '0 0 80px rgba(251,191,36,0.2), 0 24px 60px rgba(0,0,0,0.6)',
+        position: 'relative', overflow: 'hidden',
+        textAlign: 'center',
+      }}>
+        {/* Background glow */}
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 28, background: 'radial-gradient(circle at 50% 0%, rgba(251,191,36,0.09) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+        {/* Fire streak icon */}
+        <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>🔥</div>
+        <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 800, letterSpacing: 2, marginBottom: 6 }}>
+          BONUS LOGIN HARIAN
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>
+          Hari ke-{streak}!
+        </div>
+        <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 20, lineHeight: 1.5 }}>
+          Kamu sudah login berturut-turut {streak} hari.
+        </div>
+
+        {/* Coin badge */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 10,
+          background: 'linear-gradient(135deg,rgba(251,191,36,0.18),rgba(245,158,11,0.1))',
+          border: '1.5px solid rgba(251,191,36,0.45)',
+          borderRadius: 18, padding: '14px 28px',
+          marginBottom: 22,
+        }}>
+          <span style={{ fontSize: 28 }}>🪙</span>
+          <span style={{ fontSize: 30, fontWeight: 900, color: '#fbbf24' }}>+{coins}</span>
+        </div>
+
+        {/* 7-day progress bar */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748B', marginBottom: 6 }}>
+            <span>Streak mingguan</span>
+            <span style={{ color: '#fbbf24', fontWeight: 700 }}>{streakDisplay}/7 hari</span>
+          </div>
+          <div style={{ height: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${progressPct}%`,
+              background: 'linear-gradient(90deg,#f59e0b,#fbbf24)',
+              borderRadius: 8,
+              transition: 'width 0.6s cubic-bezier(0.34,1.56,0.64,1)',
+            }} />
+          </div>
+          {nextMilestone > 0 && (
+            <div style={{ fontSize: 10, color: '#475569', marginTop: 5 }}>
+              {cyclePos === 7
+                ? '🎁 Bonus spesial minggu ini tercapai!'
+                : `${7 - cyclePos} hari lagi menuju bonus spesial 🎁`}
+            </div>
+          )}
+        </div>
+
+        {/* Claim button */}
+        <button onClick={onDismiss} style={{
+          width: '100%', background: 'linear-gradient(90deg,#f59e0b,#fbbf24)',
+          border: 'none', borderRadius: 16, padding: '16px',
+          color: '#1a1020', fontSize: 16, fontWeight: 900,
+          cursor: 'pointer', fontFamily: 'inherit', letterSpacing: 0.3,
+          boxShadow: '0 4px 24px rgba(251,191,36,0.4)',
+        }}>
+          🎉 Klaim Bonus!
+        </button>
+      </div>
+    </div>
+  )
+}
+
 import GameDesktopWrapper from './components/GameDesktopWrapper'
 import { fetchPublicProfile, normalizeProfileTarget } from './components/shared'
 import { getGameTheme, GameThemeOverlay, GameThemeStyles } from './gameTheme'
@@ -273,6 +378,25 @@ class ErrorBoundary extends Component {
   }
 }
 
+// Placeholder untuk game IPA yang belum diimplementasikan
+function IpaGamePlaceholder({ onBack }) {
+  return (
+    <div style={{ minHeight: '100vh', background: '#071321', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 }}>
+      <div style={{ fontSize: 56 }}>🔬</div>
+      <div style={{ color: '#22c55e', fontSize: 20, fontWeight: 800, textAlign: 'center' }}>Segera Hadir!</div>
+      <div style={{ color: '#94A3B8', fontSize: 14, textAlign: 'center', maxWidth: 300, lineHeight: 1.6 }}>
+        Game IPA ini sedang dalam pengembangan. Pantau terus pembaruan aplikasi ya!
+      </div>
+      <button
+        onClick={onBack}
+        style={{ marginTop: 8, background: '#22c55e', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+      >
+        ← Kembali
+      </button>
+    </div>
+  )
+}
+
 // Lazy-load all game components — each is fetched only when the student first opens that game
 const GAME_ROUTES = {
   termometer:         { name: 'Termometer Penyelamat',          emoji: '🌡️', Component: React.lazy(() => import('./minigames/TermometerGame')) },
@@ -330,15 +454,78 @@ const GAME_ROUTES = {
   g9sinyalkerucut:    { name: 'Zona Pancaran Sinyal',         emoji: '📡', Component: React.lazy(() => import('./minigames/G9SinyalKerucutGame')) },
   g9bintang:          { name: 'Kompresi Inti Bintang',        emoji: '⭐', Component: React.lazy(() => import('./minigames/G9BintangGame')) },
   g9upgradekapal:     { name: 'Upgrade Kapal Induk',          emoji: '🚀', Component: React.lazy(() => import('./minigames/G9UpgradeKapalGame')) },
+  // IPA Kelas 7 — BAB 1
+  ipa7b1t1: { name: 'Unit Converter Dash',          emoji: '📏', Component: React.lazy(() => import('./minigames/Ipa7B1T1Game')) },
+  ipa7b1t2: { name: 'Baku vs Non-Baku Sort',        emoji: '⚖️', Component: React.lazy(() => import('./minigames/Ipa7B1T2Game')) },
+  ipa7b1t3: { name: 'Lab Measurement Simulator',    emoji: '🔬', Component: React.lazy(() => import('./minigames/Ipa7B1T3Game')) },
+  // IPA Kelas 7 — BAB 2
+  ipa7b2t1: { name: 'Matter Inspector',             emoji: '🧪', Component: React.lazy(() => import('./minigames/Ipa7B2T1Game')) },
+  ipa7b2t2: { name: 'Phase Change Master',          emoji: '❄️', Component: React.lazy(() => import('./minigames/Ipa7B2T2Game')) },
+  ipa7b2t3: { name: 'Cohesion vs Adhesion Lab',     emoji: '💧', Component: React.lazy(() => import('./minigames/Ipa7B2T3Game')) },
+  ipa7b2t4: { name: 'Capillary Tube Challenge',     emoji: '🌿', Component: React.lazy(() => import('./minigames/Ipa7B2T4Game')) },
+  // IPA Kelas 7 — BAB 3
+  ipa7b3t1: { name: 'Thermometer Reader',           emoji: '🌡️', Component: React.lazy(() => import('./minigames/Ipa7B3T1Game')) },
+  ipa7b3t2: { name: 'Temperature Converter Wheel',  emoji: '🔄', Component: React.lazy(() => import('./minigames/Ipa7B3T2Game')) },
+  ipa7b3t3: { name: 'Thermal Expansion Builder',    emoji: '🔩', Component: React.lazy(() => import('./minigames/Ipa7B3T3Game')) },
+  // IPA Kelas 7 — BAB 4
+  ipa7b4t1: { name: 'Force Application Quest',      emoji: '💪', Component: React.lazy(() => import('./minigames/Ipa7B4T1Game')) },
+  ipa7b4t2: { name: 'Resultant Tug of War',         emoji: '⚖️', Component: React.lazy(() => import('./minigames/Ipa7B4T2Game')) },
+  ipa7b4t3: { name: 'Motion Classifier',            emoji: '🏃', Component: React.lazy(() => import('./minigames/Ipa7B4T3Game')) },
+  ipa7b4t4: { name: 'Speed vs Velocity Pilot',      emoji: '✈️', Component: IpaGamePlaceholder },
+  ipa7b4t5: { name: "Newton's Law Arena",            emoji: '⚡', Component: IpaGamePlaceholder },
+  // IPA Kelas 8 — BAB 1
+  ipa8b1t1: { name: 'History Timeline Puzzle',      emoji: '🕰️', Component: IpaGamePlaceholder },
+  ipa8b1t2: { name: 'Microscope Selector',          emoji: '🔭', Component: IpaGamePlaceholder },
+  ipa8b1t3: { name: 'Cell Organelle Sorter',        emoji: '🧫', Component: IpaGamePlaceholder },
+  ipa8b1t4: { name: 'Specialized Cell Match',       emoji: '🔬', Component: IpaGamePlaceholder },
+  ipa8b1t5: { name: 'Stem Cell Regenerator',        emoji: '🌱', Component: IpaGamePlaceholder },
+  // IPA Kelas 8 — BAB 2
+  ipa8b2t1: { name: 'Nutritional Plate Balance',    emoji: '🥗', Component: IpaGamePlaceholder },
+  ipa8b2t2: { name: 'Virtual Food Reagent Test',    emoji: '🧪', Component: IpaGamePlaceholder },
+  ipa8b2t3: { name: 'Digestive Track Runner',       emoji: '🫁', Component: IpaGamePlaceholder },
+  ipa8b2t4: { name: 'Digestive Hospital Clinic',    emoji: '🏥', Component: IpaGamePlaceholder },
+  ipa8b2t5: { name: 'Circulatory System Navigator', emoji: '❤️', Component: IpaGamePlaceholder },
+  ipa8b2t6: { name: 'Blood Component Defender',     emoji: '🩸', Component: IpaGamePlaceholder },
+  ipa8b2t7: { name: 'Blood Transfusion Match',      emoji: '💉', Component: IpaGamePlaceholder },
+  ipa8b2t8: { name: 'Cardiovascular Healthy Life',  emoji: '🫀', Component: IpaGamePlaceholder },
+  // IPA Kelas 8 — BAB 3
+  ipa8b3t1: { name: 'Organ Anatomy Builder',        emoji: '🫀', Component: IpaGamePlaceholder },
+  ipa8b3t2: { name: 'Organ Function Cards',         emoji: '🃏', Component: IpaGamePlaceholder },
+  ipa8b3t3: { name: 'Breathing Mechanism Pump',     emoji: '🫁', Component: IpaGamePlaceholder },
+  ipa8b3t4: { name: 'Alveoli Gas Exchange',         emoji: '💨', Component: IpaGamePlaceholder },
+  ipa8b3t5: { name: 'Nephron Urine Factory',        emoji: '🧫', Component: IpaGamePlaceholder },
+  ipa8b3t6: { name: 'Medical Case Analyzer',        emoji: '🩺', Component: IpaGamePlaceholder },
+  ipa8b3t7: { name: 'Healthy Habit Choice',         emoji: '🏃', Component: IpaGamePlaceholder },
+  // IPA Kelas 9 — BAB 1
+  ipa9b1t1: { name: 'Body Command Center',           emoji: '🧠', Component: IpaGamePlaceholder },
+  ipa9b1t2: { name: 'Neuron Network Relay',          emoji: '⚡', Component: IpaGamePlaceholder },
+  ipa9b1t3: { name: 'Hormone Gland Factory',         emoji: '🏭', Component: IpaGamePlaceholder },
+  ipa9b1t4: { name: 'Homeostasis Stabilizer',        emoji: '⚖️', Component: IpaGamePlaceholder },
+  ipa9b1t5: { name: 'Daily Stress Survival',         emoji: '🧘', Component: IpaGamePlaceholder },
+  // IPA Kelas 9 — BAB 2
+  ipa9b2t1: { name: 'Addictive Substance Quiz',      emoji: '⚠️', Component: IpaGamePlaceholder },
+  ipa9b2t2: { name: 'Substance Categorizer',         emoji: '🗂️', Component: IpaGamePlaceholder },
+  ipa9b2t3: { name: 'Impact Simulator',              emoji: '💔', Component: IpaGamePlaceholder },
+  ipa9b2t4: { name: 'Substance Flashcards',          emoji: '🃏', Component: IpaGamePlaceholder },
+  ipa9b2t5: { name: 'Consequence Analyzer',          emoji: '📊', Component: IpaGamePlaceholder },
+  ipa9b2t6: { name: 'Say No Challenge',              emoji: '🛡️', Component: IpaGamePlaceholder },
+  // IPA Kelas 9 — BAB 3
+  ipa9b3t1: { name: 'Reproductive Anatomy Puzzle',   emoji: '🧬', Component: IpaGamePlaceholder },
+  ipa9b3t2: { name: 'Human Life Stages Timeline',    emoji: '👶', Component: IpaGamePlaceholder },
+  ipa9b3t3: { name: 'Reproductive Health Guardian',  emoji: '🏥', Component: IpaGamePlaceholder },
+  ipa9b3t4: { name: 'Flora & Fauna Breeder',         emoji: '🌱', Component: IpaGamePlaceholder },
 }
 
-const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen, komunikasi: CommunicationScreen }
+const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen, ipa7: Ipa7ZoneScreen, ipa8: Ipa8ZoneScreen, ipa9: Ipa9ZoneScreen, komunikasi: CommunicationScreen }
 
 const SCREEN_TITLES = {
   home: 'Beranda',
   grade7: 'Zona Kelas 7',
   grade8: 'Zona Kelas 8',
   grade9: 'Zona Kelas 9',
+  ipa7: 'IPA Kelas 7',
+  ipa8: 'IPA Kelas 8',
+  ipa9: 'IPA Kelas 9',
   toko: 'Toko',
   papanperingkat: 'Papan Peringkat',
   lencana: 'Lencana',
@@ -353,10 +540,53 @@ const SCREEN_TITLES = {
   'tournament-wait': 'Turnamen',
 }
 
+// Rendered inside PlayerProvider — safe to call usePlayer().
+// Handles the mission:progress socket event and renders mission toasts/claims.
+function MissionBridge() {
+  const {
+    missionToasts, missionClaims,
+    dismissMissionToast, dismissMissionClaim, pushMissionProgress,
+  } = usePlayer()
+
+  useEffect(() => {
+    const socket = connectSocket()
+    socket.on('mission:progress', pushMissionProgress)
+    return () => { socket.off('mission:progress', pushMissionProgress) }
+  }, [pushMissionProgress])
+
+  return (
+    <>
+      <MissionProgressToast
+        toasts={missionToasts}
+        onDismiss={dismissMissionToast}
+      />
+      <MissionClaimNotification
+        missions={missionClaims}
+        onDismiss={dismissMissionClaim}
+        onClaim={async (missionId) => {
+          try {
+            const res = await fetch(`/api/siswa/event-missions/${missionId}/claim`, {
+              method: 'POST', credentials: 'include',
+            })
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}))
+              console.error('[MissionClaim] gagal:', err.error)
+            }
+          } catch (err) {
+            console.error('[MissionClaim]', err)
+          } finally {
+            dismissMissionClaim(missionId)
+          }
+        }}
+      />
+    </>
+  )
+}
+
 // Shared game-playing shell. Used for students (normal play with tasks/nilai) and for
 // teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
-  const { user, logout } = useAuth()
+  const { user, logout, dailyBonus, dismissDailyBonus } = useAuth()
 
   // Set data-tema on <html> so GameThemeStyles can target structural elements only.
   // During Kemerdekaan event (Jul 15–Aug 31) tema_merahputih overrides the user's
@@ -379,6 +609,55 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       document.documentElement.removeAttribute('data-tema')
     }
   }, [user?.equippedTema])
+
+  // ── Background music ─────────────────────────────────────────────────────
+  // kemerdekaan event → event track; otherwise → default track
+  useEffect(() => {
+    const isKemerdekaan = getActiveEvents().some(e => e.slug === 'kemerdekaan')
+    const track = isKemerdekaan
+      ? '/videoplayback.weba'
+      : '/videoplayback (1).weba'
+    startBgm(track)
+    return () => stopBgm()
+  }, [])   // mount once — event window is static for a session
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── Android APK: request notification permission + create channels ────────
+  useEffect(() => {
+    if (!window.Capacitor || guruMode) return
+    createNotificationChannels()
+    requestNotificationPermission()
+  }, [guruMode])
+
+  // ── Android APK: reconnect socket when app comes back to foreground ───────
+  // Android kills WebSocket connections when the app is suspended. Without an
+  // explicit reconnect on resume, all socket-based in-game notifications
+  // (duel invite, tournament match, mission progress) are permanently lost for
+  // the rest of the session.
+  useEffect(() => {
+    if (!window.Capacitor) return
+    let handle = null
+    ;(async () => {
+      try {
+        const { App: CapApp } = await import('@capacitor/app')
+        handle = await CapApp.addListener('appStateChange', ({ isActive }) => {
+          if (!isActive) return
+          // App returned to foreground — re-establish socket and recover state
+          const socket = connectSocket()
+          if (!socket.connected) socket.connect()
+          // Re-check tournament state in case we missed a 'tournament:your-match'
+          // event while the socket was down
+          if (!guruMode) {
+            socket.once('connect', () => socket.emit('tournament:check-active'))
+            if (socket.connected) socket.emit('tournament:check-active')
+          }
+        })
+      } catch {
+        // @capacitor/app not available (web build) — ignore silently
+      }
+    })()
+    return () => { handle?.remove?.() }
+  }, [guruMode])
 
   const [history, setHistory] = useState(['home'])
   const [pendingGame, setPendingGame] = useState(null) // { key, name, emoji }
@@ -478,10 +757,36 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     if (guruMode) return  // guru tidak perlu socket di mode practice
     const socket = connectSocket()
 
+    // Ask server if there is an ongoing tournament for this student's class
+    socket.emit('tournament:check-active')
+
+    // Server responds with active tournament state after page load / reconnect.
+    // Shape: { tournamentId, match: { matchId, opponent, gameKey, round } | null }
+    socket.on('tournament:active-state', ({ tournamentId, match } = {}) => {
+      if (!tournamentId) return
+      setActiveTournamentId(tournamentId)
+      if (match) {
+        // Student has a live pending match — show the full match notification
+        const matchData = { tournamentId, ...match }
+        setTournamentMatchData(matchData)
+        setTournamentBanner(matchData)
+      } else {
+        // Tournament active but no pending match — show bracket rejoin banner
+        setTournamentBanner({ type: 'bracket', tournamentId })
+      }
+    })
+
     // Server mengirim notifikasi match
     socket.on('tournament:your-match', (data) => {
       setTournamentMatchData(data)
       setTournamentBanner(data)
+      // Fire native OS banner so the student notices even while focused on a game
+      showLocalNotification({
+        id: 9001,
+        title: '🏆 Turnamen — Giliran Kamu!',
+        body: `Lawan: ${data?.opponent?.name ?? 'Lawan'} • Game siap dimulai`,
+        channel: 'tomat_game',
+      })
     })
 
     // Turnamen selesai (broadcast ke kelas)
@@ -502,6 +807,13 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     socket.on('duel:incoming-invite', (data) => {
       setDuelInvite(data)  // { code, from: { userId, name } }
+      // Fire native OS banner so the student notices even while focused on a game
+      showLocalNotification({
+        id: 9002,
+        title: '⚔️ Tantangan Duel!',
+        body: `${data?.from?.name ?? 'Temanmu'} mengajakmu duel`,
+        channel: 'tomat_game',
+      })
     })
 
     socket.on('duel:invite-expired', () => {
@@ -509,6 +821,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     })
 
     return () => {
+      socket.off('tournament:active-state')
       socket.off('tournament:your-match')
       socket.off('tournament:finished')
       socket.off('tournament:started')
@@ -706,20 +1019,29 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               <SubmitErrorToast />
               {/* Nananaga immunity activation toast */}
               <NananagaShieldToast />
+              {/* Mission toasts + claim modal — inside PlayerProvider via MissionBridge */}
+              <MissionBridge />
               {/* Tomi the guinea pig — walks across screen for students */}
               <FloatingPet onHungryClick={() => {
                 setTokoInitialTab('pet_skin')
                 navigate('toko')
               }} />
               {/* Tournament match notification banner */}
-              {tournamentBanner && current !== 'tournament-match' && (
+              {tournamentBanner && current !== 'tournament-match' && current !== 'tournament-wait' && (
                 <TournamentNotificationBanner
                   matchData={tournamentBanner}
                   onAccept={(data) => {
-                    setTournamentMatchData(data)
-                    setActiveTournamentId(data.tournamentId)
                     setTournamentBanner(null)
-                    navigate('tournament-match')
+                    if (data?.type === 'bracket') {
+                      // Rejoin bracket view — no pending match yet
+                      setActiveTournamentId(data.tournamentId)
+                      setHistory(h => [...h, 'tournament-wait'])
+                    } else {
+                      // Live match — go straight to arena
+                      setTournamentMatchData(data)
+                      setActiveTournamentId(data.tournamentId)
+                      navigate('tournament-match')
+                    }
                   }}
                   onDismiss={() => setTournamentBanner(null)}
                 />
@@ -746,6 +1068,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               {/* What's New modal — shown once per version after update */}
               {whatsNewOpen && !guruMode && (
                 <WhatsNewModal onClose={dismissWhatsNew} />
+              )}
+              {/* Daily login bonus modal — shown once per day on first login */}
+              {dailyBonus && !guruMode && (
+                <DailyBonusModal bonus={dailyBonus} onDismiss={dismissDailyBonus} />
               )}
               {/* Duel invite banner */}
               {duelInvite && current !== 'duel-lobby' && current !== 'duel-katak' && (

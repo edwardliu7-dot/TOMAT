@@ -4,6 +4,7 @@ import { connectSocket, getSocket } from '../socket'
 import { getGameInfo } from '../gamesCatalog'
 import { useAuth } from '../AuthContext'
 import { useTask } from '../TaskContext'
+import { usePlayer } from '../PlayerContext'
 import { getWrongImmunity } from '../petBonuses'
 
 function useIsMd() {
@@ -330,6 +331,7 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   const isMd = useIsMd()
   const { user } = useAuth()
   const { activeSession } = useTask()
+  const { syncCoins } = usePlayer()
   const [question, setQuestion] = useState(initQ)
   const [round, setRound]       = useState(initRound)
   const [scores, setScores]     = useState(initScores)
@@ -430,7 +432,16 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
     })
 
     // Game over — works from any phase (playing, result, leaderboard)
-    socket.on('duel:game-over', ({ winner, scores: finalScores }) => {
+    socket.on('duel:game-over', ({ winner, scores: finalScores, winnerNewCoins }) => {
+      const myUserId = user?.id
+      const iWon = winner?.userId && String(winner.userId) === String(myUserId)
+      console.log(`[duel:game-over] winner=${winner?.userId ?? 'draw'} myId=${myUserId} iWon=${iWon} winnerNewCoins=${winnerNewCoins}`)
+      // BUG FIX: sync the server-authoritative coin balance so the UI reflects
+      // the 15-coin win reward that the server now awards in finishGame().
+      if (iWon && winnerNewCoins != null) {
+        console.log(`[duel:game-over] Syncing coins → ${winnerNewCoins}`)
+        syncCoins(winnerNewCoins)
+      }
       setScores(finalScores)
       setPhase('game-over')
       setGameOver({ winner, scores: finalScores })
@@ -456,7 +467,7 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
       socket.off('duel:player-left')
       socket.off('duel:opponent-slider')
     }
-  }, [myIndex, code, gameKey])
+  }, [myIndex, code, gameKey, syncCoins, user])
 
   // Emit leave on unmount if game not over
   useEffect(() => {
