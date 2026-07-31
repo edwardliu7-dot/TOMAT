@@ -534,14 +534,53 @@ const SCREEN_TITLES = {
   'tournament-wait': 'Turnamen',
 }
 
-// Shared game-playing shell. Used for students (normal play with tasks/nilai) and for
-// teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
-function PlayerExperience({ guruMode = false, onExitGuruMode }) {
-  const { user, logout, dailyBonus, dismissDailyBonus } = useAuth()
+// Rendered inside PlayerProvider — safe to call usePlayer().
+// Handles the mission:progress socket event and renders mission toasts/claims.
+function MissionBridge() {
   const {
     missionToasts, missionClaims,
     dismissMissionToast, dismissMissionClaim, pushMissionProgress,
   } = usePlayer()
+
+  useEffect(() => {
+    const socket = connectSocket()
+    socket.on('mission:progress', pushMissionProgress)
+    return () => { socket.off('mission:progress', pushMissionProgress) }
+  }, [pushMissionProgress])
+
+  return (
+    <>
+      <MissionProgressToast
+        toasts={missionToasts}
+        onDismiss={dismissMissionToast}
+      />
+      <MissionClaimNotification
+        missions={missionClaims}
+        onDismiss={dismissMissionClaim}
+        onClaim={async (missionId) => {
+          try {
+            const res = await fetch(`/api/siswa/event-missions/${missionId}/claim`, {
+              method: 'POST', credentials: 'include',
+            })
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}))
+              console.error('[MissionClaim] gagal:', err.error)
+            }
+          } catch (err) {
+            console.error('[MissionClaim]', err)
+          } finally {
+            dismissMissionClaim(missionId)
+          }
+        }}
+      />
+    </>
+  )
+}
+
+// Shared game-playing shell. Used for students (normal play with tasks/nilai) and for
+// teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
+function PlayerExperience({ guruMode = false, onExitGuruMode }) {
+  const { user, logout, dailyBonus, dismissDailyBonus } = useAuth()
 
   // Set data-tema on <html> so GameThemeStyles can target structural elements only.
   // During Kemerdekaan event (Jul 15–Aug 31) tema_merahputih overrides the user's
@@ -712,9 +751,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       // Host: invite timed out — LobbyScreen handles its own state
     })
 
-    // Mission progress dari duel / turnamen (REST /gain sudah handle minigame)
-    socket.on('mission:progress', pushMissionProgress)
-
     return () => {
       socket.off('tournament:active-state')
       socket.off('tournament:your-match')
@@ -723,7 +759,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       socket.off('tournament:cancelled')
       socket.off('duel:incoming-invite')
       socket.off('duel:invite-expired')
-      socket.off('mission:progress')
     }
   }, [guruMode])
 
@@ -915,31 +950,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               <SubmitErrorToast />
               {/* Nananaga immunity activation toast */}
               <NananagaShieldToast />
-              {/* Mission progress toast — muncul setelah jawaban benar di semua mode */}
-              <MissionProgressToast
-                toasts={missionToasts}
-                onDismiss={dismissMissionToast}
-              />
-              {/* Mission claim modal — muncul ketika misi baru selesai */}
-              <MissionClaimNotification
-                missions={missionClaims}
-                onDismiss={dismissMissionClaim}
-                onClaim={async (missionId) => {
-                  try {
-                    const res = await fetch(`/api/siswa/event-missions/${missionId}/claim`, {
-                      method: 'POST', credentials: 'include',
-                    })
-                    if (!res.ok) {
-                      const err = await res.json().catch(() => ({}))
-                      console.error('[MissionClaim] gagal:', err.error)
-                    }
-                  } catch (err) {
-                    console.error('[MissionClaim]', err)
-                  } finally {
-                    dismissMissionClaim(missionId)
-                  }
-                }}
-              />
+              {/* Mission toasts + claim modal — inside PlayerProvider via MissionBridge */}
+              <MissionBridge />
               {/* Tomi the guinea pig — walks across screen for students */}
               <FloatingPet onHungryClick={() => {
                 setTokoInitialTab('pet_skin')
