@@ -1,4 +1,4 @@
-import React, { useState, useCallback, Component, Suspense, useEffect } from 'react'
+import React, { useState, useCallback, Component, Suspense, useEffect, useRef } from 'react'
 import { PetProvider } from './PetContext'
 import FloatingPet from './components/FloatingPet'
 import { PlayerProvider, usePlayer } from './PlayerContext'
@@ -603,6 +603,40 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       document.documentElement.removeAttribute('data-tema')
     }
   }, [user?.equippedTema])
+
+  // ── Background music during Kemerdekaan event ────────────────────────────
+  const bgMusicRef = useRef(null)
+  useEffect(() => {
+    const isKemerdekaan = getActiveEvents().some(e => e.slug === 'kemerdekaan')
+    if (!isKemerdekaan) return
+
+    const audio = new Audio('/videoplayback.weba')
+    audio.loop   = true
+    audio.volume = 0.3
+    bgMusicRef.current = audio
+
+    // Browsers block autoplay until a user gesture has occurred.
+    // We try immediately; if blocked, retry on the first touch/click.
+    const tryPlay = () => audio.play().catch(() => {})
+    tryPlay()
+    const onGesture = () => { tryPlay(); cleanup() }   // play then stop listening
+    const cleanup   = () => {
+      document.removeEventListener('click',     onGesture)
+      document.removeEventListener('touchstart', onGesture)
+      document.removeEventListener('keydown',   onGesture)
+    }
+    document.addEventListener('click',      onGesture, { once: true })
+    document.addEventListener('touchstart', onGesture, { once: true })
+    document.addEventListener('keydown',    onGesture, { once: true })
+
+    return () => {
+      cleanup()
+      audio.pause()
+      audio.src = ''
+      bgMusicRef.current = null
+    }
+  }, [])   // mount once — event window is static for a session
+  // ─────────────────────────────────────────────────────────────────────────
 
   const [history, setHistory] = useState(['home'])
   const [pendingGame, setPendingGame] = useState(null) // { key, name, emoji }
