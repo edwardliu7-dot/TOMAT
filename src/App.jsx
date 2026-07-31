@@ -355,7 +355,7 @@ const GAME_ROUTES = {
   // IPA — placeholder sampai game diimplementasikan
   ipa7pengukuran:     { name: 'Precision Measurement Lab',        emoji: '📏', Component: React.lazy(() => import('./minigames/Ipa7PengukuranGame')) },
   ipa7zat:            { name: 'Fluid & Molecular Quest',          emoji: '💧', Component: React.lazy(() => import('./minigames/Ipa7ZatGame')) },
-  ipa7suhu:           { name: 'Thermal Control Center',           emoji: '🌡️', Component: IpaGamePlaceholder },
+  ipa7suhu:           { name: 'Thermal Control Center',           emoji: '🌡️', Component: React.lazy(() => import('./minigames/Ipa7SuhuGame')) },
   ipa7gaya:           { name: 'Physics Arena: Motion & Force',    emoji: '⚡', Component: IpaGamePlaceholder },
   ipa8sel:            { name: 'Microscope Explorer & Cell Builder',emoji: '🔬', Component: IpaGamePlaceholder },
   ipa8pencernaan:     { name: 'Nutrient Test & Blood Transfusion', emoji: '🩸', Component: IpaGamePlaceholder },
