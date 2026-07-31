@@ -78,7 +78,7 @@ router.post('/gain', async (req, res) => {
     if (coinsGain > 0) {
       incrementMissionProgress(req.session.user.id, 'kemerdekaan_1', 1).catch(() => {})
     }
-    res.json({ player: playerFields(updatedRows[0]), newBadges })
+    res.json({ player: playerFields(updatedRows[0]), newBadges, gainedCoins: boostedCoins, gainedExp: boostedExp })
   } catch (err) {
     await client.query('rollback').catch(() => {})
     console.error('player/gain error', err)

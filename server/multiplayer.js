@@ -606,6 +606,49 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     // TOURNAMENT — spectator (guru) + player (siswa) events
     // ════════════════════════════════════════════════════════════════════════
 
+    // Siswa: cek apakah ada turnamen aktif setelah refresh halaman.
+    // Mencari turnamen mana pun yang masih berjalan dan siswa ini termasuk peserta.
+    socket.on('tournament:check-active', () => {
+      if (user.role !== 'siswa') return
+      for (const [tournamentId, t] of tournaments) {
+        if (t.status !== 'in-progress') continue
+        const isParticipant = t.students?.some(s => String(s.userId) === String(user.id))
+        if (!isParticipant) continue
+
+        // Bergabung ke room bracket agar menerima update
+        socket.join(`tournament:${tournamentId}`)
+
+        // Cari match aktif (waiting-join atau in-progress) untuk siswa ini di ronde saat ini
+        const round = t.rounds[t.currentRound - 1]
+        let pendingMatch = null
+        if (round) {
+          pendingMatch = round.matches.find(m =>
+            (m.player1?.userId === user.id || m.player2?.userId === user.id) &&
+            ['waiting-join', 'in-progress'].includes(m.status)
+          )
+        }
+
+        if (pendingMatch) {
+          const opponent = pendingMatch.player1?.userId === user.id
+            ? pendingMatch.player2 : pendingMatch.player1
+          socket.emit('tournament:active-state', {
+            tournamentId,
+            match: {
+              matchId:    pendingMatch.id,
+              opponent:   opponent ? { userId: opponent.userId, name: opponent.name } : null,
+              gameKey:    t.gameKey,
+              round:      t.currentRound,
+            },
+          })
+        } else {
+          // Turnamen masih berjalan tapi tidak ada match pending untuk siswa ini
+          // (mungkin sudah menang/kalah di ronde ini, menunggu ronde berikutnya)
+          socket.emit('tournament:active-state', { tournamentId, match: null })
+        }
+        return // Satu siswa hanya bisa ada di satu turnamen aktif
+      }
+    })
+
     // Guru/siswa: join tournament room untuk melihat bracket live.
     // Siswa hanya boleh melihat turnamen yang memang diikutinya.
     socket.on('tournament:spectate', ({ tournamentId } = {}) => {

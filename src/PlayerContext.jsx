@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { useAuth } from './AuthContext'
+import { PET_COIN_MULT, PET_EXP_MULT } from './petBonuses'
 
 export const PlayerContext = createContext(null)
 
@@ -29,6 +30,9 @@ export const CORRECT_ANSWER_COIN_REWARD = 15
 export function PlayerProvider({ children }) {
   const { user } = useAuth()
   const isSiswa = user?.role === 'siswa'
+  const skinId   = user?.equippedPetSkin || 'golden'
+  const coinMult = PET_COIN_MULT[skinId] ?? 1.0
+  const expMult  = PET_EXP_MULT[skinId]  ?? 1.0
   const [player, setPlayer] = useState({
     name: user?.name || 'SiswaHebat',
     coins: isSiswa ? (user?.coins ?? 0) : 150,
@@ -59,10 +63,13 @@ export function PlayerProvider({ children }) {
   }, [user?.id])
 
   const addCoins = useCallback((amount) => {
-    const reward = amount === 50 ? CORRECT_ANSWER_COIN_REWARD : amount
+    // `base` is the raw gameplay reward; server will apply pet multiplier independently.
+    // We apply the same multiplier client-side for an accurate optimistic display.
+    const base   = amount === 50 ? CORRECT_ANSWER_COIN_REWARD : amount
+    const reward = Math.round(base * coinMult)
     setPlayer(p => ({ ...p, coins: p.coins + reward }))
     if (isSiswa) {
-      persistGain(reward, 0).then(data => {
+      persistGain(base, 0).then(data => {
         if (data?.player) {
           // Reconcile with server's authoritative coin balance to prevent drift.
           setPlayer(p => ({ ...p, coins: data.player.coins, level: data.player.level, exp: data.player.exp, maxExp: data.player.maxExp }))
@@ -70,13 +77,15 @@ export function PlayerProvider({ children }) {
         if (data?.newBadges?.length) setNewBadges(b => [...b, ...data.newBadges])
       })
     }
-  }, [isSiswa])
+  }, [isSiswa, coinMult])
 
   const addExp = useCallback((amount) => {
+    // Apply pet EXP multiplier client-side (server applies the same)
+    const boosted = Math.round(amount * expMult)
     setPlayer(p => {
       let { level, exp, maxExp } = p
       const prevLevel = level
-      exp += amount
+      exp += boosted
       while (exp >= maxExp) {
         exp -= maxExp
         level += 1
@@ -98,7 +107,7 @@ export function PlayerProvider({ children }) {
         if (data?.newBadges?.length) setNewBadges(b => [...b, ...data.newBadges])
       })
     }
-  }, [isSiswa])
+  }, [isSiswa, expMult])
 
   // Called by games when a wrong answer is confirmed. In free-play this is a
   // no-op; TaskContext overrides it to advance the task session counter so that

@@ -30,6 +30,30 @@ export function getPetBonusDisplay(skinId) {
   return PET_BONUS_DISPLAY[skinId] || PET_BONUS_DISPLAY.golden
 }
 
+// ── Client-side multiplier maps ────────────────────────────────────────────────
+// Mirrors server/pet-bonuses.js — used for OPTIMISTIC display in PlayerContext so
+// the UI shows the boosted amount immediately, not just after server reconcile.
+export const PET_COIN_MULT = {
+  golden:             1.00,
+  pet_skin_silver:    1.10,
+  pet_skin_cosmic:    1.25,
+  pet_skin_void:      1.50,
+  pet_monyong:        1.20,
+  pet_monyong_raja:   1.30,
+  pet_monyong_kosmik: 1.50,
+}
+
+export const PET_EXP_MULT = {
+  golden:                  1.00,
+  pet_kelinsay:            1.15,
+  pet_kelinsay_senja:      1.25,
+  pet_kelinsay_malam:      1.40,
+  pet_kelinsay_merahputih: 1.75,
+  pet_monyong:             1.20,
+  pet_monyong_raja:        1.30,
+  pet_monyong_kosmik:      1.50,
+}
+
 // ── Wrong-immunity helpers ─────────────────────────────────────────────────────
 // Maps skinId → number of wrong-answer immunity tokens for duel/tournament/survival.
 // Mirrors server/pet-bonuses.js wrongImmunity values — kept in sync manually.
