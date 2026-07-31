@@ -364,4 +364,22 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
+## 16. Alur Data Event Mission — Aturan Kritis
+
+Event misi (`kemerdekaan_1`, dll.) hanya ter-increment via **dua jalur resmi**. Setiap jalur baru yang menghasilkan "jawaban benar" wajib disambungkan ke salah satu jalur ini:
+
+| Jalur | Trigger | File |
+|-------|---------|------|
+| **REST** (minigame) | `addCoins(50)` → `POST /api/siswa/player/gain` → `incrementMissionProgress('kemerdekaan_1')` | `server/player.js` |
+| **Socket.io duel** | `duel:answer` handler → `if (correct)` → `incrementMissionProgress('kemerdekaan_1')` | `server/multiplayer.js` |
+| **Socket.io turnamen** | `handleTournamentAnswer` → `if (correct)` → `incrementMissionProgress('kemerdekaan_1')` | `server/tournament-engine.js` |
+
+### Aturan Wajib
+- **Duel/turnamen** tidak memanggil `/api/siswa/player/gain` — misi harus di-hook langsung di Socket.io handler.
+- Jika menambah mode permainan baru (co-op, survival real-time, dll.), **wajib** tambahkan hook `incrementMissionProgress('kemerdekaan_1', 1)` di server handler jawaban benarnya.
+- **Koin kemenangan duel** diberikan server-side di `finishGame()` via `pool.query`, lalu kirim `winnerNewCoins` di payload `duel:game-over`. Klien panggil `syncCoins(winnerNewCoins)` — **jangan** panggil `addCoins()` di klien untuk duel win (double-count).
+- **Boss Raid** jawaban benar tidak terhubung ke `kemerdekaan_1` (intentional: bukan "soal game", melainkan co-op event terpisah).
+
+---
+
 *Terakhir diperbarui: 31 Juli 2026. Update file ini setiap kali ada perubahan arsitektur signifikan.*

@@ -9,6 +9,7 @@
 import { genTournamentQ } from './tournament-questions.js'
 import { tournaments, tournamentToClient, buildFirstRound, buildFirstRoundFromTeams, getTournamentIo } from './tournament-state.js'
 import { pool } from './db.js'
+import { incrementMissionProgress } from './event-missions.js'
 
 async function saveTournamentHistory(tournament, status) {
   try {
@@ -121,6 +122,17 @@ export function handleTournamentAnswer(io, tournament, match, userId, value, soc
 
   const correct = (value === currentQ.answer)
   if (correct) match.scores[userId] = (match.scores[userId] || 0) + 1
+
+  // BUG FIX: tournament correct answers must count toward kemerdekaan_1 ("17 soal benar").
+  // Same gap as duel — tournament answers go through Socket.io, never through /api/siswa/player/gain.
+  if (correct) {
+    console.log(`[mission][tournament:answer] user=${userId} correct → incrementing kemerdekaan_1`)
+    incrementMissionProgress(userId, 'kemerdekaan_1', 1).catch((err) => {
+      console.error('[mission][tournament:answer] kemerdekaan_1 increment error:', err)
+    })
+  } else {
+    console.log(`[mission][tournament:answer] user=${userId} wrong — no kemerdekaan_1 increment`)
+  }
 
   // Hapus soal aktif untuk mencegah double-submit
   match._playerCurrentQ[userId] = null

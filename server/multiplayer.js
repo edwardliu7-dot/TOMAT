@@ -63,7 +63,7 @@ function startPlayerRound(io, room, player) {
   })
 }
 
-function finishGame(io, room) {
+async function finishGame(io, room) {
   if (room._finishingGame) return
   room._finishingGame = true
   room.status = 'finished'
@@ -77,14 +77,39 @@ function finishGame(io, room) {
     // Only one player left (other disconnected from leaderboard) — remaining wins
     winner = safePlayer(p0)
   }
+
+  // Award 15 coins + track kemerdekaan_2 for the winner (server-authoritative).
+  // BUG FIX: previously only tracked kemerdekaan_2 but never actually awarded coins,
+  // even though GameOverScreen displayed "+15 koin".
+  let winnerNewCoins = null
+  if (winner?.userId) {
+    console.log(`[mission][duel:finishGame] winner=${winner.userId} → awarding 15 coins + incrementing kemerdekaan_2`)
+    try {
+      const { rows } = await pool.query(
+        `update students
+           set coins              = coins              + 15,
+               total_coins_earned = total_coins_earned + 15
+         where id = $1
+         returning coins`,
+        [winner.userId]
+      )
+      winnerNewCoins = rows[0]?.coins ?? null
+      console.log(`[duel:win] New coin balance for ${winner.userId}: ${winnerNewCoins}`)
+    } catch (err) {
+      console.error('[duel:win] coin award error:', err)
+    }
+    incrementMissionProgress(winner.userId, 'kemerdekaan_2', 1).catch((err) => {
+      console.error('[mission][duel:finishGame] kemerdekaan_2 increment error:', err)
+    })
+  } else {
+    console.log('[duel:finishGame] Draw — no winner, skipping coin award and kemerdekaan_2')
+  }
+
   io.to(room.code).emit('duel:game-over', {
     winner,
     scores: room.players.map(safePlayer),
+    winnerNewCoins,   // new field: client uses this to sync coin display without double-counting
   })
-  // Fire-and-forget: track duel win for Misi Pasukan Merah Putih
-  if (winner?.userId) {
-    incrementMissionProgress(winner.userId, 'kemerdekaan_2', 1).catch(() => {})
-  }
 }
 
 function leaveAllRooms(socket, io) {
@@ -293,6 +318,18 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       player.lastAnswer = value
       const correct = (value === player.currentQ.answer)
       if (correct) player.score++
+
+      // BUG FIX: duel correct answers must also count toward kemerdekaan_1 ("17 soal benar").
+      // Previously only /api/siswa/player/gain triggered this mission, so duel play was invisible
+      // to the event mission system entirely.
+      if (correct) {
+        console.log(`[mission][duel:answer] user=${user.id} correct → incrementing kemerdekaan_1`)
+        incrementMissionProgress(user.id, 'kemerdekaan_1', 1).catch((err) => {
+          console.error('[mission][duel:answer] kemerdekaan_1 increment error:', err)
+        })
+      } else {
+        console.log(`[mission][duel:answer] user=${user.id} wrong — no kemerdekaan_1 increment`)
+      }
 
       const opponent = room.players.find(p => p.userId !== user.id)
 

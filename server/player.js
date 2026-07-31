@@ -76,7 +76,10 @@ router.post('/gain', async (req, res) => {
     const newBadges = await checkAndAwardBadges(req.session.user.id)
     // Fire-and-forget: count each /gain call (1 correct answer) toward misi lomba 17-an
     if (coinsGain > 0) {
-      incrementMissionProgress(req.session.user.id, 'kemerdekaan_1', 1).catch(() => {})
+      console.log(`[mission][player/gain] student=${req.session.user.id} coins=${coinsGain} → incrementing kemerdekaan_1`)
+      incrementMissionProgress(req.session.user.id, 'kemerdekaan_1', 1).catch((err) => {
+        console.error('[mission][player/gain] incrementMissionProgress error:', err)
+      })
     }
     res.json({ player: playerFields(updatedRows[0]), newBadges, gainedCoins: boostedCoins, gainedExp: boostedExp })
   } catch (err) {
