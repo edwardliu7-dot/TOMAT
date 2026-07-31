@@ -197,8 +197,9 @@ function DailyBonusModal({ bonus, onDismiss }) {
   if (!bonus) return null
 
   const { coins = 100, streak = 1, nextMilestone = 7 } = bonus
-  const progressPct = Math.min(((streak % 7) / 7) * 100, 100)
-  const streakDisplay = streak % 7 === 0 ? 7 : streak % 7
+  const cyclePos = streak % 7 === 0 ? 7 : streak % 7   // 1–7, never 0
+  const progressPct = (cyclePos / 7) * 100
+  const streakDisplay = cyclePos
 
   return (
     <div style={{
@@ -261,7 +262,9 @@ function DailyBonusModal({ bonus, onDismiss }) {
           </div>
           {nextMilestone > 0 && (
             <div style={{ fontSize: 10, color: '#475569', marginTop: 5 }}>
-              {nextMilestone - (streak % nextMilestone || nextMilestone)} hari lagi menuju bonus spesial 🎁
+              {cyclePos === 7
+                ? '🎁 Bonus spesial minggu ini tercapai!'
+                : `${7 - cyclePos} hari lagi menuju bonus spesial 🎁`}
             </div>
           )}
         </div>
@@ -608,11 +611,18 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     // Ask server if there is an ongoing tournament for this student's class
     socket.emit('tournament:check-active')
 
-    // Server responds with active tournament state after page load / reconnect
-    socket.on('tournament:active-state', ({ tournamentId } = {}) => {
-      if (tournamentId) {
-        setActiveTournamentId(tournamentId)
-        // Show rejoin banner so student can get back to the bracket view
+    // Server responds with active tournament state after page load / reconnect.
+    // Shape: { tournamentId, match: { matchId, opponent, gameKey, round } | null }
+    socket.on('tournament:active-state', ({ tournamentId, match } = {}) => {
+      if (!tournamentId) return
+      setActiveTournamentId(tournamentId)
+      if (match) {
+        // Student has a live pending match — show the full match notification
+        const matchData = { tournamentId, ...match }
+        setTournamentMatchData(matchData)
+        setTournamentBanner(matchData)
+      } else {
+        // Tournament active but no pending match — show bracket rejoin banner
         setTournamentBanner({ type: 'bracket', tournamentId })
       }
     })
