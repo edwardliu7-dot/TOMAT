@@ -190,6 +190,97 @@ function DuelGamePickerModal({ target, onPick, onCancel }) {
     </div>
   )
 }
+// ── Daily login bonus modal ────────────────────────────────────────────────────
+// Shown once per day when the server confirms a fresh login streak reward.
+// dailyBonus shape: { coins, streak, nextMilestone }
+function DailyBonusModal({ bonus, onDismiss }) {
+  if (!bonus) return null
+
+  const { coins = 100, streak = 1, nextMilestone = 7 } = bonus
+  const progressPct = Math.min(((streak % 7) / 7) * 100, 100)
+  const streakDisplay = streak % 7 === 0 ? 7 : streak % 7
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10005,
+      background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '0 20px',
+      fontFamily: 'system-ui, sans-serif',
+    }}>
+      <div style={{
+        width: '100%', maxWidth: 380,
+        background: 'linear-gradient(135deg,#1a1020,#0d1a2e)',
+        border: '2px solid rgba(251,191,36,0.55)',
+        borderRadius: 28, padding: '32px 24px 24px',
+        boxShadow: '0 0 80px rgba(251,191,36,0.2), 0 24px 60px rgba(0,0,0,0.6)',
+        position: 'relative', overflow: 'hidden',
+        textAlign: 'center',
+      }}>
+        {/* Background glow */}
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 28, background: 'radial-gradient(circle at 50% 0%, rgba(251,191,36,0.09) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+        {/* Fire streak icon */}
+        <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>🔥</div>
+        <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 800, letterSpacing: 2, marginBottom: 6 }}>
+          BONUS LOGIN HARIAN
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>
+          Hari ke-{streak}!
+        </div>
+        <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 20, lineHeight: 1.5 }}>
+          Kamu sudah login berturut-turut {streak} hari.
+        </div>
+
+        {/* Coin badge */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 10,
+          background: 'linear-gradient(135deg,rgba(251,191,36,0.18),rgba(245,158,11,0.1))',
+          border: '1.5px solid rgba(251,191,36,0.45)',
+          borderRadius: 18, padding: '14px 28px',
+          marginBottom: 22,
+        }}>
+          <span style={{ fontSize: 28 }}>🪙</span>
+          <span style={{ fontSize: 30, fontWeight: 900, color: '#fbbf24' }}>+{coins}</span>
+        </div>
+
+        {/* 7-day progress bar */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748B', marginBottom: 6 }}>
+            <span>Streak mingguan</span>
+            <span style={{ color: '#fbbf24', fontWeight: 700 }}>{streakDisplay}/7 hari</span>
+          </div>
+          <div style={{ height: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${progressPct}%`,
+              background: 'linear-gradient(90deg,#f59e0b,#fbbf24)',
+              borderRadius: 8,
+              transition: 'width 0.6s cubic-bezier(0.34,1.56,0.64,1)',
+            }} />
+          </div>
+          {nextMilestone > 0 && (
+            <div style={{ fontSize: 10, color: '#475569', marginTop: 5 }}>
+              {nextMilestone - (streak % nextMilestone || nextMilestone)} hari lagi menuju bonus spesial 🎁
+            </div>
+          )}
+        </div>
+
+        {/* Claim button */}
+        <button onClick={onDismiss} style={{
+          width: '100%', background: 'linear-gradient(90deg,#f59e0b,#fbbf24)',
+          border: 'none', borderRadius: 16, padding: '16px',
+          color: '#1a1020', fontSize: 16, fontWeight: 900,
+          cursor: 'pointer', fontFamily: 'inherit', letterSpacing: 0.3,
+          boxShadow: '0 4px 24px rgba(251,191,36,0.4)',
+        }}>
+          🎉 Klaim Bonus!
+        </button>
+      </div>
+    </div>
+  )
+}
+
 import GameDesktopWrapper from './components/GameDesktopWrapper'
 import { fetchPublicProfile, normalizeProfileTarget } from './components/shared'
 import { getGameTheme, GameThemeOverlay, GameThemeStyles } from './gameTheme'
@@ -392,7 +483,7 @@ const SCREEN_TITLES = {
 // Shared game-playing shell. Used for students (normal play with tasks/nilai) and for
 // teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
-  const { user, logout } = useAuth()
+  const { user, logout, dailyBonus, dismissDailyBonus } = useAuth()
 
   // Set data-tema on <html> so GameThemeStyles can target structural elements only.
   // During Kemerdekaan event (Jul 15–Aug 31) tema_merahputih overrides the user's
@@ -514,6 +605,18 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     if (guruMode) return  // guru tidak perlu socket di mode practice
     const socket = connectSocket()
 
+    // Ask server if there is an ongoing tournament for this student's class
+    socket.emit('tournament:check-active')
+
+    // Server responds with active tournament state after page load / reconnect
+    socket.on('tournament:active-state', ({ tournamentId } = {}) => {
+      if (tournamentId) {
+        setActiveTournamentId(tournamentId)
+        // Show rejoin banner so student can get back to the bracket view
+        setTournamentBanner({ type: 'bracket', tournamentId })
+      }
+    })
+
     // Server mengirim notifikasi match
     socket.on('tournament:your-match', (data) => {
       setTournamentMatchData(data)
@@ -545,6 +648,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     })
 
     return () => {
+      socket.off('tournament:active-state')
       socket.off('tournament:your-match')
       socket.off('tournament:finished')
       socket.off('tournament:started')
@@ -748,14 +852,21 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
                 navigate('toko')
               }} />
               {/* Tournament match notification banner */}
-              {tournamentBanner && current !== 'tournament-match' && (
+              {tournamentBanner && current !== 'tournament-match' && current !== 'tournament-wait' && (
                 <TournamentNotificationBanner
                   matchData={tournamentBanner}
                   onAccept={(data) => {
-                    setTournamentMatchData(data)
-                    setActiveTournamentId(data.tournamentId)
                     setTournamentBanner(null)
-                    navigate('tournament-match')
+                    if (data?.type === 'bracket') {
+                      // Rejoin bracket view — no pending match yet
+                      setActiveTournamentId(data.tournamentId)
+                      setHistory(h => [...h, 'tournament-wait'])
+                    } else {
+                      // Live match — go straight to arena
+                      setTournamentMatchData(data)
+                      setActiveTournamentId(data.tournamentId)
+                      navigate('tournament-match')
+                    }
                   }}
                   onDismiss={() => setTournamentBanner(null)}
                 />
@@ -782,6 +893,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               {/* What's New modal — shown once per version after update */}
               {whatsNewOpen && !guruMode && (
                 <WhatsNewModal onClose={dismissWhatsNew} />
+              )}
+              {/* Daily login bonus modal — shown once per day on first login */}
+              {dailyBonus && !guruMode && (
+                <DailyBonusModal bonus={dailyBonus} onDismiss={dismissDailyBonus} />
               )}
               {/* Duel invite banner */}
               {duelInvite && current !== 'duel-lobby' && current !== 'duel-katak' && (
