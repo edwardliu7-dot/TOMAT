@@ -9,9 +9,9 @@ router.use(requireAuth, requireRole('siswa'))
 
 // ── Hardcoded food catalog (consumables — not stored in shop_items inventory) ──
 export const PET_FOODS = {
-  wortel_kecil:  { nama: 'Wortel Kecil',  emoji: '🥕', harga: 10,  hours: 2,  color: '#F5A623' },
-  sayuran_segar: { nama: 'Sayuran Segar', emoji: '🥦', harga: 25,  hours: 6,  color: '#34D399' },
-  buah_premium:  { nama: 'Buah Premium',  emoji: '🍓', harga: 40,  hours: 16, color: '#F472B6' },
+  wortel_kecil:  { nama: 'Wortel Kecil',  emoji: '🥕', harga: 3,   hours: 2,  color: '#F5A623' },
+  sayuran_segar: { nama: 'Sayuran Segar', emoji: '🥦', harga: 8,   hours: 6,  color: '#34D399' },
+  buah_premium:  { nama: 'Buah Premium',  emoji: '🍓', harga: 20,  hours: 16, color: '#F472B6' },
   pesta_mewah:   { nama: 'Pesta Mewah',   emoji: '🫐', harga: 50,  hours: 72, color: '#A78BFA' },
 }
 
