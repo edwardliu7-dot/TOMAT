@@ -353,7 +353,7 @@ const GAME_ROUTES = {
   g9bintang:          { name: 'Kompresi Inti Bintang',        emoji: '⭐', Component: React.lazy(() => import('./minigames/G9BintangGame')) },
   g9upgradekapal:     { name: 'Upgrade Kapal Induk',          emoji: '🚀', Component: React.lazy(() => import('./minigames/G9UpgradeKapalGame')) },
   // IPA — placeholder sampai game diimplementasikan
-  ipa7pengukuran:     { name: 'Precision Measurement Lab',        emoji: '📏', Component: IpaGamePlaceholder },
+  ipa7pengukuran:     { name: 'Precision Measurement Lab',        emoji: '📏', Component: React.lazy(() => import('./minigames/Ipa7PengukuranGame')) },
   ipa7zat:            { name: 'Fluid & Molecular Quest',          emoji: '💧', Component: IpaGamePlaceholder },
   ipa7suhu:           { name: 'Thermal Control Center',           emoji: '🌡️', Component: IpaGamePlaceholder },
   ipa7gaya:           { name: 'Physics Arena: Motion & Force',    emoji: '⚡', Component: IpaGamePlaceholder },
