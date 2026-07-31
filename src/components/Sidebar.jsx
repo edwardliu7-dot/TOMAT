@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import logo from '../assets/logo.png'
 import { getGradeNumber } from '../kelasUtils'
 import { UserAvatar } from './shared'
-import { isSfxEnabled, toggleSfx } from '../sfx'
+import AudioPanel from './AudioPanel'
 
 // Screens where sidebar is shown
 const SAFE_SCREENS = new Set([
@@ -73,7 +73,6 @@ function NavItem({ item, isActive, onClick }) {
 export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
   const [visible, setVisible] = useState(window.innerWidth >= 1024)
   const [activeGuruKey, setActiveGuruKey] = useState('guruDashboard')
-  const [sfxOn, setSfxOn] = useState(isSfxEnabled)
 
   useEffect(() => {
     const onResize = () => setVisible(window.innerWidth >= 1024)
@@ -185,26 +184,19 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
             onClick={handleNav}
           />
         )}
-        {/* Sound toggle */}
-        <button
-          onClick={() => { toggleSfx(); setSfxOn(isSfxEnabled()) }}
-          style={{
+        {/* Audio panel */}
+        <AudioPanel
+          placement="up-left"
+          buttonStyle={{
             height: 44, padding: '0 16px', borderRadius: 10,
             display: 'flex', alignItems: 'center', gap: 12,
             width: '100%', border: 'none', cursor: 'pointer', textAlign: 'left',
             fontFamily: 'inherit', fontSize: 14,
-            borderLeft: '3px solid transparent',
             background: 'transparent',
-            color: sfxOn ? '#94A3B8' : '#475569',
+            color: '#94A3B8',
             fontWeight: 400,
-            transition: 'background 0.15s, color 0.15s',
           }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
-          <span style={{ fontSize: 16 }}>{sfxOn ? '🔊' : '🔇'}</span>
-          <span>{sfxOn ? 'Suara Aktif' : 'Suara Mati'}</span>
-        </button>
+        />
         <button
           onClick={onLogout}
           style={{

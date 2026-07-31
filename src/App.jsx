@@ -43,6 +43,7 @@ import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
+import { startBgm, stopBgm } from './bgm'
 
 /** Returns 'tema_merahputih' during Jul 15–Aug 31, otherwise null. */
 function getSeasonalTema() {
@@ -605,36 +606,11 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   }, [user?.equippedTema])
 
   // ── Background music during Kemerdekaan event ────────────────────────────
-  const bgMusicRef = useRef(null)
   useEffect(() => {
     const isKemerdekaan = getActiveEvents().some(e => e.slug === 'kemerdekaan')
     if (!isKemerdekaan) return
-
-    const audio = new Audio('/videoplayback.weba')
-    audio.loop   = true
-    audio.volume = 0.3
-    bgMusicRef.current = audio
-
-    // Browsers block autoplay until a user gesture has occurred.
-    // We try immediately; if blocked, retry on the first touch/click.
-    const tryPlay = () => audio.play().catch(() => {})
-    tryPlay()
-    const onGesture = () => { tryPlay(); cleanup() }   // play then stop listening
-    const cleanup   = () => {
-      document.removeEventListener('click',     onGesture)
-      document.removeEventListener('touchstart', onGesture)
-      document.removeEventListener('keydown',   onGesture)
-    }
-    document.addEventListener('click',      onGesture, { once: true })
-    document.addEventListener('touchstart', onGesture, { once: true })
-    document.addEventListener('keydown',    onGesture, { once: true })
-
-    return () => {
-      cleanup()
-      audio.pause()
-      audio.src = ''
-      bgMusicRef.current = null
-    }
+    startBgm('/videoplayback.weba')
+    return () => stopBgm()
   }, [])   // mount once — event window is static for a session
   // ─────────────────────────────────────────────────────────────────────────
 

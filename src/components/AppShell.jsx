@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import Sidebar from './Sidebar'
 import { getGradeNumber } from '../kelasUtils'
-import { isSfxEnabled, toggleSfx } from '../sfx'
+import AudioPanel from './AudioPanel'
 
 function useIsDesktop() {
   const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
@@ -25,7 +25,6 @@ const BOTTOM_NAV_SCREENS = new Set(['home', 'grade7', 'grade8', 'grade9', 'toko'
  */
 export default function AppShell({ user, navigate, currentScreen, onLogout, children }) {
   const isDesktop = useIsDesktop()
-  const [sfxOn, setSfxOn] = useState(isSfxEnabled)
   const gradeNum = getGradeNumber(user?.kelas)
   const zoneId = gradeNum ? `grade${gradeNum}` : 'grade7'
   const isZoneActive = currentScreen === 'grade7' || currentScreen === 'grade8' || currentScreen === 'grade9'
@@ -72,23 +71,24 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, chil
       <div className="with-sidebar">
         {children}
       </div>
-      {/* Mobile-only sound toggle — desktop has it in the Sidebar */}
+      {/* Mobile-only audio panel — desktop has it in the Sidebar */}
       {!isDesktop && (
-        <button
-          onClick={() => { toggleSfx(); setSfxOn(isSfxEnabled()) }}
-          title={sfxOn ? 'Matikan suara' : 'Aktifkan suara'}
-          style={{
-            position: 'fixed', bottom: showNav ? 96 : 16, right: 16,
-            zIndex: 200, width: 40, height: 40, borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.12)',
-            background: 'rgba(15,17,28,0.88)', backdropFilter: 'blur(8px)',
-            cursor: 'pointer', fontSize: 18, display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-          }}
-        >
-          {sfxOn ? '🔊' : '🔇'}
-        </button>
+        <div style={{
+          position: 'fixed', bottom: showNav ? 96 : 16, right: 16,
+          zIndex: 200,
+        }}>
+          <AudioPanel
+            placement="up-right"
+            buttonStyle={{
+              width: 40, height: 40, borderRadius: '50%',
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(15,17,28,0.88)', backdropFilter: 'blur(8px)',
+              cursor: 'pointer', fontSize: 18, display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+            }}
+          />
+        </div>
       )}
       {showNav && (
         <nav className="appshell-bottom-nav">

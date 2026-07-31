@@ -7,17 +7,33 @@
  *   playSfx('correct') | playSfx('buy') | playSfx('feed_kelinsay') | playSfx('happy_nananaga')
  */
 
-const SFX_KEY = 'tomat_sfx_enabled'
+const SFX_KEY     = 'tomat_sfx_enabled'
+const SFX_VOL_KEY = 'tomat_sfx_volume'
 
 let _ctx = null
+let _masterGain = null
 let _enabled = (() => {
   try { return localStorage.getItem(SFX_KEY) !== 'false' } catch { return true }
+})()
+let _volume = (() => {
+  try { const v = localStorage.getItem(SFX_VOL_KEY); return v !== null ? parseFloat(v) : 0.7 }
+  catch { return 0.7 }
 })()
 
 function getCtx() {
   if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)()
   if (_ctx.state === 'suspended') _ctx.resume().catch(() => {})
   return _ctx
+}
+
+function getMasterGain() {
+  const ctx = getCtx()
+  if (!_masterGain) {
+    _masterGain = ctx.createGain()
+    _masterGain.gain.value = _volume
+    _masterGain.connect(ctx.destination)
+  }
+  return _masterGain
 }
 
 export function isSfxEnabled() { return _enabled }
@@ -27,12 +43,19 @@ export function setSfxEnabled(val) {
 }
 export function toggleSfx() { setSfxEnabled(!_enabled); return _enabled }
 
+export function getSfxVolume() { return _volume }
+export function setSfxVolume(vol) {
+  _volume = Math.max(0, Math.min(1, Number(vol)))
+  try { localStorage.setItem(SFX_VOL_KEY, String(_volume)) } catch {}
+  if (_masterGain) _masterGain.gain.value = _volume
+}
+
 // ── Core helpers ─────────────────────────────────────────────────────────────
 
 /** One-shot tone with attack + exponential decay */
 function tone(ctx, type, freq, t0, dur, peak = 0.26) {
   const osc = ctx.createOscillator(), g = ctx.createGain()
-  osc.connect(g); g.connect(ctx.destination)
+  osc.connect(g); g.connect(getMasterGain())
   osc.type = type; osc.frequency.value = freq
   g.gain.setValueAtTime(0, t0)
   g.gain.linearRampToValueAtTime(peak, t0 + 0.015)
@@ -43,7 +66,7 @@ function tone(ctx, type, freq, t0, dur, peak = 0.26) {
 /** Pitch-sliding tone (glide) */
 function glide(ctx, type, f0, f1, t0, dur, peak = 0.22) {
   const osc = ctx.createOscillator(), g = ctx.createGain()
-  osc.connect(g); g.connect(ctx.destination)
+  osc.connect(g); g.connect(getMasterGain())
   osc.type = type
   osc.frequency.setValueAtTime(f0, t0)
   osc.frequency.exponentialRampToValueAtTime(f1, t0 + dur * 0.8)
