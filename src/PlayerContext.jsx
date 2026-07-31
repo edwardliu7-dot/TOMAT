@@ -41,6 +41,8 @@ export function PlayerProvider({ children }) {
     maxExp: isSiswa ? (user?.maxExp ?? 100) : 500,
   })
   const [newBadges, setNewBadges] = useState([])
+  const [missionToasts, setMissionToasts] = useState([])  // Array<MissionDelta & { id }>
+  const [missionClaims, setMissionClaims] = useState([])  // Array<MissionDelta> yang baru completed
 
   useEffect(() => {
     if (user?.name) {
@@ -75,6 +77,17 @@ export function PlayerProvider({ children }) {
           setPlayer(p => ({ ...p, coins: data.player.coins, level: data.player.level, exp: data.player.exp, maxExp: data.player.maxExp }))
         }
         if (data?.newBadges?.length) setNewBadges(b => [...b, ...data.newBadges])
+        // missionDeltas: Array<MissionDelta> dari gameplay-events.js — sudah terformat,
+        // tidak perlu lookup EVENT_MISSIONS di sini (RULES.md §16).
+        if (data?.missionDeltas?.length) {
+          const toasts = data.missionDeltas.map(d => ({
+            ...d,
+            id: `${d.missionId}-${Date.now()}-${Math.random()}`,
+          }))
+          setMissionToasts(q => [...q, ...toasts])
+          const newlyCompleted = data.missionDeltas.filter(d => d.completed)
+          if (newlyCompleted.length) setMissionClaims(q => [...q, ...newlyCompleted])
+        }
       })
     }
   }, [isSiswa, coinMult])
@@ -130,6 +143,25 @@ export function PlayerProvider({ children }) {
     setNewBadges(b => b.filter(x => x.id !== badgeId))
   }, [])
 
+  const dismissMissionToast = useCallback((id) => {
+    setMissionToasts(q => q.filter(t => t.id !== id))
+  }, [])
+
+  const dismissMissionClaim = useCallback((missionId) => {
+    setMissionClaims(q => q.filter(m => m.missionId !== missionId))
+  }, [])
+
+  /**
+   * Dipanggil dari App.jsx socket listener saat server emit "mission:progress".
+   * Payload sudah terformat dari gameplay-events.js — langsung masuk ke queue.
+   */
+  const pushMissionProgress = useCallback((data) => {
+    if (!data || data.delta <= 0) return
+    const toast = { ...data, id: `${data.missionId}-${Date.now()}-${Math.random()}` }
+    setMissionToasts(q => [...q, toast])
+    if (data.completed) setMissionClaims(q => [...q, data])
+  }, [])
+
   // Server-authoritative sync — use when server has ALREADY updated DB (e.g. tournament reward).
   // Does NOT call persistGain, so there's no double-counting.
   const syncCoins = useCallback((newBalance) => {
@@ -137,7 +169,12 @@ export function PlayerProvider({ children }) {
   }, [])
 
   return (
-    <PlayerContext.Provider value={{ player, addCoins, addExp, syncCoins, recordWrongAnswer, reportSurvivalStreak, newBadges, dismissBadge }}>
+    <PlayerContext.Provider value={{
+      player, addCoins, addExp, syncCoins, recordWrongAnswer, reportSurvivalStreak,
+      newBadges, dismissBadge,
+      missionToasts, missionClaims,
+      dismissMissionToast, dismissMissionClaim, pushMissionProgress,
+    }}>
       {children}
     </PlayerContext.Provider>
   )

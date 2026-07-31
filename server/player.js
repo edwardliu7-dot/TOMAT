@@ -4,7 +4,6 @@ import { requireAuth, requireRole } from './auth.js'
 import { applyExp, checkAndAwardBadges } from './gamify.js'
 import { getPetBonus } from './pet-bonuses.js'
 import { onCorrectAnswerWithResult } from './gameplay-events.js'
-import { EVENT_MISSIONS } from './event-missions.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
@@ -78,35 +77,12 @@ router.post('/gain', async (req, res) => {
     // One correct minigame answer = one /gain call with coinsGain > 0.
     // Await mission progress so we can include delta info in the response for
     // the client to show MissionProgressToast / MissionClaimNotification.
-    let missionDeltas = []
-    if (coinsGain > 0) {
-      const result = await onCorrectAnswerWithResult(req.session.user.id)
-      if (result && result.delta > 0) {
-        const mission = EVENT_MISSIONS.find(m => m.id === 'kemerdekaan_1')
-        missionDeltas.push({
-          missionId:   'kemerdekaan_1',
-          nama:        mission?.nama  ?? 'Misi',
-          emoji:       mission?.emoji ?? '🎯',
-          delta:       result.delta,
-          newProgress: result.progress,
-          goal:        result.goal,
-          completed:   result.justCompleted,
-        })
-        // Auto-completed dependent missions (e.g. kemerdekaan_3 when 1 & 2 are done)
-        for (const autoId of (result.autoCompleted || [])) {
-          const am = EVENT_MISSIONS.find(m => m.id === autoId)
-          if (am) missionDeltas.push({
-            missionId:   autoId,
-            nama:        am.nama,
-            emoji:       am.emoji ?? '🦅',
-            delta:       0,
-            newProgress: am.goal,
-            goal:        am.goal,
-            completed:   true,
-          })
-        }
-      }
-    }
+    // onCorrectAnswerWithResult returns Array<MissionDelta> already formatted —
+    // no need to import EVENT_MISSIONS here (RULES.md §16: gameplay-events.js is
+    // the single source of truth for mission side-effects).
+    const missionDeltas = coinsGain > 0
+      ? await onCorrectAnswerWithResult(req.session.user.id)
+      : []
     res.json({ player: playerFields(updatedRows[0]), newBadges, gainedCoins: boostedCoins, gainedExp: boostedExp, missionDeltas })
   } catch (err) {
     await client.query('rollback').catch(() => {})

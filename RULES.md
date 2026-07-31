@@ -247,6 +247,7 @@ Setelah membuat file game, daftarkan di:
 | Boss Raid | `boss:hit`, `boss:update`, `boss:defeated` | Event co-op kelas |
 | Turnamen | `tournament:join`, `tournament:question`, `tournament:match-won` | Bracket turnamen |
 | Nananaga | `duel:use-immunity`, `tournament:use-immunity` | Skill pet khusus |
+| Misi Event | `mission:progress` | Server → client: progress misi bertambah (duel/turnamen). Minigame via REST `/gain` response `missionDeltas[]`. |
 
 ### Aturan Multiplayer
 - State lobby/room disimpan **in-memory** (Map) — tidak persisten antar restart server.
@@ -375,7 +376,9 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 | Kejadian | Fungsi | Misi yang diperbarui |
 |----------|--------|----------------------|
 | Jawaban benar (semua mode) | `onCorrectAnswer(studentId)` | `kemerdekaan_1` |
+| Jawaban benar + butuh payload | `onCorrectAnswerWithResult(studentId)` | sama — return `Array<MissionDelta>` terformat |
 | Menang duel 1v1 | `onDuelWin(winnerId)` | `kemerdekaan_2`, `kemerdekaan_3` (auto) |
+| Menang duel + butuh payload | `onDuelWinWithResult(winnerId)` | sama — return `Array<MissionDelta>` terformat |
 | Menang match turnamen | `onTournamentWin(winnerId)` | (siap, belum ada misi aktif) |
 
 ### Jalur per Mode
@@ -388,7 +391,10 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 ### Menambah Misi Baru
 1. Definisikan misi baru di `server/event-missions.js` (`EVENT_MISSIONS` array).
 2. Tambahkan `fire(studentId, 'id_misi_baru')` di fungsi yang sesuai di `gameplay-events.js`.
+   - Jika misi butuh notifikasi toast/klaim: gunakan `fireAndReturn` dan sertakan dalam `_formatDeltas`.
 3. **Tidak perlu mengubah** `player.js`, `multiplayer.js`, atau `tournament-engine.js`.
+   - `EVENT_MISSIONS` **hanya** boleh diimport di `event-missions.js` dan `gameplay-events.js`.
+   - Caller lain menerima `Array<MissionDelta>` terformat — tidak pernah raw DB result.
 
 ### Koin Kemenangan Duel
 - Diberikan server-side di `finishGame()` via `pool.query` → `+15 coins`.

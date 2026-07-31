@@ -1,7 +1,7 @@
 import React, { useState, useCallback, Component, Suspense, useEffect } from 'react'
 import { PetProvider } from './PetContext'
 import FloatingPet from './components/FloatingPet'
-import { PlayerProvider } from './PlayerContext'
+import { PlayerProvider, usePlayer } from './PlayerContext'
 import { TaskProvider, useTask } from './TaskContext'
 import { BabLockProvider } from './BabLockContext'
 import { useAuth } from './AuthContext'
@@ -40,6 +40,8 @@ import { DUEL_GAME_KEYS } from './gamesCatalog'
 import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
+import MissionProgressToast from './components/MissionProgressToast'
+import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
 
 /** Returns 'tema_merahputih' during Jul 15–Aug 31, otherwise null. */
@@ -536,6 +538,10 @@ const SCREEN_TITLES = {
 // teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const { user, logout, dailyBonus, dismissDailyBonus } = useAuth()
+  const {
+    missionToasts, missionClaims,
+    dismissMissionToast, dismissMissionClaim, pushMissionProgress,
+  } = usePlayer()
 
   // Set data-tema on <html> so GameThemeStyles can target structural elements only.
   // During Kemerdekaan event (Jul 15–Aug 31) tema_merahputih overrides the user's
@@ -706,6 +712,9 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       // Host: invite timed out — LobbyScreen handles its own state
     })
 
+    // Mission progress dari duel / turnamen (REST /gain sudah handle minigame)
+    socket.on('mission:progress', pushMissionProgress)
+
     return () => {
       socket.off('tournament:active-state')
       socket.off('tournament:your-match')
@@ -714,6 +723,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       socket.off('tournament:cancelled')
       socket.off('duel:incoming-invite')
       socket.off('duel:invite-expired')
+      socket.off('mission:progress')
     }
   }, [guruMode])
 
@@ -905,6 +915,31 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               <SubmitErrorToast />
               {/* Nananaga immunity activation toast */}
               <NananagaShieldToast />
+              {/* Mission progress toast — muncul setelah jawaban benar di semua mode */}
+              <MissionProgressToast
+                toasts={missionToasts}
+                onDismiss={dismissMissionToast}
+              />
+              {/* Mission claim modal — muncul ketika misi baru selesai */}
+              <MissionClaimNotification
+                missions={missionClaims}
+                onDismiss={dismissMissionClaim}
+                onClaim={async (missionId) => {
+                  try {
+                    const res = await fetch(`/api/siswa/event-missions/${missionId}/claim`, {
+                      method: 'POST', credentials: 'include',
+                    })
+                    if (!res.ok) {
+                      const err = await res.json().catch(() => ({}))
+                      console.error('[MissionClaim] gagal:', err.error)
+                    }
+                  } catch (err) {
+                    console.error('[MissionClaim]', err)
+                  } finally {
+                    dismissMissionClaim(missionId)
+                  }
+                }}
+              />
               {/* Tomi the guinea pig — walks across screen for students */}
               <FloatingPet onHungryClick={() => {
                 setTokoInitialTab('pet_skin')

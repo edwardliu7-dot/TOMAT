@@ -10,7 +10,6 @@ import { genTournamentQ } from './tournament-questions.js'
 import { tournaments, tournamentToClient, buildFirstRound, buildFirstRoundFromTeams, getTournamentIo } from './tournament-state.js'
 import { pool } from './db.js'
 import { onCorrectAnswer, onTournamentWin, onCorrectAnswerWithResult } from './gameplay-events.js'
-import { EVENT_MISSIONS } from './event-missions.js'
 
 async function saveTournamentHistory(tournament, status) {
   try {
@@ -124,28 +123,11 @@ export async function handleTournamentAnswer(io, tournament, match, userId, valu
   const correct = (value === currentQ.answer)
   if (correct) match.scores[userId] = (match.scores[userId] || 0) + 1
 
-  // Delegate correct-answer side-effects; await so we can emit mission:progress.
+  // onCorrectAnswerWithResult returns Array<MissionDelta> already formatted —
+  // no need to import EVENT_MISSIONS here (RULES.md §16).
   if (correct) {
-    const result = await onCorrectAnswerWithResult(userId)
-    if (result && result.delta > 0) {
-      const m1 = EVENT_MISSIONS.find(m => m.id === 'kemerdekaan_1')
-      emitToUser(io, userId, 'mission:progress', {
-        missionId:   'kemerdekaan_1',
-        nama:        m1?.nama  ?? 'Lomba 17-an',
-        emoji:       m1?.emoji ?? '🎯',
-        delta:       result.delta,
-        newProgress: result.progress,
-        goal:        result.goal,
-        completed:   result.justCompleted,
-      })
-      for (const autoId of (result.autoCompleted || [])) {
-        const am = EVENT_MISSIONS.find(m => m.id === autoId)
-        if (am) emitToUser(io, userId, 'mission:progress', {
-          missionId: autoId, nama: am.nama, emoji: am.emoji ?? '🦅',
-          delta: 0, newProgress: am.goal, goal: am.goal, completed: true,
-        })
-      }
-    }
+    const deltas = await onCorrectAnswerWithResult(userId)
+    for (const delta of deltas) emitToUser(io, userId, 'mission:progress', delta)
   }
 
   // Hapus soal aktif untuk mencegah double-submit

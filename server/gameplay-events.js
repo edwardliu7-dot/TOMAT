@@ -16,7 +16,7 @@
  * await — error ditangkap dan di-log, tidak pernah dilempar ke pemanggil.
  */
 
-import { incrementMissionProgress } from './event-missions.js'
+import { incrementMissionProgress, EVENT_MISSIONS } from './event-missions.js'
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 /**
@@ -50,6 +50,46 @@ async function fireAndReturn(studentId, missionId, delta = 1) {
   }
 }
 
+/**
+ * Format raw incrementMissionProgress result + its auto-completed chain into
+ * an array of toast-ready payload objects.
+ * Returns [] when there is nothing to show (no progress, already complete, event inactive).
+ *
+ * ─── SHAPE ───────────────────────────────────────────────────────────────────
+ * Array<{ missionId, nama, emoji, delta, newProgress, goal, completed }>
+ *
+ * Callers (player.js, multiplayer.js, tournament-engine.js) receive this array
+ * directly and do NOT need to import EVENT_MISSIONS — keeping this file as the
+ * single source of truth per RULES.md §16.
+ */
+function _formatDeltas(missionId, result) {
+  if (!result || result.delta <= 0) return []
+  const mission = EVENT_MISSIONS.find(m => m.id === missionId)
+  const out = [{
+    missionId,
+    nama:        mission?.nama  ?? missionId,
+    emoji:       mission?.emoji ?? '🎯',
+    delta:       result.delta,
+    newProgress: result.progress,
+    goal:        result.goal,
+    completed:   result.justCompleted,
+  }]
+  for (const autoId of (result.autoCompleted || [])) {
+    const am = EVENT_MISSIONS.find(m => m.id === autoId)
+    if (!am) continue
+    out.push({
+      missionId:   autoId,
+      nama:        am.nama,
+      emoji:       am.emoji ?? '🦅',
+      delta:       0,
+      newProgress: am.goal,
+      goal:        am.goal,
+      completed:   true,
+    })
+  }
+  return out
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -72,12 +112,13 @@ export function onCorrectAnswer(studentId) {
 
 /**
  * Versi awaitable dari onCorrectAnswer.
- * Mengembalikan hasil incrementMissionProgress agar caller bisa menyertakan
- * progress delta di response/socket emit.
+ * Mengembalikan Array<MissionDelta> siap pakai — caller tidak perlu tahu
+ * tentang EVENT_MISSIONS atau format payload (sesuai RULES.md §16).
+ * Array kosong berarti tidak ada progress baru yang perlu ditampilkan.
  */
 export async function onCorrectAnswerWithResult(studentId) {
   console.log(`[gameplay-events] onCorrectAnswerWithResult → student=${studentId}`)
-  return fireAndReturn(studentId, 'kemerdekaan_1')
+  return _formatDeltas('kemerdekaan_1', await fireAndReturn(studentId, 'kemerdekaan_1'))
 }
 
 /**
@@ -101,12 +142,13 @@ export function onDuelWin(winnerId) {
 
 /**
  * Versi awaitable dari onDuelWin.
- * Mengembalikan hasil incrementMissionProgress agar caller bisa emit socket
- * "mission:progress" ke pemenang duel.
+ * Mengembalikan Array<MissionDelta> siap pakai — caller tidak perlu tahu
+ * tentang EVENT_MISSIONS atau format payload (sesuai RULES.md §16).
+ * Array kosong berarti tidak ada progress baru yang perlu ditampilkan.
  */
 export async function onDuelWinWithResult(winnerId) {
   console.log(`[gameplay-events] onDuelWinWithResult → winner=${winnerId}`)
-  return fireAndReturn(winnerId, 'kemerdekaan_2')
+  return _formatDeltas('kemerdekaan_2', await fireAndReturn(winnerId, 'kemerdekaan_2'))
 }
 
 /**
