@@ -105,13 +105,13 @@ export async function incrementMissionProgress(studentId, missionId, delta = 1) 
 
     const { rows } = await pool.query(`
       insert into event_mission_progress (student_id, mission_id, progress)
-      values ($1, $2, least($3, $4))
+      values ($1, $2, least($3::int, $4::int))
       on conflict (student_id, mission_id) do update
         set
-          progress = least(event_mission_progress.progress + $3, $4),
+          progress = least(event_mission_progress.progress + $3::int, $4::int),
           completed_at = case
             when event_mission_progress.completed_at is null
-                 and least(event_mission_progress.progress + $3, $4) >= $4
+                 and least(event_mission_progress.progress + $3::int, $4::int) >= $4::int
             then now()
             else event_mission_progress.completed_at
           end
