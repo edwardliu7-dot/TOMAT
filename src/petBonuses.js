@@ -12,7 +12,8 @@ export const PET_BONUS_DISPLAY = {
   // ── Kelinsay — EXP booster (umum → umum → epic) ───────────────────────────
   pet_kelinsay:       { label: '+15% EXP',           icon: '⭐',  color: '#34D399', desc: 'Setiap jawaban benar memberikan 15% EXP lebih banyak.' },
   pet_kelinsay_senja: { label: '+25% EXP',           icon: '⭐',  color: '#FB923C', desc: 'Setiap jawaban benar memberikan 25% EXP lebih banyak.' },
-  pet_kelinsay_malam: { label: '+40% EXP',           icon: '⭐',  color: '#A78BFA', desc: 'Setiap jawaban benar memberikan 40% EXP lebih banyak!' },  // epic
+  pet_kelinsay_malam:      { label: '+40% EXP',           icon: '⭐',  color: '#A78BFA', desc: 'Setiap jawaban benar memberikan 40% EXP lebih banyak!' },  // epic
+  pet_kelinsay_merahputih: { label: '+75% EXP',           icon: '🎖️', color: '#E11D48', desc: 'Skin eksklusif event — setiap jawaban benar memberikan 75% EXP lebih banyak!' }, // missionOnly
 
   // ── Monyang — koin + EXP booster (langka → langka → epic) ─────────────────
   pet_monyong:        { label: '+20% Koin & EXP',    icon: '✨',  color: '#FB923C', desc: '+20% koin dan EXP dari setiap jawaban benar.' },            // langka
