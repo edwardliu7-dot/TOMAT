@@ -8,9 +8,10 @@ const RANK_COLOR = { 1: '#fbbf24', 2: '#94A3B8', 3: '#cd7c3a' }
 // ── Classic single-elimination bracket ─────────────────────────────────────
 // Renders a horizontal bracket: rounds as columns, match cards connected by
 // SVG lines, trophy on the far right — matching the reference layout.
-function ClassicBracket({ rounds, myUserId, currentRound }) {
-  const PLAYER_H = 30          // height of each player name row
-  const MATCH_H  = PLAYER_H * 2 + 1   // two rows + 1 px divider
+function ClassicBracket({ rounds, myUserId, currentRound, mode }) {
+  const isKelompok = mode === 'kelompok'
+  const PLAYER_H = isKelompok ? 42 : 30   // dua baris teks untuk kelompok
+  const MATCH_H  = PLAYER_H * 2 + 1       // two rows + 1 px divider
   const MATCH_W  = 158         // width of each match card
   const V_GAP    = 14          // vertical gap between match slots in round 1
   const CONN_W   = 44          // horizontal space between round columns (for lines)
@@ -42,6 +43,39 @@ function ClassicBracket({ rounds, myUserId, currentRound }) {
     const isWinner = match.winner?.userId === player?.userId
     const isLoser  = match.winner && !isWinner && !!player
     const isBye    = !player && match.status === 'bye'
+    const nameColor = isLoser  ? '#263040'
+                    : isWinner ? '#34D399'
+                    : isMe     ? '#67E8F9'
+                    : '#5a6a80'
+
+    if (isKelompok && player?.teamName) {
+      // Mode kelompok: nama tim (bold) + nama representatif (kecil)
+      return (
+        <div style={{
+          height: PLAYER_H, display: 'flex', alignItems: 'center',
+          padding: '0 8px', gap: 4,
+          background: isWinner ? 'rgba(16,185,129,0.13)'
+                    : isMe     ? 'rgba(103,232,249,0.08)'
+                    : 'transparent',
+        }}>
+          <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: nameColor }}>
+              {(isMe ? '🐸 ' : '') + player.teamName}
+            </span>
+            <span style={{ fontSize: 9, color: '#3a4a5a', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              ({player.name})
+            </span>
+          </div>
+          {isWinner && <span style={{ fontSize: 9, color: '#34D399', flexShrink: 0 }}>✓</span>}
+          {!isWinner && match.scores?.[player?.userId] != null && (
+            <span style={{ fontSize: 9, color: '#fbbf24', flexShrink: 0, fontWeight: 700 }}>
+              {match.scores[player.userId]}
+            </span>
+          )}
+        </div>
+      )
+    }
+
     return (
       <div style={{
         height: PLAYER_H, display: 'flex', alignItems: 'center',
@@ -53,10 +87,7 @@ function ClassicBracket({ rounds, myUserId, currentRound }) {
         <span style={{
           fontSize: 11, fontWeight: isWinner ? 800 : 600,
           flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          color: isLoser  ? '#263040'
-               : isWinner ? '#34D399'
-               : isMe     ? '#67E8F9'
-               : '#5a6a80',
+          color: nameColor,
         }}>
           {player ? (isMe ? '🐸 ' : '') + player.name
                   : isBye ? 'BYE' : '—'}
@@ -291,8 +322,15 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
           fontSize: 22,
           boxShadow: highlight ? `0 0 20px ${accentColor}55` : 'none',
         }}>{emoji}</div>
-        <div style={{ fontSize: 12, fontWeight: 800, color: accentColor, textAlign: 'center', lineHeight: 1.3, maxWidth: 80 }}>
-          {player.name}
+        <div style={{ textAlign: 'center', lineHeight: 1.3, maxWidth: 80 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: accentColor }}>
+            {player.teamName || player.name}
+          </div>
+          {player.teamName && (
+            <div style={{ fontSize: 9, color: '#475569', fontStyle: 'italic', marginTop: 2 }}>
+              ({player.name})
+            </div>
+          )}
         </div>
         <div style={{
           background: accentColor, color: '#000', borderRadius: 8, padding: '8px 0',
@@ -426,6 +464,7 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
               rounds={tournament.rounds}
               myUserId={myUserId}
               currentRound={tournament.currentRound}
+              mode={tournament.mode}
             />
           </div>
         ) : (
