@@ -5,7 +5,7 @@
 import { Server } from 'socket.io'
 import { pool } from './db.js'
 import { applyExp } from './gamify.js'
-import { incrementMissionProgress } from './event-missions.js'
+import { onCorrectAnswer, onDuelWin } from './gameplay-events.js'
 import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
 import { tournaments, tournamentToClient, getTournamentIo } from './tournament-state.js'
 import { startTournamentMatch, handleTournamentAnswer } from './tournament-engine.js'
@@ -83,7 +83,6 @@ async function finishGame(io, room) {
   // even though GameOverScreen displayed "+15 koin".
   let winnerNewCoins = null
   if (winner?.userId) {
-    console.log(`[mission][duel:finishGame] winner=${winner.userId} → awarding 15 coins + incrementing kemerdekaan_2`)
     try {
       const { rows } = await pool.query(
         `update students
@@ -94,15 +93,11 @@ async function finishGame(io, room) {
         [winner.userId]
       )
       winnerNewCoins = rows[0]?.coins ?? null
-      console.log(`[duel:win] New coin balance for ${winner.userId}: ${winnerNewCoins}`)
     } catch (err) {
       console.error('[duel:win] coin award error:', err)
     }
-    incrementMissionProgress(winner.userId, 'kemerdekaan_2', 1).catch((err) => {
-      console.error('[mission][duel:finishGame] kemerdekaan_2 increment error:', err)
-    })
-  } else {
-    console.log('[duel:finishGame] Draw — no winner, skipping coin award and kemerdekaan_2')
+    // Delegate duel-win side-effects to the centralized gameplay event bus.
+    onDuelWin(winner.userId)
   }
 
   io.to(room.code).emit('duel:game-over', {
@@ -319,17 +314,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const correct = (value === player.currentQ.answer)
       if (correct) player.score++
 
-      // BUG FIX: duel correct answers must also count toward kemerdekaan_1 ("17 soal benar").
-      // Previously only /api/siswa/player/gain triggered this mission, so duel play was invisible
-      // to the event mission system entirely.
-      if (correct) {
-        console.log(`[mission][duel:answer] user=${user.id} correct → incrementing kemerdekaan_1`)
-        incrementMissionProgress(user.id, 'kemerdekaan_1', 1).catch((err) => {
-          console.error('[mission][duel:answer] kemerdekaan_1 increment error:', err)
-        })
-      } else {
-        console.log(`[mission][duel:answer] user=${user.id} wrong — no kemerdekaan_1 increment`)
-      }
+      // Delegate correct-answer side-effects to the centralized gameplay event bus.
+      if (correct) onCorrectAnswer(user.id)
 
       const opponent = room.players.find(p => p.userId !== user.id)
 

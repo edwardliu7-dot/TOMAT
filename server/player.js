@@ -3,7 +3,7 @@ import { pool } from './db.js'
 import { requireAuth, requireRole } from './auth.js'
 import { applyExp, checkAndAwardBadges } from './gamify.js'
 import { getPetBonus } from './pet-bonuses.js'
-import { incrementMissionProgress } from './event-missions.js'
+import { onCorrectAnswer } from './gameplay-events.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
@@ -74,12 +74,10 @@ router.post('/gain', async (req, res) => {
     )
     await client.query('commit')
     const newBadges = await checkAndAwardBadges(req.session.user.id)
-    // Fire-and-forget: count each /gain call (1 correct answer) toward misi lomba 17-an
+    // One correct minigame answer = one /gain call with coinsGain > 0.
+    // Delegate all mission side-effects to the centralized gameplay event bus.
     if (coinsGain > 0) {
-      console.log(`[mission][player/gain] student=${req.session.user.id} coins=${coinsGain} → incrementing kemerdekaan_1`)
-      incrementMissionProgress(req.session.user.id, 'kemerdekaan_1', 1).catch((err) => {
-        console.error('[mission][player/gain] incrementMissionProgress error:', err)
-      })
+      onCorrectAnswer(req.session.user.id)
     }
     res.json({ player: playerFields(updatedRows[0]), newBadges, gainedCoins: boostedCoins, gainedExp: boostedExp })
   } catch (err) {

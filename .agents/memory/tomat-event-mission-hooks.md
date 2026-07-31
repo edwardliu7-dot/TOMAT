@@ -15,15 +15,16 @@ description: Duel and tournament correct answers must hook incrementMissionProgr
 Also: `finishGame()` tracked `kemerdekaan_2` for the winner but never awarded the 15 coins
 despite `GameOverScreen` displaying "+15 koin". Coins were fictional.
 
-## Fix Applied
+## Fix + Refactor Applied
 
-Three hook points added — each mode must hook its own correct-answer path:
+Centralized `server/gameplay-events.js` created as Single Source of Truth.
+All callers (`player.js`, `multiplayer.js`, `tournament-engine.js`) now call exported functions — never `incrementMissionProgress` directly.
 
-| Mode | File | Hook location |
-|------|------|--------------|
-| Minigame (REST) | `server/player.js` | Already correct — `if (coinsGain > 0)` → `incrementMissionProgress('kemerdekaan_1')` |
-| Duel (Socket.io) | `server/multiplayer.js` | `duel:answer` handler → `if (correct)` → `incrementMissionProgress(user.id, 'kemerdekaan_1', 1)` |
-| Tournament (Socket.io) | `server/tournament-engine.js` | `handleTournamentAnswer` → `if (correct)` → `incrementMissionProgress(userId, 'kemerdekaan_1', 1)` |
+| Function | When called | Missions triggered |
+|----------|-------------|-------------------|
+| `onCorrectAnswer(studentId)` | Any correct answer, any mode | `kemerdekaan_1` |
+| `onDuelWin(winnerId)` | Duel 1v1 win | `kemerdekaan_2`, `kemerdekaan_3` (auto) |
+| `onTournamentWin(winnerId)` | Tournament match win | (placeholder, no active mission yet) |
 
 ### Duel Win Coin Award
 `finishGame()` made async; winner gets `+15 coins` via `pool.query` update.
@@ -33,10 +34,11 @@ Client (`DuelKatakScreen.jsx`) calls `syncCoins(winnerNewCoins)` — NOT `addCoi
 **Why:** `addCoins()` calls `persistGain()` which would POST to `/gain` again (double DB write).
 `syncCoins()` only updates local state from an authoritative server value.
 
-## Rule for Future Modes
+## Rule for Future Modes / Missions
 
-Any new gameplay mode that awards correct answers and needs event mission tracking:
-- If REST: ensure it calls `/api/siswa/player/gain` with `coins > 0`
-- If Socket.io: add `incrementMissionProgress(userId, 'kemerdekaan_1', 1)` directly in the server handler
+To add a new mission triggered by existing gameplay:
+1. Define the mission in `server/event-missions.js`
+2. Add `fire(studentId, 'new_mission_id')` inside the right function in `gameplay-events.js`
+3. NO changes needed in `player.js`, `multiplayer.js`, or `tournament-engine.js`
 
 Boss Raid correct answers intentionally NOT hooked (co-op event, different reward flow).

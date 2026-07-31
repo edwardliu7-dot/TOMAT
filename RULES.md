@@ -364,21 +364,37 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
-## 16. Alur Data Event Mission — Aturan Kritis
+## 16. Event Mission — Centralized Gameplay Event Bus
 
-Event misi (`kemerdekaan_1`, dll.) hanya ter-increment via **dua jalur resmi**. Setiap jalur baru yang menghasilkan "jawaban benar" wajib disambungkan ke salah satu jalur ini:
-
-| Jalur | Trigger | File |
-|-------|---------|------|
-| **REST** (minigame) | `addCoins(50)` → `POST /api/siswa/player/gain` → `incrementMissionProgress('kemerdekaan_1')` | `server/player.js` |
-| **Socket.io duel** | `duel:answer` handler → `if (correct)` → `incrementMissionProgress('kemerdekaan_1')` | `server/multiplayer.js` |
-| **Socket.io turnamen** | `handleTournamentAnswer` → `if (correct)` → `incrementMissionProgress('kemerdekaan_1')` | `server/tournament-engine.js` |
+**`server/gameplay-events.js`** adalah **Single Source of Truth** untuk semua side-effect yang dipicu oleh kejadian gameplay.
 
 ### Aturan Wajib
-- **Duel/turnamen** tidak memanggil `/api/siswa/player/gain` — misi harus di-hook langsung di Socket.io handler.
-- Jika menambah mode permainan baru (co-op, survival real-time, dll.), **wajib** tambahkan hook `incrementMissionProgress('kemerdekaan_1', 1)` di server handler jawaban benarnya.
-- **Koin kemenangan duel** diberikan server-side di `finishGame()` via `pool.query`, lalu kirim `winnerNewCoins` di payload `duel:game-over`. Klien panggil `syncCoins(winnerNewCoins)` — **jangan** panggil `addCoins()` di klien untuk duel win (double-count).
-- **Boss Raid** jawaban benar tidak terhubung ke `kemerdekaan_1` (intentional: bukan "soal game", melainkan co-op event terpisah).
+- **DILARANG** memanggil `incrementMissionProgress()` langsung dari modul lain.
+- Setiap mode permainan memanggil fungsi dari `gameplay-events.js`:
+
+| Kejadian | Fungsi | Misi yang diperbarui |
+|----------|--------|----------------------|
+| Jawaban benar (semua mode) | `onCorrectAnswer(studentId)` | `kemerdekaan_1` |
+| Menang duel 1v1 | `onDuelWin(winnerId)` | `kemerdekaan_2`, `kemerdekaan_3` (auto) |
+| Menang match turnamen | `onTournamentWin(winnerId)` | (siap, belum ada misi aktif) |
+
+### Jalur per Mode
+| Mode | File Pemanggil | Titik Panggilan |
+|------|----------------|-----------------|
+| Minigame (REST) | `server/player.js` | `/gain` handler — `if (coinsGain > 0)` |
+| Duel (Socket.io) | `server/multiplayer.js` | `duel:answer` handler — `if (correct)` |
+| Turnamen (Socket.io) | `server/tournament-engine.js` | `handleTournamentAnswer` — `if (correct)` |
+
+### Menambah Misi Baru
+1. Definisikan misi baru di `server/event-missions.js` (`EVENT_MISSIONS` array).
+2. Tambahkan `fire(studentId, 'id_misi_baru')` di fungsi yang sesuai di `gameplay-events.js`.
+3. **Tidak perlu mengubah** `player.js`, `multiplayer.js`, atau `tournament-engine.js`.
+
+### Koin Kemenangan Duel
+- Diberikan server-side di `finishGame()` via `pool.query` → `+15 coins`.
+- Field `winnerNewCoins` dikirim di payload `duel:game-over`.
+- Klien panggil `syncCoins(winnerNewCoins)` — **jangan** `addCoins()` (double-count).
+- **Boss Raid** jawaban benar tidak terhubung ke `onCorrectAnswer` (intentional: co-op event dengan alur reward sendiri).
 
 ---
 
