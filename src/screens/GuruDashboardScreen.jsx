@@ -1311,9 +1311,11 @@ function TurnamenTab({ kelasDiampu }) {
   }, [spectate?.id])
 
   const getSelectedIds = () => {
-    if (!form.selectedStudentIds) return students.map(s => String(s.userId))
+    if (form.selectedStudentIds == null) return students.map(s => String(s.userId))
     return form.selectedStudentIds
   }
+  // NOTE: selectedStudentIds is always an explicit string[] after students load;
+  // null is only the pre-load placeholder (no students yet).
 
   // Helper: inisialisasi manualTeams saat count berubah, pertahankan anggota yang sudah ada
   const initManualTeams = (count, existingTeams, allStudentIds) => {
