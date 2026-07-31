@@ -44,6 +44,11 @@ import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
 import { startBgm, stopBgm } from './bgm'
+import {
+  requestNotificationPermission,
+  createNotificationChannels,
+  showLocalNotification,
+} from './capacitorNotify'
 
 /** Returns 'tema_merahputih' during Jul 15–Aug 31, otherwise null. */
 function getSeasonalTema() {
@@ -605,14 +610,54 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
   }, [user?.equippedTema])
 
-  // ── Background music during Kemerdekaan event ────────────────────────────
+  // ── Background music ─────────────────────────────────────────────────────
+  // kemerdekaan event → event track; otherwise → default track
   useEffect(() => {
     const isKemerdekaan = getActiveEvents().some(e => e.slug === 'kemerdekaan')
-    if (!isKemerdekaan) return
-    startBgm('/videoplayback.weba')
+    const track = isKemerdekaan
+      ? '/videoplayback.weba'
+      : '/videoplayback (1).weba'
+    startBgm(track)
     return () => stopBgm()
   }, [])   // mount once — event window is static for a session
   // ─────────────────────────────────────────────────────────────────────────
+
+  // ── Android APK: request notification permission + create channels ────────
+  useEffect(() => {
+    if (!window.Capacitor || guruMode) return
+    createNotificationChannels()
+    requestNotificationPermission()
+  }, [guruMode])
+
+  // ── Android APK: reconnect socket when app comes back to foreground ───────
+  // Android kills WebSocket connections when the app is suspended. Without an
+  // explicit reconnect on resume, all socket-based in-game notifications
+  // (duel invite, tournament match, mission progress) are permanently lost for
+  // the rest of the session.
+  useEffect(() => {
+    if (!window.Capacitor) return
+    let handle = null
+    ;(async () => {
+      try {
+        const { App: CapApp } = await import('@capacitor/app')
+        handle = await CapApp.addListener('appStateChange', ({ isActive }) => {
+          if (!isActive) return
+          // App returned to foreground — re-establish socket and recover state
+          const socket = connectSocket()
+          if (!socket.connected) socket.connect()
+          // Re-check tournament state in case we missed a 'tournament:your-match'
+          // event while the socket was down
+          if (!guruMode) {
+            socket.once('connect', () => socket.emit('tournament:check-active'))
+            if (socket.connected) socket.emit('tournament:check-active')
+          }
+        })
+      } catch {
+        // @capacitor/app not available (web build) — ignore silently
+      }
+    })()
+    return () => { handle?.remove?.() }
+  }, [guruMode])
 
   const [history, setHistory] = useState(['home'])
   const [pendingGame, setPendingGame] = useState(null) // { key, name, emoji }
@@ -735,6 +780,13 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     socket.on('tournament:your-match', (data) => {
       setTournamentMatchData(data)
       setTournamentBanner(data)
+      // Fire native OS banner so the student notices even while focused on a game
+      showLocalNotification({
+        id: 9001,
+        title: '🏆 Turnamen — Giliran Kamu!',
+        body: `Lawan: ${data?.opponent?.name ?? 'Lawan'} • Game siap dimulai`,
+        channel: 'tomat_game',
+      })
     })
 
     // Turnamen selesai (broadcast ke kelas)
@@ -755,6 +807,13 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     socket.on('duel:incoming-invite', (data) => {
       setDuelInvite(data)  // { code, from: { userId, name } }
+      // Fire native OS banner so the student notices even while focused on a game
+      showLocalNotification({
+        id: 9002,
+        title: '⚔️ Tantangan Duel!',
+        body: `${data?.from?.name ?? 'Temanmu'} mengajakmu duel`,
+        channel: 'tomat_game',
+      })
     })
 
     socket.on('duel:invite-expired', () => {
