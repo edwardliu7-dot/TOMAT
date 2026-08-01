@@ -627,6 +627,136 @@ export async function ensureSchema() {
     )
   `)
 
+  // ── GuruEOB5 Tables (Bagian 2) ───────────────────────────────────────────────
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_nilai_akademik (
+      id             SERIAL PRIMARY KEY,
+      student_id     text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id        text REFERENCES gurus(id),
+      mata_pelajaran VARCHAR(100) NOT NULL,
+      jenis_nilai    VARCHAR(50) NOT NULL,
+      nilai          NUMERIC(5,2),
+      semester       VARCHAR(10),
+      tahun_ajaran   VARCHAR(20),
+      keterangan     TEXT,
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_materi (
+      id             SERIAL PRIMARY KEY,
+      guru_id        text REFERENCES gurus(id),
+      judul          VARCHAR(255) NOT NULL,
+      deskripsi      TEXT,
+      kelas          VARCHAR(50),
+      mata_pelajaran VARCHAR(100),
+      url_file       TEXT,
+      tipe           VARCHAR(50),
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_jadwal (
+      id             SERIAL PRIMARY KEY,
+      guru_id        text REFERENCES gurus(id),
+      kelas          VARCHAR(50) NOT NULL,
+      mata_pelajaran VARCHAR(100) NOT NULL,
+      hari           VARCHAR(20) NOT NULL,
+      jam_mulai      TIME NOT NULL,
+      jam_selesai    TIME NOT NULL,
+      ruangan        VARCHAR(50),
+      tahun_ajaran   VARCHAR(20)
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_kalender_akademik (
+      id              SERIAL PRIMARY KEY,
+      guru_id         text REFERENCES gurus(id),
+      judul           VARCHAR(255) NOT NULL,
+      deskripsi       TEXT,
+      tanggal_mulai   DATE NOT NULL,
+      tanggal_selesai DATE,
+      tipe            VARCHAR(50),
+      tahun_ajaran    VARCHAR(20),
+      created_at      TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_info_pekanan (
+      id             SERIAL PRIMARY KEY,
+      guru_id        text REFERENCES gurus(id),
+      kelas          VARCHAR(50),
+      minggu_ke      INTEGER NOT NULL,
+      judul          VARCHAR(255),
+      isi            TEXT,
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_prosem (
+      id             SERIAL PRIMARY KEY,
+      guru_id        text REFERENCES gurus(id),
+      mata_pelajaran VARCHAR(100) NOT NULL,
+      kelas          VARCHAR(50) NOT NULL,
+      semester       INTEGER NOT NULL,
+      tahun_ajaran   VARCHAR(20) NOT NULL,
+      konten         JSONB,
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_soal_tersimpan (
+      id         SERIAL PRIMARY KEY,
+      guru_id    text REFERENCES gurus(id),
+      topik      VARCHAR(255),
+      soal_json  JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_inbox (
+      id          SERIAL PRIMARY KEY,
+      pengirim_id text REFERENCES gurus(id),
+      judul       VARCHAR(255) NOT NULL,
+      isi         TEXT NOT NULL,
+      target_role VARCHAR(20) DEFAULT 'guru',
+      dibaca_oleh JSONB DEFAULT '[]',
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_tujuan_pembelajaran (
+      id             SERIAL PRIMARY KEY,
+      guru_id        text REFERENCES gurus(id),
+      mata_pelajaran VARCHAR(100) NOT NULL,
+      kelas          VARCHAR(50),
+      deskripsi      TEXT NOT NULL,
+      kode_tp        VARCHAR(50),
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_feedback (
+      id               SERIAL PRIMARY KEY,
+      student_id       text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id          text REFERENCES gurus(id),
+      isi              TEXT NOT NULL,
+      sudah_ditanggapi BOOLEAN DEFAULT FALSE,
+      tanggapan        TEXT,
+      created_at       TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
   // ── BLP Harian Tables ────────────────────────────────────────────────────────
   // Tabel-tabel ini sudah ada di Neon (dipakai BLP app yang berjalan terpisah).
   // CREATE TABLE IF NOT EXISTS memastikan idempoten — tidak merusak data yang ada.

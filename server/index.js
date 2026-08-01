@@ -23,6 +23,13 @@ import eob5GuruRouter from './eob5/guru.js'
 import eob5SiswaAkunRouter from './eob5/siswa-akun.js'
 import eob5AbsensiRouter from './eob5/absensi.js'
 import eob5KelasRouter from './eob5/kelas.js'
+import eob5NilaiRouter from './eob5/nilai.js'
+import eob5MateriRouter from './eob5/materi.js'
+import eob5JadwalRouter from './eob5/jadwal.js'
+import eob5ProsemRouter from './eob5/prosem.js'
+import eob5SoalOtomatisRouter from './eob5/soal-otomatis.js'
+import eob5RekapRouter from './eob5/rekap.js'
+import eob5InboxRouter from './eob5/inbox.js'
 // BLP Harian
 import blpDashboardRouter from './blp/dashboard.js'
 import blpAktivitasRouter from './blp/aktivitas.js'
@@ -143,6 +150,13 @@ async function createServer() {
   app.use('/api/eob5/siswa', eob5SiswaAkunRouter)
   app.use('/api/eob5/absensi', eob5AbsensiRouter)
   app.use('/api/eob5/kelas', eob5KelasRouter)
+  app.use('/api/eob5/nilai', eob5NilaiRouter)
+  app.use('/api/eob5/materi', eob5MateriRouter)
+  app.use('/api/eob5/jadwal', eob5JadwalRouter)
+  app.use('/api/eob5/prosem', eob5ProsemRouter)
+  app.use('/api/eob5/soal-otomatis', eob5SoalOtomatisRouter)
+  app.use('/api/eob5/rekap', eob5RekapRouter)
+  app.use('/api/eob5/inbox', eob5InboxRouter)
 
   // ── BLP Harian ────────────────────────────────────────────────────────────
   app.use('/api/blp', blpDashboardRouter)
