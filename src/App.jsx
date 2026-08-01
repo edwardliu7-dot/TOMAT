@@ -48,6 +48,10 @@ import BlpHaidScreen from './screens/blp/BlpHaidScreen'
 import BlpGuruRekapScreen from './screens/blp/BlpGuruRekapScreen'
 import BlpGuruSiswaDetailScreen from './screens/blp/BlpGuruSiswaDetailScreen'
 import BlpGuruPeriodeScreen from './screens/blp/BlpGuruPeriodeScreen'
+import Eob5DashboardScreen from './screens/eob5/Eob5DashboardScreen'
+import Eob5AbsensiScreen from './screens/eob5/Eob5AbsensiScreen'
+import Eob5ManajemenSiswaScreen from './screens/eob5/Eob5ManajemenSiswaScreen'
+import Eob5DetailSiswaScreen from './screens/eob5/Eob5DetailSiswaScreen'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
@@ -554,6 +558,16 @@ const SCREEN_TITLES = {
   'blp-guru-rekap': 'Rekap Kelas BLP',
   'blp-guru-siswa-detail': 'Detail Siswa BLP',
   'blp-guru-periode': 'Atur Periode BLP',
+  'eob5-dashboard': 'EOB5 — Dashboard Guru',
+  'eob5-absensi': 'EOB5 — Absensi',
+  'eob5-siswa': 'EOB5 — Manajemen Siswa',
+  'eob5-detail-siswa': 'EOB5 — Detail Siswa',
+  'eob5-nilai': 'EOB5 — Nilai',
+  'eob5-jadwal': 'EOB5 — Jadwal',
+  'eob5-prosem': 'EOB5 — Prosem',
+  'eob5-materi': 'EOB5 — Materi',
+  'eob5-soal-ai': 'EOB5 — Soal AI',
+  'eob5-rekap': 'EOB5 — Rekap',
 }
 
 // Rendered inside PlayerProvider — safe to call usePlayer().
@@ -1153,6 +1167,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 export default function App() {
   const { user, logout, checking } = useAuth()
   const [guruPracticeMode, setGuruPracticeMode] = useState(false)
+  const [guruHistory, setGuruHistory] = useState(['guru-dashboard'])
+  const [eob5SiswaId, setEob5SiswaId] = useState(null)
   const { checking: checkingUpdate, updateRequired, downloadUrl } = useAppUpdateCheck()
 
   // Hide the inline HTML splash once React has mounted and auth check is done
@@ -1161,6 +1177,16 @@ export default function App() {
       window.__hideSplash?.()
     }
   }, [checking, checkingUpdate])
+
+  // EOB5: lihat detail siswa — dispatched by Eob5ManajemenSiswaScreen
+  useEffect(() => {
+    const handler = (e) => {
+      setEob5SiswaId(e.detail?.id || null)
+      setGuruHistory(h => [...h, 'eob5-detail-siswa'])
+    }
+    window.addEventListener('eob5:lihat-siswa', handler)
+    return () => window.removeEventListener('eob5:lihat-siswa', handler)
+  }, [])
 
   // Update tab title for guru dashboard and login screen
   useEffect(() => {
@@ -1195,15 +1221,44 @@ export default function App() {
         </div>
       )
     }
+
+    const currentGuruScreen = guruHistory[guruHistory.length - 1]
+    const guruGoBack = () => {
+      if (guruHistory.length > 1) {
+        setGuruHistory(h => h.slice(0, -1))
+      }
+    }
     const guruNavigate = (key) => {
       if (key === 'guruMengajar') { setGuruPracticeMode(true); return }
+      if (key.startsWith('eob5-')) {
+        setGuruHistory(h => [...h, key])
+        return
+      }
       window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
     }
+
+    const renderGuruScreen = () => {
+      if (currentGuruScreen === 'eob5-dashboard') {
+        return <Eob5DashboardScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-absensi') {
+        return <Eob5AbsensiScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-siswa') {
+        return <Eob5ManajemenSiswaScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-detail-siswa') {
+        return <Eob5DetailSiswaScreen navigate={guruNavigate} goBack={guruGoBack} siswaId={eob5SiswaId} />
+      }
+      // Default: main guru dashboard
+      return <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
+    }
+
     return (
       <AppShell user={user} navigate={guruNavigate} currentScreen="guruDashboard" onLogout={logout}>
         <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
-          <ErrorBoundary onReset={() => {}}>
-            <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
+          <ErrorBoundary onReset={guruGoBack}>
+            {renderGuruScreen()}
           </ErrorBoundary>
         </div>
       </AppShell>
