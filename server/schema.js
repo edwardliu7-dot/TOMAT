@@ -447,7 +447,7 @@ export async function ensureSchema() {
     insert into students
       (id, username, name, password, kelas, email, whatsapp, is_test_account)
     values
-      ('tomat-demo', 'tomat_demo', 'TOMAT Demo', 'TomatDemo2026!', 'IX Al Khawarizmi',
+      ('tomat-demo', 'tomat', 'TOMAT Demo', '1234', 'IX Al Khawarizmi',
        'tomat-demo@tomat.local', '0000000000', true)
     on conflict (id) do update set
       username = excluded.username,
