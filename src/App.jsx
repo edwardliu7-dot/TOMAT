@@ -70,6 +70,10 @@ import Eob5PoinScreen from './screens/eob5/Eob5PoinScreen'
 import Eob5AkunSiswaScreen from './screens/eob5/Eob5AkunSiswaScreen'
 import Eob5DirektoriGuruScreen from './screens/eob5/Eob5DirektoriGuruScreen'
 import Eob5DirektoriSiswaScreen from './screens/eob5/Eob5DirektoriSiswaScreen'
+import Eob5KepsekScreen from './screens/eob5/Eob5KepsekScreen'
+import Eob5KesiswaanScreen from './screens/eob5/Eob5KesiswaanScreen'
+import Eob5WaliKelasScreen from './screens/eob5/Eob5WaliKelasScreen'
+import Eob5KurikulumScreen from './screens/eob5/Eob5KurikulumScreen'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
@@ -594,6 +598,10 @@ const SCREEN_TITLES = {
   'eob5-akun-siswa': 'GURU — Akun Siswa',
   'eob5-direktori-guru': 'GURU — Direktori Guru',
   'eob5-direktori-siswa': 'GURU — Direktori Siswa',
+  'eob5-kepsek': 'GURU — Progres Kinerja Guru',
+  'eob5-kesiswaan': 'GURU — Rekap Kesiswaan',
+  'eob5-walikelas': 'GURU — Rekap Wali Kelas',
+  'eob5-kurikulum': 'GURU — Supervisi Kurikulum',
 }
 
 // Rendered inside PlayerProvider — safe to call usePlayer().
@@ -1331,6 +1339,18 @@ export default function App() {
       }
       if (currentGuruScreen === 'eob5-direktori-siswa') {
         return <Eob5DirektoriSiswaScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-kepsek') {
+        return <Eob5KepsekScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-kesiswaan') {
+        return <Eob5KesiswaanScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-walikelas') {
+        return <Eob5WaliKelasScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-kurikulum') {
+        return <Eob5KurikulumScreen navigate={guruNavigate} goBack={guruGoBack} />
       }
       if (currentGuruScreen === 'blp-home') {
         return <BlpHomeScreen navigate={guruNavigate} goBack={guruGoBack} />

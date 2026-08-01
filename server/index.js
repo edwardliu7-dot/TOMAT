@@ -46,6 +46,10 @@ import eob5TeachersRouter from './eob5/teachers.js'
 import eob5InfoPekananRouter from './eob5/info-pekanan.js'
 import eob5FeedbackRouter from './eob5/feedback.js'
 import eob5BahanAjarRouter from './eob5/bahan-ajar.js'
+import eob5KepsekRouter from './eob5/kepsek.js'
+import eob5KesiswaanRouter from './eob5/kesiswaan.js'
+import eob5WaliKelasRouter from './eob5/walikelas.js'
+import eob5KurikulumRouter from './eob5/kurikulum.js'
 // BLP Harian
 import blpDashboardRouter from './blp/dashboard.js'
 import blpAktivitasRouter from './blp/aktivitas.js'
@@ -189,6 +193,10 @@ async function createServer() {
   app.use('/api/eob5/info-pekanan', eob5InfoPekananRouter)
   app.use('/api/eob5/feedback', eob5FeedbackRouter)
   app.use('/api/eob5/bahan-ajar', eob5BahanAjarRouter)
+  app.use('/api/eob5/kepsek', eob5KepsekRouter)
+  app.use('/api/eob5/kesiswaan', eob5KesiswaanRouter)
+  app.use('/api/eob5/walikelas', eob5WaliKelasRouter)
+  app.use('/api/eob5/kurikulum', eob5KurikulumRouter)
 
   // ── App version & OTA bundles ─────────────────────────────────────────────
   app.use('/api/app', appVersionRouter)

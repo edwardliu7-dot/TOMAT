@@ -200,4 +200,94 @@ router.get('/periode', requireGuru, async (req, res) => {
   }
 })
 
+// GET /api/eob5/rekap/absensi-chart — data absensi bulanan per kelas (untuk chart)
+router.get('/absensi-chart', requireGuru, async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        TO_CHAR(a.tanggal, 'YYYY-MM') AS bulan,
+        s.kelas,
+        COUNT(*) FILTER (WHERE a.status = 'hadir') AS hadir,
+        COUNT(*) FILTER (WHERE a.status = 'izin')  AS izin,
+        COUNT(*) FILTER (WHERE a.status = 'sakit') AS sakit,
+        COUNT(*) FILTER (WHERE a.status = 'alpha') AS alpa,
+        COUNT(*)                                    AS total
+      FROM eob5_absensi a
+      JOIN students s ON s.id = a.student_id
+      GROUP BY bulan, s.kelas
+      ORDER BY bulan, s.kelas
+    `)
+
+    const data = rows.map(r => ({
+      bulan:  r.bulan,
+      kelas:  r.kelas,
+      hadir:  parseInt(r.hadir)  || 0,
+      izin:   parseInt(r.izin)   || 0,
+      sakit:  parseInt(r.sakit)  || 0,
+      alpa:   parseInt(r.alpa)   || 0,
+      total:  parseInt(r.total)  || 0,
+    }))
+
+    const kelasOptions = [...new Set(data.map(d => d.kelas))].sort((a,b) => a.localeCompare(b,'id'))
+
+    res.json({ data, kelasOptions })
+  } catch (err) {
+    console.error('[rekap/absensi-chart]', err)
+    res.status(500).json({ error: 'Gagal memuat data absensi chart' })
+  }
+})
+
+// GET /api/eob5/rekap/nilai-chart — nilai per mapel per kelas (untuk chart cards)
+router.get('/nilai-chart', requireGuru, async (req, res) => {
+  try {
+    // Aggregate per subject + kelas
+    const { rows } = await pool.query(`
+      SELECT
+        n.mata_pelajaran   AS "subjectName",
+        s.kelas,
+        ROUND(AVG(n.nilai)::numeric, 2)   AS "rataRata",
+        MIN(n.nilai)                       AS "nilaiMin",
+        MAX(n.nilai)                       AS "nilaiMax",
+        COUNT(*)                           AS "jumlahNilai",
+        -- simplified distribusi: bucket by 10s
+        JSON_AGG(JSON_BUILD_OBJECT('range', CONCAT(FLOOR(n.nilai/10)*10,'-',FLOOR(n.nilai/10)*10+9), 'jumlah', 1) ORDER BY n.nilai) AS raw
+      FROM eob5_nilai_akademik n
+      JOIN students s ON s.id = n.student_id
+      GROUP BY n.mata_pelajaran, s.kelas
+      ORDER BY s.kelas, n.mata_pelajaran
+    `)
+
+    const subjects = rows.map((r, idx) => {
+      // Build distribusi buckets
+      const buckets = {}
+      for (const item of (r.raw || [])) {
+        const range = item.range
+        if (!buckets[range]) buckets[range] = { range, jumlah: 0 }
+        buckets[range].jumlah++
+      }
+      const distribusi = Object.values(buckets).sort((a,b) => {
+        const aNum = parseInt(a.range)
+        const bNum = parseInt(b.range)
+        return aNum - bNum
+      })
+      return {
+        subjectId:   idx + 1,
+        subjectName: r.subjectName,
+        kelas:       r.kelas,
+        rataRata:    r.rataRata != null ? parseFloat(r.rataRata) : null,
+        nilaiMin:    r.nilaiMin != null ? parseFloat(r.nilaiMin) : null,
+        nilaiMax:    r.nilaiMax != null ? parseFloat(r.nilaiMax) : null,
+        jumlahNilai: parseInt(r.jumlahNilai) || 0,
+        distribusi,
+      }
+    })
+
+    const kelasOptions = [...new Set(subjects.map(s => s.kelas))].sort((a,b) => a.localeCompare(b,'id'))
+    res.json({ subjects, kelasOptions })
+  } catch (err) {
+    console.error('[rekap/nilai-chart]', err)
+    res.status(500).json({ error: 'Gagal memuat data nilai chart' })
+  }
+})
+
 export default router
