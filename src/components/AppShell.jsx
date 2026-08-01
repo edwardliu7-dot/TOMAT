@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
+import React, { useContext } from 'react'
 import Sidebar from './Sidebar'
 import { getGradeNumber } from '../kelasUtils'
 import AudioPanel from './AudioPanel'
 import AppSwitcher from './AppSwitcher'
+import { UserAvatar, MessageNotificationBell, AppNotificationBell } from './shared'
+import { PlayerContext } from '../PlayerContext'
 
 function useIsDesktop() {
   const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
@@ -19,9 +21,29 @@ function useIsDesktop() {
 // Screens that should show the mobile bottom navigation bar
 const BOTTOM_NAV_SCREENS = new Set(['home', 'grade7', 'grade8', 'grade9', 'toko', 'papanperingkat', 'profile'])
 
+// Safely reads coins/level from PlayerContext — only rendered when user is siswa
+// and the component tree is guaranteed to be inside <PlayerProvider>.
+function SiswaPlayerInfo() {
+  const ctx = useContext(PlayerContext)
+  if (!ctx) return null
+  const { player } = ctx
+  return (
+    <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 2 }}>
+      <span style={{
+        fontSize: 9, color: '#FCD34D', fontWeight: 700,
+        background: 'rgba(252,211,77,0.12)', borderRadius: 99, padding: '1px 5px',
+      }}>🪙 {player.coins}</span>
+      <span style={{
+        fontSize: 9, color: '#34D399', fontWeight: 700,
+        background: 'rgba(52,211,153,0.12)', borderRadius: 99, padding: '1px 5px',
+      }}>⚡ Lv{player.level}</span>
+    </div>
+  )
+}
+
 /**
  * AppShell — wrapper yang menambahkan sidebar di kiri dan offset konten di kanan.
- * Di mobile juga menampilkan bottom navigation bar yang persisten di semua layar utama.
+ * Di mobile juga menampilkan unified top header dan bottom navigation bar.
  * Props: { user, navigate, currentScreen, onLogout, onSwitchModule, children }
  */
 export default function AppShell({ user, navigate, currentScreen, onLogout, onSwitchModule, children }) {
@@ -43,6 +65,27 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
   const moduleAccent = activeModule === 'blp' ? '#10b981'
     : activeModule === 'eob5' ? '#f59e0b'
     : '#6366f1'
+
+  const isGuru = user?.role === 'guru'
+
+  // Navigate to profile — guru uses custom event so GuruDashboardScreen can set view
+  const goToProfile = () => {
+    if (isGuru) {
+      window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key: 'profile' } }))
+    } else {
+      navigate('profile')
+    }
+  }
+
+  // Navigate to komunikasi — guru uses internal tab key, siswa uses route
+  const goToKomunikasi = () => {
+    navigate(isGuru ? 'guruKomunikasi' : 'komunikasi')
+  }
+
+  // Kelas display for guru (kelas_diampu can be array)
+  const guruKelas = isGuru
+    ? (Array.isArray(user?.kelas) ? user.kelas.join(', ') : (user?.kelas || 'Guru'))
+    : null
 
   return (
     <>
@@ -74,7 +117,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
         }
         @media (max-width: 900px) {
           .with-sidebar.with-nav { padding-bottom: 84px; }
-          .with-sidebar.with-module-header { padding-top: 46px; }
+          .with-sidebar.with-module-header { padding-top: 64px; }
         }
       `}</style>
       <Sidebar
@@ -87,21 +130,85 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
         {children}
       </div>
 
-      {/* Mobile: fixed top header dengan App Switcher */}
+      {/* Mobile: unified top header — profile info + AppSwitcher + notifications */}
       {!isDesktop && user && onSwitchModule && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0,
           zIndex: 300,
-          height: 46,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: 64,
+          display: 'flex', alignItems: 'center',
+          gap: 6,
           background: 'rgba(7,19,33,0.97)',
           borderBottom: `2px solid ${moduleAccent}44`,
           backdropFilter: 'blur(16px)',
           boxShadow: '0 1px 12px rgba(0,0,0,0.35)',
-          paddingLeft: 'env(safe-area-inset-left, 0px)',
-          paddingRight: 'env(safe-area-inset-right, 0px)',
+          paddingLeft: 'calc(10px + env(safe-area-inset-left, 0px))',
+          paddingRight: 'calc(10px + env(safe-area-inset-right, 0px))',
         }}>
-          <AppSwitcher activeModule={activeModule} onSwitch={handleSwitch} />
+
+          {/* Left: avatar + user info — tappable → profile */}
+          <button
+            onClick={goToProfile}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              flex: 1, minWidth: 0,
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '4px 0', textAlign: 'left',
+            }}
+          >
+            <UserAvatar user={user} size={36} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{
+                fontSize: 12, fontWeight: 800, color: '#fff',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                lineHeight: 1.2,
+              }}>
+                {user.name?.split(' ')[0]}
+              </div>
+              {isGuru ? (
+                <div style={{
+                  fontSize: 9, color: '#A78BFA', fontWeight: 600,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  marginTop: 2, lineHeight: 1.2,
+                }}>
+                  {guruKelas || 'Guru'}
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 9, color: '#67E8F9', fontWeight: 600, lineHeight: 1.2, marginTop: 2 }}>
+                    {user.kelas}
+                  </div>
+                  <SiswaPlayerInfo />
+                </>
+              )}
+            </div>
+          </button>
+
+          {/* Center: App Switcher */}
+          <div style={{ flexShrink: 0 }}>
+            <AppSwitcher activeModule={activeModule} onSwitch={handleSwitch} />
+          </div>
+
+          {/* Right: notification bells + Mode Mengajar for guru */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <MessageNotificationBell onClick={goToKomunikasi} />
+            <AppNotificationBell onCommunicationClick={goToKomunikasi} />
+            {isGuru && (
+              <button
+                onClick={() => navigate('guruMengajar')}
+                title="Mode Mengajar"
+                style={{
+                  background: 'rgba(52,211,153,0.15)',
+                  border: '1px solid rgba(52,211,153,0.3)',
+                  color: '#34D399', borderRadius: 10,
+                  width: 36, height: 36,
+                  cursor: 'pointer', fontSize: 15,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >🎮</button>
+            )}
+          </div>
         </div>
       )}
 

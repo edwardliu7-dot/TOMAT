@@ -2478,6 +2478,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   useEffect(() => {
     const handler = (e) => {
       const key = e.detail?.key
+      if (key === 'profile') { setView('profile'); return }
       const nextTab = {
         guruDashboard: 'home',
         guruTugas: 'tugas',
@@ -2681,41 +2682,6 @@ export default function GuruDashboardScreen({ onPlayGames }) {
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
         <div style={{ position: 'absolute', top: '-10%', right: '-15%', width: '60%', height: '45%', borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(100px)' }} />
         <div style={{ position: 'absolute', bottom: '20%', left: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(16,185,129,0.08)', filter: 'blur(100px)' }} />
-      </div>
-
-      {/* ── Fixed Topbar ── */}
-      <div style={{
-        flexShrink: 0, position: 'relative', zIndex: 10,
-        padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10,
-        background: 'rgba(10,11,20,0.97)', backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
-      }}>
-        {/* Logo */}
-        <span style={{
-          width: 34, height: 34, borderRadius: 10, background: '#9fe3bd', color: '#0b2c2a',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 900, fontSize: 10, letterSpacing: '-0.05em', flexShrink: 0,
-        }}>TM</span>
-
-        {/* Tab title */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            <span style={{ fontSize: 16 }}>{currentTabInfo?.label}</span>
-            <span>{tab === 'home' ? 'Dashboard Guru' : currentTabInfo?.text}</span>
-          </div>
-          <div style={{ fontSize: 10, color: '#A78BFA', fontWeight: 600, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {user?.name} · {kelasDiampu.join(', ') || 'Guru'}
-          </div>
-        </div>
-
-        <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} suppress={tab === 'komunikasi'} />
-        <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} />
-
-        <button onClick={onPlayGames} style={{
-          background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)',
-          color: '#34D399', borderRadius: 16, padding: '6px 10px', cursor: 'pointer',
-          fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
-        }}>🎮</button>
       </div>
 
       {/* ── Scrollable Content ── */}
