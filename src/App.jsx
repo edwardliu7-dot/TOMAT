@@ -52,6 +52,13 @@ import Eob5DashboardScreen from './screens/eob5/Eob5DashboardScreen'
 import Eob5AbsensiScreen from './screens/eob5/Eob5AbsensiScreen'
 import Eob5ManajemenSiswaScreen from './screens/eob5/Eob5ManajemenSiswaScreen'
 import Eob5DetailSiswaScreen from './screens/eob5/Eob5DetailSiswaScreen'
+import Eob5NilaiScreen from './screens/eob5/Eob5NilaiScreen'
+import Eob5JadwalScreen from './screens/eob5/Eob5JadwalScreen'
+import Eob5ProsemScreen from './screens/eob5/Eob5ProsemScreen'
+import Eob5MateriScreen from './screens/eob5/Eob5MateriScreen'
+import Eob5SoalAiScreen from './screens/eob5/Eob5SoalAiScreen'
+import Eob5RekapScreen from './screens/eob5/Eob5RekapScreen'
+import Eob5InboxScreen from './screens/eob5/Eob5InboxScreen'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
@@ -568,6 +575,7 @@ const SCREEN_TITLES = {
   'eob5-materi': 'EOB5 — Materi',
   'eob5-soal-ai': 'EOB5 — Soal AI',
   'eob5-rekap': 'EOB5 — Rekap',
+  'eob5-inbox': 'EOB5 — Inbox',
 }
 
 // Rendered inside PlayerProvider — safe to call usePlayer().
@@ -1249,6 +1257,27 @@ export default function App() {
       }
       if (currentGuruScreen === 'eob5-detail-siswa') {
         return <Eob5DetailSiswaScreen navigate={guruNavigate} goBack={guruGoBack} siswaId={eob5SiswaId} />
+      }
+      if (currentGuruScreen === 'eob5-nilai') {
+        return <Eob5NilaiScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-jadwal') {
+        return <Eob5JadwalScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-prosem') {
+        return <Eob5ProsemScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-materi') {
+        return <Eob5MateriScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-soal-ai') {
+        return <Eob5SoalAiScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-rekap') {
+        return <Eob5RekapScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-inbox') {
+        return <Eob5InboxScreen navigate={guruNavigate} goBack={guruGoBack} />
       }
       // Default: main guru dashboard
       return <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />

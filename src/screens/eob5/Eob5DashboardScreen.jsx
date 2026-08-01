@@ -20,6 +20,7 @@ const MENU = [
   { key: 'eob5-soal-ai',   label: 'Soal AI',     emoji: '🤖', desc: 'Generate soal otomatis' },
   { key: 'eob5-siswa',     label: 'Siswa',       emoji: '👥', desc: 'Manajemen data siswa' },
   { key: 'eob5-rekap',     label: 'Rekap',       emoji: '📈', desc: 'Rekap kelas & periode' },
+  { key: 'eob5-inbox',     label: 'Inbox',       emoji: '📬', desc: 'Pengumuman resmi' },
 ]
 
 export default function Eob5DashboardScreen({ navigate, goBack }) {
