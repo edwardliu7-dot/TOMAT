@@ -319,7 +319,7 @@ export default function BlpHomeScreen({ navigate, goBack }) {
 
   useEffect(() => { loadDashboard() }, [])
 
-  if (loading) return (
+  if (loading || !data) return (
     <div style={{ minHeight: '100vh', background: '#0a1a12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: '#10b981', fontSize: 14, fontWeight: 700 }}>Memuat...</div>
     </div>

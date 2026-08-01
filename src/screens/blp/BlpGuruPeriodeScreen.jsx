@@ -63,7 +63,7 @@ export default function BlpGuruPeriodeScreen({ goBack }) {
     setSaving(false)
   }
 
-  if (loading) return (
+  if (loading || !data) return (
     <div style={{ minHeight: '100vh', background: '#0a1a12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ color: '#10b981' }}>Memuat...</div>
     </div>

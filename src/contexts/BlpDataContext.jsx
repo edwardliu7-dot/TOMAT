@@ -4,7 +4,7 @@ const BlpDataContext = createContext(null)
 
 export function BlpDataProvider({ children }) {
   const [data, setData] = useState(null)      // null = belum pernah fetch
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const fetchingRef = useRef(false)           // cegah concurrent fetch
 
