@@ -16,6 +16,7 @@ import komunikasiRouter from './komunikasi.js'
 import notifikasiRouter from './notifikasi.js'
 import petRouter from './pet.js'
 import eventMissionsRouter from './event-missions-router.js'
+import appVersionRouter from './app-version.js'
 // GuruEOB5
 import eob5HealthRouter from './eob5/health.js'
 import eob5DashboardRouter from './eob5/dashboard.js'
@@ -158,6 +159,9 @@ async function createServer() {
   app.use('/api/eob5/rekap', eob5RekapRouter)
   app.use('/api/eob5/inbox', eob5InboxRouter)
 
+  // ── App version & OTA bundles ─────────────────────────────────────────────
+  app.use('/api/app', appVersionRouter)
+
   // ── BLP Harian ────────────────────────────────────────────────────────────
   app.use('/api/blp', blpDashboardRouter)
   app.use('/api/blp', blpAktivitasRouter)
@@ -166,50 +170,6 @@ async function createServer() {
   app.use('/api/blp', blpProfilRouter)
   app.use('/api/blp', blpHaidRouter)
   app.use('/api/blp', blpSiswaAdminRouter)
-
-  // Endpoint publik — cek versi APK, tidak perlu login
-  // Auto-detect dari GitHub Releases: https://github.com/edwardliu7-dot/tomat
-  const GH_REPO = 'edwardliu7-dot/tomat'
-  let _ghCache = null // { minVersionCode, downloadUrl, fetchedAt }
-  const GH_CACHE_TTL = 10 * 60 * 1000 // 10 menit
-
-  function semverToCode(tag) {
-    // "v1.2.3" atau "1.2.3" → 123
-    // Harus cocok dengan skema versionCode di android/app/build.gradle:
-    //   major*100 + minor*10 + patch  (e.g. "1.3.2" → 132)
-    const clean = tag.replace(/^v/, '')
-    const parts = clean.split('.').map(n => parseInt(n, 10) || 0)
-    return (parts[0] || 0) * 100 + (parts[1] || 0) * 10 + (parts[2] || 0)
-  }
-
-  app.get('/api/app/version-check', async (req, res) => {
-    // Kembalikan cache kalau masih fresh
-    if (_ghCache && Date.now() - _ghCache.fetchedAt < GH_CACHE_TTL) {
-      return res.json({ minVersionCode: _ghCache.minVersionCode, downloadUrl: _ghCache.downloadUrl })
-    }
-
-    try {
-      const ghRes = await fetch(
-        `https://api.github.com/repos/${GH_REPO}/releases/latest`,
-        { headers: { 'User-Agent': 'TOMAT-Server', Accept: 'application/vnd.github+json' } }
-      )
-      if (!ghRes.ok) throw new Error(`GitHub API ${ghRes.status}`)
-      const release = await ghRes.json()
-
-      const minVersionCode = semverToCode(release.tag_name || '0')
-      const apkAsset = (release.assets || []).find(a => a.name.endsWith('.apk'))
-      const downloadUrl = apkAsset?.browser_download_url || ''
-
-      _ghCache = { minVersionCode, downloadUrl, fetchedAt: Date.now() }
-      return res.json({ minVersionCode, downloadUrl })
-    } catch (err) {
-      console.warn('[version-check] GitHub fetch gagal, fallback ke env:', err.message)
-      // Fallback ke env var jika GitHub tidak bisa dijangkau
-      const minVersionCode = parseInt(process.env.MIN_APP_VERSION_CODE || '1', 10)
-      const downloadUrl = process.env.APP_DOWNLOAD_URL || ''
-      return res.json({ minVersionCode, downloadUrl })
-    }
-  })
 
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite')
@@ -220,6 +180,8 @@ async function createServer() {
     app.use(vite.middlewares)
   } else {
     const path = await import('node:path')
+    // Serve OTA bundle zips dari folder bundles/ (dibuat oleh scripts/deploy-bundle.sh)
+    app.use('/bundles', express.static(path.resolve(process.cwd(), 'bundles')))
     const distPath = path.resolve(process.cwd(), 'dist')
     app.use(express.static(distPath))
     app.use((req, res) => {

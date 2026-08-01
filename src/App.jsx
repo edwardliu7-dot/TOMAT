@@ -39,6 +39,7 @@ import { connectSocket } from './socket'
 import { DUEL_GAME_KEYS } from './gamesCatalog'
 import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
+import OtaUpdateBanner from './components/OtaUpdateBanner'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
 import BlpHomeScreen from './screens/blp/BlpHomeScreen'
 import BlpIsiAktivitasScreen from './screens/blp/BlpIsiAktivitasScreen'
@@ -1151,6 +1152,15 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               {dailyBonus && !guruMode && (
                 <DailyBonusModal bonus={dailyBonus} onDismiss={dismissDailyBonus} />
               )}
+              {/* OTA bundle update banner */}
+              {bundleUpdateAvailable && (
+                <OtaUpdateBanner
+                  bundleVersion={bundleVersion}
+                  bundleUrl={bundleUrl}
+                  bundleSize={bundleSize}
+                  bundleNotes={bundleNotes}
+                />
+              )}
               {/* Duel invite banner */}
               {duelInvite && current !== 'duel-lobby' && current !== 'duel-katak' && (
                 <DuelInviteBanner
@@ -1181,7 +1191,11 @@ export default function App() {
   const [guruPracticeMode, setGuruPracticeMode] = useState(false)
   const [guruHistory, setGuruHistory] = useState(['guru-dashboard'])
   const [eob5SiswaId, setEob5SiswaId] = useState(null)
-  const { checking: checkingUpdate, updateRequired, downloadUrl } = useAppUpdateCheck()
+  const {
+    checking: checkingUpdate,
+    updateRequired, downloadUrl,
+    bundleUpdateAvailable, bundleVersion, bundleUrl, bundleSize, bundleNotes,
+  } = useAppUpdateCheck()
 
   // Hide the inline HTML splash once React has mounted and auth check is done
   useEffect(() => {
