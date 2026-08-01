@@ -1080,6 +1080,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       <PetProvider>
         <TaskProvider onTaskComplete={handleTaskComplete}>
           <BabLockProvider>
+            <BlpDataProvider>
             <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout} onSwitchModule={handleSwitchModule}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
               {/* Inject CSS that filters ONLY structural nav/chrome elements.
@@ -1171,6 +1172,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               )}
             </div>
             </AppShell>
+            </BlpDataProvider>
           </BabLockProvider>
         </TaskProvider>
       </PetProvider>
