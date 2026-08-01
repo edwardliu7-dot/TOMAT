@@ -40,6 +40,14 @@ import { DUEL_GAME_KEYS } from './gamesCatalog'
 import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
+import BlpHomeScreen from './screens/blp/BlpHomeScreen'
+import BlpIsiAktivitasScreen from './screens/blp/BlpIsiAktivitasScreen'
+import BlpRiwayatScreen from './screens/blp/BlpRiwayatScreen'
+import BlpQuranScreen from './screens/blp/BlpQuranScreen'
+import BlpHaidScreen from './screens/blp/BlpHaidScreen'
+import BlpGuruRekapScreen from './screens/blp/BlpGuruRekapScreen'
+import BlpGuruSiswaDetailScreen from './screens/blp/BlpGuruSiswaDetailScreen'
+import BlpGuruPeriodeScreen from './screens/blp/BlpGuruPeriodeScreen'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
@@ -538,6 +546,14 @@ const SCREEN_TITLES = {
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
   'tournament-wait': 'Turnamen',
+  'blp-home': 'BLP Harian',
+  'blp-isi-aktivitas': 'Isi Aktivitas BLP',
+  'blp-riwayat': 'Riwayat BLP',
+  'blp-quran': 'Quran Tracker',
+  'blp-haid': 'Periode Haid',
+  'blp-guru-rekap': 'Rekap Kelas BLP',
+  'blp-guru-siswa-detail': 'Detail Siswa BLP',
+  'blp-guru-periode': 'Atur Periode BLP',
 }
 
 // Rendered inside PlayerProvider — safe to call usePlayer().
@@ -668,6 +684,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const current = history[history.length - 1]
 
   const [komunikasiTarget, setKomunikasiTarget]     = useState(null)
+  const [blpStudentId, setBlpStudentId]             = useState(null)
   const [duelState, setDuelState]                   = useState(null) // { code, myIndex, question, round, maxRounds, scores }
   const [tournamentMatchData, setTournamentMatchData] = useState(null)  // from tournament:your-match
   const [tournamentBanner,    setTournamentBanner]    = useState(null)  // show notification banner
@@ -702,6 +719,9 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       setPendingTaskId(options.taskId || null)
       setHistory(h => [...h, 'modeselect'])
     } else {
+      if (route === 'blp-guru-siswa-detail' && options.studentId) {
+        setBlpStudentId(options.studentId)
+      }
       setPendingTaskId(null)
       setHistory(h => [...h, route])
     }
@@ -985,6 +1005,38 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           </Suspense>
         </GameDesktopWrapper>
       )
+    }
+
+    if (current === 'blp-home') {
+      return <BlpHomeScreen navigate={navigate} goBack={goBack} />
+    }
+
+    if (current === 'blp-isi-aktivitas') {
+      return <BlpIsiAktivitasScreen navigate={navigate} goBack={goBack} />
+    }
+
+    if (current === 'blp-riwayat') {
+      return <BlpRiwayatScreen navigate={navigate} goBack={goBack} />
+    }
+
+    if (current === 'blp-quran') {
+      return <BlpQuranScreen navigate={navigate} goBack={goBack} />
+    }
+
+    if (current === 'blp-haid') {
+      return <BlpHaidScreen navigate={navigate} goBack={goBack} />
+    }
+
+    if (current === 'blp-guru-rekap') {
+      return <BlpGuruRekapScreen navigate={navigate} goBack={goBack} />
+    }
+
+    if (current === 'blp-guru-siswa-detail') {
+      return <BlpGuruSiswaDetailScreen navigate={navigate} goBack={goBack} studentId={blpStudentId} />
+    }
+
+    if (current === 'blp-guru-periode') {
+      return <BlpGuruPeriodeScreen navigate={navigate} goBack={goBack} />
     }
 
     if (current === 'home') {
