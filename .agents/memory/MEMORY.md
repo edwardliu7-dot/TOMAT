@@ -34,3 +34,4 @@
 - [TOMAT event mission system](tomat-event-missions.md) — 3-misi Kemerdekaan (17 soal benar → bingkai, 8 duel menang → spanduk, keduanya → kelinsay merahputih); items missionOnly=true, harga=0; progress hooked di player/gain + duel finishGame.
 - [TOMAT event mission hooks](tomat-event-mission-hooks.md) — duel & tournament correct answers must hook incrementMissionProgress directly (not via /gain); duel win coins awarded server-side, client uses syncCoins() not addCoins().
 - [TOMAT mission progress notification](tomat-mission-progress-notif.md) — MissionProgressToast + MissionClaimNotification; EVENT_MISSIONS hanya boleh diimport di event-missions.js + gameplay-events.js; caller terima Array<MissionDelta> terformat.
+- [SMARTISA server URLs](smartisa-server-urls.md) — URL produksi per modul di Coolify: TOMAT/GURU(EOB5)/BLP; TOMAT URL sudah di nativePatch.js.
