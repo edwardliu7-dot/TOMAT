@@ -59,7 +59,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, chil
           width: 20px; height: 3px; border-radius: 99px; background: #818CF8;
         }
         @media (max-width: 900px) {
-          .with-sidebar { padding-bottom: 84px; }
+          .with-sidebar.with-nav { padding-bottom: 84px; }
         }
       `}</style>
       <Sidebar
@@ -68,7 +68,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, chil
         currentScreen={currentScreen}
         onLogout={onLogout}
       />
-      <div className="with-sidebar">
+      <div className={`with-sidebar${showNav ? ' with-nav' : ''}`}>
         {children}
       </div>
       {/* Mobile-only audio panel — desktop has it in the Sidebar */}

@@ -1149,7 +1149,7 @@ export default function App() {
     }
     return (
       <AppShell user={user} navigate={guruNavigate} currentScreen="guruDashboard" onLogout={logout}>
-        <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
+        <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
           <ErrorBoundary onReset={() => {}}>
             <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
           </ErrorBoundary>
