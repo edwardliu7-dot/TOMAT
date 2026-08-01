@@ -31,6 +31,21 @@ import eob5ProsemRouter from './eob5/prosem.js'
 import eob5SoalOtomatisRouter from './eob5/soal-otomatis.js'
 import eob5RekapRouter from './eob5/rekap.js'
 import eob5InboxRouter from './eob5/inbox.js'
+// GuruEOB5 — router baru
+import eob5SubjectsRouter from './eob5/subjects.js'
+import eob5JournalRouter from './eob5/journal.js'
+import eob5AttendanceRouter from './eob5/attendance.js'
+import eob5GradesRouter from './eob5/grades.js'
+import eob5PointsRouter from './eob5/points.js'
+import eob5AcademicCalendarsRouter from './eob5/academic-calendars.js'
+import eob5TujuanPembelajaranRouter from './eob5/tujuan-pembelajaran.js'
+import eob5DocumentsRouter from './eob5/documents.js'
+import eob5ModulAjarRouter from './eob5/modul-ajar.js'
+import eob5StudentAccountsRouter from './eob5/student-accounts.js'
+import eob5TeachersRouter from './eob5/teachers.js'
+import eob5InfoPekananRouter from './eob5/info-pekanan.js'
+import eob5FeedbackRouter from './eob5/feedback.js'
+import eob5BahanAjarRouter from './eob5/bahan-ajar.js'
 // BLP Harian
 import blpDashboardRouter from './blp/dashboard.js'
 import blpAktivitasRouter from './blp/aktivitas.js'
@@ -158,6 +173,22 @@ async function createServer() {
   app.use('/api/eob5/soal-otomatis', eob5SoalOtomatisRouter)
   app.use('/api/eob5/rekap', eob5RekapRouter)
   app.use('/api/eob5/inbox', eob5InboxRouter)
+  // GuruEOB5 — router baru
+  app.use('/api/eob5/subjects', eob5SubjectsRouter)
+  app.use('/api/eob5/journal', eob5JournalRouter)
+  app.use('/api/eob5/attendance', eob5AttendanceRouter)
+  app.use('/api/eob5/grades', eob5GradesRouter)
+  app.use('/api/eob5/points', eob5PointsRouter)
+  // academic-calendars router menangani /academic-calendars dan /academic-weeks
+  app.use('/api/eob5', eob5AcademicCalendarsRouter)
+  app.use('/api/eob5/tujuan-pembelajaran', eob5TujuanPembelajaranRouter)
+  app.use('/api/eob5/documents', eob5DocumentsRouter)
+  app.use('/api/eob5/modul-ajar', eob5ModulAjarRouter)
+  app.use('/api/eob5/student-accounts', eob5StudentAccountsRouter)
+  app.use('/api/eob5/teachers', eob5TeachersRouter)
+  app.use('/api/eob5/info-pekanan', eob5InfoPekananRouter)
+  app.use('/api/eob5/feedback', eob5FeedbackRouter)
+  app.use('/api/eob5/bahan-ajar', eob5BahanAjarRouter)
 
   // ── App version & OTA bundles ─────────────────────────────────────────────
   app.use('/api/app', appVersionRouter)

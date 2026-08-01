@@ -757,6 +757,194 @@ export async function ensureSchema() {
     )
   `)
 
+  // ── GuruEOB5 Tables (Bagian 3 — router baru) ─────────────────────────────────
+
+  // Kolom tambahan gurus
+  await pool.query(`ALTER TABLE gurus ADD COLUMN IF NOT EXISTS school text`)
+  await pool.query(`ALTER TABLE gurus ADD COLUMN IF NOT EXISTS mapel text[] NOT NULL DEFAULT '{}'`)
+
+  // Mata pelajaran per guru (soft-delete)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_subjects (
+      id         SERIAL PRIMARY KEY,
+      guru_id    text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      name       VARCHAR(255) NOT NULL,
+      deleted_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (guru_id, name)
+    )
+  `)
+
+  // Jurnal mengajar
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_journal_entries (
+      id              SERIAL PRIMARY KEY,
+      guru_id         text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      subject_id      int  REFERENCES eob5_subjects(id) ON DELETE SET NULL,
+      tanggal         DATE NOT NULL,
+      kelas           VARCHAR(50) NOT NULL,
+      materi          TEXT NOT NULL,
+      kd              TEXT,
+      jp              NUMERIC(4,1),
+      catatan         TEXT,
+      prosem_item_id  int,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+  await pool.query(`CREATE INDEX IF NOT EXISTS eob5_journal_guru_tanggal ON eob5_journal_entries (guru_id, tanggal)`)
+
+  // Nilai siswa (formatif / sumatif_lm / sumatif_akhir)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_grades (
+      id              SERIAL PRIMARY KEY,
+      student_id      text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id         text REFERENCES gurus(id),
+      subject_id      int  REFERENCES eob5_subjects(id) ON DELETE SET NULL,
+      calendar_id     int,
+      jenis           VARCHAR(30) NOT NULL DEFAULT 'formatif',
+      lingkup_materi  INT,
+      nilai           NUMERIC(5,2),
+      keterangan      TEXT,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Poin perilaku siswa
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_student_points (
+      id         SERIAL PRIMARY KEY,
+      student_id text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id    text REFERENCES gurus(id),
+      jenis      VARCHAR(20) NOT NULL DEFAULT 'positif',
+      poin       INT NOT NULL DEFAULT 1,
+      keterangan TEXT,
+      tanggal    DATE NOT NULL DEFAULT CURRENT_DATE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Kalender akademik
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_academic_calendars (
+      id           SERIAL PRIMARY KEY,
+      guru_id      text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      nama         VARCHAR(255) NOT NULL,
+      tahun_ajaran VARCHAR(20) NOT NULL,
+      semester     INT NOT NULL DEFAULT 1,
+      is_shared    BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Pekan efektif per kalender
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_academic_weeks (
+      id               SERIAL PRIMARY KEY,
+      calendar_id      int NOT NULL REFERENCES eob5_academic_calendars(id) ON DELETE CASCADE,
+      pekan_ke         INT NOT NULL,
+      tanggal_mulai    DATE NOT NULL,
+      tanggal_selesai  DATE NOT NULL,
+      jenis            VARCHAR(30) NOT NULL DEFAULT 'efektif',
+      UNIQUE (calendar_id, pekan_ke)
+    )
+  `)
+
+  // Item-item prosem (materi per pekan)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_prosem_items (
+      id         SERIAL PRIMARY KEY,
+      prosem_id  int NOT NULL REFERENCES eob5_prosem(id) ON DELETE CASCADE,
+      subject_id int REFERENCES eob5_subjects(id) ON DELETE SET NULL,
+      kelas      VARCHAR(50),
+      materi     TEXT NOT NULL,
+      kd         TEXT,
+      jp         NUMERIC(4,1),
+      urutan     INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Kolom tambahan eob5_tujuan_pembelajaran untuk mendukung fitur baru
+  await pool.query(`ALTER TABLE eob5_tujuan_pembelajaran ADD COLUMN IF NOT EXISTS subject_id int REFERENCES eob5_subjects(id) ON DELETE SET NULL`)
+  await pool.query(`ALTER TABLE eob5_tujuan_pembelajaran ADD COLUMN IF NOT EXISTS calendar_id int`)
+  await pool.query(`ALTER TABLE eob5_tujuan_pembelajaran ADD COLUMN IF NOT EXISTS lingkup_materi INT`)
+  await pool.query(`ALTER TABLE eob5_tujuan_pembelajaran ADD COLUMN IF NOT EXISTS tp_number INT`)
+
+  // Dokumen per mata pelajaran (base64 di DB)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_documents (
+      id          SERIAL PRIMARY KEY,
+      subject_id  int NOT NULL REFERENCES eob5_subjects(id) ON DELETE CASCADE,
+      name        VARCHAR(255) NOT NULL,
+      description TEXT,
+      file_name   VARCHAR(255),
+      file_type   VARCHAR(100),
+      file_size   INT,
+      file_data   TEXT,
+      uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Modul ajar yang di-generate oleh AI
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_modul_ajar (
+      id            SERIAL PRIMARY KEY,
+      guru_id       text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      subject_id    int REFERENCES eob5_subjects(id) ON DELETE SET NULL,
+      materi        TEXT NOT NULL,
+      alokasi_waktu VARCHAR(50) NOT NULL,
+      kelas         VARCHAR(50),
+      content       JSONB,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Akun login siswa yang di-generate wali kelas
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_student_accounts (
+      id              SERIAL PRIMARY KEY,
+      student_id      text NOT NULL UNIQUE REFERENCES students(id) ON DELETE CASCADE,
+      eob5_username   VARCHAR(100) NOT NULL UNIQUE,
+      password_plain  VARCHAR(100) NOT NULL,
+      created_by      text REFERENCES gurus(id),
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Bahan ajar (PDF base64 atau link URL)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_bahan_ajar (
+      id              SERIAL PRIMARY KEY,
+      judul           VARCHAR(255) NOT NULL,
+      mata_pelajaran  VARCHAR(100),
+      kelas           VARCHAR(50),
+      deskripsi       TEXT,
+      file_name       VARCHAR(255),
+      file_type       VARCHAR(100),
+      file_size       INT,
+      file_data       TEXT,
+      link_url        TEXT,
+      created_by      text REFERENCES gurus(id),
+      created_by_name VARCHAR(255),
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Feedback guru ke pengembang aplikasi
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_app_feedback (
+      id                SERIAL PRIMARY KEY,
+      guru_id           text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      guru_name         VARCHAR(255),
+      kategori          VARCHAR(20) NOT NULL CHECK (kategori IN ('saran','kritik','bug')),
+      pesan             TEXT NOT NULL,
+      screenshot_base64 TEXT,
+      page_url          VARCHAR(500),
+      is_read           BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
   // ── BLP Harian Tables ────────────────────────────────────────────────────────
   // Tabel-tabel ini sudah ada di Neon (dipakai BLP app yang berjalan terpisah).
   // CREATE TABLE IF NOT EXISTS memastikan idempoten — tidak merusak data yang ada.
