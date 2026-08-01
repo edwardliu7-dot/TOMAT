@@ -17,10 +17,11 @@ Setiap file prompt di folder ini dirancang untuk dikerjakan oleh **satu Replit A
 | 01 | `01-blp-backend.md` | Port semua backend BLP → `server/blp/` | 00 |
 | 02 | `02-blp-frontend.md` | Port semua frontend BLP → `src/screens/blp/` | 00, 01 |
 | 03 | `03-eob5-backend-bagian1.md` | Backend EOB5: absensi, guru, siswa, kelas | 00 |
-| 04 | `04-eob5-backend-bagian2.md` | Backend EOB5: nilai, jadwal, prosem, materi, soal AI, rekap, inbox | 00, 03 |
+| 04 | `04-eob5-backend-bagian2.md` | Backend EOB5: nilai, jadwal, prosem, materi, soal AI via Groq, rekap, inbox | 00, 03 |
 | 05 | `05-eob5-frontend-bagian1.md` | Frontend EOB5: dashboard, absensi, manajemen siswa | 00, 03 |
 | 06 | `06-eob5-frontend-bagian2.md` | Frontend EOB5: nilai, jadwal, prosem, materi, soal AI, rekap, inbox | 00, 04, 05 |
 | 07 | `07-app-switcher.md` | App Switcher, HomeScreen quick-access, update RULES.md | 00–06 |
+| 08 | `08-ota-update.md` | OTA bundle update dalam app (seperti MLBB patch) | Bisa kapan saja |
 
 **Cara mulai setiap prompt:**
 1. Buka Replit Agent baru
@@ -28,6 +29,17 @@ Setiap file prompt di folder ini dirancang untuk dikerjakan oleh **satu Replit A
 3. Biarkan agent bekerja sampai semua Kriteria Selesai di-checklist
 4. Verifikasi app masih berjalan: `npm run dev`
 5. Lanjut ke prompt berikutnya
+
+---
+
+## Catatan Prompt 08 (OTA Update)
+
+Prompt 08 **berdiri sendiri** — tidak bergantung pada Prompt 00–07 dan bisa dikerjakan sekarang, sebelum, atau sesudah merger. Yang berubah cuma 3 file:
+- `server/app-version.js` (baru)
+- `src/hooks/useAppUpdateCheck.js` (update minor)
+- `src/components/OtaUpdateBanner.jsx` (baru)
+
+Setelah merger selesai (Prompt 07), lakukan hard APK update **satu kali** untuk bundle yang lebih besar, lalu semua update berikutnya cukup OTA.
 
 ---
 
