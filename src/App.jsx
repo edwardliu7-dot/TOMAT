@@ -74,6 +74,9 @@ import Eob5KepsekScreen from './screens/eob5/Eob5KepsekScreen'
 import Eob5KesiswaanScreen from './screens/eob5/Eob5KesiswaanScreen'
 import Eob5WaliKelasScreen from './screens/eob5/Eob5WaliKelasScreen'
 import Eob5KurikulumScreen from './screens/eob5/Eob5KurikulumScreen'
+import Eob5AdministrasiScreen from './screens/eob5/Eob5AdministrasiScreen'
+import Eob5FeedbackScreen from './screens/eob5/Eob5FeedbackScreen'
+import Eob5PengaturanScreen from './screens/eob5/Eob5PengaturanScreen'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
@@ -602,6 +605,9 @@ const SCREEN_TITLES = {
   'eob5-kesiswaan': 'GURU — Rekap Kesiswaan',
   'eob5-walikelas': 'GURU — Rekap Wali Kelas',
   'eob5-kurikulum': 'GURU — Supervisi Kurikulum',
+  'eob5-administrasi': 'GURU — Administrasi',
+  'eob5-feedback': 'GURU — Feedback',
+  'eob5-pengaturan': 'GURU — Pengaturan Profil',
 }
 
 // Rendered inside PlayerProvider — safe to call usePlayer().
@@ -1351,6 +1357,15 @@ export default function App() {
       }
       if (currentGuruScreen === 'eob5-kurikulum') {
         return <Eob5KurikulumScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-administrasi') {
+        return <Eob5AdministrasiScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-feedback') {
+        return <Eob5FeedbackScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-pengaturan') {
+        return <Eob5PengaturanScreen navigate={guruNavigate} goBack={guruGoBack} />
       }
       if (currentGuruScreen === 'blp-home') {
         return <BlpHomeScreen navigate={guruNavigate} goBack={guruGoBack} />
