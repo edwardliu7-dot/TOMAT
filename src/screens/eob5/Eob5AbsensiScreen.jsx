@@ -1,310 +1,484 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from '../../AuthContext'
+import { useState, useEffect, useMemo, useRef, useContext } from 'react'
+import { AuthContext } from '../../AuthContext'
 
-const COLOR = {
+const C = {
   bg: 'linear-gradient(160deg,#1a1200 0%,#2d1e00 100%)',
-  primary: '#f59e0b',
-  primaryDim: 'rgba(245,158,11,0.18)',
-  border: 'rgba(245,158,11,0.3)',
-  text: '#fef3c7',
-  textSub: '#92400e',
-  card: 'rgba(255,255,255,0.04)',
+  primary: '#f59e0b', dim: 'rgba(245,158,11,0.18)', border: 'rgba(245,158,11,0.3)',
+  text: '#fef3c7', sub: '#92400e', card: 'rgba(255,255,255,0.05)',
 }
 
-const STATUS_OPTIONS = ['hadir', 'sakit', 'izin', 'alpha']
-const STATUS_COLORS = {
-  hadir: '#22c55e',
-  sakit: '#f59e0b',
-  izin:  '#3b82f6',
-  alpha: '#ef4444',
+const STATUS_ORDER = ['hadir', 'sakit', 'izin', 'alpa']
+const STATUS_LABELS = { hadir: 'Hadir', sakit: 'Sakit', izin: 'Izin', alpa: 'Alpa' }
+const STATUS_COLORS = { hadir: '#22c55e', sakit: '#f97316', izin: '#3b82f6', alpa: '#ef4444' }
+const STATUS_BG    = { hadir: 'rgba(34,197,94,0.15)', sakit: 'rgba(249,115,22,0.15)', izin: 'rgba(59,130,246,0.15)', alpa: 'rgba(239,68,68,0.15)' }
+
+const ABSENT_BADGE = { sakit: 'rgba(249,115,22,0.15)', izin: 'rgba(59,130,246,0.15)', alpa: 'rgba(239,68,68,0.15)' }
+
+function todayStr() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date())
 }
-const STATUS_LABELS = {
-  hadir: 'Hadir',
-  sakit: 'Sakit',
-  izin:  'Izin',
-  alpha: 'Alpha',
+function fmtDate(str) {
+  try { return new Intl.DateTimeFormat('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(str + 'T00:00:00')) }
+  catch { return str }
 }
+
+const inp = { background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, borderRadius: 8, padding: '8px 10px', color: '#fff', fontFamily: 'inherit', fontSize: 13, boxSizing: 'border-box' }
 
 export default function Eob5AbsensiScreen({ navigate, goBack }) {
-  const { user } = useAuth()
-  const [tab, setTab] = useState('input')   // 'input' | 'rekap'
-  const [kelasList, setKelasList] = useState([])
-  const [selectedKelas, setSelectedKelas] = useState('')
-  const [siswaList, setSiswaList] = useState([])
-  const [statusMap, setStatusMap] = useState({})   // { studentId: 'hadir'|... }
-  const [existingMap, setExistingMap] = useState({}) // today's saved records
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
-  const [loadingSiswa, setLoadingSiswa] = useState(false)
+  const { user } = useContext(AuthContext)
+  const [tab, setTab] = useState('input')
 
-  // Rekap state
-  const [rekapData, setRekapData] = useState([])
-  const [rekapKelas, setRekapKelas] = useState('')
-  const [rekapBulan, setRekapBulan] = useState(String(new Date().getMonth() + 1))
-  const [rekapTahun, setRekapTahun] = useState(String(new Date().getFullYear()))
-  const [loadingRekap, setLoadingRekap] = useState(false)
+  // ── Input state ──
+  const [students, setStudents]           = useState([])
+  const [kelasList, setKelasList]         = useState([])
+  const [bulkKelas, setBulkKelas]         = useState('')
+  const [bulkTanggal, setBulkTanggal]     = useState(todayStr())
+  const [statusMap, setStatusMap]         = useState({})
+  const [search, setSearch]               = useState('')
+  const [alreadyFilledBy, setAlreadyFilledBy] = useState(null)
+  const [loadingSession, setLoadingSession]   = useState(false)
+  const [saving, setSaving]               = useState(false)
+  const [msg, setMsg]                     = useState({ type: '', text: '' })
+  const pendingSessionRef                 = useRef(null)
+
+  // ── History state ──
+  const [historyGrouped, setHistoryGrouped] = useState([])
+  const [histBulan, setHistBulan]   = useState(String(new Date().getMonth() + 1).padStart(2, '0'))
+  const [histTahun, setHistTahun]   = useState(String(new Date().getFullYear()))
+  const [loadingHist, setLoadingHist] = useState(false)
 
   if (user?.role !== 'guru') {
-    return <div style={{ padding: 60, textAlign: 'center', color: '#ef4444', fontFamily: 'system-ui' }}>Akses hanya untuk guru.</div>
+    return <div style={{ padding: 60, textAlign: 'center', color: '#ef4444' }}>Akses hanya untuk guru.</div>
   }
 
-  // Load kelas list on mount
+  // Load students
   useEffect(() => {
-    fetch('/api/eob5/kelas/list', { credentials: 'include' })
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) setKelasList(data)
-      })
-      .catch(() => {})
+    fetch('/api/eob5/siswa/list', { credentials: 'include' })
+      .then(r => r.json()).then(data => {
+        const arr = Array.isArray(data) ? data : []
+        setStudents(arr)
+        const kelas = [...new Set(arr.map(s => s.kelas))].sort()
+        setKelasList(kelas)
+        if (kelas.length && !bulkKelas) setBulkKelas(kelas[0])
+      }).catch(() => {})
   }, [])
 
-  // Load siswa when kelas changes
   useEffect(() => {
-    if (!selectedKelas) { setSiswaList([]); setStatusMap({}); return }
-    setLoadingSiswa(true)
-    Promise.all([
-      fetch(`/api/eob5/kelas/${encodeURIComponent(selectedKelas)}/siswa`, { credentials: 'include' }).then(r => r.json()),
-      fetch(`/api/eob5/absensi/hari-ini?kelas=${encodeURIComponent(selectedKelas)}`, { credentials: 'include' }).then(r => r.json()),
-    ]).then(([kelasData, hariIniData]) => {
-      const list = kelasData.siswa || []
-      setSiswaList(list)
-      const existing = {}
-      const initial = {}
-      if (Array.isArray(hariIniData?.absensi)) {
-        for (const a of hariIniData.absensi) {
-          existing[a.student_id] = a.status
-          initial[a.student_id] = a.status
+    if (!bulkKelas && kelasList.length) setBulkKelas(kelasList[0])
+  }, [kelasList])
+
+  const bulkStudents = useMemo(() =>
+    students.filter(s => !bulkKelas || s.kelas === bulkKelas), [students, bulkKelas])
+
+  // Reset statusMap when bulkStudents changes — apply pending session if any
+  useEffect(() => {
+    if (pendingSessionRef.current !== null) {
+      const records = pendingSessionRef.current
+      pendingSessionRef.current = null
+      const next = {}
+      for (const s of bulkStudents) {
+        const rec = records.find(r => r.student_id === s.id)
+        next[s.id] = rec ? (rec.status === 'alpha' ? 'alpa' : rec.status) : 'hadir'
+      }
+      setStatusMap(next)
+      return
+    }
+    setStatusMap(prev => {
+      const next = {}
+      for (const s of bulkStudents) next[s.id] = prev[s.id] ?? 'hadir'
+      return next
+    })
+  }, [bulkStudents])
+
+  // Check existing session when kelas/tanggal changes
+  useEffect(() => {
+    if (!bulkKelas || !bulkTanggal) { setAlreadyFilledBy(null); return }
+    let cancelled = false
+    setLoadingSession(true)
+    fetch(`/api/eob5/attendance?kelas=${encodeURIComponent(bulkKelas)}&date=${bulkTanggal}`, { credentials: 'include' })
+      .then(r => r.json()).then(records => {
+        if (cancelled) return
+        setLoadingSession(false)
+        const arr = Array.isArray(records) ? records : []
+        if (arr.length > 0) {
+          setAlreadyFilledBy(arr[0]?.siswa_name ? 'Guru lain' : 'Guru')
+          setStatusMap(prev => {
+            const next = { ...prev }
+            for (const r of arr) {
+              if (r.student_id) next[r.student_id] = r.status === 'alpha' ? 'alpa' : r.status
+            }
+            return next
+          })
+        } else {
+          setAlreadyFilledBy(null)
+        }
+      }).catch(() => { if (!cancelled) setLoadingSession(false) })
+    return () => { cancelled = true }
+  }, [bulkKelas, bulkTanggal])
+
+  const filteredStudents = useMemo(() => {
+    if (!search.trim()) return bulkStudents
+    const q = search.toLowerCase()
+    return bulkStudents.filter(s =>
+      (s.name || '').toLowerCase().includes(q) || (s.username || '').toLowerCase().includes(q)
+    )
+  }, [bulkStudents, search])
+
+  const stats = useMemo(() => {
+    const r = { hadir: 0, sakit: 0, izin: 0, alpa: 0 }
+    for (const s of bulkStudents) {
+      const st = statusMap[s.id] || 'hadir'
+      r[st] = (r[st] || 0) + 1
+    }
+    return r
+  }, [statusMap, bulkStudents])
+
+  const total = bulkStudents.length
+
+  const setAllStatus = status => {
+    setStatusMap(prev => {
+      const next = { ...prev }
+      for (const s of bulkStudents) next[s.id] = status
+      return next
+    })
+  }
+
+  const handleSave = async () => {
+    if (!bulkStudents.length) return
+    setSaving(true); setMsg({ type: '', text: '' })
+    try {
+      const entries = bulkStudents.map(s => ({ student_id: s.id, status: statusMap[s.id] || 'hadir' }))
+      const r = await fetch('/api/eob5/attendance/bulk-mixed', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tanggal: bulkTanggal, kelas: bulkKelas, absensi: entries }),
+      })
+      const data = await r.json()
+      if (r.ok) {
+        setMsg({ type: 'ok', text: `✅ Kehadiran ${data.jumlah} siswa dicatat` })
+        setAlreadyFilledBy('Anda')
+      } else {
+        setMsg({ type: 'error', text: data.error || 'Gagal menyimpan' })
+      }
+    } catch {
+      setMsg({ type: 'error', text: 'Terjadi kesalahan jaringan' })
+    }
+    setSaving(false)
+    setTimeout(() => setMsg({ type: '', text: '' }), 4000)
+  }
+
+  const handleLoadSession = ({ kelas, tanggal }) => {
+    // Pre-fetch records then set kelas/tanggal (pendingSessionRef ensures correct apply)
+    setLoadingSession(true)
+    fetch(`/api/eob5/attendance?kelas=${encodeURIComponent(kelas)}&date=${tanggal}`, { credentials: 'include' })
+      .then(r => r.json()).then(records => {
+        pendingSessionRef.current = Array.isArray(records) ? records : []
+        setBulkTanggal(tanggal)
+        setBulkKelas(kelas)
+        setTab('input')
+      }).catch(() => {
+        setBulkTanggal(tanggal)
+        setBulkKelas(kelas)
+        setTab('input')
+      }).finally(() => setLoadingSession(false))
+  }
+
+  const handleHapusSesi = async ({ kelas, tanggal }) => {
+    if (!confirm(`Hapus absensi ${kelas} tanggal ${tanggal}?`)) return
+    try {
+      const r = await fetch('/api/eob5/attendance/bulk-kelas', {
+        method: 'DELETE', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kelas, tanggal }),
+      })
+      if (r.ok) {
+        loadHistory()
+        if (bulkKelas === kelas && bulkTanggal === tanggal) {
+          setStatusMap({}); setAlreadyFilledBy(null)
         }
       }
-      setExistingMap(existing)
-      // Default all to 'hadir' if not yet recorded
-      const map = {}
-      for (const s of list) {
-        map[s.id] = initial[s.id] || 'hadir'
-      }
-      setStatusMap(map)
-      setLoadingSiswa(false)
-    }).catch(() => { setLoadingSiswa(false) })
-  }, [selectedKelas])
-
-  const loadRekap = () => {
-    setLoadingRekap(true)
-    const params = new URLSearchParams()
-    if (rekapKelas) params.set('kelas', rekapKelas)
-    params.set('bulan', rekapBulan)
-    params.set('tahun', rekapTahun)
-    fetch(`/api/eob5/absensi/rekap?${params}`, { credentials: 'include' })
-      .then(r => r.json())
-      .then(data => { setRekapData(Array.isArray(data) ? data : []); setLoadingRekap(false) })
-      .catch(() => setLoadingRekap(false))
+    } catch { /* silent */ }
   }
 
-  useEffect(() => {
-    if (tab === 'rekap') loadRekap()
-  }, [tab])
-
-  const handleSimpan = async () => {
-    if (!selectedKelas || siswaList.length === 0) return
-    setSaving(true); setError(''); setSaved(false)
-    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
-    const absensi = siswaList.map(s => ({ student_id: s.id, status: statusMap[s.id] || 'hadir' }))
-    try {
-      const r = await fetch('/api/eob5/absensi/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ tanggal: today, kelas: selectedKelas, absensi }),
-      })
-      if (!r.ok) {
-        const d = await r.json()
-        setError(d.error || 'Gagal menyimpan')
-      } else {
-        setSaved(true)
-        setTimeout(() => setSaved(false), 3000)
-      }
-    } catch { setError('Gagal terhubung ke server') }
-    setSaving(false)
+  // History
+  const loadHistory = () => {
+    setLoadingHist(true)
+    fetch(`/api/eob5/attendance?tahun=${histTahun}&bulan=${parseInt(histBulan)}`, { credentials: 'include' })
+      .then(r => r.json()).then(data => {
+        const arr = Array.isArray(data) ? data : []
+        // Group by date + kelas
+        const byDate = new Map()
+        for (const r of arr) {
+          const dateKey = (r.tanggal || '').slice(0, 10)
+          if (!byDate.has(dateKey)) byDate.set(dateKey, new Map())
+          const kelasMap = byDate.get(dateKey)
+          const k = r.kelas || ''
+          if (!kelasMap.has(k)) kelasMap.set(k, { kelas: k, tanggal: dateKey, hadir: 0, sakit: 0, izin: 0, alpa: 0, total: 0, absentStudents: [] })
+          const g = kelasMap.get(k)
+          const st = r.status === 'alpha' ? 'alpa' : (r.status || 'hadir')
+          g[st] = (g[st] || 0) + 1
+          g.total++
+          if (st !== 'hadir') g.absentStudents.push({ name: r.siswa_name || r.student_id, status: st })
+        }
+        const result = []
+        for (const [tanggal, kelasMap] of [...byDate.entries()].sort((a, b) => b[0].localeCompare(a[0]))) {
+          result.push({ tanggal, groups: [...kelasMap.values()] })
+        }
+        setHistoryGrouped(result)
+        setLoadingHist(false)
+      }).catch(() => setLoadingHist(false))
   }
 
-  const todayStr = new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jakarta' }).format(new Date())
+  useEffect(() => { if (tab === 'histori') loadHistory() }, [tab])
+
+  const tabBtn = (t, label) => (
+    <button onClick={() => setTab(t)} style={{
+      flex: 1, padding: '8px', fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+      background: tab === t ? C.dim : 'transparent',
+      border: `1px solid ${tab === t ? C.primary : C.border}`,
+      borderRadius: 8, color: tab === t ? C.primary : C.sub, cursor: 'pointer',
+    }}>{label}</button>
+  )
 
   return (
-    <div style={{ minHeight: '100vh', background: COLOR.bg, fontFamily: 'system-ui, sans-serif', color: COLOR.text, paddingBottom: 40 }}>
+    <div style={{ minHeight: '100vh', background: C.bg, fontFamily: 'system-ui,sans-serif', color: C.text, paddingBottom: 40 }}>
+
       {/* Header */}
-      <div style={{ background: 'rgba(0,0,0,0.35)', borderBottom: `1px solid ${COLOR.border}`, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={goBack} style={{ background: 'none', border: 'none', color: COLOR.primary, fontSize: 22, cursor: 'pointer', padding: '0 4px' }}>←</button>
-        <div>
-          <div style={{ fontSize: 11, color: COLOR.textSub, fontWeight: 700, letterSpacing: 1.5 }}>GURU</div>
+      <div style={{ background: 'rgba(0,0,0,0.35)', borderBottom: `1px solid ${C.border}`, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        {goBack && <button onClick={goBack} style={{ background: 'none', border: 'none', color: C.primary, fontSize: 22, cursor: 'pointer', padding: '0 4px' }}>←</button>}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, color: C.sub, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase' }}>GURU</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Absensi</div>
+        </div>
+        <div style={{ fontSize: 11, color: C.sub, textAlign: 'right' }}>
+          Pencatatan kehadiran harian
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: `1px solid ${COLOR.border}`, background: 'rgba(0,0,0,0.2)' }}>
-        {[['input','Input Hari Ini'],['rekap','Rekap Bulanan']].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)} style={{
-            flex: 1, padding: '14px', background: 'none', border: 'none',
-            borderBottom: tab === key ? `2px solid ${COLOR.primary}` : '2px solid transparent',
-            color: tab === key ? COLOR.primary : COLOR.textSub,
-            fontWeight: tab === key ? 700 : 500, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-          }}>{label}</button>
-        ))}
-      </div>
+      <div style={{ padding: '16px' }}>
 
-      <div style={{ padding: 16 }}>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          {tabBtn('input', '📋 Input')}
+          {tabBtn('histori', '📅 Histori')}
+        </div>
+
+        {/* ── INPUT TAB ── */}
         {tab === 'input' && (
           <>
-            <div style={{ fontSize: 11, color: COLOR.textSub, marginBottom: 12 }}>{todayStr}</div>
-            {/* Kelas Picker */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: COLOR.textSub, fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>PILIH KELAS</div>
-              <select
-                value={selectedKelas}
-                onChange={e => setSelectedKelas(e.target.value)}
-                style={{ width: '100%', background: '#1c0a00', border: `1px solid ${COLOR.border}`, borderRadius: 10, padding: '10px 12px', color: '#fff', fontFamily: 'inherit', fontSize: 14 }}
-              >
-                <option value="">— Pilih Kelas —</option>
-                {kelasList.map(k => (
-                  <option key={k.kelas} value={k.kelas}>{k.kelas} ({k.jumlahSiswa} siswa)</option>
-                ))}
-              </select>
+            {/* Selectors + Save */}
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, marginBottom: 14, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <div style={{ fontSize: 11, color: C.sub, fontWeight: 700, textTransform: 'uppercase', marginBottom: 5 }}>Kelas</div>
+                <div style={{ position: 'relative' }}>
+                  <select value={bulkKelas} onChange={e => setBulkKelas(e.target.value)} style={{ ...inp, width: '100%', paddingRight: 28 }}>
+                    <option value="">Pilih Kelas</option>
+                    {kelasList.map(k => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 140 }}>
+                <div style={{ fontSize: 11, color: C.sub, fontWeight: 700, textTransform: 'uppercase', marginBottom: 5 }}>Tanggal</div>
+                <input type="date" value={bulkTanggal} onChange={e => setBulkTanggal(e.target.value)} style={{ ...inp, width: '100%' }} />
+              </div>
+              <button onClick={handleSave} disabled={saving || total === 0} style={{
+                background: saving ? C.dim : C.primary, border: 'none', borderRadius: 10,
+                padding: '9px 18px', color: '#1a0f00', fontWeight: 800, fontSize: 13,
+                cursor: saving || total === 0 ? 'default' : 'pointer', fontFamily: 'inherit',
+                opacity: total === 0 ? 0.5 : 1, whiteSpace: 'nowrap',
+              }}>
+                {saving ? '⏳ Menyimpan…' : `💾 Simpan ${total} Siswa`}
+              </button>
             </div>
 
-            {loadingSiswa && <div style={{ textAlign: 'center', color: COLOR.textSub, padding: 32 }}>Memuat data siswa…</div>}
-
-            {!loadingSiswa && selectedKelas && siswaList.length === 0 && (
-              <div style={{ textAlign: 'center', color: COLOR.textSub, padding: 32 }}>Tidak ada siswa di kelas ini.</div>
+            {/* Already filled banner */}
+            {alreadyFilledBy && (
+              <div style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#93c5fd' }}>
+                ℹ️ Absensi <strong>{bulkKelas}</strong> tanggal <strong>{bulkTanggal}</strong> sudah diisi. Anda bisa melihat & memperbarui.
+              </div>
             )}
 
-            {!loadingSiswa && siswaList.length > 0 && (
-              <>
-                <div style={{ fontSize: 11, color: COLOR.textSub, fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
-                  DAFTAR SISWA — {siswaList.length} orang
-                </div>
+            {/* Feedback message */}
+            {msg.text && (
+              <div style={{ background: msg.type === 'ok' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${msg.type === 'ok' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`, borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13 }}>
+                {msg.text}
+              </div>
+            )}
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                  {siswaList.map((s, i) => (
-                    <div key={s.id} style={{
-                      background: COLOR.card, border: `1px solid ${COLOR.border}`,
-                      borderRadius: 12, padding: '12px 14px',
-                      display: 'flex', alignItems: 'center', gap: 12,
-                    }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: COLOR.primaryDim, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: COLOR.primary, flexShrink: 0 }}>
-                        {i + 1}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
-                        <div style={{ fontSize: 11, color: COLOR.textSub }}>{s.username}</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                        {STATUS_OPTIONS.map(st => (
-                          <button key={st} onClick={() => setStatusMap(m => ({ ...m, [s.id]: st }))} style={{
-                            padding: '4px 8px', borderRadius: 8, fontSize: 10, fontWeight: 700,
-                            border: statusMap[s.id] === st ? `1.5px solid ${STATUS_COLORS[st]}` : '1.5px solid rgba(255,255,255,0.1)',
-                            background: statusMap[s.id] === st ? `${STATUS_COLORS[st]}22` : 'transparent',
-                            color: statusMap[s.id] === st ? STATUS_COLORS[st] : 'rgba(255,255,255,0.35)',
-                            cursor: 'pointer', fontFamily: 'inherit',
-                          }}>{STATUS_LABELS[st].charAt(0)}</button>
-                        ))}
-                      </div>
+            {/* Stat Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 14 }}>
+              {STATUS_ORDER.map(st => (
+                <div key={st} style={{ background: STATUS_BG[st], border: `1px solid ${STATUS_COLORS[st]}44`, borderRadius: 12, padding: '10px 8px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: STATUS_COLORS[st] }}>{stats[st] || 0}</div>
+                  <div style={{ fontSize: 10, color: STATUS_COLORS[st], fontWeight: 700, textTransform: 'uppercase' }}>{STATUS_LABELS[st]}</div>
+                  {total > 0 && (
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: `${STATUS_COLORS[st]}22` }}>
+                      <div style={{ height: '100%', width: `${((stats[st] || 0) / total) * 100}%`, background: STATUS_COLORS[st], transition: 'width 0.4s' }} />
                     </div>
-                  ))}
+                  )}
                 </div>
+              ))}
+            </div>
 
-                {/* Legend */}
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-                  {STATUS_OPTIONS.map(st => (
-                    <div key={st} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: 3, background: STATUS_COLORS[st] }} />
-                      <span style={{ color: COLOR.textSub }}>{st.charAt(0).toUpperCase()} = {STATUS_LABELS[st]}</span>
-                    </div>
-                  ))}
+            {/* Search + Set All */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                type="text" placeholder="🔍 Cari siswa…"
+                value={search} onChange={e => setSearch(e.target.value)}
+                style={{ ...inp, flex: 1, minWidth: 160 }}
+              />
+              <button onClick={() => setAllStatus('hadir')} style={{
+                background: STATUS_BG.hadir, border: `1px solid ${STATUS_COLORS.hadir}44`, borderRadius: 8,
+                padding: '6px 10px', fontSize: 11, fontWeight: 700, color: STATUS_COLORS.hadir,
+                cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+              }}>
+                ✅ Semua Hadir
+              </button>
+            </div>
+
+            {/* Student List */}
+            {loadingSession ? (
+              <div style={{ textAlign: 'center', color: C.sub, padding: 30 }}>⏳ Memuat sesi…</div>
+            ) : filteredStudents.length === 0 ? (
+              <div style={{ textAlign: 'center', color: C.sub, padding: 40 }}>
+                {bulkKelas ? 'Tidak ada siswa di kelas ini.' : 'Pilih kelas terlebih dahulu.'}
+              </div>
+            ) : (
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>Daftar Siswa</span>
+                  <span style={{ fontSize: 11, color: C.sub, background: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: '1px 8px' }}>{total} siswa</span>
+                  {bulkKelas && <span style={{ fontSize: 11, color: C.primary, background: C.dim, borderRadius: 6, padding: '1px 7px', border: `1px solid ${C.border}` }}>{bulkKelas}</span>}
                 </div>
-
-                {error && <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', borderRadius: 10, padding: '10px 14px', color: '#f87171', fontSize: 13, marginBottom: 12 }}>{error}</div>}
-                {saved && <div style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid #22c55e', borderRadius: 10, padding: '10px 14px', color: '#4ade80', fontSize: 13, marginBottom: 12 }}>✅ Absensi berhasil disimpan!</div>}
-
-                <button onClick={handleSimpan} disabled={saving} style={{
-                  width: '100%', background: saving ? 'rgba(245,158,11,0.3)' : 'linear-gradient(90deg,#f59e0b,#d97706)',
-                  border: 'none', borderRadius: 14, padding: '15px', color: '#1a0a00',
-                  fontSize: 15, fontWeight: 800, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                }}>
-                  {saving ? 'Menyimpan…' : '💾 Simpan Absensi Hari Ini'}
-                </button>
-              </>
+                <div>
+                  {filteredStudents.map((s, i) => {
+                    const st = statusMap[s.id] || 'hadir'
+                    return (
+                      <div key={s.id} style={{
+                        padding: '10px 14px',
+                        borderBottom: i < filteredStudents.length - 1 ? `1px solid ${C.border}22` : 'none',
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        background: st !== 'hadir' ? `${STATUS_COLORS[st]}08` : 'transparent',
+                      }}>
+                        <div style={{
+                          width: 28, height: 28, borderRadius: '50%', background: STATUS_BG[st],
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 800, color: STATUS_COLORS[st], flexShrink: 0,
+                        }}>
+                          {i + 1}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
+                          <div style={{ fontSize: 11, color: C.sub }}>{s.username} · {s.kelas}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+                          {STATUS_ORDER.map(opt => (
+                            <button key={opt} onClick={() => setStatusMap(prev => ({ ...prev, [s.id]: opt }))} style={{
+                              padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                              background: st === opt ? STATUS_COLORS[opt] : 'rgba(255,255,255,0.05)',
+                              color: st === opt ? '#fff' : C.sub,
+                              border: `1px solid ${st === opt ? STATUS_COLORS[opt] : C.border}`,
+                              fontFamily: 'inherit',
+                            }}>
+                              {opt === 'hadir' ? 'H' : opt === 'sakit' ? 'S' : opt === 'izin' ? 'I' : 'A'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
             )}
           </>
         )}
 
-        {tab === 'rekap' && (
+        {/* ── HISTORI TAB ── */}
+        {tab === 'histori' && (
           <>
-            {/* Filter rekap */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div>
-                <div style={{ fontSize: 10, color: COLOR.textSub, fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>KELAS</div>
-                <select value={rekapKelas} onChange={e => setRekapKelas(e.target.value)} style={{ width: '100%', background: '#1c0a00', border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: '8px', color: '#fff', fontFamily: 'inherit', fontSize: 12 }}>
-                  <option value="">Semua</option>
-                  {kelasList.map(k => <option key={k.kelas} value={k.kelas}>{k.kelas}</option>)}
+                <div style={{ fontSize: 11, color: C.sub, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Bulan</div>
+                <select value={histBulan} onChange={e => setHistBulan(e.target.value)} style={inp}>
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const v = String(i + 1).padStart(2, '0')
+                    const name = new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(new Date(2025, i, 1))
+                    return <option key={v} value={v}>{name}</option>
+                  })}
                 </select>
               </div>
               <div>
-                <div style={{ fontSize: 10, color: COLOR.textSub, fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>BULAN</div>
-                <select value={rekapBulan} onChange={e => setRekapBulan(e.target.value)} style={{ width: '100%', background: '#1c0a00', border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: '8px', color: '#fff', fontFamily: 'inherit', fontSize: 12 }}>
-                  {Array.from({length:12},(_,i)=>i+1).map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
+                <div style={{ fontSize: 11, color: C.sub, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Tahun</div>
+                <input type="number" value={histTahun} onChange={e => setHistTahun(e.target.value)} style={{ ...inp, width: 80 }} />
               </div>
-              <div>
-                <div style={{ fontSize: 10, color: COLOR.textSub, fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>TAHUN</div>
-                <select value={rekapTahun} onChange={e => setRekapTahun(e.target.value)} style={{ width: '100%', background: '#1c0a00', border: `1px solid ${COLOR.border}`, borderRadius: 8, padding: '8px', color: '#fff', fontFamily: 'inherit', fontSize: 12 }}>
-                  {[2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </div>
+              <button onClick={loadHistory} style={{ background: C.dim, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 14px', color: C.primary, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                🔍 Muat
+              </button>
             </div>
 
-            <button onClick={loadRekap} style={{ width: '100%', background: COLOR.primaryDim, border: `1px solid ${COLOR.border}`, borderRadius: 10, padding: '10px', color: COLOR.primary, fontWeight: 700, fontSize: 13, cursor: 'pointer', marginBottom: 16, fontFamily: 'inherit' }}>
-              🔍 Tampilkan Rekap
-            </button>
-
-            {loadingRekap && <div style={{ textAlign: 'center', color: COLOR.textSub, padding: 32 }}>Memuat rekap…</div>}
-
-            {!loadingRekap && rekapData.length === 0 && (
-              <div style={{ textAlign: 'center', color: COLOR.textSub, padding: 32 }}>Belum ada data absensi.</div>
+            {loadingHist && <div style={{ textAlign: 'center', color: C.sub, padding: 40 }}>Memuat histori…</div>}
+            {!loadingHist && historyGrouped.length === 0 && (
+              <div style={{ textAlign: 'center', color: C.sub, padding: 40 }}>Belum ada riwayat absensi.</div>
             )}
 
-            {!loadingRekap && rekapData.length > 0 && (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                  <thead>
-                    <tr style={{ background: 'rgba(245,158,11,0.1)' }}>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', color: COLOR.primary, fontWeight: 700, borderBottom: `1px solid ${COLOR.border}` }}>Nama</th>
-                      <th style={{ padding: '10px 6px', textAlign: 'center', color: '#4ade80', fontWeight: 700, borderBottom: `1px solid ${COLOR.border}` }}>H</th>
-                      <th style={{ padding: '10px 6px', textAlign: 'center', color: '#fbbf24', fontWeight: 700, borderBottom: `1px solid ${COLOR.border}` }}>S</th>
-                      <th style={{ padding: '10px 6px', textAlign: 'center', color: '#60a5fa', fontWeight: 700, borderBottom: `1px solid ${COLOR.border}` }}>I</th>
-                      <th style={{ padding: '10px 6px', textAlign: 'center', color: '#f87171', fontWeight: 700, borderBottom: `1px solid ${COLOR.border}` }}>A</th>
-                      <th style={{ padding: '10px 6px', textAlign: 'center', color: COLOR.textSub, fontWeight: 700, borderBottom: `1px solid ${COLOR.border}` }}>%</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rekapData.map((r, i) => {
-                      const total = parseInt(r.total_tercatat) || 0
-                      const hadir = parseInt(r.hadir) || 0
-                      const pct = total > 0 ? Math.round((hadir / total) * 100) : 0
-                      return (
-                        <tr key={r.id} style={{ borderBottom: `1px solid rgba(245,158,11,0.1)`, background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-                          <td style={{ padding: '9px 8px', color: '#fff', fontWeight: 500 }}>{r.name}</td>
-                          <td style={{ padding: '9px 6px', textAlign: 'center', color: '#4ade80' }}>{hadir}</td>
-                          <td style={{ padding: '9px 6px', textAlign: 'center', color: '#fbbf24' }}>{r.sakit || 0}</td>
-                          <td style={{ padding: '9px 6px', textAlign: 'center', color: '#60a5fa' }}>{r.izin || 0}</td>
-                          <td style={{ padding: '9px 6px', textAlign: 'center', color: '#f87171' }}>{r.alpha || 0}</td>
-                          <td style={{ padding: '9px 6px', textAlign: 'center', color: pct >= 80 ? '#4ade80' : pct >= 60 ? '#fbbf24' : '#f87171', fontWeight: 700 }}>{pct}%</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+            {!loadingHist && historyGrouped.map(({ tanggal, groups }) => (
+              <div key={tanggal} style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                  {fmtDate(tanggal)}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {groups.map(g => {
+                    const allHadir = g.alpa === 0 && g.sakit === 0 && g.izin === 0
+                    const isActive = bulkTanggal === g.tanggal && bulkKelas === g.kelas
+                    return (
+                      <div key={`${g.kelas}|${g.tanggal}`}
+                        onClick={() => handleLoadSession({ kelas: g.kelas, tanggal: g.tanggal })}
+                        style={{
+                          background: isActive ? C.dim : C.card,
+                          border: `1px solid ${isActive ? C.primary : allHadir ? 'rgba(34,197,94,0.3)' : 'rgba(249,115,22,0.3)'}`,
+                          borderRadius: 12, padding: '10px 12px', cursor: 'pointer',
+                          borderLeft: `3px solid ${isActive ? C.primary : allHadir ? '#22c55e' : '#f97316'}`,
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Kelas {g.kelas}</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: allHadir ? '#22c55e' : C.sub }}>{g.hadir}/{g.total}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                          {allHadir ? (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#22c55e', background: 'rgba(34,197,94,0.1)', borderRadius: 5, padding: '2px 7px', border: '1px solid rgba(34,197,94,0.2)' }}>
+                              Semua Hadir
+                            </span>
+                          ) : (
+                            <>
+                              {STATUS_ORDER.map(st => g[st] > 0 && (
+                                <span key={st} style={{ fontSize: 10, fontWeight: 700, color: STATUS_COLORS[st], background: STATUS_BG[st], borderRadius: 5, padding: '2px 6px' }}>
+                                  {STATUS_LABELS[st]}: {g[st]}
+                                </span>
+                              ))}
+                            </>
+                          )}
+                        </div>
+                        {g.absentStudents.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                            {g.absentStudents.slice(0, 5).map((stu, i) => (
+                              <span key={i} style={{ fontSize: 10, background: ABSENT_BADGE[stu.status] || STATUS_BG[stu.status], color: STATUS_COLORS[stu.status], borderRadius: 4, padding: '1px 5px', border: `1px solid ${STATUS_COLORS[stu.status]}44` }}>
+                                {stu.name}
+                              </span>
+                            ))}
+                            {g.absentStudents.length > 5 && <span style={{ fontSize: 10, color: C.sub }}>+{g.absentStudents.length - 5} lainnya</span>}
+                          </div>
+                        )}
+                        <button onClick={e => { e.stopPropagation(); handleHapusSesi({ kelas: g.kelas, tanggal: g.tanggal }) }}
+                          style={{ marginTop: 8, fontSize: 10, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 3 }}>
+                          🗑 Hapus absensi ini
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-            )}
+            ))}
           </>
         )}
       </div>
