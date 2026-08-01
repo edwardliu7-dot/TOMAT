@@ -42,6 +42,7 @@ import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 import OtaUpdateBanner from './components/OtaUpdateBanner'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
 import BlpHomeScreen from './screens/blp/BlpHomeScreen'
+import BlpSiswaDashboardScreen from './screens/blp/BlpSiswaDashboardScreen'
 import BlpIsiAktivitasScreen from './screens/blp/BlpIsiAktivitasScreen'
 import BlpRiwayatScreen from './screens/blp/BlpRiwayatScreen'
 import BlpQuranScreen from './screens/blp/BlpQuranScreen'
@@ -1037,7 +1038,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'blp-home') {
-      return <BlpHomeScreen navigate={navigate} goBack={goBack} />
+      return <BlpSiswaDashboardScreen navigate={navigate} goBack={goBack} />
     }
 
     if (current === 'blp-isi-aktivitas') {

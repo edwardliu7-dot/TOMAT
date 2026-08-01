@@ -55,6 +55,96 @@ export function isInBlpPeriod(dateStr, blpPeriods, kelas) {
   return day >= period.startDay && day <= period.endDay
 }
 
+// ─── Struktur Kategori 5R (versi baru) ───────────────────────────────────────
+// Digunakan oleh BlpSiswaDashboardScreen.
+// ID aktivitas disimpan dalam completed_activities sama seperti versi lama.
+
+export const BLP_CATEGORIES = [
+  {
+    id: 'devout',
+    label: 'DEVOUT',
+    sub: 'KESADARAN DIRI',
+    accentColor: '#22c55e',
+    activities: [
+      { id: 'd_shalat5waktu', label: 'Shalat 5 Waktu Berjamaah',      target: 'SETIAP HARI', sholat: true  },
+      { id: 'd_dzikir_bada',  label: "Berdzikir ba'da Sholat",         target: 'SETIAP HARI', sholat: true  },
+      { id: 'd_sholawat',     label: 'Bersholawat Nabi Muhammad',      target: 'SETIAP HARI', sholat: false },
+      { id: 'd_dhuha',        label: 'Sholat Dhuha',                   target: 'SETIAP HARI', sholat: true  },
+      { id: 'd_baca_quran',   label: 'Membaca Al Qur\'an',             target: 'SETIAP HARI', sholat: false, note: null },
+      { id: 'd_rawatib',      label: 'Sholat sunnah Rawatib',          target: 'SETIAP HARI', sholat: true  },
+      { id: 'd_infaq',        label: 'Infaq Sodakoh',                  target: 'SETIAP HARI', sholat: false },
+      { id: 'd_doa_ortu',     label: "Mendo'akan Orang Tua",           target: 'SETIAP HARI', sholat: false },
+    ],
+  },
+  {
+    id: 'resilience',
+    label: 'RESILIENCE',
+    sub: 'KETEGUHAN',
+    accentColor: '#f59e0b',
+    activities: [
+      { id: 'r_tepat_waktu',    label: 'Datang Ke Sekolah Tepat Waktu',  target: 'SETIAP HARI', sholat: false, note: 'Tidak berlaku di akhir pekan (bukan hari sekolah)' },
+      { id: 'r_tanggung_jawab', label: 'Bertanggung Jawab',              target: 'SETIAP HARI', sholat: false },
+      { id: 'r_tahajud',        label: 'Sholat Tahajud',                 target: 'SETIAP HARI', sholat: true  },
+      { id: 'r_olahraga',       label: 'Olahraga / Berjalan 200–300 m', target: 'SETIAP HARI', sholat: false },
+    ],
+  },
+  {
+    id: 'resourcefulness',
+    label: 'RESOURCEFULNESS',
+    sub: 'MENCARI SUMBER PENGETAHUAN',
+    accentColor: '#3b82f6',
+    activities: [
+      { id: 'rs_belajar',          label: 'Belajar setiap hari min. 30 menit',  target: 'SETIAP HARI', sholat: false },
+      { id: 'rs_hafal_quran',      label: 'Hafal Ayat Al Qur\'an dan artinya',  target: 'SETIAP HARI', sholat: false },
+      { id: 'rs_internet_positif', label: 'Memanfaatkan Internet (Positif)',     target: 'SETIAP HARI', sholat: false },
+      { id: 'rs_hafal_hadits',     label: 'Hafal Hadits Shohih dan artinya',     target: 'SATU PEKAN',  sholat: false },
+    ],
+  },
+  {
+    id: 'reflectiveness',
+    label: 'REFLECTIVENESS',
+    sub: 'REFLEKSI/MUHASABAH',
+    accentColor: '#8b5cf6',
+    activities: [
+      { id: 'rf_sholat_taubat', label: 'Sholat Taubat 2 Rakaat',        target: 'SETIAP HARI', sholat: true  },
+      { id: 'rf_istighfar',     label: 'Istighfar min 100x',            target: 'SETIAP HARI', sholat: false },
+      { id: 'rf_evaluasi_diri', label: 'Evaluasi Diri Sebelum Tidur',   target: 'SETIAP HARI', sholat: false },
+    ],
+  },
+  {
+    id: 'reciprocity',
+    label: 'RECIPROCITY',
+    sub: 'KEMANDIRIAN',
+    accentColor: '#f43f5e',
+    activities: [
+      { id: 'rc_siapkan',  label: 'Menyiapkan Perlengkapan sekolah sendiri', target: 'SETIAP HARI', sholat: false },
+      { id: 'rc_bantu',    label: 'Membantu Kesulitan Orang Lain',            target: 'SETIAP HARI', sholat: false },
+      { id: 'rc_kerja',    label: 'Bekerjasama',                              target: 'SETIAP HARI', sholat: false },
+      { id: 'rc_peka',     label: 'Peka terhadap situasi',                    target: 'SETIAP HARI', sholat: false },
+    ],
+  },
+]
+
+/** Hitung skor berdasarkan kategori 5R (0–100). */
+export function hitungSkorV2(completedIds = [], sedangHaid = false) {
+  let done = 0
+  let total = 0
+  for (const cat of BLP_CATEGORIES) {
+    for (const act of cat.activities) {
+      if (sedangHaid && act.sholat) continue
+      total++
+      if (completedIds.includes(act.id)) done++
+    }
+  }
+  return total > 0 ? Math.round((done / total) * 100) : 0
+}
+
+/** Deteksi apakah record menggunakan ID versi baru (5R) atau lama. */
+export function isV2Record(completedIds = []) {
+  const v2Prefixes = ['d_', 'r_', 'rs_', 'rf_', 'rc_']
+  return completedIds.some(id => v2Prefixes.some(p => id.startsWith(p)))
+}
+
 export const SURAH_LIST = [
   { no: 1,  nama: 'Al-Fatihah',    ayat: 7   },
   { no: 2,  nama: 'Al-Baqarah',    ayat: 286 },
