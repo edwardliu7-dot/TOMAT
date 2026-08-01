@@ -51,7 +51,8 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
   const gradeNum = getGradeNumber(user?.kelas)
   const zoneId = gradeNum ? `grade${gradeNum}` : 'grade7'
   const isZoneActive = currentScreen === 'grade7' || currentScreen === 'grade8' || currentScreen === 'grade9'
-  const showNav = !isDesktop && BOTTOM_NAV_SCREENS.has(currentScreen)
+  // Siswa-only bottom nav — never show for guru (guru has its own nav in GuruDashboardScreen)
+  const showNav = !isDesktop && user?.role !== 'guru' && BOTTOM_NAV_SCREENS.has(currentScreen)
 
   const activeModule = currentScreen?.startsWith('blp-') ? 'blp'
     : currentScreen?.startsWith('eob5-') ? 'eob5'

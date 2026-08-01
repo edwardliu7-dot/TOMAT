@@ -2,7 +2,7 @@ import { useAuth } from '../AuthContext'
 
 const TABS = {
   guru: [
-    { key: 'tomat', label: 'TOMAT',   emoji: '🍅', homeScreen: 'home' },
+    { key: 'tomat', label: 'TOMAT',   emoji: '🍅', homeScreen: 'guruDashboard' },
     { key: 'blp',   label: 'BLP',     emoji: '📋', homeScreen: 'blp-home' },
     { key: 'eob5',  label: 'EOB5',    emoji: '🏫', homeScreen: 'eob5-dashboard' },
   ],
