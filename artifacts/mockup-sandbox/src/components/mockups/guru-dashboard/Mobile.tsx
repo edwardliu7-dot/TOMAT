@@ -1,171 +1,164 @@
 import {
-  Users,
-  BarChart3,
-  Bell,
-  LogOut,
-  ChevronRight,
-  Search,
-  Eye,
-  MessageCircle,
-  TrendingUp,
-  CheckCircle2,
-  Calendar,
-  Presentation,
-  Download,
-  FileSpreadsheet,
-  MoreVertical,
+  Users, BarChart3, Heart, Bell, LogOut, Search,
+  Eye, MessageCircle, Mail, Trash2, ChevronLeft,
+  ChevronRight, TrendingUp, CheckCircle2,
 } from "lucide-react";
 
+const C = {
+  pageBg:  "#0d2018",
+  navBg:   "#162c1f",
+  cardBg:  "#1a3028",
+  rowBg:   "#1c2e24",
+  itemBg:  "#1c2838",
+  border:  "#2a4535",
+  muted:   "#6aaa82",
+  dimText: "#4a7a5a",
+};
+
 const students = [
-  { name: "Aisyah Rahmawati", score: 87, progress: 18, total: 21, status: "Selesai" },
-  { name: "Budi Santoso", score: 73, progress: 15, total: 21, status: "Proses" },
-  { name: "Citra Dewi", score: 95, progress: 21, total: 21, status: "Selesai" },
-  { name: "Dimas Prakasa", score: 60, progress: 12, total: 21, status: "Belum" },
-  { name: "Elfira Nadia", score: 82, progress: 17, total: 21, status: "Proses" },
-  { name: "Fajar Hidayat", score: 91, progress: 20, total: 21, status: "Selesai" },
+  { name: "Airlangga Yusuf Tuanah Putra", kelas: "VII Ibnu Batuttah", progress: 0, total: 22, score: 0,  status: "Belum"   },
+  { name: "Alif Syahrin Mubarok",          kelas: "VII Ibnu Batuttah", progress: 0, total: 22, score: 0,  status: "Belum"   },
+  { name: "Alisya Nadhira Andarestia",      kelas: "VII Ibnu Batuttah", progress: 0, total: 22, score: 0,  status: "Belum"   },
+  { name: "Aqila Resyia Sunandar",          kelas: "VII Ibnu Batuttah", progress: 4, total: 22, score: 73, status: "Proses"  },
+  { name: "Fatimah Zahrin Hishasha",        kelas: "VII Ibnu Batuttah", progress: 8, total: 22, score: 87, status: "Selesai" },
 ];
 
 const scoreColor = (s: number) =>
-  s >= 85 ? "text-emerald-600" : s >= 70 ? "text-amber-500" : "text-red-500";
+  s === 0 ? "#ef4444" : s >= 85 ? "#22c55e" : "#f59e0b";
 
-const statusBadge: Record<string, string> = {
-  Selesai: "bg-emerald-100 text-emerald-700",
-  Proses: "bg-amber-100 text-amber-700",
-  Belum: "bg-red-100 text-red-600",
+const statusStyle: Record<string, { bg: string; color: string }> = {
+  Selesai: { bg: "#14532d", color: "#4ade80" },
+  Proses:  { bg: "#78350f", color: "#fbbf24" },
+  Belum:   { bg: "#7f1d1d", color: "#f87171" },
 };
 
 export function Mobile() {
   return (
-    <div className="min-h-screen bg-gray-50 font-sans max-w-sm mx-auto flex flex-col">
+    <div className="min-h-screen font-sans max-w-sm mx-auto flex flex-col" style={{ background: C.pageBg, color: "white" }}>
       {/* Status bar */}
-      <div className="bg-emerald-700 px-4 pt-2 pb-0 flex justify-between items-center text-white text-xs">
+      <div className="px-4 pt-2 pb-1 flex justify-between items-center text-xs" style={{ background: C.navBg }}>
         <span>09:41</span>
-        <span className="flex gap-1">▂▄▆ ✦ 🔋</span>
+        <span>▂▄▆ ✦ 🔋</span>
       </div>
 
       {/* Header */}
-      <div className="bg-gradient-to-b from-emerald-700 to-emerald-600 px-4 pt-3 pb-5 text-white">
-        <div className="flex items-center justify-between mb-4">
+      <div className="px-4 pt-3 pb-0" style={{ background: C.navBg, borderBottom: `1px solid ${C.border}` }}>
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-bold text-sm">B</div>
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-sm">B</div>
             <div>
-              <div className="font-bold text-sm leading-tight">BLP Harian</div>
-              <div className="text-xs text-emerald-200">SMP TISA</div>
+              <div className="font-bold text-sm">BLP Harian</div>
+              <div className="text-xs" style={{ color: C.muted }}>SMP TISA</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="relative p-2 bg-white/10 rounded-xl">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-400 rounded-full" />
-            </button>
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">SD</div>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold">SD</div>
+            <button style={{ color: C.muted }}><LogOut className="w-4 h-4" /></button>
           </div>
         </div>
 
-        <div className="text-xs text-emerald-100 mb-1">Selamat pagi, Ustazah Sari 👋</div>
-        <div className="text-lg font-bold">Kelas 7A — Sabtu, 26 Juli</div>
-
-        {/* Quick stats */}
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        {/* Tabs */}
+        <div className="flex gap-1 pb-0">
           {[
-            { label: "Sudah Isi", value: "21", color: "bg-emerald-500/30" },
-            { label: "Rata-rata", value: "78.4", color: "bg-teal-500/30" },
-            { label: "Belum Isi", value: "7", color: "bg-red-400/30" },
-          ].map(({ label, value, color }) => (
-            <div key={label} className={`${color} backdrop-blur rounded-xl px-3 py-2.5 text-center`}>
-              <div className="text-lg font-bold text-white">{value}</div>
-              <div className="text-xs text-emerald-100 mt-0.5">{label}</div>
-            </div>
+            { icon: Users,    label: "Daftar Siswa", active: true  },
+            { icon: BarChart3, label: "Rekap Nilai", active: false },
+            { icon: Heart,    label: "Haid Siswi",   active: false },
+          ].map(({ icon: Icon, label, active }) => (
+            <button
+              key={label}
+              className="flex items-center gap-1 px-3 py-2.5 text-xs font-medium rounded-t-lg flex-1 justify-center"
+              style={active ? { background: "white", color: "#1a3028" } : { color: C.muted }}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span className="truncate">{label}</span>
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Nav tabs */}
-      <div className="bg-white border-b border-gray-100 px-2 flex gap-1 sticky top-0 z-10">
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-2 px-4 pt-4 pb-2">
         {[
-          { icon: Users, label: "Siswa", active: true },
-          { icon: BarChart3, label: "Rekap", active: false },
-          { icon: Calendar, label: "Hari Aktif", active: false },
-        ].map(({ icon: Icon, label, active }) => (
-          <button
-            key={label}
-            className={`flex-1 flex flex-col items-center py-2.5 text-xs font-medium border-b-2 transition gap-1 ${
-              active ? "border-emerald-600 text-emerald-700" : "border-transparent text-gray-400"
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-          </button>
+          { label: "Total Siswa",    value: "21", icon: Users,        iconBg: "#14532d", iconColor: "#4ade80" },
+          { label: "Sudah Isi",      value: "0",  icon: CheckCircle2, iconBg: "#134e4a", iconColor: "#2dd4bf" },
+          { label: "Rata-rata Skor", value: "0.0",icon: TrendingUp,   iconBg: "#78350f", iconColor: "#fbbf24" },
+          { label: "Belum Isi",      value: "21", icon: Bell,         iconBg: "#7f1d1d", iconColor: "#f87171" },
+        ].map(({ label, value, icon: Icon, iconBg, iconColor }) => (
+          <div key={label} className="rounded-xl p-3 flex items-center gap-3" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
+              <Icon className="w-4.5 h-4.5" style={{ color: iconColor }} />
+            </div>
+            <div>
+              <div className="text-lg font-bold leading-none">{value}</div>
+              <div className="text-xs mt-0.5" style={{ color: C.muted }}>{label}</div>
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* Search + actions */}
-      <div className="px-4 py-3 bg-white shadow-sm">
-        <div className="relative mb-2">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-300" placeholder="Cari nama siswa..." />
+      {/* Date nav + search */}
+      <div className="px-4 py-2">
+        <div className="flex items-center justify-between mb-2 rounded-xl px-3 py-2" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
+          <button style={{ color: C.muted }}><ChevronLeft className="w-4 h-4" /></button>
+          <span className="text-sm font-medium">Min, 2 Agt 2026</span>
+          <button style={{ color: C.muted }}><ChevronRight className="w-4 h-4" /></button>
         </div>
-        <div className="flex gap-2">
-          <button className="flex-1 flex items-center justify-center gap-1.5 bg-amber-500 text-white py-2 rounded-xl text-xs font-semibold">
-            <Bell className="w-3.5 h-3.5" />
-            Ingatkan Semua
-          </button>
-          <button className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 text-white py-2 rounded-xl text-xs font-semibold">
-            <Presentation className="w-3.5 h-3.5" />
-            Presentasi
-          </button>
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.muted }} />
+          <input
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl focus:outline-none"
+            placeholder="Cari nama siswa..."
+            style={{ background: C.cardBg, border: `1px solid ${C.border}`, color: "white" }}
+          />
         </div>
       </div>
 
       {/* Student list */}
-      <div className="flex-1 px-4 py-3 space-y-2">
+      <div className="flex-1 px-4 pb-4 space-y-2 overflow-y-auto">
+        <div className="text-xs font-semibold uppercase tracking-wide mb-2 px-1" style={{ color: C.dimText }}>Daftar Siswa</div>
         {students.map((s) => (
-          <div key={s.name} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <div key={s.name} className="rounded-2xl p-3.5" style={{ background: C.cardBg, border: `1px solid ${C.border}` }}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                {s.name.split(" ").map((w) => w[0]).join("").slice(0, 2)}
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                {s.name.split(" ").map(w => w[0]).join("").slice(0, 2)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-800 truncate">{s.name}</span>
-                  <span className={`text-base font-bold ${scoreColor(s.score)}`}>{s.score}</span>
+                  <span className="text-sm font-semibold truncate text-white">{s.name}</span>
+                  <span className="font-bold text-base ml-2 flex-shrink-0" style={{ color: scoreColor(s.score) }}>{s.score}</span>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full"
-                      style={{ width: `${(s.progress / s.total) * 100}%` }}
-                    />
+                <div className="text-xs mb-1.5" style={{ color: C.muted }}>{s.kelas}</div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "#2a4535" }}>
+                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(s.progress / s.total) * 100}%` }} />
                   </div>
-                  <span className="text-xs text-gray-400">{s.progress}/{s.total}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusBadge[s.status]}`}>
+                  <span className="text-xs flex-shrink-0" style={{ color: C.muted }}>{s.progress}/{s.total}</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0" style={statusStyle[s.status]}>
                     {s.status}
                   </span>
                 </div>
               </div>
-              <div className="flex flex-col gap-1 ml-2">
-                <button className="p-1.5 rounded-lg bg-blue-50 text-blue-600"><Eye className="w-3.5 h-3.5" /></button>
-                <button className="p-1.5 rounded-lg bg-green-50 text-green-600"><MessageCircle className="w-3.5 h-3.5" /></button>
-              </div>
+            </div>
+            <div className="flex gap-2 mt-2.5 justify-end">
+              <button className="p-1.5 rounded-lg" style={{ background: "#1e3a5f" }}><Eye className="w-3.5 h-3.5 text-blue-400" /></button>
+              <button className="p-1.5 rounded-lg" style={{ background: "#134e3a" }}><MessageCircle className="w-3.5 h-3.5 text-teal-400" /></button>
+              <button className="p-1.5 rounded-lg" style={{ background: "#14401a" }}><Mail className="w-3.5 h-3.5 text-green-400" /></button>
+              <button className="p-1.5 rounded-lg" style={{ background: "#4a1010" }}><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
             </div>
           </div>
         ))}
-        <div className="text-center py-4">
-          <button className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mx-auto">
-            Lihat semua 28 siswa <ChevronRight className="w-3 h-3" />
-          </button>
-        </div>
       </div>
 
       {/* Bottom nav */}
-      <div className="bg-white border-t border-gray-100 px-6 py-2 flex justify-around">
+      <div className="flex justify-around px-6 py-3" style={{ background: C.navBg, borderTop: `1px solid ${C.border}` }}>
         {[
-          { icon: Users, label: "Siswa", active: true },
-          { icon: BarChart3, label: "Rekap", active: false },
-          { icon: Bell, label: "Notif", active: false },
-          { icon: LogOut, label: "Keluar", active: false },
+          { icon: Users,    label: "Siswa",  active: true  },
+          { icon: BarChart3,label: "Rekap",  active: false },
+          { icon: Bell,     label: "Notif",  active: false },
+          { icon: LogOut,   label: "Keluar", active: false },
         ].map(({ icon: Icon, label, active }) => (
-          <button key={label} className={`flex flex-col items-center gap-0.5 py-1 ${active ? "text-emerald-600" : "text-gray-400"}`}>
+          <button key={label} className="flex flex-col items-center gap-0.5 py-0.5"
+            style={{ color: active ? "#4ade80" : C.muted }}>
             <Icon className="w-5 h-5" />
             <span className="text-xs">{label}</span>
           </button>
