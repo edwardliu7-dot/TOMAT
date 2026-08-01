@@ -1,7 +1,7 @@
 # Planning Penggabungan TOMAT + BLP Harian + GuruEOB5
 
 > Dibuat: 1 Agustus 2026  
-> Status: **Belum dikerjakan — siap untuk dieksekusi**
+> Status: **Pilihan C dipilih — prompt siap di `docs/prompts-pilihan-c/`**
 
 ---
 
@@ -96,11 +96,11 @@ Buat shared auth server. Login sekali, session berlaku di semua app. Tampilan ma
 
 ---
 
-### ⏳ Pilihan C — Satu App Besar (2–3 bulan, opsional nanti)
+### ✅ Pilihan C — Satu App Besar — **DIPILIH**
 Gabung ketiga app jadi satu codebase, satu navigasi, satu bundle.
-- **Risiko tinggi** karena beda teknologi (JS vs TS)
-- **Waktu sangat lama**
-- Kerjakan ini hanya setelah Pilihan B stabil
+- Stack mismatch (JS vs TS) diselesaikan dengan konversi: semua kode BLP+EOB5 diport ke JSX/JS, Tailwind → inline styles, ShadCN → komponen native, Drizzle → `pool.query()`
+- Dibagi 8 prompt yang masing-masing bisa dikerjakan satu Replit Agent dalam satu sesi
+- Lihat: `docs/prompts-pilihan-c/` untuk semua prompt siap pakai
 
 ---
 
