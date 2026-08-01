@@ -58,7 +58,7 @@ export default function Eob5SoalAiScreen({ navigate, goBack }) {
       <div style={{ background:'rgba(0,0,0,0.35)', borderBottom:`1px solid ${C.border}`, padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
         <button onClick={goBack} style={{ background:'none', border:'none', color:C.primary, fontSize:22, cursor:'pointer' }}>←</button>
         <div>
-          <div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>EOB5 · GROQ AI</div>
+          <div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>GURU · GROQ AI</div>
           <div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>Generator Soal Otomatis</div>
         </div>
       </div>

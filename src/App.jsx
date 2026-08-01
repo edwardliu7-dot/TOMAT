@@ -567,17 +567,17 @@ const SCREEN_TITLES = {
   'blp-guru-rekap': 'Rekap Kelas BLP',
   'blp-guru-siswa-detail': 'Detail Siswa BLP',
   'blp-guru-periode': 'Atur Periode BLP',
-  'eob5-dashboard': 'EOB5 — Dashboard Guru',
-  'eob5-absensi': 'EOB5 — Absensi',
-  'eob5-siswa': 'EOB5 — Manajemen Siswa',
-  'eob5-detail-siswa': 'EOB5 — Detail Siswa',
-  'eob5-nilai': 'EOB5 — Nilai',
-  'eob5-jadwal': 'EOB5 — Jadwal',
-  'eob5-prosem': 'EOB5 — Prosem',
-  'eob5-materi': 'EOB5 — Materi',
-  'eob5-soal-ai': 'EOB5 — Soal AI',
-  'eob5-rekap': 'EOB5 — Rekap',
-  'eob5-inbox': 'EOB5 — Inbox',
+  'eob5-dashboard': 'GURU — Dashboard',
+  'eob5-absensi': 'GURU — Absensi',
+  'eob5-siswa': 'GURU — Manajemen Siswa',
+  'eob5-detail-siswa': 'GURU — Detail Siswa',
+  'eob5-nilai': 'GURU — Nilai',
+  'eob5-jadwal': 'GURU — Jadwal',
+  'eob5-prosem': 'GURU — Prosem',
+  'eob5-materi': 'GURU — Materi',
+  'eob5-soal-ai': 'GURU — Soal AI',
+  'eob5-rekap': 'GURU — Rekap',
+  'eob5-inbox': 'GURU — Inbox',
 }
 
 // Rendered inside PlayerProvider — safe to call usePlayer().
@@ -726,10 +726,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   useEffect(() => {
     const gameRoute = GAME_ROUTES[current]
     if (gameRoute) {
-      document.title = `${gameRoute.emoji} ${gameRoute.name} — TOMAT`
+      document.title = `${gameRoute.emoji} ${gameRoute.name} — SMARTISA`
     } else {
       const label = SCREEN_TITLES[current]
-      document.title = label ? `${label} — TOMAT` : 'TOMAT — Tantangan Otak Mendidik Anak TISA'
+      document.title = label ? `${label} — SMARTISA` : 'SMARTISA — Platform Pembelajaran TISA'
     }
   }, [current])
 
@@ -1212,9 +1212,9 @@ export default function App() {
   useEffect(() => {
     if (checking) return
     if (user?.role === 'guru' && !guruPracticeMode) {
-      document.title = 'Dashboard Guru — TOMAT'
+      document.title = 'Dashboard Guru — SMARTISA'
     } else if (!user) {
-      document.title = 'TOMAT — Tantangan Otak Mendidik Anak TISA'
+      document.title = 'SMARTISA — Platform Pembelajaran TISA'
     }
   }, [user, guruPracticeMode, checking])
 

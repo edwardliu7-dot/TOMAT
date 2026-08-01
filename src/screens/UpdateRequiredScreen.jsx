@@ -41,7 +41,7 @@ export default function UpdateRequiredScreen({ downloadUrl }) {
         fontSize: 15, color: '#94a3b8', lineHeight: 1.6,
         maxWidth: 300, marginBottom: 36,
       }}>
-        Versi TOMAT yang terpasang sudah tidak didukung.
+        Versi SMARTISA yang terpasang sudah tidak didukung.
         Silakan download versi terbaru untuk melanjutkan.
       </div>
 
@@ -69,7 +69,7 @@ export default function UpdateRequiredScreen({ downloadUrl }) {
 
       {/* Versi info kecil */}
       <div style={{ marginTop: 40, fontSize: 12, color: '#334155' }}>
-        TOMAT — Tantangan Otak Mendidik Anak TISA
+        SMARTISA — Platform Pembelajaran TISA
       </div>
     </div>
   )

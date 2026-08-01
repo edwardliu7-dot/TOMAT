@@ -4,7 +4,7 @@ const TABS = {
   guru: [
     { key: 'tomat', label: 'TOMAT',   emoji: '🍅', homeScreen: 'guruDashboard' },
     { key: 'blp',   label: 'BLP',     emoji: '📋', homeScreen: 'blp-home' },
-    { key: 'eob5',  label: 'EOB5',    emoji: '🏫', homeScreen: 'eob5-dashboard' },
+    { key: 'eob5',  label: 'GURU',    emoji: '🏫', homeScreen: 'eob5-dashboard' },
   ],
   siswa: [
     { key: 'tomat', label: 'TOMAT',   emoji: '🍅', homeScreen: 'home' },

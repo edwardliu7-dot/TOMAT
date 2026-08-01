@@ -133,9 +133,9 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 4, marginBottom: 20 }}>
-        <img src={logo} alt="TOMAT" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover' }} />
+        <img src={logo} alt="SMARTISA" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover' }} />
         <div>
-          <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', fontStyle: 'italic' }}>TOMAT</div>
+          <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', fontStyle: 'italic' }}>SMARTISA</div>
           <div style={{ fontSize: 9, color: '#475569', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>Mendidik Anak TISA</div>
         </div>
       </div>

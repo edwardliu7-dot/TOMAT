@@ -83,7 +83,7 @@ export default function Eob5ProsemScreen({ navigate, goBack }) {
       <div style={{ background:'rgba(0,0,0,0.35)', borderBottom:`1px solid ${C.border}`, padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
         <button onClick={() => { if(view!=='list') setView('list'); else goBack() }} style={{ background:'none', border:'none', color:C.primary, fontSize:22, cursor:'pointer' }}>←</button>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>EOB5</div>
+          <div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>GURU</div>
           <div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>{view==='form'?(editId?'Edit Prosem':'Buat Prosem'):view==='detail'?'Detail Prosem':'Program Semester'}</div>
         </div>
         {view==='list' && <button onClick={() => { setView('form'); setEditId(null); setForm(EMPTY_FORM) }} style={{ background:C.dim, border:`1px solid ${C.border}`, borderRadius:10, padding:'8px 14px', color:C.primary, fontWeight:700, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>+ Buat</button>}

@@ -72,7 +72,7 @@ export default function Eob5MateriScreen({ navigate, goBack }) {
     <div style={{ minHeight:'100vh', background:C.bg, fontFamily:'system-ui,sans-serif', color:C.text, paddingBottom:40 }}>
       <div style={{ background:'rgba(0,0,0,0.35)', borderBottom:`1px solid ${C.border}`, padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
         <button onClick={goBack} style={{ background:'none', border:'none', color:C.primary, fontSize:22, cursor:'pointer' }}>←</button>
-        <div style={{ flex:1 }}><div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>EOB5</div><div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>Materi Ajar</div></div>
+        <div style={{ flex:1 }}><div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>GURU</div><div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>Materi Ajar</div></div>
         <button onClick={() => { setShowForm(!showForm); setForm(EMPTY_FORM) }} style={{ background:C.dim, border:`1px solid ${C.border}`, borderRadius:10, padding:'8px 14px', color:C.primary, fontWeight:700, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>{showForm?'✕ Tutup':'+ Tambah'}</button>
       </div>
 

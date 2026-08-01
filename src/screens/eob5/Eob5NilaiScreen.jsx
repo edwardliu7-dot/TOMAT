@@ -80,7 +80,7 @@ export default function Eob5NilaiScreen({ navigate, goBack }) {
     <div style={{ minHeight:'100vh', background:C.bg, fontFamily:'system-ui,sans-serif', color:C.text, paddingBottom:40 }}>
       <div style={{ background:'rgba(0,0,0,0.35)', borderBottom:`1px solid ${C.border}`, padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
         <button onClick={goBack} style={{ background:'none', border:'none', color:C.primary, fontSize:22, cursor:'pointer' }}>←</button>
-        <div><div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>EOB5</div><div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>Nilai Akademik</div></div>
+        <div><div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>GURU</div><div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>Nilai Akademik</div></div>
       </div>
 
       <div style={{ display:'flex', borderBottom:`1px solid ${C.border}`, background:'rgba(0,0,0,0.2)' }}>

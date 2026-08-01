@@ -68,7 +68,7 @@ export default function Eob5InboxScreen({ navigate, goBack }) {
         <div style={{ background:'rgba(0,0,0,0.35)', borderBottom:`1px solid ${C.border}`, padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
           <button onClick={() => setSelected(null)} style={{ background:'none', border:'none', color:C.primary, fontSize:22, cursor:'pointer' }}>←</button>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>INBOX EOB5</div>
+            <div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>INBOX GURU</div>
             <div style={{ fontSize:16, fontWeight:800, color:'#fff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{selected.judul}</div>
           </div>
         </div>
@@ -90,7 +90,7 @@ export default function Eob5InboxScreen({ navigate, goBack }) {
       <div style={{ background:'rgba(0,0,0,0.35)', borderBottom:`1px solid ${C.border}`, padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
         <button onClick={goBack} style={{ background:'none', border:'none', color:C.primary, fontSize:22, cursor:'pointer' }}>←</button>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>EOB5</div>
+          <div style={{ fontSize:11, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>GURU</div>
           <div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>Inbox {unread>0 && <span style={{ background:C.primary, color:'#1a0a00', borderRadius:12, padding:'2px 8px', fontSize:12, fontWeight:800, marginLeft:6 }}>{unread}</span>}</div>
         </div>
         <button onClick={() => setShowForm(!showForm)} style={{ background:C.dim, border:`1px solid ${C.border}`, borderRadius:10, padding:'8px 14px', color:C.primary, fontWeight:700, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>{showForm?'✕ Tutup':'+ Kirim'}</button>

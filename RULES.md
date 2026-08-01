@@ -1,15 +1,19 @@
-# RULES.md — Panduan Wajib Replit Agent untuk Proyek TOMAT
+# RULES.md — Panduan Wajib Replit Agent untuk Proyek SMARTISA
 
 > **⚠️ BACA FILE INI SEBELUM MELAKUKAN PERUBAHAN APAPUN.**
-> File ini adalah sumber kebenaran tunggal tentang arsitektur, konvensi, dan aturan proyek TOMAT.
+> File ini adalah sumber kebenaran tunggal tentang arsitektur, konvensi, dan aturan proyek SMARTISA.
 > Jika Anda menambahkan fitur baru, identifikasi dulu modul mana yang akan terdampak menggunakan panduan di bawah ini.
 
 ---
 
 ## 1. Identitas Proyek
 
-- **Nama:** TOMAT — Tantangan Otak Mendidik Anak TISA
-- **Deskripsi:** Game RPG edukasi berbasis web untuk pelajar SMP (Kelas 7–9), mencakup semua mata pelajaran.
+- **Nama Platform:** SMARTISA — Platform Pembelajaran Resmi TISA
+- **Sub-modul:**
+  - **TOMAT** — Tantangan Otak Mendidik Anak TISA (platform belajar siswa, game RPG edukasi)
+  - **BLP** — BLP Harian (jurnal harian)
+  - **GURU** — Administrasi Guru (dahulu GuruEOB5)
+- **Deskripsi:** Platform pembelajaran terpadu untuk guru dan siswa SMP TISA Islamic School (Kelas 7–9).
 - **Stack:** React 18 + Vite (frontend), Express + Node.js + Socket.io (backend), PostgreSQL via Neon (database).
 - **Tidak menggunakan** library UI eksternal — semua styling adalah inline style / CSS vanilla.
 - **Semua teks in-game harus dalam Bahasa Indonesia.**
@@ -434,10 +438,11 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 - Komponen: `src/components/AppSwitcher.jsx`
 - Ditampilkan di `AppShell` header untuk semua user yang sudah login
 - Siswa: tab TOMAT + BLP
-- Guru: tab TOMAT + BLP + EOB5
+- Guru: tab TOMAT + BLP + GURU (dahulu EOB5)
 - Switch module: `setHistory([homeScreen])` — reset history ke home screen modul yang dipilih
-- Palet warna per modul: TOMAT = biru-ungu, BLP = hijau, EOB5 = amber-oranye
+- Palet warna per modul: TOMAT = biru-ungu, BLP = hijau, GURU = amber-oranye
+- Route key tetap `eob5-*` secara internal — hanya label tampilan yang berubah ke "GURU"
 
 ---
 
-*Terakhir diperbarui: 1 Agustus 2026. Update file ini setiap kali ada perubahan arsitektur signifikan.*
+*Terakhir diperbarui: 1 Agustus 2026 — Rebrand platform dari TOMAT → SMARTISA. Update file ini setiap kali ada perubahan arsitektur signifikan.*

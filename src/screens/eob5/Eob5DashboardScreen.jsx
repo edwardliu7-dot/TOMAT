@@ -69,7 +69,7 @@ export default function Eob5DashboardScreen({ navigate, goBack }) {
           }}>←</button>
         )}
         <div>
-          <div style={{ fontSize: 11, color: COLOR.textSub, fontWeight: 700, letterSpacing: 1.5 }}>GURU EOB5</div>
+          <div style={{ fontSize: 11, color: COLOR.textSub, fontWeight: 700, letterSpacing: 1.5 }}>GURU</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Dashboard</div>
         </div>
         <div style={{ marginLeft: 'auto', textAlign: 'right' }}>

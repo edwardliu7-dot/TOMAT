@@ -64,7 +64,7 @@ export default function Eob5DetailSiswaScreen({ navigate, goBack, siswaId }) {
       <div style={{ background: 'rgba(0,0,0,0.35)', borderBottom: `1px solid ${COLOR.border}`, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={goBack} style={{ background: 'none', border: 'none', color: COLOR.primary, fontSize: 22, cursor: 'pointer', padding: '0 4px' }}>←</button>
         <div>
-          <div style={{ fontSize: 11, color: COLOR.textSub, fontWeight: 700, letterSpacing: 1.5 }}>EOB5</div>
+          <div style={{ fontSize: 11, color: COLOR.textSub, fontWeight: 700, letterSpacing: 1.5 }}>GURU</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Detail Siswa</div>
         </div>
       </div>

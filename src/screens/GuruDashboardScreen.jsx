@@ -2585,7 +2585,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
               <span style={{ width: 34, height: 34, borderRadius: 10, background: '#9fe3bd', color: '#0b2c2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 10, letterSpacing: '-0.05em', flexShrink: 0 }}>TM</span>
               <div>
-                <div style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.12em', color: '#9fe3bd', textTransform: 'uppercase' }}>TOMAT</div>
+                <div style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.12em', color: '#9fe3bd', textTransform: 'uppercase' }}>SMARTISA</div>
                 <div style={{ fontSize: 11, color: '#64748B' }}>Ruang Guru</div>
               </div>
             </div>

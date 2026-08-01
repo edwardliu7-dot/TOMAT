@@ -1,13 +1,13 @@
 {
-  "name": "TOMAT – Tantangan Otak Matematika",
-  "short_name": "TOMAT",
+  "name": "SMARTISA – Platform Pembelajaran TISA",
+  "short_name": "SMARTISA",
   "lang": "id",
   "start_url": "/",
   "display": "fullscreen",
   "orientation": "portrait",
   "background_color": "#071321",
   "theme_color": "#071321",
-  "description": "Tantangan Otak Matematika untuk pelajar SMP",
+  "description": "Platform pembelajaran resmi guru dan siswa SMP TISA Islamic School",
   "icons": [
     {
       "src": "/icon-192.png",

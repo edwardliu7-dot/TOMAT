@@ -7,7 +7,7 @@ const CHANGES = [
   {
     icon: '🎓',
     title: 'Game IPA Kelas 7 & 8 Hadir!',
-    body: 'Materi IPA kini tersedia di TOMAT! Kelas 7 BAB 4 (Gaya & Gerak) dan Kelas 8 BAB 1 (Pengenalan Sel) sudah bisa dimainkan — 7 game baru dengan tema warna berbeda, 10 soal per sesi, dan reward koin seperti biasa.',
+    body: 'Materi IPA kini tersedia di SMARTISA! Kelas 7 BAB 4 (Gaya & Gerak) dan Kelas 8 BAB 1 (Pengenalan Sel) sudah bisa dimainkan — 7 game baru dengan tema warna berbeda, 10 soal per sesi, dan reward koin seperti biasa.',
     highlight: true,
   },
   {
@@ -18,7 +18,7 @@ const CHANGES = [
   {
     icon: '📳',
     title: 'Notifikasi Android Diperbaiki',
-    body: 'Undangan duel dan notifikasi pertandingan turnamen kini muncul sebagai banner OS native di Android. Koneksi socket lebih stabil saat berpindah aplikasi dan kembali ke TOMAT.',
+    body: 'Undangan duel dan notifikasi pertandingan turnamen kini muncul sebagai banner OS native di Android. Koneksi socket lebih stabil saat berpindah aplikasi dan kembali ke SMARTISA.',
   },
   {
     icon: '🔧',
@@ -113,7 +113,7 @@ export default function WhatsNewModal({ onClose }) {
           </div>
           <div>
             <div style={{ fontSize: 17, fontWeight: 800, color: '#f1f5f9', letterSpacing: 0.2 }}>
-              Yang Baru di TOMAT
+              Yang Baru di SMARTISA
             </div>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4,
