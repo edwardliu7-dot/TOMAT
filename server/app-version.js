@@ -1,37 +1,47 @@
 import express from 'express'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
+
 const router = express.Router()
 
-// ── Konfigurasi Web Bundle (OTA) ─────────────────────────────────────────────
-// Update nilai-nilai ini setiap kali deploy bundle baru.
-// Jalankan scripts/deploy-bundle.sh untuk mendapatkan nilai yang benar.
-const BUNDLE_CONFIG = {
-  bundleVersion: '1.0.0',       // Versi bundle saat ini
-  bundleUrl: '',                 // URL download bundle zip (kosong = belum ada bundle OTA)
-  bundleSize: 0,                 // Ukuran dalam bytes (untuk progress bar)
-  bundleChecksum: '',            // sha256:<hash> untuk verifikasi integritas
-  updateNotes: '',               // Catatan update opsional (ditampilkan di banner)
+// ── Baca bundle config dari manifest yang dibuat saat build ───────────────────
+// File bundles/manifest.json dibuat otomatis oleh scripts/postbuild.js
+// setiap kali `npm run build` dijalankan (termasuk saat Coolify deploy).
+function getBundleConfig() {
+  try {
+    const manifestPath = resolve(process.cwd(), 'bundles/manifest.json')
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    return {
+      bundleVersion:  manifest.bundleVersion  || '',
+      bundleUrl:      manifest.bundleUrl       || '',
+      bundleSize:     manifest.bundleSize      || 0,
+      bundleChecksum: manifest.bundleChecksum  || '',
+      updateNotes:    manifest.updateNotes     || '',
+    }
+  } catch {
+    // manifest.json belum ada (build pertama / dev lokal) — OTA tidak aktif
+    return { bundleVersion: '', bundleUrl: '', bundleSize: 0, bundleChecksum: '', updateNotes: '' }
+  }
 }
 
-// ── GitHub Releases — APK (hard update) ──────────────────────────────────────
+// ── GitHub Releases — APK hard update ────────────────────────────────────────
 const GH_REPO = 'edwardliu7-dot/tomat'
 let _ghCache = null
 const GH_CACHE_TTL = 10 * 60 * 1000 // 10 menit
 
 function semverToCode(tag) {
   // "v1.2.3" atau "1.2.3" → 123
-  // Harus cocok dengan skema versionCode di android/app/build.gradle:
-  //   major*100 + minor*10 + patch  (e.g. "1.3.2" → 132)
   const clean = tag.replace(/^v/, '')
   const parts = clean.split('.').map(n => parseInt(n, 10) || 0)
   return (parts[0] || 0) * 100 + (parts[1] || 0) * 10 + (parts[2] || 0)
 }
 
 // GET /api/app/version-check
-// Dipakai oleh useAppUpdateCheck() di client untuk cek APK dan bundle.
+// Dipakai oleh useAppUpdateCheck() di client untuk cek APK dan bundle OTA.
 router.get('/version-check', async (req, res) => {
-  // Kembalikan cache kalau masih fresh
+  // Kembalikan cache APK kalau masih fresh
   if (_ghCache && Date.now() - _ghCache.fetchedAt < GH_CACHE_TTL) {
-    return res.json({ ..._ghCache.apkData, ...BUNDLE_CONFIG })
+    return res.json({ ..._ghCache.apkData, ...getBundleConfig() })
   }
 
   try {
@@ -48,12 +58,12 @@ router.get('/version-check', async (req, res) => {
 
     const apkData = { minVersionCode, downloadUrl }
     _ghCache = { apkData, fetchedAt: Date.now() }
-    return res.json({ ...apkData, ...BUNDLE_CONFIG })
+    return res.json({ ...apkData, ...getBundleConfig() })
   } catch (err) {
     console.warn('[version-check] GitHub fetch gagal, fallback ke env:', err.message)
     const minVersionCode = parseInt(process.env.MIN_APP_VERSION_CODE || '1', 10)
     const downloadUrl = process.env.APP_DOWNLOAD_URL || ''
-    return res.json({ minVersionCode, downloadUrl, ...BUNDLE_CONFIG })
+    return res.json({ minVersionCode, downloadUrl, ...getBundleConfig() })
   }
 })
 
