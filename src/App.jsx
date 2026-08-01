@@ -47,6 +47,7 @@ import BlpRiwayatScreen from './screens/blp/BlpRiwayatScreen'
 import BlpQuranScreen from './screens/blp/BlpQuranScreen'
 import BlpHaidScreen from './screens/blp/BlpHaidScreen'
 import BlpGuruRekapScreen from './screens/blp/BlpGuruRekapScreen'
+import BlpGuruDashboardScreen from './screens/blp/BlpGuruDashboardScreen'
 import BlpGuruSiswaDetailScreen from './screens/blp/BlpGuruSiswaDetailScreen'
 import BlpGuruPeriodeScreen from './screens/blp/BlpGuruPeriodeScreen'
 import { BlpDataProvider } from './contexts/BlpDataContext'
@@ -1056,7 +1057,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'blp-guru-rekap') {
-      return <BlpGuruRekapScreen navigate={navigate} goBack={goBack} />
+      return <BlpGuruDashboardScreen navigate={navigate} goBack={goBack} />
     }
 
     if (current === 'blp-guru-siswa-detail') {
@@ -1299,7 +1300,7 @@ export default function App() {
         return <BlpHomeScreen navigate={guruNavigate} goBack={guruGoBack} />
       }
       if (currentGuruScreen === 'blp-guru-rekap') {
-        return <BlpGuruRekapScreen navigate={guruNavigate} goBack={guruGoBack} />
+        return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} />
       }
       if (currentGuruScreen === 'blp-guru-siswa-detail') {
         return <BlpGuruSiswaDetailScreen navigate={guruNavigate} goBack={guruGoBack} studentId={eob5SiswaId} />
