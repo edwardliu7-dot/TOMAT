@@ -103,6 +103,78 @@ router.put('/:id', requireGuru, async (req, res) => {
   }
 })
 
+// POST / — buat siswa baru
+router.post('/', requireGuru, async (req, res) => {
+  try {
+    const { name, kelas, jenis_kelamin, username, email, whatsapp } = req.body || {}
+    if (!name?.trim() || !kelas?.trim()) {
+      return res.status(400).json({ error: 'Nama dan kelas wajib diisi' })
+    }
+    // Check duplicate username jika diberikan
+    if (username?.trim()) {
+      const dup = await pool.query('SELECT id FROM students WHERE username = $1', [username.trim()])
+      if (dup.rowCount > 0) return res.status(409).json({ error: 'Username sudah digunakan' })
+    }
+    const { rows } = await pool.query(
+      `INSERT INTO students (name, kelas, jenis_kelamin, username, email, whatsapp)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, username, name, kelas, jenis_kelamin, email, whatsapp`,
+      [name.trim(), kelas.trim(), jenis_kelamin || 'L',
+       username?.trim() || null, email?.trim() || null, whatsapp?.trim() || null]
+    )
+    res.status(201).json(rows[0])
+  } catch (err) {
+    console.error('[eob5/siswa] create error:', err)
+    res.status(500).json({ error: 'Gagal menambahkan siswa' })
+  }
+})
+
+// POST /bulk — buat banyak siswa sekaligus (import Excel)
+router.post('/bulk', requireGuru, async (req, res) => {
+  try {
+    const { students } = req.body || {}
+    if (!Array.isArray(students) || students.length === 0) {
+      return res.status(400).json({ error: 'Data siswa tidak boleh kosong' })
+    }
+    if (students.length > 500) {
+      return res.status(400).json({ error: 'Maksimal 500 siswa per import' })
+    }
+    let created = 0
+    let skipped = 0
+    for (const s of students) {
+      if (!s.name?.trim() || !s.kelas?.trim()) { skipped++; continue }
+      try {
+        await pool.query(
+          `INSERT INTO students (name, kelas, jenis_kelamin, email, whatsapp)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT DO NOTHING`,
+          [s.name.trim(), s.kelas.trim(), s.jenis_kelamin || 'L',
+           s.email?.trim() || null, s.whatsapp?.trim() || null]
+        )
+        created++
+      } catch { skipped++ }
+    }
+    res.json({ created, skipped })
+  } catch (err) {
+    console.error('[eob5/siswa] bulk error:', err)
+    res.status(500).json({ error: 'Gagal import siswa' })
+  }
+})
+
+// DELETE /:id — hapus siswa
+router.delete('/:id', requireGuru, async (req, res) => {
+  try {
+    const { id } = req.params
+    const existing = await pool.query('SELECT id FROM students WHERE id = $1', [id])
+    if (existing.rowCount === 0) return res.status(404).json({ error: 'Siswa tidak ditemukan' })
+    await pool.query('DELETE FROM students WHERE id = $1', [id])
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('[eob5/siswa] delete error:', err)
+    res.status(500).json({ error: 'Gagal menghapus siswa' })
+  }
+})
+
 // GET /:id/rekap — rekap lengkap satu siswa
 router.get('/:id/rekap', requireGuru, async (req, res) => {
   try {

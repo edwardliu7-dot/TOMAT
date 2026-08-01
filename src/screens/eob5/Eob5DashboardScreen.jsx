@@ -87,6 +87,10 @@ const MENU = [
     desc: "Ringkasan mingguan & WA",
   },
   { key: "eob5-inbox", label: "Pesan", emoji: "💬", desc: "Pesan masuk dari siswa" },
+  { key: "eob5-poin", label: "Poin Siswa", emoji: "📌", desc: "Rekap poin perilaku" },
+  { key: "eob5-akun-siswa", label: "Akun Siswa", emoji: "🔑", desc: "Generate akun login siswa" },
+  { key: "eob5-direktori-guru", label: "Direktori Guru", emoji: "👨‍🏫", desc: "Daftar guru & progres" },
+  { key: "eob5-direktori-siswa", label: "Direktori Siswa", emoji: "📚", desc: "Direktori semua siswa" },
 ];
 
 function BarChart({ data }) {
