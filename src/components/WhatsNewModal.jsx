@@ -5,25 +5,25 @@ const STORAGE_KEY = `tomat_seen_whats_new_v${APP_VERSION}`
 
 const CHANGES = [
   {
-    icon: '🇮🇩',
-    title: 'Tema Merah Putih — HUT RI ke-81',
-    body: 'Setiap bulan Agustus, seluruh tampilan TOMAT berganti tema Merah Putih! Langit malam dengan kembang api, umbul-umbul, dan nuansa merah putih menyelimuti aplikasi. Tema ini aktif otomatis dan kembali normal setelah 31 Agustus.',
+    icon: '🎓',
+    title: 'Game IPA Kelas 7 & 8 Hadir!',
+    body: 'Materi IPA kini tersedia di TOMAT! Kelas 7 BAB 4 (Gaya & Gerak) dan Kelas 8 BAB 1 (Pengenalan Sel) sudah bisa dimainkan — 7 game baru dengan tema warna berbeda, 10 soal per sesi, dan reward koin seperti biasa.',
     highlight: true,
   },
   {
-    icon: '🎆',
-    title: 'Event Kemerdekaan di Toko',
-    body: 'Dapatkan Bingkai Kemerdekaan, Spanduk HUT RI ke-81, dan Kelinsay Merah Putih lewat 3 misi event: jawab 17 soal benar, menangkan 8 duel, dan raih keduanya untuk bonus eksklusif!',
+    icon: '🎵',
+    title: 'Musik Latar Default',
+    body: 'Musik pengiring kini aktif otomatis di semua sesi. Atur volume BGM dan SFX secara terpisah lewat tombol 🔊 di pojok layar. Pengaturan tersimpan otomatis.',
   },
   {
-    icon: '📱',
-    title: 'Aset Tersimpan Offline',
-    body: 'Sprite pet, bingkai profil, dan aset event kini otomatis tersimpan di perangkat Android saat pertama kali dibuka. Gambar tetap tampil meski koneksi terputus.',
+    icon: '📳',
+    title: 'Notifikasi Android Diperbaiki',
+    body: 'Undangan duel dan notifikasi pertandingan turnamen kini muncul sebagai banner OS native di Android. Koneksi socket lebih stabil saat berpindah aplikasi dan kembali ke TOMAT.',
   },
   {
     icon: '🔧',
     title: 'Perbaikan & Penyempurnaan',
-    body: 'Perbaikan tampilan tema kustom, penyempurnaan performa, dan berbagai peningkatan stabilitas pada Android.',
+    body: 'Nama lengkap aplikasi diperbarui menjadi "Tantangan Otak Mendidik Anak TISA". Perbaikan minor pada tampilan dan stabilitas.',
   },
 ]
 

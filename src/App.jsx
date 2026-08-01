@@ -688,7 +688,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       document.title = `${gameRoute.emoji} ${gameRoute.name} — TOMAT`
     } else {
       const label = SCREEN_TITLES[current]
-      document.title = label ? `${label} — TOMAT` : 'TOMAT — Tantangan Otak Matematika'
+      document.title = label ? `${label} — TOMAT` : 'TOMAT — Tantangan Otak Mendidik Anak TISA'
     }
   }, [current])
 
@@ -1116,7 +1116,7 @@ export default function App() {
     if (user?.role === 'guru' && !guruPracticeMode) {
       document.title = 'Dashboard Guru — TOMAT'
     } else if (!user) {
-      document.title = 'TOMAT — Tantangan Otak Matematika'
+      document.title = 'TOMAT — Tantangan Otak Mendidik Anak TISA'
     }
   }, [user, guruPracticeMode, checking])
 

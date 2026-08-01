@@ -64,7 +64,7 @@ export default function LoginScreen() {
              <img src={logo} alt="" />
            </div>
           <h1>TOMAT</h1>
-          <p className="tomat-login__tagline">Tantangan Otak Matematika</p>
+          <p className="tomat-login__tagline">Tantangan Otak Mendidik Anak TISA</p>
           <p className="tomat-login__description">
             Platform gamifikasi matematika SMP yang membuat belajar jadi petualangan seru.
             <br />
@@ -80,7 +80,7 @@ export default function LoginScreen() {
                <img src={logo} alt="" />
              </div>
             <h1>TOMAT</h1>
-            <p>Tantangan Otak Matematika</p>
+            <p>Tantangan Otak Mendidik Anak TISA</p>
             <span>Platform belajar matematika SMP yang menyenangkan 🎮</span>
           </div>
 

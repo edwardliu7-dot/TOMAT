@@ -69,7 +69,7 @@ export default function UpdateRequiredScreen({ downloadUrl }) {
 
       {/* Versi info kecil */}
       <div style={{ marginTop: 40, fontSize: 12, color: '#334155' }}>
-        TOMAT — Tantangan Otak Matematika
+        TOMAT — Tantangan Otak Mendidik Anak TISA
       </div>
     </div>
   )
