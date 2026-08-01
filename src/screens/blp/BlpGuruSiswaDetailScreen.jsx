@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { TopBar } from '../../components/shared.jsx'
 import { hitungSkor, AKTIVITAS_LIST } from './blpAktivitasData.js'
+import { useBlpData } from '../../contexts/BlpDataContext.jsx'
 
 function SkorBadge({ skor }) {
   const color = skor >= 80 ? '#10b981' : skor >= 50 ? '#f59e0b' : '#ef4444'
@@ -17,37 +18,28 @@ function SkorBadge({ skor }) {
 }
 
 export default function BlpGuruSiswaDetailScreen({ goBack, studentId }) {
-  const [loading, setLoading] = useState(true)
+  const { data, loading, error: ctxError, loadDashboard, patchSubmission } = useBlpData()
   const [reviewing, setReviewing] = useState(false)
-  const [error, setError] = useState('')
-  const [student, setStudent] = useState(null)
   const [expandedDate, setExpandedDate] = useState(null)
 
-  function loadData() {
-    setLoading(true)
-    fetch('/api/blp/dashboard', { credentials: 'include' })
-      .then(r => r.json())
-      .then(json => {
-        if (json.error) { setError(json.error); setLoading(false); return }
-        const all = Object.values(json.students || {})
-        const found = studentId ? all.find(s => s.id === studentId) : all[0]
-        setStudent(found || null)
-        if (!found) setError('Data siswa tidak ditemukan')
-        setLoading(false)
-      })
-      .catch(() => { setError('Gagal memuat data'); setLoading(false) })
-  }
+  useEffect(() => { loadDashboard() }, [studentId])
 
-  useEffect(() => { loadData() }, [studentId])
+  const student = data
+    ? (studentId ? Object.values(data.students || {}).find(s => s.id === studentId) : Object.values(data.students || {})[0]) || null
+    : null
+  const error = ctxError || (!loading && data && !student ? 'Data siswa tidak ditemukan' : null)
 
   async function handleReview(date, activityId) {
     if (!student) return
     setReviewing(true)
     try {
       await fetch(`/api/blp/students/${student.id}/records/${date}/submissions/${activityId}/review`, {
-        method: 'PUT', credentials: 'include',
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status: 'reviewed' }),
       })
-      loadData()
+      patchSubmission(student.id, date, activityId, { reviewed: true })
     } catch {}
     setReviewing(false)
   }

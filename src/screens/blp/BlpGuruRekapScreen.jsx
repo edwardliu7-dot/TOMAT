@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { TopBar } from '../../components/shared.jsx'
 import { hitungSkor, AKTIVITAS_LIST } from './blpAktivitasData.js'
+import { useBlpData } from '../../contexts/BlpDataContext.jsx'
 
 function getJakartaToday() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -23,28 +24,16 @@ function SkorBadge({ skor }) {
 }
 
 export default function BlpGuruRekapScreen({ navigate, goBack }) {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [students, setStudents] = useState([])
+  const { data, loading, error, loadDashboard } = useBlpData()
   const [filter, setFilter] = useState('semua') // 'semua' | 'sudah' | 'belum'
   const [search, setSearch] = useState('')
   const [selectedStudent, setSelectedStudent] = useState(null)
 
   const today = getJakartaToday()
 
-  useEffect(() => {
-    let cancelled = false
-    fetch('/api/blp/dashboard', { credentials: 'include' })
-      .then(r => r.json())
-      .then(json => {
-        if (cancelled) return
-        if (json.error) { setError(json.error); setLoading(false); return }
-        setStudents(Object.values(json.students || {}))
-        setLoading(false)
-      })
-      .catch(() => { if (!cancelled) { setError('Gagal memuat data'); setLoading(false) } })
-    return () => { cancelled = true }
-  }, [])
+  useEffect(() => { loadDashboard() }, [])
+
+  const students = data ? Object.values(data.students || {}) : []
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a1a12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

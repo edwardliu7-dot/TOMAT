@@ -49,6 +49,7 @@ import BlpHaidScreen from './screens/blp/BlpHaidScreen'
 import BlpGuruRekapScreen from './screens/blp/BlpGuruRekapScreen'
 import BlpGuruSiswaDetailScreen from './screens/blp/BlpGuruSiswaDetailScreen'
 import BlpGuruPeriodeScreen from './screens/blp/BlpGuruPeriodeScreen'
+import { BlpDataProvider } from './contexts/BlpDataContext'
 import Eob5DashboardScreen from './screens/eob5/Eob5DashboardScreen'
 import Eob5AbsensiScreen from './screens/eob5/Eob5AbsensiScreen'
 import Eob5ManajemenSiswaScreen from './screens/eob5/Eob5ManajemenSiswaScreen'
@@ -1309,13 +1310,15 @@ export default function App() {
     }
 
     return (
-      <AppShell user={user} navigate={guruNavigate} currentScreen={currentGuruScreen} onLogout={logout} onSwitchModule={handleSwitchGuruModule}>
-        <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
-          <ErrorBoundary onReset={guruGoBack}>
-            {renderGuruScreen()}
-          </ErrorBoundary>
-        </div>
-      </AppShell>
+      <BlpDataProvider>
+        <AppShell user={user} navigate={guruNavigate} currentScreen={currentGuruScreen} onLogout={logout} onSwitchModule={handleSwitchGuruModule}>
+          <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+            <ErrorBoundary onReset={guruGoBack}>
+              {renderGuruScreen()}
+            </ErrorBoundary>
+          </div>
+        </AppShell>
+      </BlpDataProvider>
     )
   }
 

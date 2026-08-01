@@ -50,29 +50,32 @@ router.get('/dashboard', requireBlpAuth, async (req, res) => {
 
     const kelasWali = guru.kelasWali[0]
 
-    // Fetch semua siswa tanpa photo_url (besar, di-load on-demand)
+    // Fetch siswa kelas ini saja — filter di SQL, bukan JavaScript
     const studentRes = await pool.query(
-      'SELECT id, username, name, kelas, email, whatsapp, bio, quran_bookmark, jenis_kelamin FROM students'
+      `SELECT id, username, name, kelas, email, whatsapp, bio, quran_bookmark, jenis_kelamin
+       FROM students
+       WHERE kelas ILIKE $1 OR kelas ILIKE $2`,
+      [kelasWali, kelasWali.replace(' ', '')]
     )
 
-    const classStudentIds = []
-    const classStudentRows = []
-    for (const row of studentRes.rows) {
-      if (normalizeKelas(row.kelas) === kelasWali) {
-        classStudentIds.push(row.id)
-        classStudentRows.push(row)
-      }
-    }
+    const classStudentIds = studentRes.rows.map(r => r.id)
+    const classStudentRows = studentRes.rows
 
     const noRows = { rows: [] }
     const [recordsRes, periodsRes, haidRes] = await Promise.all([
       classStudentIds.length > 0
         ? pool.query(
-            'SELECT student_id, record_date, completed_activities, score, submissions FROM daily_records WHERE student_id = ANY($1)',
+            `SELECT student_id, record_date, completed_activities, score, submissions
+             FROM daily_records
+             WHERE student_id = ANY($1)
+               AND record_date >= (CURRENT_DATE - INTERVAL '2 months')`,
             [classStudentIds]
           )
         : Promise.resolve(noRows),
-      pool.query('SELECT kelas, year, month, start_day, end_day FROM blp_periods'),
+      pool.query(
+        'SELECT kelas, year, month, start_day, end_day FROM blp_periods WHERE kelas ILIKE $1 OR kelas ILIKE $2',
+        [kelasWali, kelasWali.replace(' ', '')]
+      ),
       classStudentIds.length > 0
         ? pool.query(
             'SELECT id, student_id, start_date, end_date FROM haid_periods WHERE student_id = ANY($1) ORDER BY start_date DESC',
@@ -124,10 +127,9 @@ router.get('/dashboard', requireBlpAuth, async (req, res) => {
       }
     }
 
-    // Filter blpPeriods hanya kelas ini
+    // Build blpPeriods — SQL sudah filter kelas, tidak perlu filter JS
     const blpPeriods = {}
     for (const row of periodsRes.rows) {
-      if (normalizeKelas(row.kelas) !== kelasWali) continue
       blpPeriods[blpPeriodKey(normalizeKelas(row.kelas), row.year, row.month)] = {
         startDay: row.start_day,
         endDay: row.end_day,

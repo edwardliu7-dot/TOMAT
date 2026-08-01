@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { TopBar } from '../../components/shared.jsx'
 import { blpPeriodKey } from './blpAktivitasData.js'
+import { useBlpData } from '../../contexts/BlpDataContext.jsx'
 
 const BULAN_ID = [
   'Januari','Februari','Maret','April','Mei','Juni',
@@ -8,12 +9,10 @@ const BULAN_ID = [
 ]
 
 export default function BlpGuruPeriodeScreen({ goBack }) {
-  const [loading, setLoading] = useState(true)
+  const { data, loading, error: ctxError, loadDashboard, invalidate } = useBlpData()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [guru, setGuru] = useState(null)
-  const [blpPeriods, setBlpPeriods] = useState({})
 
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
@@ -21,30 +20,10 @@ export default function BlpGuruPeriodeScreen({ goBack }) {
   const [startDay, setStartDay] = useState(1)
   const [endDay, setEndDay] = useState(28)
 
-  function loadData() {
-    setLoading(true)
-    fetch('/api/blp/dashboard', { credentials: 'include' })
-      .then(r => r.json())
-      .then(json => {
-        if (json.error) { setError(json.error); setLoading(false); return }
-        const g = Object.values(json.gurus || {})[0]
-        setGuru(g)
-        setBlpPeriods(json.blpPeriods || {})
+  useEffect(() => { loadDashboard() }, [])
 
-        // Pre-fill form with existing period if any
-        const kelas = g?.kelasWali?.[0] || ''
-        const key = blpPeriodKey(kelas, year, month)
-        const existing = json.blpPeriods?.[key]
-        if (existing) {
-          setStartDay(existing.startDay)
-          setEndDay(existing.endDay)
-        }
-        setLoading(false)
-      })
-      .catch(() => { setError('Gagal memuat data'); setLoading(false) })
-  }
-
-  useEffect(() => { loadData() }, [])
+  const guru = data ? Object.values(data.gurus || {})[0] : null
+  const blpPeriods = data?.blpPeriods || {}
 
   // Update form when month/year changes
   useEffect(() => {
@@ -78,10 +57,7 @@ export default function BlpGuruPeriodeScreen({ goBack }) {
       const json = await res.json()
       if (!res.ok) { setError(json.error || 'Gagal menyimpan'); setSaving(false); return }
       setSuccess(true)
-      setBlpPeriods(prev => ({
-        ...prev,
-        [blpPeriodKey(kelas, year, month)]: { startDay, endDay },
-      }))
+      invalidate()  // cache dikosongkan, fetch ulang saat layar berikutnya dimuat
       setTimeout(() => setSuccess(false), 3000)
     } catch { setError('Gagal menyimpan, coba lagi') }
     setSaving(false)

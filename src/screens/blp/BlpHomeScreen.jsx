@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { TopBar } from '../../components/shared.jsx'
 import { useAuth } from '../../AuthContext.jsx'
 import { AKTIVITAS_LIST, isSedangHaid, hitungSkor, blpPeriodKey } from './blpAktivitasData.js'
+import { useBlpData } from '../../contexts/BlpDataContext.jsx'
 
 function getJakartaToday() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -314,26 +315,9 @@ function GuruHome({ navigate, students, blpPeriods, guru }) {
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function BlpHomeScreen({ navigate, goBack }) {
   const { user } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [data, setData] = useState(null)
+  const { data, loading, error, loadDashboard } = useBlpData()
 
-  useEffect(() => {
-    let cancelled = false
-    fetch('/api/blp/dashboard', { credentials: 'include' })
-      .then(r => r.json())
-      .then(json => {
-        if (!cancelled) {
-          if (json.error) setError(json.error)
-          else setData(json)
-          setLoading(false)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) { setError('Gagal memuat data BLP'); setLoading(false) }
-      })
-    return () => { cancelled = true }
-  }, [])
+  useEffect(() => { loadDashboard() }, [])
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a1a12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
