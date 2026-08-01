@@ -1152,15 +1152,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               {dailyBonus && !guruMode && (
                 <DailyBonusModal bonus={dailyBonus} onDismiss={dismissDailyBonus} />
               )}
-              {/* OTA bundle update banner */}
-              {bundleUpdateAvailable && (
-                <OtaUpdateBanner
-                  bundleVersion={bundleVersion}
-                  bundleUrl={bundleUrl}
-                  bundleSize={bundleSize}
-                  bundleNotes={bundleNotes}
-                />
-              )}
               {/* Duel invite banner */}
               {duelInvite && current !== 'duel-lobby' && current !== 'duel-katak' && (
                 <DuelInviteBanner
@@ -1328,5 +1319,17 @@ export default function App() {
     )
   }
 
-  return <PlayerExperience />
+  return (
+    <>
+      <PlayerExperience />
+      {bundleUpdateAvailable && (
+        <OtaUpdateBanner
+          bundleVersion={bundleVersion}
+          bundleUrl={bundleUrl}
+          bundleSize={bundleSize}
+          bundleNotes={bundleNotes}
+        />
+      )}
+    </>
+  )
 }
