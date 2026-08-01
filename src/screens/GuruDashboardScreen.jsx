@@ -2675,19 +2675,25 @@ export default function GuruDashboardScreen({ onPlayGames }) {
     )
   }
 
-  // ── Mobile layout — fixed shell: scroll area + bottom nav ──
-  // AppShell provides a 64px unified header above this container, so use
-  // calc(100dvh - 64px) to fill exactly the remaining viewport height.
+  // ── Mobile layout — fully fixed shell ──
+  // AppShell header is fixed at top (64px). Bottom nav is fixed at bottom.
+  // Scrollable content fills the space between them via fixed inset positioning.
+  // This mirrors the siswa AppShell pattern and is immune to height arithmetic errors.
+  const navBottom = 'calc(56px + max(18px, env(safe-area-inset-bottom)))'
   return (
-    <div style={{ height: 'calc(100dvh - 64px)', display: 'flex', flexDirection: 'column', background: '#0A0B14', overflow: 'hidden', touchAction: 'pan-y' }}>
+    <div style={{ background: '#0A0B14' }}>
       {/* Background blobs */}
       <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
         <div style={{ position: 'absolute', top: '-10%', right: '-15%', width: '60%', height: '45%', borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(100px)' }} />
         <div style={{ position: 'absolute', bottom: '20%', left: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(16,185,129,0.08)', filter: 'blur(100px)' }} />
       </div>
 
-      {/* ── Scrollable Content ── */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', position: 'relative', zIndex: 1, WebkitOverflowScrolling: 'touch' }}>
+      {/* ── Scrollable Content — fixed between header and bottom nav ── */}
+      <div style={{
+        position: 'fixed', top: 64, left: 0, right: 0, bottom: navBottom,
+        overflowY: 'auto', overflowX: 'hidden',
+        zIndex: 1, WebkitOverflowScrolling: 'touch', touchAction: 'pan-y',
+      }}>
         {tab !== 'home' && (
           <div style={{ padding: '16px 16px 0' }}>
             {tabContent}
@@ -2700,7 +2706,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
 
       {/* ── Fixed Bottom Nav ── */}
       <nav style={{
-        flexShrink: 0, position: 'relative', zIndex: 10,
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10,
         display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
         paddingTop: 4, paddingBottom: 'max(18px, env(safe-area-inset-bottom))',
         paddingLeft: 4, paddingRight: 4,
