@@ -471,8 +471,8 @@ const GAME_ROUTES = {
   ipa7b4t1: { name: 'Force Application Quest',      emoji: '💪', Component: React.lazy(() => import('./minigames/Ipa7B4T1Game')) },
   ipa7b4t2: { name: 'Resultant Tug of War',         emoji: '⚖️', Component: React.lazy(() => import('./minigames/Ipa7B4T2Game')) },
   ipa7b4t3: { name: 'Motion Classifier',            emoji: '🏃', Component: React.lazy(() => import('./minigames/Ipa7B4T3Game')) },
-  ipa7b4t4: { name: 'Speed vs Velocity Pilot',      emoji: '✈️', Component: IpaGamePlaceholder },
-  ipa7b4t5: { name: "Newton's Law Arena",            emoji: '⚡', Component: IpaGamePlaceholder },
+  ipa7b4t4: { name: 'Speed vs Velocity Pilot',      emoji: '✈️', Component: React.lazy(() => import('./minigames/Ipa7B4T4Game')) },
+  ipa7b4t5: { name: "Newton's Law Arena",            emoji: '⚡', Component: React.lazy(() => import('./minigames/Ipa7B4T5Game')) },
   // IPA Kelas 8 — BAB 1
   ipa8b1t1: { name: 'History Timeline Puzzle',      emoji: '🕰️', Component: IpaGamePlaceholder },
   ipa8b1t2: { name: 'Microscope Selector',          emoji: '🔭', Component: IpaGamePlaceholder },
