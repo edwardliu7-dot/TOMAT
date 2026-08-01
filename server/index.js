@@ -16,6 +16,13 @@ import komunikasiRouter from './komunikasi.js'
 import notifikasiRouter from './notifikasi.js'
 import petRouter from './pet.js'
 import eventMissionsRouter from './event-missions-router.js'
+// GuruEOB5
+import eob5HealthRouter from './eob5/health.js'
+import eob5DashboardRouter from './eob5/dashboard.js'
+import eob5GuruRouter from './eob5/guru.js'
+import eob5SiswaAkunRouter from './eob5/siswa-akun.js'
+import eob5AbsensiRouter from './eob5/absensi.js'
+import eob5KelasRouter from './eob5/kelas.js'
 // BLP Harian
 import blpDashboardRouter from './blp/dashboard.js'
 import blpAktivitasRouter from './blp/aktivitas.js'
@@ -128,6 +135,14 @@ async function createServer() {
   app.use('/api/komunikasi', komunikasiRouter)
   app.use('/api/notifikasi', notifikasiRouter)
   app.use('/api/siswa/pet', petRouter)
+
+  // ── GuruEOB5 ──────────────────────────────────────────────────────────────
+  app.use('/api/eob5', eob5HealthRouter)
+  app.use('/api/eob5/dashboard', eob5DashboardRouter)
+  app.use('/api/eob5/guru', eob5GuruRouter)
+  app.use('/api/eob5/siswa', eob5SiswaAkunRouter)
+  app.use('/api/eob5/absensi', eob5AbsensiRouter)
+  app.use('/api/eob5/kelas', eob5KelasRouter)
 
   // ── BLP Harian ────────────────────────────────────────────────────────────
   app.use('/api/blp', blpDashboardRouter)

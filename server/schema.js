@@ -567,6 +567,66 @@ export async function ensureSchema() {
     )
   }
 
+  // ── GuruEOB5 Tables ──────────────────────────────────────────────────────────
+  // Kolom tambahan di tabel gurus untuk EOB5 role management
+  await pool.query(`ALTER TABLE gurus ADD COLUMN IF NOT EXISTS jabatan text[] NOT NULL DEFAULT '{}'`)
+  await pool.query(`ALTER TABLE gurus ADD COLUMN IF NOT EXISTS wali_kelas_kelas text`)
+
+  // Tabel absensi harian siswa
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_absensi (
+      id          SERIAL PRIMARY KEY,
+      student_id  text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id     text NOT NULL REFERENCES gurus(id),
+      tanggal     DATE NOT NULL,
+      status      varchar(20) NOT NULL DEFAULT 'hadir',
+      keterangan  text,
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE (student_id, tanggal)
+    )
+  `)
+
+  // Tabel mapping guru ke kelas + mata pelajaran
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_kelas_guru (
+      id             SERIAL PRIMARY KEY,
+      guru_id        text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      kelas          varchar(50) NOT NULL,
+      mata_pelajaran varchar(100),
+      tahun_ajaran   varchar(20),
+      UNIQUE (guru_id, kelas, mata_pelajaran)
+    )
+  `)
+
+  // Tabel nilai siswa EOB5 (Kurikulum Merdeka: formatif, sumatif_lm, sumatif_akhir)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_nilai (
+      id             SERIAL PRIMARY KEY,
+      student_id     text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id        text REFERENCES gurus(id),
+      mata_pelajaran varchar(100),
+      jenis          varchar(30) NOT NULL DEFAULT 'formatif',
+      nilai          numeric(5,2),
+      keterangan     text,
+      tanggal        DATE NOT NULL DEFAULT CURRENT_DATE,
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  // Tabel poin perilaku siswa (positif/negatif)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS eob5_poin (
+      id          SERIAL PRIMARY KEY,
+      student_id  text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id     text REFERENCES gurus(id),
+      jenis       varchar(10) NOT NULL DEFAULT 'positif',
+      poin        integer NOT NULL DEFAULT 1,
+      keterangan  text,
+      tanggal     DATE NOT NULL DEFAULT CURRENT_DATE,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
   // ── BLP Harian Tables ────────────────────────────────────────────────────────
   // Tabel-tabel ini sudah ada di Neon (dipakai BLP app yang berjalan terpisah).
   // CREATE TABLE IF NOT EXISTS memastikan idempoten — tidak merusak data yang ada.
