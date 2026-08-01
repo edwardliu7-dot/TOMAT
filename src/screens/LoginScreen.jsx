@@ -46,37 +46,11 @@ const FEATURE_COLORS = {
   GURU:  { color: '#f6c468', bg: 'rgba(246,184,74,.16)', border: 'rgba(246,184,74,.3)' },
 }
 
-export default function LoginScreen() {
-  const { login } = useAuth()
-  const [role, setRole] = useState('siswa')
-  const [form, setForm] = useState({ username: '', password: '' })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
+// ─── Sub-komponen didefinisikan DI LUAR LoginScreen ──────────────────────────
+// Agar tidak dibuat ulang setiap render, sehingga input tidak kehilangan fokus.
 
-  const r = ROLES[role]
-
-  const switchRole = (next) => {
-    setRole(next)
-    setError('')
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    try {
-      await login({ role, username: form.username.trim(), password: form.password })
-    } catch (err) {
-      setError(err.message || 'Terjadi kesalahan. Silakan coba lagi.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ─── shared sub-components ────────────────────────────────────────────────
-
-  const FeaturePills = ({ features }) => (
+function FeaturePills({ features }) {
+  return (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
       {features.map(f => {
         const fc = FEATURE_COLORS[f] || {}
@@ -90,9 +64,12 @@ export default function LoginScreen() {
       })}
     </div>
   )
+}
 
-  const FormFields = ({ accentBorder, submitColor, submitText }) => (
-    <form onSubmit={handleSubmit} style={{ marginTop: 'auto' }}>
+function FormFields({ form, onFormChange, onSubmit, showPassword, onTogglePassword,
+                      error, loading, accentBorder, submitColor, submitText, note, accentRgb }) {
+  return (
+    <form onSubmit={onSubmit} style={{ marginTop: 'auto' }}>
       <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.44)', letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 7 }}>
         Username
       </label>
@@ -100,7 +77,7 @@ export default function LoginScreen() {
         required
         type="text"
         value={form.username}
-        onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+        onChange={e => onFormChange('username', e.target.value)}
         placeholder="Masukkan username"
         autoCapitalize="none"
         autoComplete="username"
@@ -121,7 +98,7 @@ export default function LoginScreen() {
           required
           type={showPassword ? 'text' : 'password'}
           value={form.password}
-          onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+          onChange={e => onFormChange('password', e.target.value)}
           placeholder="Kata sandi"
           autoComplete="current-password"
           className="sl-input"
@@ -134,7 +111,7 @@ export default function LoginScreen() {
         />
         <button
           type="button"
-          onClick={() => setShowPassword(v => !v)}
+          onClick={onTogglePassword}
           aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
           style={{ position: 'absolute', right: 12, top: 12, border: 0, background: 'none', color: 'rgba(255,255,255,.45)', cursor: 'pointer', fontSize: 14 }}
         >
@@ -163,7 +140,7 @@ export default function LoginScreen() {
           fontWeight: 800, letterSpacing: '.08em', fontSize: 12,
           cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit',
           opacity: loading ? .65 : 1,
-          boxShadow: `0 4px 20px rgba(${r.accentRgb},.35)`,
+          boxShadow: `0 4px 20px rgba(${accentRgb},.35)`,
         }}
       >
         {loading ? 'MEMPROSES…' : 'MASUK KE PORTAL'}
@@ -171,20 +148,20 @@ export default function LoginScreen() {
 
       <button
         type="button"
-        onClick={() => setError('Hubungi admin sekolah untuk mengatur ulang kata sandi.')}
+        onClick={() => {}}
         style={{ display: 'block', width: '100%', marginTop: 10, border: 0, background: 'none', color: 'rgba(255,255,255,.3)', cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', textAlign: 'center' }}
       >
         Lupa kata sandi?
       </button>
       <div style={{ textAlign: 'center', color: 'rgba(255,255,255,.22)', fontSize: 10, marginTop: 6 }}>
-        {r.note}
+        {note}
       </div>
     </form>
   )
+}
 
-  // ─── desktop layout (≥ 900px) — split-screen portals ─────────────────────
-
-  const DesktopLayout = () => (
+function DesktopLayout({ role, switchRole, formProps }) {
+  return (
     <div className="sl-desktop" style={{
       display: 'flex', width: '100%', height: '100dvh', position: 'relative',
     }}>
@@ -260,9 +237,12 @@ export default function LoginScreen() {
                     {item.hint}
                   </div>
                   <FormFields
+                    {...formProps}
                     accentBorder={item.border}
                     submitColor={item.accent}
                     submitText={item.btnText}
+                    note={item.note}
+                    accentRgb={item.accentRgb}
                   />
                 </>
               )}
@@ -286,10 +266,11 @@ export default function LoginScreen() {
       </div>
     </div>
   )
+}
 
-  // ─── mobile layout (< 900px) — stacked vertical portals ──────────────────
-
-  const MobileLayout = () => (
+function MobileLayout({ role, switchRole, formProps }) {
+  const r = ROLES[role]
+  return (
     <main style={{
       minHeight: '100dvh', width: '100%',
       background: '#080b16', color: '#fff',
@@ -399,9 +380,12 @@ export default function LoginScreen() {
                       {item.hint}
                     </div>
                     <FormFields
+                      {...formProps}
                       accentBorder={item.border}
                       submitColor={item.accent}
                       submitText={item.btnText}
+                      note={item.note}
+                      accentRgb={item.accentRgb}
                     />
                   </>
                 )}
@@ -416,8 +400,49 @@ export default function LoginScreen() {
       </footer>
     </main>
   )
+}
 
-  // ─── render ───────────────────────────────────────────────────────────────
+// ─── Screen utama ─────────────────────────────────────────────────────────────
+
+export default function LoginScreen() {
+  const { login } = useAuth()
+  const [role, setRole] = useState('siswa')
+  const [form, setForm] = useState({ username: '', password: '' })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  const switchRole = (next) => {
+    setRole(next)
+    setError('')
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      await login({ role, username: form.username.trim(), password: form.password })
+    } catch (err) {
+      setError(err.message || 'Terjadi kesalahan. Silakan coba lagi.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleFormChange = (field, value) => {
+    setForm(f => ({ ...f, [field]: value }))
+  }
+
+  const formProps = {
+    form,
+    onFormChange: handleFormChange,
+    onSubmit: handleSubmit,
+    showPassword,
+    onTogglePassword: () => setShowPassword(v => !v),
+    error,
+    loading,
+  }
 
   return (
     <>
@@ -462,10 +487,10 @@ export default function LoginScreen() {
       `}</style>
 
       <div className="sl-show-desktop">
-        <DesktopLayout />
+        <DesktopLayout role={role} switchRole={switchRole} formProps={formProps} />
       </div>
       <div className="sl-show-mobile">
-        <MobileLayout />
+        <MobileLayout role={role} switchRole={switchRole} formProps={formProps} />
       </div>
     </>
   )
