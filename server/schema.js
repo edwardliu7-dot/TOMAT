@@ -566,4 +566,56 @@ export async function ensureSchema() {
       [id, nama, deskripsi, icon, color, sortOrder]
     )
   }
+
+  // ── BLP Harian Tables ────────────────────────────────────────────────────────
+  // Tabel-tabel ini sudah ada di Neon (dipakai BLP app yang berjalan terpisah).
+  // CREATE TABLE IF NOT EXISTS memastikan idempoten — tidak merusak data yang ada.
+
+  // Kolom tambahan di tabel shared students (BLP-specific fields)
+  await pool.query(`
+    ALTER TABLE students ADD COLUMN IF NOT EXISTS jenis_kelamin text
+      CHECK (jenis_kelamin IN ('L', 'P'))
+  `)
+  await pool.query(`
+    ALTER TABLE students ADD COLUMN IF NOT EXISTS quran_bookmark jsonb
+  `)
+
+  // Checklist harian BLP per siswa per tanggal
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS daily_records (
+      student_id          text        NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      record_date         date        NOT NULL,
+      completed_activities text[]     NOT NULL DEFAULT '{}',
+      score               integer,
+      submissions         jsonb       NOT NULL DEFAULT '{}',
+      updated_at          timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY (student_id, record_date)
+    )
+  `)
+
+  // Rentang hari aktif BLP per kelas per bulan (diatur guru wali kelas)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS blp_periods (
+      kelas      text        NOT NULL,
+      year       integer     NOT NULL,
+      month      integer     NOT NULL,
+      start_day  integer     NOT NULL,
+      end_day    integer     NOT NULL,
+      updated_by text,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY (kelas, year, month)
+    )
+  `)
+
+  // Pelacakan periode haid untuk siswa perempuan
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS haid_periods (
+      id         serial      PRIMARY KEY,
+      student_id text        NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      start_date date        NOT NULL,
+      end_date   date,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )
+  `)
 }

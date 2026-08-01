@@ -16,6 +16,14 @@ import komunikasiRouter from './komunikasi.js'
 import notifikasiRouter from './notifikasi.js'
 import petRouter from './pet.js'
 import eventMissionsRouter from './event-missions-router.js'
+// BLP Harian
+import blpDashboardRouter from './blp/dashboard.js'
+import blpAktivitasRouter from './blp/aktivitas.js'
+import blpPeriodeRouter from './blp/periode.js'
+import blpQuranRouter from './blp/quran.js'
+import blpProfilRouter from './blp/profil.js'
+import blpHaidRouter from './blp/haid.js'
+import blpSiswaAdminRouter from './blp/siswa-admin.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
 import { setupMultiplayer } from './multiplayer.js'
@@ -120,6 +128,15 @@ async function createServer() {
   app.use('/api/komunikasi', komunikasiRouter)
   app.use('/api/notifikasi', notifikasiRouter)
   app.use('/api/siswa/pet', petRouter)
+
+  // ── BLP Harian ────────────────────────────────────────────────────────────
+  app.use('/api/blp', blpDashboardRouter)
+  app.use('/api/blp', blpAktivitasRouter)
+  app.use('/api/blp', blpPeriodeRouter)
+  app.use('/api/blp', blpQuranRouter)
+  app.use('/api/blp', blpProfilRouter)
+  app.use('/api/blp', blpHaidRouter)
+  app.use('/api/blp', blpSiswaAdminRouter)
 
   // Endpoint publik — cek versi APK, tidak perlu login
   // Auto-detect dari GitHub Releases: https://github.com/edwardliu7-dot/tomat
