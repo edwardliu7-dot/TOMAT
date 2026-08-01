@@ -474,11 +474,11 @@ const GAME_ROUTES = {
   ipa7b4t4: { name: 'Speed vs Velocity Pilot',      emoji: '✈️', Component: React.lazy(() => import('./minigames/Ipa7B4T4Game')) },
   ipa7b4t5: { name: "Newton's Law Arena",            emoji: '⚡', Component: React.lazy(() => import('./minigames/Ipa7B4T5Game')) },
   // IPA Kelas 8 — BAB 1
-  ipa8b1t1: { name: 'History Timeline Puzzle',      emoji: '🕰️', Component: IpaGamePlaceholder },
-  ipa8b1t2: { name: 'Microscope Selector',          emoji: '🔭', Component: IpaGamePlaceholder },
-  ipa8b1t3: { name: 'Cell Organelle Sorter',        emoji: '🧫', Component: IpaGamePlaceholder },
-  ipa8b1t4: { name: 'Specialized Cell Match',       emoji: '🔬', Component: IpaGamePlaceholder },
-  ipa8b1t5: { name: 'Stem Cell Regenerator',        emoji: '🌱', Component: IpaGamePlaceholder },
+  ipa8b1t1: { name: 'History Timeline Puzzle',      emoji: '🕰️', Component: React.lazy(() => import('./minigames/Ipa8B1T1Game')) },
+  ipa8b1t2: { name: 'Microscope Selector',          emoji: '🔭', Component: React.lazy(() => import('./minigames/Ipa8B1T2Game')) },
+  ipa8b1t3: { name: 'Cell Organelle Sorter',        emoji: '🧫', Component: React.lazy(() => import('./minigames/Ipa8B1T3Game')) },
+  ipa8b1t4: { name: 'Specialized Cell Match',       emoji: '🔬', Component: React.lazy(() => import('./minigames/Ipa8B1T4Game')) },
+  ipa8b1t5: { name: 'Stem Cell Regenerator',        emoji: '🌱', Component: React.lazy(() => import('./minigames/Ipa8B1T5Game')) },
   // IPA Kelas 8 — BAB 2
   ipa8b2t1: { name: 'Nutritional Plate Balance',    emoji: '🥗', Component: IpaGamePlaceholder },
   ipa8b2t2: { name: 'Virtual Food Reagent Test',    emoji: '🧪', Component: IpaGamePlaceholder },
