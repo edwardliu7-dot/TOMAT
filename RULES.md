@@ -404,4 +404,29 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
+---
+
+## 17. Modul BLP Harian
+
+- Backend routes: `server/blp/*.js` — prefix `/api/blp/*`
+- Frontend screens: `src/screens/blp/`
+- Komponen UI: `src/components/blp/`
+- Entry point layar: `BlpHomeScreen.jsx`
+- Auth: pakai session TOMAT yang ada — tidak ada login terpisah
+- Teks: semua Bahasa Indonesia
+- Styling: inline styles (BUKAN Tailwind)
+
+## 18. Modul GuruEOB5
+
+- Backend routes: `server/eob5/*.js` — prefix `/api/eob5/*`
+- Frontend screens: `src/screens/eob5/`
+- Komponen UI: `src/components/eob5/`
+- Entry point layar: `Eob5DashboardScreen.jsx`
+- Auth: pakai session TOMAT yang ada — tidak ada login terpisah
+- Teks: semua Bahasa Indonesia
+- Styling: inline styles (BUKAN Tailwind/ShadCN)
+- Drizzle schema → dikonversi ke `ensureSchema()` di `server/schema.js`
+
+---
+
 *Terakhir diperbarui: 1 Agustus 2026. Update file ini setiap kali ada perubahan arsitektur signifikan.*
