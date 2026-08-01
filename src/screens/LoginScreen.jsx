@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../AuthContext'
 import logo from '../assets/logo.png'
+import { APP_VERSION } from '../version'
 
 const ROLE_META = {
   siswa: {
@@ -66,7 +67,7 @@ export default function LoginScreen() {
           <h1>TOMAT</h1>
           <p className="tomat-login__tagline">Tantangan Otak Mendidik Anak TISA</p>
           <p className="tomat-login__description">
-            Platform gamifikasi matematika SMP yang membuat belajar jadi petualangan seru.
+            Platform gamifikasi edukasi yang membuat belajar jadi petualangan seru.
             <br />
             Kumpulkan koin, taklukkan boss, dan jadilah juara kelas! 🎮
           </p>
@@ -81,7 +82,7 @@ export default function LoginScreen() {
              </div>
             <h1>TOMAT</h1>
             <p>Tantangan Otak Mendidik Anak TISA</p>
-            <span>Platform belajar matematika SMP yang menyenangkan 🎮</span>
+            <span>Platform belajar yang menyenangkan 🎮</span>
           </div>
 
           <div className="tomat-login__heading">
@@ -161,7 +162,7 @@ export default function LoginScreen() {
               ? 'Akun siswa didaftarkan melalui aplikasi BLP.'
               : 'Akun guru dibuat oleh admin sekolah melalui BLP.'}
           </p>
-          <div className="tomat-login__version">v2.0 · SMP TISA Islamic School</div>
+          <div className="tomat-login__version">v{APP_VERSION} · SMP TISA Islamic School</div>
         </div>
       </section>
 

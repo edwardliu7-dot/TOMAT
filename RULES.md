@@ -8,8 +8,8 @@
 
 ## 1. Identitas Proyek
 
-- **Nama:** TOMAT — Tantangan Otak MATematika
-- **Deskripsi:** Game RPG edukasi berbasis web untuk pelajar Matematika SMP (Kelas 7–9).
+- **Nama:** TOMAT — Tantangan Otak Mendidik Anak TISA
+- **Deskripsi:** Game RPG edukasi berbasis web untuk pelajar SMP (Kelas 7–9), mencakup semua mata pelajaran.
 - **Stack:** React 18 + Vite (frontend), Express + Node.js + Socket.io (backend), PostgreSQL via Neon (database).
 - **Tidak menggunakan** library UI eksternal — semua styling adalah inline style / CSS vanilla.
 - **Semua teks in-game harus dalam Bahasa Indonesia.**
@@ -404,4 +404,4 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
-*Terakhir diperbarui: 31 Juli 2026. Update file ini setiap kali ada perubahan arsitektur signifikan.*
+*Terakhir diperbarui: 1 Agustus 2026. Update file ini setiap kali ada perubahan arsitektur signifikan.*

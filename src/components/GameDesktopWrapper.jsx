@@ -221,7 +221,7 @@ export default function GameDesktopWrapper({ children, gameTitle, gameEmoji, onE
           <p style={{ margin: '8px 0 0', color: '#58718A', fontSize: 11, lineHeight: 1.5 }}>
              {activeSession?.task
                ? `${activeSession.task.kelas || 'Kelas'} · ${activeSession.task.type || 'Tugas'}`
-              : 'Tantangan matematika TOMAT'}
+              : 'Tantangan TOMAT'}
           </p>
         </div>
 

@@ -260,7 +260,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
               <h2>
                 {nextTask
                   ? nextTask.gameName || nextTask.gameKey
-                  : zones.find(zone => !zone.locked)?.title || 'Mulai petualangan matematikamu'}
+                  : zones.find(zone => !zone.locked)?.title || 'Mulai petualanganmu'}
               </h2>
               <p>
                 {nextTask
