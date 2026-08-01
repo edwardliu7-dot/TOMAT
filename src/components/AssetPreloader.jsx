@@ -88,7 +88,7 @@ function LoadingScreen({ pct }) {
       <div style={{
         fontSize: 11, fontWeight: 700, letterSpacing: 4,
         color: '#6366F1', textTransform: 'uppercase', marginBottom: 40,
-      }}>TANTANGAN OTAK MATEMATIKA</div>
+      }}>PLATFORM PEMBELAJARAN TISA</div>
 
       {/* Progress bar container */}
       <div style={{ width: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
