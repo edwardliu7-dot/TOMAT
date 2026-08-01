@@ -1,8 +1,0 @@
-uploads = []
-generated = []
-
-[[outputs]]
-id = "xv61yQXv-SpWdiVajplTF"
-uri = "file://manual-book/index.html"
-type = "unspecified"
-title = "Manual Book Aplikasi Guru"
