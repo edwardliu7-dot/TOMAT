@@ -21,7 +21,7 @@ async function getPlugin() {
   if (!window.Capacitor) return null
   if (_plugin) return _plugin
   try {
-    const mod = await import('@capacitor/local-notifications')
+    const mod = await import(/* @vite-ignore */ '@capacitor/local-notifications')
     _plugin = mod.LocalNotifications
     return _plugin
   } catch {
