@@ -77,6 +77,7 @@ import Eob5KurikulumScreen from './screens/eob5/Eob5KurikulumScreen'
 import Eob5AdministrasiScreen from './screens/eob5/Eob5AdministrasiScreen'
 import Eob5FeedbackScreen from './screens/eob5/Eob5FeedbackScreen'
 import Eob5PengaturanScreen from './screens/eob5/Eob5PengaturanScreen'
+import Eob5Layout from './components/eob5/Eob5Layout'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
@@ -1383,14 +1384,24 @@ export default function App() {
       return <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
     }
 
+    const isEob5Screen = currentGuruScreen?.startsWith('eob5-')
+
     return (
       <BlpDataProvider>
         <AppShell user={user} navigate={guruNavigate} currentScreen={currentGuruScreen} onLogout={logout} onSwitchModule={handleSwitchGuruModule}>
-          <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
-            <ErrorBoundary onReset={guruGoBack}>
-              {renderGuruScreen()}
-            </ErrorBoundary>
-          </div>
+          {isEob5Screen ? (
+            <Eob5Layout navigate={guruNavigate} currentScreen={currentGuruScreen}>
+              <ErrorBoundary onReset={guruGoBack}>
+                {renderGuruScreen()}
+              </ErrorBoundary>
+            </Eob5Layout>
+          ) : (
+            <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+              <ErrorBoundary onReset={guruGoBack}>
+                {renderGuruScreen()}
+              </ErrorBoundary>
+            </div>
+          )}
         </AppShell>
       </BlpDataProvider>
     )

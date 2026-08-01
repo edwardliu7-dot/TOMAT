@@ -424,12 +424,86 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 - Backend routes: `server/eob5/*.js` — prefix `/api/eob5/*`
 - Frontend screens: `src/screens/eob5/`
-- Komponen UI: `src/components/eob5/`
+- Komponen UI: `src/components/eob5/` (Eob5Sidebar, Eob5Layout)
 - Entry point layar: `Eob5DashboardScreen.jsx`
 - Auth: pakai session TOMAT yang ada — tidak ada login terpisah
 - Teks: semua Bahasa Indonesia
 - Styling: inline styles (BUKAN Tailwind/ShadCN)
-- Drizzle schema → dikonversi ke `ensureSchema()` di `server/schema.js`
+- Schema: semua tabel `eob5_*` di `server/schema.js` dengan `CREATE TABLE IF NOT EXISTS`
+- Layout: semua screen `eob5-*` dibungkus `Eob5Layout` di App.jsx → menampilkan `Eob5Sidebar` (desktop inline, mobile drawer via tombol ☰)
+
+### Daftar Lengkap Screen & Route
+
+#### Grup Utama
+| Route key | Screen file | Deskripsi |
+|-----------|-------------|-----------|
+| `eob5-dashboard` | `Eob5DashboardScreen.jsx` | Dashboard utama & statistik |
+| `eob5-absensi` | `Eob5AbsensiScreen.jsx` | Input & rekap kehadiran siswa |
+| `eob5-nilai` | `Eob5NilaiScreen.jsx` | Nilai Kurikulum Merdeka |
+| `eob5-jurnal` | `Eob5JurnalScreen.jsx` | Jurnal mengajar harian |
+| `eob5-jadwal` | `Eob5JadwalScreen.jsx` | Jadwal pelajaran |
+| `eob5-prosem` | `Eob5ProsemScreen.jsx` | Program semester |
+| `eob5-materi` | `Eob5MateriScreen.jsx` | Generate Modul Ajar via Groq AI, history, ekspor .txt |
+| `eob5-soal-ai` | `Eob5SoalAiScreen.jsx` | Generate soal otomatis via Groq AI, history, preview |
+| `eob5-rekap` | `Eob5RekapScreen.jsx` | Rekap kelas & periode |
+| `eob5-inbox` | `Eob5InboxScreen.jsx` | Pesan masuk dari siswa |
+
+#### Grup Jabatan
+| Route key | Screen file | Deskripsi |
+|-----------|-------------|-----------|
+| `eob5-kepsek` | `Eob5KepsekScreen.jsx` | Progres kinerja guru (Kepala Sekolah) |
+| `eob5-kesiswaan` | `Eob5KesiswaanScreen.jsx` | Rekap kesiswaan |
+| `eob5-walikelas` | `Eob5WaliKelasScreen.jsx` | Rekap wali kelas |
+| `eob5-kurikulum` | `Eob5KurikulumScreen.jsx` | Supervisi kurikulum |
+
+#### Grup Admin
+| Route key | Screen file | Deskripsi |
+|-----------|-------------|-----------|
+| `eob5-siswa` | `Eob5ManajemenSiswaScreen.jsx` | Manajemen data siswa |
+| `eob5-detail-siswa` | `Eob5DetailSiswaScreen.jsx` | Detail siswa (sub-screen, trigger via event `eob5:lihat-siswa`) |
+| `eob5-poin` | `Eob5PoinScreen.jsx` | Rekap poin perilaku siswa |
+| `eob5-akun-siswa` | `Eob5AkunSiswaScreen.jsx` | Generate akun login siswa |
+| `eob5-direktori-guru` | `Eob5DirektoriGuruScreen.jsx` | Direktori semua guru |
+| `eob5-direktori-siswa` | `Eob5DirektoriSiswaScreen.jsx` | Direktori semua siswa |
+| `eob5-kalender` | `Eob5KalenderScreen.jsx` | Kalender akademik & pekan |
+| `eob5-info-pekanan` | `Eob5InfoPekananScreen.jsx` | Ringkasan mingguan & WA |
+| `eob5-administrasi` | `Eob5AdministrasiScreen.jsx` | Upload/browse dokumen administrasi & bahan ajar |
+| `eob5-feedback` | `Eob5FeedbackScreen.jsx` | Kotak masuk feedback dari guru |
+| `eob5-pengaturan` | `Eob5PengaturanScreen.jsx` | Pengaturan profil guru: nama, jabatan, foto, password |
+
+### API Routes GuruEOB5
+```
+/api/eob5/dashboard          → server/eob5/dashboard.js
+/api/eob5/guru               → server/eob5/guru.js
+/api/eob5/siswa              → server/eob5/siswa-akun.js
+/api/eob5/absensi            → server/eob5/absensi.js
+/api/eob5/kelas              → server/eob5/kelas.js
+/api/eob5/nilai              → server/eob5/nilai.js
+/api/eob5/materi             → server/eob5/materi.js
+/api/eob5/modul-ajar         → server/eob5/modul-ajar.js       (Groq AI)
+/api/eob5/soal-otomatis      → server/eob5/soal-otomatis.js    (Groq AI)
+/api/eob5/jadwal             → server/eob5/jadwal.js
+/api/eob5/prosem             → server/eob5/prosem.js
+/api/eob5/rekap              → server/eob5/rekap.js
+/api/eob5/inbox              → server/eob5/inbox.js
+/api/eob5/subjects           → server/eob5/subjects.js
+/api/eob5/journal            → server/eob5/journal.js
+/api/eob5/attendance         → server/eob5/attendance.js
+/api/eob5/grades             → server/eob5/grades.js
+/api/eob5/points             → server/eob5/points.js
+/api/eob5/tujuan-pembelajaran→ server/eob5/tujuan-pembelajaran.js
+/api/eob5/documents          → server/eob5/documents.js
+/api/eob5/bahan-ajar         → server/eob5/bahan-ajar.js
+/api/eob5/student-accounts   → server/eob5/student-accounts.js
+/api/eob5/teachers           → server/eob5/teachers.js
+/api/eob5/info-pekanan       → server/eob5/info-pekanan.js
+/api/eob5/feedback           → server/eob5/feedback.js
+/api/eob5/kepsek             → server/eob5/kepsek.js
+/api/eob5/kesiswaan          → server/eob5/kesiswaan.js
+/api/eob5/walikelas          → server/eob5/walikelas.js
+/api/eob5/kurikulum          → server/eob5/kurikulum.js
+/api/eob5/                   → server/eob5/academic-calendars.js (/academic-calendars, /academic-weeks)
+```
 
 ---
 
@@ -445,4 +519,4 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
-*Terakhir diperbarui: 1 Agustus 2026 — Rebrand platform dari TOMAT → SMARTISA. Update file ini setiap kali ada perubahan arsitektur signifikan.*
+*Terakhir diperbarui: 1 Agustus 2026 — Rebrand platform dari TOMAT → SMARTISA; integrasi akhir modul GuruEOB5 (25 screen, Eob5Sidebar, Eob5Layout). Update file ini setiap kali ada perubahan arsitektur signifikan.*

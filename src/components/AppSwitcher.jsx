@@ -1,5 +1,24 @@
 import { useAuth } from '../AuthContext'
 
+// Active highlight colors per module tab
+const TAB_COLORS = {
+  tomat: {
+    bg:     'rgba(99,102,241,0.35)',
+    border: 'rgba(99,102,241,0.5)',
+    text:   '#c4b5fd',
+  },
+  blp: {
+    bg:     'rgba(16,185,129,0.28)',
+    border: 'rgba(16,185,129,0.55)',
+    text:   '#6ee7b7',
+  },
+  eob5: {
+    bg:     'rgba(245,158,11,0.28)',
+    border: 'rgba(245,158,11,0.55)',
+    text:   '#fcd34d',
+  },
+}
+
 const TABS = {
   guru: [
     { key: 'tomat', label: 'TOMAT',   emoji: '🍅', homeScreen: 'guruDashboard' },
@@ -25,16 +44,17 @@ export default function AppSwitcher({ activeModule, onSwitch }) {
     }}>
       {tabs.map(tab => {
         const isActive = activeModule === tab.key
+        const colors = TAB_COLORS[tab.key] || TAB_COLORS.tomat
         return (
           <button
             key={tab.key}
             onClick={() => onSwitch(tab)}
             style={{
-              background: isActive ? 'rgba(99,102,241,0.35)' : 'transparent',
-              border: isActive ? '1px solid rgba(99,102,241,0.5)' : '1px solid transparent',
+              background: isActive ? colors.bg : 'transparent',
+              border: isActive ? `1px solid ${colors.border}` : '1px solid transparent',
               borderRadius: 8,
               padding: '5px 10px',
-              color: isActive ? '#c4b5fd' : 'rgba(255,255,255,0.5)',
+              color: isActive ? colors.text : 'rgba(255,255,255,0.5)',
               fontSize: 12,
               fontWeight: isActive ? 800 : 500,
               cursor: 'pointer',
