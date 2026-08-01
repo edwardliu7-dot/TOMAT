@@ -39,6 +39,11 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
     onSwitchModule?.(tab.homeScreen)
   }
 
+  // Warna aksen per modul untuk garis bawah header mobile
+  const moduleAccent = activeModule === 'blp' ? '#10b981'
+    : activeModule === 'eob5' ? '#f59e0b'
+    : '#6366f1'
+
   return (
     <>
       <style>{`
@@ -69,6 +74,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
         }
         @media (max-width: 900px) {
           .with-sidebar.with-nav { padding-bottom: 84px; }
+          .with-sidebar.with-module-header { padding-top: 46px; }
         }
       `}</style>
       <Sidebar
@@ -77,9 +83,28 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
         currentScreen={currentScreen}
         onLogout={onLogout}
       />
-      <div className={`with-sidebar${showNav ? ' with-nav' : ''}`}>
+      <div className={`with-sidebar${showNav ? ' with-nav' : ''}${!isDesktop && onSwitchModule ? ' with-module-header' : ''}`}>
         {children}
       </div>
+
+      {/* Mobile: fixed top header dengan App Switcher */}
+      {!isDesktop && user && onSwitchModule && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0,
+          zIndex: 300,
+          height: 46,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(7,19,33,0.97)',
+          borderBottom: `2px solid ${moduleAccent}44`,
+          backdropFilter: 'blur(16px)',
+          boxShadow: '0 1px 12px rgba(0,0,0,0.35)',
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)',
+        }}>
+          <AppSwitcher activeModule={activeModule} onSwitch={handleSwitch} />
+        </div>
+      )}
+
       {/* Mobile-only audio panel — desktop has it in the Sidebar */}
       {!isDesktop && (
         <div style={{
@@ -99,6 +124,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
           />
         </div>
       )}
+
       {showNav && (
         <nav className="appshell-bottom-nav">
           {[
@@ -117,11 +143,12 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
           })}
         </nav>
       )}
-      {/* App Switcher — ditampilkan sebagai floating bar di bawah, di atas bottom nav */}
-      {user && onSwitchModule && (
+
+      {/* Desktop: App Switcher tetap sebagai floating bar di bawah */}
+      {isDesktop && user && onSwitchModule && (
         <div style={{
           position: 'fixed',
-          bottom: showNav ? 88 : 14,
+          bottom: 14,
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 99,
