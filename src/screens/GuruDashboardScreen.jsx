@@ -2681,9 +2681,9 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   // This mirrors the siswa AppShell pattern and is immune to height arithmetic errors.
   const navBottom = 'calc(56px + max(18px, env(safe-area-inset-bottom)))'
   return (
-    <div style={{ background: '#0A0B14' }}>
+    <div style={{ position: 'fixed', inset: 0, background: '#0A0B14', zIndex: 0 }}>
       {/* Background blobs */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
         <div style={{ position: 'absolute', top: '-10%', right: '-15%', width: '60%', height: '45%', borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(100px)' }} />
         <div style={{ position: 'absolute', bottom: '20%', left: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(16,185,129,0.08)', filter: 'blur(100px)' }} />
       </div>
