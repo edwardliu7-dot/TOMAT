@@ -881,6 +881,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     replaceTop(pendingGame.key)
   }, [pendingGame, replaceTop])
 
+  const handleSwitchModule = useCallback((homeScreen) => {
+    setHistory([homeScreen])
+  }, [])
+
   // Called by TaskContext when a task session is fully completed
   const handleTaskComplete = useCallback((gradeRecord) => {
     setLastGrade(gradeRecord)
@@ -1074,7 +1078,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       <PetProvider>
         <TaskProvider onTaskComplete={handleTaskComplete}>
           <BabLockProvider>
-            <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
+            <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout} onSwitchModule={handleSwitchModule}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
               {/* Inject CSS that filters ONLY structural nav/chrome elements.
                   Seasonal override (tema_merahputih during Jul 15–Aug 31) takes
@@ -1238,11 +1242,15 @@ export default function App() {
     }
     const guruNavigate = (key) => {
       if (key === 'guruMengajar') { setGuruPracticeMode(true); return }
-      if (key.startsWith('eob5-')) {
+      if (key.startsWith('eob5-') || key.startsWith('blp-')) {
         setGuruHistory(h => [...h, key])
         return
       }
       window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
+    }
+
+    const handleSwitchGuruModule = (homeScreen) => {
+      setGuruHistory([homeScreen])
     }
 
     const renderGuruScreen = () => {
@@ -1279,12 +1287,24 @@ export default function App() {
       if (currentGuruScreen === 'eob5-inbox') {
         return <Eob5InboxScreen navigate={guruNavigate} goBack={guruGoBack} />
       }
+      if (currentGuruScreen === 'blp-home') {
+        return <BlpHomeScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'blp-guru-rekap') {
+        return <BlpGuruRekapScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'blp-guru-siswa-detail') {
+        return <BlpGuruSiswaDetailScreen navigate={guruNavigate} goBack={guruGoBack} studentId={eob5SiswaId} />
+      }
+      if (currentGuruScreen === 'blp-guru-periode') {
+        return <BlpGuruPeriodeScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
       // Default: main guru dashboard
       return <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
     }
 
     return (
-      <AppShell user={user} navigate={guruNavigate} currentScreen="guruDashboard" onLogout={logout}>
+      <AppShell user={user} navigate={guruNavigate} currentScreen={currentGuruScreen} onLogout={logout} onSwitchModule={handleSwitchGuruModule}>
         <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
           <ErrorBoundary onReset={guruGoBack}>
             {renderGuruScreen()}

@@ -1,7 +1,7 @@
 # Planning Penggabungan TOMAT + BLP Harian + GuruEOB5
 
 > Dibuat: 1 Agustus 2026  
-> Status: **Pilihan C dipilih — prompt siap di `docs/prompts-pilihan-c/`**
+> Status: **Pilihan C selesai — semua 3 app tergabung dalam satu codebase**
 
 ---
 
@@ -189,3 +189,19 @@ smp-tisa/
 ---
 
 *Dokumen ini bisa dijadikan brief untuk mulai mengerjakan kapan saja.*
+
+---
+
+## Catatan Implementasi Pilihan C
+
+| Komponen | Status | Catatan |
+|----------|--------|---------|
+| BLP Backend | ✅ `server/blp/` | prefix `/api/blp/*` |
+| BLP Frontend | ✅ `src/screens/blp/` | entry: `blp-home` |
+| EOB5 Backend Bag.1 | ✅ `server/eob5/` | absensi, guru, siswa, kelas |
+| EOB5 Backend Bag.2 | ✅ `server/eob5/` | nilai, jadwal, prosem, materi, soal AI |
+| EOB5 Frontend Bag.1 | ✅ `src/screens/eob5/` | dashboard, absensi, manajemen |
+| EOB5 Frontend Bag.2 | ✅ `src/screens/eob5/` | nilai, jadwal, prosem, materi, soal AI |
+| App Switcher | ✅ `src/components/AppSwitcher.jsx` | terintegrasi di AppShell |
+| Auth Terpadu | ✅ | satu login, session shared |
+| Soal AI | ✅ Groq (`GROQ_API_KEY`) | ganti Gemini |

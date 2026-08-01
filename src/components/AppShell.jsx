@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import Sidebar from './Sidebar'
 import { getGradeNumber } from '../kelasUtils'
 import AudioPanel from './AudioPanel'
+import AppSwitcher from './AppSwitcher'
 
 function useIsDesktop() {
   const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
@@ -21,14 +22,22 @@ const BOTTOM_NAV_SCREENS = new Set(['home', 'grade7', 'grade8', 'grade9', 'toko'
 /**
  * AppShell — wrapper yang menambahkan sidebar di kiri dan offset konten di kanan.
  * Di mobile juga menampilkan bottom navigation bar yang persisten di semua layar utama.
- * Props: { user, navigate, currentScreen, onLogout, children }
+ * Props: { user, navigate, currentScreen, onLogout, onSwitchModule, children }
  */
-export default function AppShell({ user, navigate, currentScreen, onLogout, children }) {
+export default function AppShell({ user, navigate, currentScreen, onLogout, onSwitchModule, children }) {
   const isDesktop = useIsDesktop()
   const gradeNum = getGradeNumber(user?.kelas)
   const zoneId = gradeNum ? `grade${gradeNum}` : 'grade7'
   const isZoneActive = currentScreen === 'grade7' || currentScreen === 'grade8' || currentScreen === 'grade9'
   const showNav = !isDesktop && BOTTOM_NAV_SCREENS.has(currentScreen)
+
+  const activeModule = currentScreen?.startsWith('blp-') ? 'blp'
+    : currentScreen?.startsWith('eob5-') ? 'eob5'
+    : 'tomat'
+
+  const handleSwitch = (tab) => {
+    onSwitchModule?.(tab.homeScreen)
+  }
 
   return (
     <>
@@ -107,6 +116,27 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, chil
             )
           })}
         </nav>
+      )}
+      {/* App Switcher — ditampilkan sebagai floating bar di bawah, di atas bottom nav */}
+      {user && onSwitchModule && (
+        <div style={{
+          position: 'fixed',
+          bottom: showNav ? 88 : 14,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 99,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          background: 'rgba(7,19,33,0.90)',
+          border: '1px solid rgba(99,102,241,0.25)',
+          borderRadius: 14,
+          padding: '4px 6px',
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+        }}>
+          <AppSwitcher activeModule={activeModule} onSwitch={handleSwitch} />
+        </div>
       )}
     </>
   )

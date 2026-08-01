@@ -429,4 +429,15 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
+## 19. App Switcher
+
+- Komponen: `src/components/AppSwitcher.jsx`
+- Ditampilkan di `AppShell` header untuk semua user yang sudah login
+- Siswa: tab TOMAT + BLP
+- Guru: tab TOMAT + BLP + EOB5
+- Switch module: `setHistory([homeScreen])` — reset history ke home screen modul yang dipilih
+- Palet warna per modul: TOMAT = biru-ungu, BLP = hijau, EOB5 = amber-oranye
+
+---
+
 *Terakhir diperbarui: 1 Agustus 2026. Update file ini setiap kali ada perubahan arsitektur signifikan.*
