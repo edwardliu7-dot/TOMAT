@@ -16,6 +16,7 @@ import CommunicationScreen from './CommunicationScreen'
 import {
   MessageNotificationBell, AppNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile, fetchPublicProfile, normalizeProfileTarget,
 } from '../components/shared'
+import { guruCacheGet, guruCacheSet } from '../guruCache'
 
 async function apiCall(path, options = {}) {
   const res = await fetch(path, {
@@ -27,6 +28,47 @@ async function apiCall(path, options = {}) {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(data.error || 'Terjadi kesalahan.')
   return data
+}
+
+// ── Web loading screen dengan persentase (hanya tampil di browser, bukan APK) ─
+function GuruDataLoadingScreen({ pct = 0 }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9000,
+      background: 'linear-gradient(160deg, #0a0b14 0%, #0e1a2e 60%, #0a0b14 100%)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '32px 24px', fontFamily: 'system-ui, sans-serif',
+    }}>
+      <div style={{
+        width: 72, height: 72, borderRadius: 18,
+        background: 'linear-gradient(135deg,#1e293b,#0f172a)',
+        border: '1px solid rgba(159,227,189,0.25)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 32, marginBottom: 28,
+        boxShadow: '0 0 32px rgba(159,227,189,0.12)',
+      }}>🏫</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginBottom: 6, letterSpacing: -0.3 }}>
+        Memuat Data Guru
+      </div>
+      <div style={{ fontSize: 13, color: '#64748B', marginBottom: 32 }}>
+        Menyiapkan dashboard Anda…
+      </div>
+      {/* Progress bar */}
+      <div style={{ width: '100%', maxWidth: 280, height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', borderRadius: 99,
+          background: 'linear-gradient(90deg,#9fe3bd,#67E8F9)',
+          width: `${Math.max(4, pct)}%`,
+          transition: 'width 0.4s ease',
+          boxShadow: '0 0 8px rgba(159,227,189,0.5)',
+        }} />
+      </div>
+      <div style={{ marginTop: 10, fontSize: 12, color: '#9fe3bd', fontWeight: 700 }}>
+        {Math.round(pct)}%
+      </div>
+    </div>
+  )
 }
 
 // ── Shared Style Constants ────────────────────────────────────────────────────
@@ -165,8 +207,8 @@ function EditTugasModal({ tugas, onClose, onSaved }) {
 
 // ── Tugas Tab ─────────────────────────────────────────────────────────────────
 function TugasTab({ kelasDiampu }) {
-  const [tugasList, setTugasList] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [tugasList, setTugasList] = useState(() => guruCacheGet('tugas') ?? [])
+  const [loading, setLoading] = useState(() => !guruCacheGet('tugas'))
   const [error, setError] = useState('')
   const initialKelas = kelasDiampu[0] || ''
   const initialGrade = kelasToGrade(initialKelas)
@@ -188,11 +230,12 @@ function TugasTab({ kelasDiampu }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.kelas])
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
+  const refresh = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true)
     try {
       const { tugas } = await apiCall('/api/guru/tugas')
       setTugasList(tugas)
+      guruCacheSet('tugas', tugas)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -200,7 +243,10 @@ function TugasTab({ kelasDiampu }) {
     }
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    const cached = guruCacheGet('tugas')
+    refresh(!cached) // show loading hanya jika tidak ada cache
+  }, [refresh])
 
   const submit = async (e) => {
     e.preventDefault()
@@ -472,12 +518,17 @@ function TugasTab({ kelasDiampu }) {
 
 // ── Nilai Tab ─────────────────────────────────────────────────────────────────
 function NilaiTab({ onProfileClick }) {
-  const [nilaiList, setNilaiList] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [nilaiList, setNilaiList] = useState(() => guruCacheGet('nilai') ?? [])
+  const [loading, setLoading] = useState(() => !guruCacheGet('nilai'))
   const [openKelas, setOpenKelas] = useState(new Set())
 
   useEffect(() => {
-    apiCall('/api/guru/nilai').then(({ nilai }) => setNilaiList(nilai)).finally(() => setLoading(false))
+    const cached = guruCacheGet('nilai')
+    if (!cached) setLoading(true)
+    apiCall('/api/guru/nilai').then(({ nilai }) => {
+      setNilaiList(nilai)
+      guruCacheSet('nilai', nilai)
+    }).finally(() => setLoading(false))
   }, [])
 
   if (loading) return <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
@@ -655,10 +706,15 @@ function NilaiTab({ onProfileClick }) {
 
 // ── Siswa Tab ─────────────────────────────────────────────────────────────────
 function SiswaTab({ onProfileClick }) {
-  const [students, setStudents] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [students, setStudents] = useState(() => guruCacheGet('students') ?? [])
+  const [loading, setLoading] = useState(() => !guruCacheGet('students'))
   useEffect(() => {
-    apiCall('/api/guru/students').then(({ students }) => setStudents(students)).finally(() => setLoading(false))
+    const cached = guruCacheGet('students')
+    if (!cached) setLoading(true)
+    apiCall('/api/guru/students').then(({ students }) => {
+      setStudents(students)
+      guruCacheSet('students', students)
+    }).finally(() => setLoading(false))
   }, [])
   if (loading) return <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
   if (students.length === 0) return <div style={{ color: '#374151', fontSize: 13 }}>Belum ada siswa terdaftar di kelas yang Anda ampu.</div>
@@ -791,11 +847,16 @@ function Sparkline({ values }) {
 
 // ── Insight Tab ───────────────────────────────────────────────────────────────
 function InsightTab({ onProfileClick }) {
-  const [students, setStudents] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [students, setStudents] = useState(() => guruCacheGet('insight') ?? [])
+  const [loading, setLoading] = useState(() => !guruCacheGet('insight'))
   const [error, setError] = useState('')
   useEffect(() => {
-    apiCall('/api/guru/insight').then(({ students }) => setStudents(students)).catch(err => setError(err.message)).finally(() => setLoading(false))
+    const cached = guruCacheGet('insight')
+    if (!cached) setLoading(true)
+    apiCall('/api/guru/insight').then(({ students }) => {
+      setStudents(students)
+      guruCacheSet('insight', students)
+    }).catch(err => setError(err.message)).finally(() => setLoading(false))
   }, [])
   if (loading) return <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
   if (error) return <div style={{ color: '#fca5a5', fontSize: 13 }}>{error}</div>
@@ -2238,18 +2299,24 @@ function useIsDesktop() {
 
 // ── Guru Home Overview Tab ────────────────────────────────────────────────────
 function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSelectTab, hideHeader = false }) {
-  const [tugas, setTugas]             = useState([])
-  const [homeStats, setHomeStats]     = useState(null)   // { studentsByClass, studentCount, nilaiCount, avgScore }
-  const [loading, setLoading]         = useState(true)
+  const [tugas, setTugas]             = useState(() => guruCacheGet('home_tugas') ?? [])
+  const [homeStats, setHomeStats]     = useState(() => guruCacheGet('home_stats') ?? null)
+  const hasCache                      = !!(guruCacheGet('home_tugas') && guruCacheGet('home_stats'))
+  const [loading, setLoading]         = useState(!hasCache)
+  const [loadPct, setLoadPct]         = useState(0)
   const [activeClass, setActiveClass] = useState('Semua kelas')
   const isDesktop = useIsDesktop()
+  const isNative  = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() === true
 
   useEffect(() => {
-    setLoading(true)
-    Promise.all([
-      apiCall('/api/guru/tugas').then(d => setTugas(d.tugas || [])),
-      apiCall('/api/guru/home-stats').then(d => setHomeStats(d)),
-    ]).catch(() => {}).finally(() => setLoading(false))
+    let done = 0
+    const onOne = () => { done++; setLoadPct(done * 50); if (done === 2) setLoading(false) }
+    apiCall('/api/guru/tugas')
+      .then(d => { const t = d.tugas || []; setTugas(t); guruCacheSet('home_tugas', t) })
+      .catch(() => {}).finally(onOne)
+    apiCall('/api/guru/home-stats')
+      .then(d => { setHomeStats(d); guruCacheSet('home_stats', d) })
+      .catch(() => {}).finally(onOne)
   }, [])
 
   const classes = ['Semua kelas', ...kelasDiampu]
@@ -2276,6 +2343,11 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
   const classColor = (kelas) => {
     const idx = kelasDiampu.indexOf(kelas)
     return ['#9fe3bd', '#d7c7ff', '#f5cf9c', '#a8d7ec'][idx % 4]
+  }
+
+  // Web browser: tampilkan loading screen dengan persentase (hanya saat tidak ada cache)
+  if (loading && !isNative) {
+    return <GuruDataLoadingScreen pct={loadPct} />
   }
 
   return (

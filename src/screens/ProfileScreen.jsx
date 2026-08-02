@@ -81,7 +81,8 @@ function PhotoCropModal({ imageSrc, onCancel, onConfirm }) {
 
 function ProfileHero({ user, photoPreview, onPickPhoto, onRemovePhoto }) {
   const { refreshMe } = useAuth()
-  const { pet } = usePet()
+  const petCtx = usePet()
+  const pet = petCtx?.pet ?? null
   const spandukId = user?.equippedSpanduk ?? user?.equipped_spanduk
   const spanduk   = spandukId ? SPANDUK_VISUALS[spandukId] : null
   const bingkaiId = user?.equippedBingkai ?? user?.equipped_bingkai
