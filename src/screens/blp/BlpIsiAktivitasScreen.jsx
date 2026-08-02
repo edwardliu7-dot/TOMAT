@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { TopBar } from '../../components/shared.jsx'
 import { useAuth } from '../../AuthContext.jsx'
-import { AKTIVITAS_LIST, isSedangHaid, hitungSkor } from './blpAktivitasData.js'
+import { BLP_CATEGORIES, isSedangHaid } from './blpAktivitasData.js'
+import { getEffectiveTotalActivities, getEffectiveCompletedCount } from './utils/blpScoring.js'
 
 function getJakartaToday() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -39,8 +40,13 @@ export default function BlpIsiAktivitasScreen({ goBack }) {
   }, [])
 
   const sedangHaid = student ? isSedangHaid(student.haidPeriods) : false
-  const activeActivities = AKTIVITAS_LIST.filter(a => !(sedangHaid && a.sholat))
-  const skor = hitungSkor(checked, sedangHaid)
+  const todayDate = new Date(today + 'T00:00:00')
+  const allActivities = BLP_CATEGORIES.flatMap(c => c.activities)
+  const effectiveTotal = getEffectiveTotalActivities(todayDate)
+  const effectiveDone  = checked.length > 0
+    ? getEffectiveCompletedCount(todayDate, checked, student?.haidPeriods || [])
+    : 0
+  const skor = effectiveTotal > 0 ? Math.round((effectiveDone / effectiveTotal) * 100) : 0
 
   function toggleCheck(id) {
     setChecked(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -119,8 +125,8 @@ export default function BlpIsiAktivitasScreen({ goBack }) {
 
         {/* Daftar aktivitas */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-          {AKTIVITAS_LIST.map(a => {
-            const disabled = sedangHaid && a.sholat
+          {allActivities.map(a => {
+            const disabled = false
             const isChecked = checked.includes(a.id)
             return (
               <button
@@ -197,7 +203,7 @@ export default function BlpIsiAktivitasScreen({ goBack }) {
               borderRadius: 8, transition: 'width 0.3s ease',
             }} />
           </div>
-          <span style={{ fontSize: 12, color: '#9ca3af', flexShrink: 0 }}>{checked.length}/{activeActivities.length} aktivitas</span>
+          <span style={{ fontSize: 12, color: '#9ca3af', flexShrink: 0 }}>{effectiveDone}/{effectiveTotal} aktivitas</span>
         </div>
         <button
           onClick={handleSimpan}

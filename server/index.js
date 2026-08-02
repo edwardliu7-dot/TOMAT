@@ -78,6 +78,56 @@ const ALLOWED_ORIGINS = [
   'http://localhost',
 ]
 
+// Purge konten submission yang sudah direview lebih dari 7 hari.
+// Konten dihapus tapi metadata (reviewedAt, type, expired: true) tetap ada.
+async function purgeExpiredSubmissions() {
+  try {
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+    const cutoff = new Date(Date.now() - SEVEN_DAYS_MS).toISOString()
+
+    const rows = await pool.query(
+      `SELECT student_id, record_date, submissions
+       FROM daily_records
+       WHERE submissions IS NOT NULL
+         AND submissions != '{}'::jsonb`
+    )
+
+    let purgedCount = 0
+    for (const row of rows.rows) {
+      const subs = row.submissions || {}
+      let changed = false
+
+      for (const [actId, sub] of Object.entries(subs)) {
+        if (
+          sub.reviewedAt &&
+          sub.reviewedAt < cutoff &&
+          !sub.expired &&
+          (sub.type === 'audio' || sub.type === 'text') &&
+          sub.content
+        ) {
+          subs[actId] = { ...sub, expired: true }
+          delete subs[actId].content
+          changed = true
+          purgedCount++
+        }
+      }
+
+      if (changed) {
+        await pool.query(
+          'UPDATE daily_records SET submissions = $3::jsonb WHERE student_id = $1 AND record_date = $2',
+          [row.student_id, row.record_date, JSON.stringify(subs)]
+        )
+      }
+    }
+
+    if (purgedCount > 0) {
+      console.log(`[purge] Expired ${purgedCount} submission content(s)`)
+    }
+  } catch (err) {
+    console.error('[purge] Error during submission purge:', err)
+  }
+}
+
 async function createServer() {
   const app = express()
 
@@ -245,6 +295,10 @@ async function createServer() {
   ensureSchema().catch((err) => {
     console.error('Failed to ensure database schema:', err)
   })
+
+  // Purge expired submission content once at startup, then every hour
+  purgeExpiredSubmissions()
+  setInterval(purgeExpiredSubmissions, 60 * 60 * 1000)
 }
 
 createServer()

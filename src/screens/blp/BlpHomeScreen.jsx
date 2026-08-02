@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react'
 import { TopBar } from '../../components/shared.jsx'
 import { useAuth } from '../../AuthContext.jsx'
-import { AKTIVITAS_LIST, isSedangHaid, hitungSkor, blpPeriodKey } from './blpAktivitasData.js'
+import { BLP_CATEGORIES, isSedangHaid, blpPeriodKey } from './blpAktivitasData.js'
+import { getEffectiveTotalActivities, getEffectiveCompletedCount } from './utils/blpScoring.js'
 import { useBlpData } from '../../contexts/BlpDataContext.jsx'
+
+function getSkorForRecord(record, dateStr, haidPeriods = []) {
+  const dateObj = new Date(dateStr + 'T00:00:00')
+  const total = getEffectiveTotalActivities(dateObj)
+  const done  = getEffectiveCompletedCount(dateObj, record.completedActivities || [], haidPeriods)
+  return total > 0 ? Math.round((done / total) * 100) : 0
+}
 
 function getJakartaToday() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -44,9 +52,14 @@ function SiswaHome({ navigate, student, blpPeriods }) {
   // Riwayat 5 hari terakhir
   const recentDays = Object.keys(student.records || {}).sort((a, b) => b.localeCompare(a)).slice(0, 5)
 
-  const activitiesDone = todayRecord?.completedActivities?.length ?? 0
-  const totalActivities = AKTIVITAS_LIST.filter(a => !(sedangHaid && a.sholat)).length
-  const todaySkor = todayRecord ? hitungSkor(todayRecord.completedActivities, sedangHaid) : null
+  const todayDate = new Date(today + 'T00:00:00')
+  const totalActivities = getEffectiveTotalActivities(todayDate)
+  const activitiesDone = todayRecord
+    ? getEffectiveCompletedCount(todayDate, todayRecord.completedActivities || [], student.haidPeriods || [])
+    : 0
+  const todaySkor = todayRecord
+    ? Math.round((activitiesDone / totalActivities) * 100)
+    : null
 
   return (
     <div style={{ padding: '16px 16px 80px' }}>
@@ -171,7 +184,7 @@ function SiswaHome({ navigate, student, blpPeriods }) {
           </div>
           {recentDays.map(dateStr => {
             const rec = student.records[dateStr]
-            const skor = hitungSkor(rec.completedActivities, false)
+            const skor = getSkorForRecord(rec, dateStr, student.haidPeriods || [])
             return (
               <div key={dateStr} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -238,7 +251,7 @@ function GuruHome({ navigate, students, blpPeriods, guru }) {
 
       {/* Tombol navigasi guru */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-        <button onClick={() => navigate('blp-guru-rekap')} style={{
+        <button onClick={() => navigate('blp-guru-daftar')} style={{
           background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
           borderRadius: 14, padding: '14px 10px', color: '#fff',
           fontFamily: 'inherit', cursor: 'pointer', textAlign: 'center',
@@ -246,7 +259,7 @@ function GuruHome({ navigate, students, blpPeriods, guru }) {
           <div style={{ fontSize: 22, marginBottom: 4 }}>📊</div>
           <div style={{ fontSize: 12, fontWeight: 700 }}>Rekap Kelas</div>
         </button>
-        <button onClick={() => navigate('blp-guru-periode')} style={{
+        <button onClick={() => navigate('blp-guru-daftar')} style={{
           background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
           borderRadius: 14, padding: '14px 10px', color: '#fff',
           fontFamily: 'inherit', cursor: 'pointer', textAlign: 'center',
@@ -294,7 +307,7 @@ function GuruHome({ navigate, students, blpPeriods, guru }) {
           </div>
           {sudahIsi.slice(0, 5).map(s => {
             const rec = s.records[today]
-            const skor = hitungSkor(rec.completedActivities, false)
+            const skor = getSkorForRecord(rec, today, s.haidPeriods || [])
             return (
               <div key={s.id} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',

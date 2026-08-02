@@ -67,8 +67,7 @@ router.get('/dashboard', requireBlpAuth, async (req, res) => {
         ? pool.query(
             `SELECT student_id, record_date, completed_activities, score, submissions
              FROM daily_records
-             WHERE student_id = ANY($1)
-               AND record_date >= (CURRENT_DATE - INTERVAL '2 months')`,
+             WHERE student_id = ANY($1)`,
             [classStudentIds]
           )
         : Promise.resolve(noRows),

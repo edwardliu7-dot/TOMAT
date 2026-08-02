@@ -47,10 +47,7 @@ import BlpIsiAktivitasScreen from './screens/blp/BlpIsiAktivitasScreen'
 import BlpRiwayatScreen from './screens/blp/BlpRiwayatScreen'
 import BlpQuranScreen from './screens/blp/BlpQuranScreen'
 import BlpHaidScreen from './screens/blp/BlpHaidScreen'
-import BlpGuruRekapScreen from './screens/blp/BlpGuruRekapScreen'
 import BlpGuruDashboardScreen from './screens/blp/BlpGuruDashboardScreen'
-import BlpGuruSiswaDetailScreen from './screens/blp/BlpGuruSiswaDetailScreen'
-import BlpGuruPeriodeScreen from './screens/blp/BlpGuruPeriodeScreen'
 import { BlpDataProvider } from './contexts/BlpDataContext'
 import Eob5DashboardScreen from './screens/eob5/Eob5DashboardScreen'
 import Eob5AbsensiScreen from './screens/eob5/Eob5AbsensiScreen'
@@ -585,9 +582,6 @@ const SCREEN_TITLES = {
   'blp-guru-daftar': 'BLP — Daftar Siswa',
   'blp-guru-rekap-nilai': 'BLP — Rekap Nilai',
   'blp-guru-haid': 'BLP — Haid Siswi',
-  'blp-guru-rekap': 'BLP — Daftar Siswa',
-  'blp-guru-siswa-detail': 'Detail Siswa BLP',
-  'blp-guru-periode': 'Atur Periode BLP',
   'eob5-dashboard': 'GURU — Dashboard',
   'eob5-absensi': 'GURU — Absensi',
   'eob5-siswa': 'GURU — Manajemen Siswa',
@@ -743,7 +737,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const current = history[history.length - 1]
 
   const [komunikasiTarget, setKomunikasiTarget]     = useState(null)
-  const [blpStudentId, setBlpStudentId]             = useState(null)
   const [duelState, setDuelState]                   = useState(null) // { code, myIndex, question, round, maxRounds, scores }
   const [tournamentMatchData, setTournamentMatchData] = useState(null)  // from tournament:your-match
   const [tournamentBanner,    setTournamentBanner]    = useState(null)  // show notification banner
@@ -778,9 +771,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       setPendingTaskId(options.taskId || null)
       setHistory(h => [...h, 'modeselect'])
     } else {
-      if (route === 'blp-guru-siswa-detail' && options.studentId) {
-        setBlpStudentId(options.studentId)
-      }
       setPendingTaskId(null)
       setHistory(h => [...h, route])
     }
@@ -1086,18 +1076,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       )
     }
 
-    if (current === 'blp-guru-rekap') {
-      return <BlpGuruDashboardScreen navigate={navigate} goBack={goBack} />
-    }
-
-    if (current === 'blp-guru-siswa-detail') {
-      return <BlpGuruSiswaDetailScreen navigate={navigate} goBack={goBack} studentId={blpStudentId} />
-    }
-
-    if (current === 'blp-guru-periode') {
-      return <BlpGuruPeriodeScreen navigate={navigate} goBack={goBack} />
-    }
-
     if (current === 'home') {
       return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} openPetShop={() => { setTokoInitialTab('pet_skin'); navigate('toko') }} openEventShop={() => { setTokoInitialTab('event'); navigate('toko') }} />
     }
@@ -1386,12 +1364,6 @@ export default function App() {
       }
       if (currentGuruScreen === 'blp-guru-haid') {
         return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} activeTab="haid" />
-      }
-      if (currentGuruScreen === 'blp-guru-siswa-detail') {
-        return <BlpGuruSiswaDetailScreen navigate={guruNavigate} goBack={guruGoBack} studentId={eob5SiswaId} />
-      }
-      if (currentGuruScreen === 'blp-guru-periode') {
-        return <BlpGuruPeriodeScreen navigate={guruNavigate} goBack={guruGoBack} />
       }
       // Default: main guru dashboard
       return <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
