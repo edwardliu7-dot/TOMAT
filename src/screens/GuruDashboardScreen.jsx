@@ -2237,10 +2237,9 @@ function useIsDesktop() {
 
 // ── Guru Home Overview Tab ────────────────────────────────────────────────────
 function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSelectTab, hideHeader = false }) {
-  const [tugas, setTugas]       = useState([])
-  const [students, setStudents] = useState([])
-  const [nilaiList, setNilai]   = useState([])
-  const [loading, setLoading]   = useState(true)
+  const [tugas, setTugas]             = useState([])
+  const [homeStats, setHomeStats]     = useState(null)   // { studentsByClass, studentCount, nilaiCount, avgScore }
+  const [loading, setLoading]         = useState(true)
   const [activeClass, setActiveClass] = useState('Semua kelas')
   const isDesktop = useIsDesktop()
 
@@ -2248,16 +2247,17 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
     setLoading(true)
     Promise.all([
       apiCall('/api/guru/tugas').then(d => setTugas(d.tugas || [])),
-      apiCall('/api/guru/students').then(d => setStudents(d.students || [])),
-      apiCall('/api/guru/nilai').then(d => setNilai(d.nilai || [])),
+      apiCall('/api/guru/home-stats').then(d => setHomeStats(d)),
     ]).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   const classes = ['Semua kelas', ...kelasDiampu]
   const filteredTugas = activeClass === 'Semua kelas' ? tugas : tugas.filter(t => t.kelas === activeClass)
   const activeTugas   = tugas.filter(t => t.status === 'active')
-  const avgScore      = nilaiList.length > 0
-    ? (nilaiList.reduce((s, n) => s + n.score, 0) / nilaiList.length).toFixed(1).replace('.', ',')
+  const studentCount  = homeStats?.studentCount ?? 0
+  const nilaiCount    = homeStats?.nilaiCount ?? 0
+  const avgScore      = nilaiCount > 0
+    ? String(homeStats.avgScore).replace('.', ',')
     : '—'
 
   const nama     = user?.name || 'Guru'
@@ -2266,10 +2266,10 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
   const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })
 
   const metrics = [
-    { label: 'Siswa',      value: students.length,          detail: `${kelasDiampu.length} kelas`,          icon: '👥', accent: '#9fe3bd',  bg: 'rgba(159,227,189,0.12)' },
-    { label: 'Tugas Aktif', value: activeTugas.length,      detail: 'berjalan',                              icon: '📋', accent: '#d7c7ff',  bg: 'rgba(215,199,255,0.12)' },
-    { label: 'Rata-rata',   value: avgScore,                 detail: nilaiList.length > 0 ? `${nilaiList.length} nilai` : 'Belum ada', icon: '🎓', accent: '#f5cf9c', bg: 'rgba(245,207,156,0.12)' },
-    { label: 'Kelas',       value: kelasDiampu.length,       detail: kelasDiampu[0] || '—',                  icon: '📅', accent: '#67E8F9',  bg: 'rgba(103,232,249,0.12)' },
+    { label: 'Siswa',      value: studentCount,             detail: `${kelasDiampu.length} kelas`,                              icon: '👥', accent: '#9fe3bd',  bg: 'rgba(159,227,189,0.12)' },
+    { label: 'Tugas Aktif', value: activeTugas.length,      detail: 'berjalan',                                                  icon: '📋', accent: '#d7c7ff',  bg: 'rgba(215,199,255,0.12)' },
+    { label: 'Rata-rata',   value: avgScore,                 detail: nilaiCount > 0 ? `${nilaiCount} nilai` : 'Belum ada',        icon: '🎓', accent: '#f5cf9c', bg: 'rgba(245,207,156,0.12)' },
+    { label: 'Kelas',       value: kelasDiampu.length,       detail: kelasDiampu[0] || '—',                                      icon: '📅', accent: '#67E8F9',  bg: 'rgba(103,232,249,0.12)' },
   ]
 
   const classColor = (kelas) => {
@@ -2290,7 +2290,7 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
           Selamat {greeting}, <span style={{ color: '#9fe3bd' }}>{nama.split(' ')[0]}.</span>
         </h1>
         <p style={{ fontSize: 12, color: '#64748B', marginTop: 6 }}>
-          {loading ? 'Memuat data kelas…' : `${kelasDiampu.length} kelas · ${activeTugas.length} tugas aktif · ${students.length} siswa`}
+          {loading ? 'Memuat data kelas…' : `${kelasDiampu.length} kelas · ${activeTugas.length} tugas aktif · ${studentCount} siswa`}
         </p>
       </div>
 
@@ -2401,7 +2401,7 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
             {kelasDiampu.map((kelas, idx) => {
               const colorPairs = [['#9fe3bd','rgba(159,227,189,0.1)'],['#d7c7ff','rgba(215,199,255,0.1)'],['#f5cf9c','rgba(245,207,156,0.1)'],['#67E8F9','rgba(103,232,249,0.1)']]
               const [accent, bg] = colorPairs[idx % 4]
-              const cnt = students.filter(s => s.kelas === kelas).length
+              const cnt = homeStats?.studentsByClass?.[kelas] ?? 0
               const aktif = activeTugas.filter(t => t.kelas === kelas).length
               return (
                 <button key={kelas} onClick={() => onSelectTab('siswa')} style={{

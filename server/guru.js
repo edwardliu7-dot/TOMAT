@@ -90,6 +90,44 @@ router.get('/students', async (req, res) => {
   }
 })
 
+// GET /api/guru/home-stats — lightweight aggregates for the dashboard home tab
+// Returns student counts per class + nilai count + average score (no raw rows)
+router.get('/home-stats', async (req, res) => {
+  try {
+    const kelasDiampu = await getMyKelasDiampu(req)
+    const guruId = req.session.user.id
+
+    const [studentsRes, nilaiRes] = await Promise.all([
+      kelasDiampu.length > 0
+        ? pool.query(
+            `select kelas, count(*)::int as cnt
+             from students where kelas = any($1)
+             group by kelas`,
+            [kelasDiampu]
+          )
+        : Promise.resolve({ rows: [] }),
+      pool.query(
+        `select count(*)::int as total_nilai,
+                coalesce(round(avg(n.score)::numeric, 1), 0)::float as avg_score
+         from nilai n
+         join tugas t on t.id = n.tugas_id
+         where t.guru_id = $1`,
+        [guruId]
+      ),
+    ])
+
+    const studentsByClass = {}
+    for (const row of studentsRes.rows) studentsByClass[row.kelas] = row.cnt
+    const studentCount = studentsRes.rows.reduce((s, r) => s + r.cnt, 0)
+    const { total_nilai: nilaiCount, avg_score: avgScore } = nilaiRes.rows[0]
+
+    res.json({ studentsByClass, studentCount, nilaiCount, avgScore })
+  } catch (err) {
+    console.error('guru/home-stats error', err)
+    res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  }
+})
+
 // GET /api/guru/tugas — tasks created by this teacher
 router.get('/tugas', async (req, res) => {
   try {
