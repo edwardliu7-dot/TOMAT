@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">TOMAT</string>
-    <string name="title_activity_main">TOMAT</string>
+    <string name="app_name">SMARTISA</string>
+    <string name="title_activity_main">SMARTISA</string>
     <string name="package_name">com.aistudio.tomat</string>
     <string name="custom_url_scheme">com.aistudio.tomat</string>
 </resources>
