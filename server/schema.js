@@ -791,7 +791,25 @@ export async function ensureSchema() {
       created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `)
-  await pool.query(`CREATE INDEX IF NOT EXISTS journal_guru_tanggal ON journal_entries (teacher_id, tanggal)`)
+  await pool.query(`
+    DO $$ BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='journal_entries' AND column_name='teacher_id'
+      ) THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname='journal_guru_tanggal') THEN
+          EXECUTE 'CREATE INDEX journal_guru_tanggal ON journal_entries (teacher_id, tanggal)';
+        END IF;
+      ELSIF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='journal_entries' AND column_name='guru_id'
+      ) THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname='journal_guru_tanggal') THEN
+          EXECUTE 'CREATE INDEX journal_guru_tanggal ON journal_entries (guru_id, tanggal)';
+        END IF;
+      END IF;
+    END $$
+  `)
 
   // Nilai siswa (formatif / sumatif_lm / sumatif_akhir)
   await pool.query(`
@@ -865,7 +883,26 @@ export async function ensureSchema() {
   `)
 
   // Kolom tambahan tujuan_pembelajaran untuk mendukung fitur baru
-  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS subject_id int REFERENCES subjects(id) ON DELETE SET NULL`)
+  // Gunakan DO block — di production subjects.id mungkin UUID, di dev SERIAL/integer
+  await pool.query(`
+    DO $$
+    DECLARE subj_type text;
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='tujuan_pembelajaran' AND column_name='subject_id'
+      ) THEN
+        SELECT data_type INTO subj_type
+          FROM information_schema.columns
+         WHERE table_name='subjects' AND column_name='id';
+        IF subj_type = 'uuid' THEN
+          EXECUTE 'ALTER TABLE tujuan_pembelajaran ADD COLUMN subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL';
+        ELSE
+          EXECUTE 'ALTER TABLE tujuan_pembelajaran ADD COLUMN subject_id INT REFERENCES subjects(id) ON DELETE SET NULL';
+        END IF;
+      END IF;
+    END $$
+  `)
   await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS calendar_id int`)
   await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS lingkup_materi INT`)
   await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS tp_number INT`)
@@ -973,7 +1010,26 @@ export async function ensureSchema() {
   await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS konten jsonb`)
 
   // prosem_items: tambah subject_id, kelas, urutan (tabel lama hanya punya week_id, kd, materi, jp, catatan)
-  await pool.query(`ALTER TABLE prosem_items ADD COLUMN IF NOT EXISTS subject_id int REFERENCES subjects(id) ON DELETE SET NULL`)
+  // Gunakan DO block — di production subjects.id mungkin UUID, di dev SERIAL/integer
+  await pool.query(`
+    DO $$
+    DECLARE subj_type text;
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='prosem_items' AND column_name='subject_id'
+      ) THEN
+        SELECT data_type INTO subj_type
+          FROM information_schema.columns
+         WHERE table_name='subjects' AND column_name='id';
+        IF subj_type = 'uuid' THEN
+          EXECUTE 'ALTER TABLE prosem_items ADD COLUMN subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL';
+        ELSE
+          EXECUTE 'ALTER TABLE prosem_items ADD COLUMN subject_id INT REFERENCES subjects(id) ON DELETE SET NULL';
+        END IF;
+      END IF;
+    END $$
+  `)
   await pool.query(`ALTER TABLE prosem_items ADD COLUMN IF NOT EXISTS kelas VARCHAR(50)`)
   await pool.query(`ALTER TABLE prosem_items ADD COLUMN IF NOT EXISTS urutan INT NOT NULL DEFAULT 0`)
 
