@@ -70,7 +70,7 @@ function LoadingScreen({ pct }) {
       {/* Logo */}
       <img
         src={assetLogo}
-        alt="TOMAT"
+        alt="SMARTISA"
         style={{
           width: 108, height: 108, borderRadius: 28,
           objectFit: 'cover', marginBottom: 24,
@@ -84,11 +84,11 @@ function LoadingScreen({ pct }) {
         fontSize: 36, fontWeight: 900, letterSpacing: 8,
         color: '#fff', textTransform: 'uppercase', marginBottom: 4,
         textShadow: '0 0 24px rgba(99,102,241,0.5)',
-      }}>TOMAT</div>
+      }}>SMARTISA</div>
       <div style={{
         fontSize: 11, fontWeight: 700, letterSpacing: 4,
         color: '#6366F1', textTransform: 'uppercase', marginBottom: 40,
-      }}>TANTANGAN OTAK MATEMATIKA</div>
+      }}>PLATFORM PEMBELAJARAN TISA</div>
 
       {/* Progress bar container */}
       <div style={{ width: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>

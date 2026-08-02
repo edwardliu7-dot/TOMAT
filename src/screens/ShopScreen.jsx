@@ -533,7 +533,7 @@ const DEFAULT_TEMA_ENTRY = {
     gradient:    'linear-gradient(135deg,#071321,#0d1b2e)',
     accent:      '#22d3ee',
     swatches:    ['#071321','#0d1b2e','#22d3ee','#818cf8'],
-    description: 'Tema bawaan TOMAT — biru galaksi & cyan.',
+    description: 'Tema bawaan SMARTISA — biru galaksi & cyan.',
     limited:     false,
   },
 }

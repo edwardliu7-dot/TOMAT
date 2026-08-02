@@ -1,7 +1,7 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
-RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
+RUN apk add --no-cache zip && corepack enable && corepack prepare pnpm@10.26.1 --activate
 
 COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
@@ -20,6 +20,7 @@ COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/bundles ./bundles
 COPY server ./server
 
 EXPOSE 5000

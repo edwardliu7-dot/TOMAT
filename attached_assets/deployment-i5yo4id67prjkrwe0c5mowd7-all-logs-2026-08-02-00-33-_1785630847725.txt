@@ -1,0 +1,359 @@
+2026-Aug-01 23:59:49.275157 Docker 29.6.1 with BuildKit and Buildx detected on deployment server (localhost).
+2026-Aug-01 23:59:49.295830 Starting deployment of edwardliu7-dot/TOMAT:main to localhost.
+2026-Aug-01 23:59:49.776996 Preparing container with helper image: docker.io/coollabsio/coolify-helper:1.0.14
+2026-Aug-01 23:59:50.049475 [DEBUG] [CMD]: docker stop --time=30 i5yo4id67prjkrwe0c5mowd7
+2026-Aug-01 23:59:50.049475 [DEBUG] Flag --time has been deprecated, use --timeout instead
+2026-Aug-01 23:59:50.057518 [DEBUG] Error response from daemon: No such container: i5yo4id67prjkrwe0c5mowd7
+2026-Aug-01 23:59:53.117167 [DEBUG] [CMD]: docker run -d --network 'coolify' --name i5yo4id67prjkrwe0c5mowd7  --rm -v /root/.docker/buildx:/root/.docker/buildx -v /var/run/docker.sock:/var/run/docker.sock docker.io/coollabsio/coolify-helper:1.0.14
+2026-Aug-01 23:59:53.117167 [DEBUG] 4582c22279718c56c1b84cf949bd0d25be091f34d17a8594dee3c5bec76e2850
+2026-Aug-01 23:59:57.557785 [DEBUG] [CMD]: docker exec i5yo4id67prjkrwe0c5mowd7 bash -c 'GIT_SSH_COMMAND="ssh -o ConnectTimeout=30 -p 22 -o Port=22 -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git ls-remote '\''https://x-access-token:<REDACTED>@github.com/edwardliu7-dot/TOMAT.git'\'' '\''refs/heads/main'\'''
+2026-Aug-01 23:59:57.557785 [DEBUG] 4b799254b901ac25a4ee3466f304cb9b2c532084	refs/heads/main
+2026-Aug-01 23:59:58.036915 ----------------------------------------
+2026-Aug-01 23:59:58.050068 Importing edwardliu7-dot/TOMAT:main (commit sha 4b799254b901ac25a4ee3466f304cb9b2c532084) to /artifacts/i5yo4id67prjkrwe0c5mowd7.
+2026-Aug-01 23:59:58.390005 [DEBUG] [CMD]: docker exec i5yo4id67prjkrwe0c5mowd7 bash -c 'git -c '\''url.https://x-access-token:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 clone --depth=1 --recurse-submodules --shallow-submodules -b '\''main'\'' '\''https:<REDACTED>@github.com/edwardliu7-dot/TOMAT.git'\'' '\''/artifacts/i5yo4id67prjkrwe0c5mowd7'\'' && cd '\''/artifacts/i5yo4id67prjkrwe0c5mowd7'\'' && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https://x-access-token:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 fetch --depth=1 origin '\''4b799254b901ac25a4ee3466f304cb9b2c532084'\'' && git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 -c advice.detachedHead=false checkout '\''4b799254b901ac25a4ee3466f304cb9b2c532084'\'' >/dev/null 2>&1 && cd '\''/artifacts/i5yo4id67prjkrwe0c5mowd7'\'' && if [ -f .gitmodules ]; then git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 submodule sync && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 submodule update --init --recursive --depth=1; fi && cd '\''/artifacts/i5yo4id67prjkrwe0c5mowd7'\'' && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 lfs pull'
+2026-Aug-01 23:<REDACTED>@10.26.1 --activate
+2026-Aug-02 00:00:34.733966 [DEBUG] 
+2026-Aug-02 00:00:34.733966 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Aug-02 00:00:34.733966 [DEBUG] RUN pnpm install --frozen-lockfile
+2026-Aug-02 00:00:34.733966 [DEBUG] 
+2026-Aug-02 00:00:34.733966 [DEBUG] COPY . .
+2026-Aug-02 00:00:34.733966 [DEBUG] RUN pnpm run build
+2026-Aug-02 00:00:34.733966 [DEBUG] 
+2026-Aug-02 00:00:34.733966 [DEBUG] # ── Runtime image ──────────────────────────────────────────────
+2026-Aug-02 00:00:34.733966 [DEBUG] FROM node:22-alpine
+2026-Aug-02 00:00:34.733966 [DEBUG] WORKDIR /app
+2026-Aug-02 00:00:34.733966 [DEBUG] ENV NODE_ENV=production
+2026-Aug-02 00:00:34.733966 [DEBUG] ENV NODE_OPTIONS=--dns-result-order=ipv4first
+2026-Aug-02 00:00:34.733966 [DEBUG] RUN apk add --no-cache curl && corepack enable && corepack prepare pnpm@10.26.1 --activate
+2026-Aug-02 00:00:34.733966 [DEBUG] 
+2026-Aug-02 00:00:34.733966 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Aug-02 00:00:34.733966 [DEBUG] RUN pnpm install --frozen-lockfile --prod
+2026-Aug-02 00:00:34.733966 [DEBUG] 
+2026-Aug-02 00:00:34.733966 [DEBUG] COPY --from=build /app/dist ./dist
+2026-Aug-02 00:00:34.733966 [DEBUG] COPY --from=build /app/bundles ./bundles
+2026-Aug-02 00:00:34.733966 [DEBUG] COPY server ./server
+2026-Aug-02 00:00:34.733966 [DEBUG] 
+2026-Aug-02 00:00:34.733966 [DEBUG] EXPOSE 5000
+2026-Aug-02 00:00:34.733966 [DEBUG] HEALTHCHECK --interval=30s --timeout=10s --start-period=15s \
+2026-Aug-02 00:00:34.733966 [DEBUG] CMD curl -f http://localhost:<REDACTED>@10.26.1 --activate
+2026-Aug-02 00:00:44.364652 [DEBUG] 
+2026-Aug-02 00:00:44.364652 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Aug-02 00:00:44.364652 [DEBUG] RUN pnpm install --frozen-lockfile
+2026-Aug-02 00:00:44.364652 [DEBUG] 
+2026-Aug-02 00:00:44.364652 [DEBUG] COPY . .
+2026-Aug-02 00:00:44.364652 [DEBUG] RUN pnpm run build
+2026-Aug-02 00:00:44.364652 [DEBUG] 
+2026-Aug-02 00:00:44.364652 [DEBUG] # ── Runtime image ──────────────────────────────────────────────
+2026-Aug-02 00:00:44.364652 [DEBUG] FROM node:22-alpine
+2026-Aug-02 00:00:44.364652 [DEBUG] WORKDIR /app
+2026-Aug-02 00:00:44.364652 [DEBUG] ENV NODE_ENV=production
+2026-Aug-02 00:00:44.364652 [DEBUG] ENV NODE_OPTIONS=--dns-result-order=ipv4first
+2026-Aug-02 00:00:44.364652 [DEBUG] RUN apk add --no-cache curl && corepack enable && corepack prepare pnpm@10.26.1 --activate
+2026-Aug-02 00:00:44.364652 [DEBUG] 
+2026-Aug-02 00:00:44.364652 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Aug-02 00:00:44.364652 [DEBUG] RUN pnpm install --frozen-lockfile --prod
+2026-Aug-02 00:00:44.364652 [DEBUG] 
+2026-Aug-02 00:00:44.364652 [DEBUG] COPY --from=build /app/dist ./dist
+2026-Aug-02 00:00:44.364652 [DEBUG] COPY --from=build /app/bundles ./bundles
+2026-Aug-02 00:00:44.364652 [DEBUG] COPY server ./server
+2026-Aug-02 00:00:44.364652 [DEBUG] 
+2026-Aug-02 00:00:44.364652 [DEBUG] EXPOSE 5000
+2026-Aug-02 00:00:44.364652 [DEBUG] HEALTHCHECK --interval=30s --timeout=10s --start-period=15s \
+2026-Aug-02 00:00:44.364652 [DEBUG] CMD curl -f http://localhost:<REDACTED>@157.10.161.229:5432/postgres
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG SESSION_SECRET=W0Gh0hI2Yt1O9yIcdyJiPo2tT+XjScHthg6xaRVcyWWhOJtqIjX8WAqOT9uBW5uTA1SvUf3t+GA5GcsbvRO/tw==
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG GROQ_API_KEY=<REDACTED>
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG VAPID_PUBLIC_KEY=BFXr6NMmDjxq1MKT2qDD47JX-Z7INcC_-2iZZ28TZ9VzYjporbP3bHVGLw-eda97nHpObBuiyUYUB3NGMhHEDss
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG APP_DOWNLOAD_URL=https://github.com/edwardliu7-dot/TOMAT/releases/download/v1.3.0/tomat.apk
+2026-Aug-02 00:<REDACTED>@10.26.1 --activate
+2026-Aug-02 00:00:46.205992 [DEBUG] 
+2026-Aug-02 00:00:46.205992 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Aug-02 00:00:46.205992 [DEBUG] RUN pnpm install --frozen-lockfile
+2026-Aug-02 00:00:46.205992 [DEBUG] 
+2026-Aug-02 00:00:46.205992 [DEBUG] COPY . .
+2026-Aug-02 00:00:46.205992 [DEBUG] RUN pnpm run build
+2026-Aug-02 00:00:46.205992 [DEBUG] 
+2026-Aug-02 00:00:46.205992 [DEBUG] # ── Runtime image ──────────────────────────────────────────────
+2026-Aug-02 00:00:46.205992 [DEBUG] FROM node:22-alpine
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG BASE_PATH=/
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG PORT=5000
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG NODE_ENV=production
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG NEON_DATABASE_URL=postgres://postgres:<REDACTED>@157.10.161.229:5432/postgres
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG SESSION_SECRET=W0Gh0hI2Yt1O9yIcdyJiPo2tT+XjScHthg6xaRVcyWWhOJtqIjX8WAqOT9uBW5uTA1SvUf3t+GA5GcsbvRO/tw==
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG GROQ_API_KEY=<REDACTED>
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG VAPID_PUBLIC_KEY=BFXr6NMmDjxq1MKT2qDD47JX-Z7INcC_-2iZZ28TZ9VzYjporbP3bHVGLw-eda97nHpObBuiyUYUB3NGMhHEDss
+2026-Aug-02 00:00:46.205992 [DEBUG] ARG APP_DOWNLOAD_URL=https://github.com/edwardliu7-dot/TOMAT/releases/download/v1.3.0/tomat.apk
+2026-Aug-02 00:<REDACTED>@10.26.1 --activate
+2026-Aug-02 00:00:46.205992 [DEBUG] 
+2026-Aug-02 00:00:46.205992 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Aug-02 00:00:46.205992 [DEBUG] RUN pnpm install --frozen-lockfile --prod
+2026-Aug-02 00:00:46.205992 [DEBUG] 
+2026-Aug-02 00:00:46.205992 [DEBUG] COPY --from=build /app/dist ./dist
+2026-Aug-02 00:00:46.205992 [DEBUG] COPY --from=build /app/bundles ./bundles
+2026-Aug-02 00:00:46.205992 [DEBUG] COPY server ./server
+2026-Aug-02 00:00:46.205992 [DEBUG] 
+2026-Aug-02 00:00:46.205992 [DEBUG] EXPOSE 5000
+2026-Aug-02 00:00:46.205992 [DEBUG] HEALTHCHECK --interval=30s --timeout=10s --start-period=15s \
+2026-Aug-02 00:00:46.205992 [DEBUG] CMD curl -f http://localhost:<REDACTED>@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+2026-Aug-02 00:01:12.896291 [DEBUG] #5 resolve docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 0.8s done
+2026-Aug-02 00:01:12.896291 [DEBUG] #5 DONE 0.9s
+2026-Aug-02 00:01:12.916055 [DEBUG] #6 [build 2/7] WORKDIR /app
+2026-Aug-02 00:01:12.916055 [DEBUG] #6 CACHED
+2026-Aug-02 00:01:12.916055 [DEBUG] 
+2026-Aug-02 00:01:12.916055 [DEBUG] #4 [internal] load build context
+2026-Aug-02 00:01:14.749928 [DEBUG] #4 transferring context: 48.65MB 1.8s done
+2026-Aug-02 00:01:15.278238 [DEBUG] #4 DONE 3.4s
+2026-Aug-02 00:01:15.335661 [DEBUG] #7 [build 3/7] RUN apk add --no-cache zip && corepack enable && corepack prepare pnpm@10.26.1 --activate
+2026-Aug-02 00:01:16.485193 [DEBUG] #7 3.626 (1/2) Installing unzip (6.0-r16)
+2026-Aug-02 00:01:18.875630 [DEBUG] #7 3.651 (2/2) Installing zip (3.0-r13)
+2026-Aug-02 00:01:18.875630 [DEBUG] #7 3.675 Executing busybox-1.37.0-r31.trigger
+2026-Aug-02 00:01:18.875630 [DEBUG] #7 3.684 OK: 11.4 MiB in 20 packages
+2026-Aug-02 00:01:18.875630 [DEBUG] #7 4.275 Preparing pnpm@10.26.1 for immediate activation...
+2026-Aug-02 00:01:26.492788 [DEBUG] #7 DONE 13.6s
+2026-Aug-02 00:01:26.691619 [DEBUG] #8 [build 4/7] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Aug-02 00:01:44.876002 [DEBUG] #8 DONE 18.2s
+2026-Aug-02 00:01:45.402424 [DEBUG] #9 [build 5/7] RUN pnpm install --frozen-lockfile
+2026-Aug-02 00:01:50.055638 [DEBUG] #9 4.654 Lockfile is up to date, resolution step is skipped
+2026-Aug-02 00:01:50.435047 [DEBUG] #9 4.872 Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-Aug-02 00:01:50.523019 [DEBUG] #9 4.970 Packages: +306
+2026-Aug-02 00:01:50.523019 [DEBUG] #9 4.970 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2026-Aug-02 00:01:51.156500 [DEBUG] #9 5.215
+2026-Aug-02 00:01:51.156500 [DEBUG] #9 5.215    ╭───────────────────────────────────────────────╮
+2026-Aug-02 00:01:51.156500 [DEBUG] #9 5.215    │                                               │
+2026-Aug-02 00:01:51.156500 [DEBUG] #9 5.215    │     Update available! 10.26.1 → 11.18.0.      │
+2026-Aug-02 00:01:51.156500 [DEBUG] #9 5.215    │     Changelog: https://pnpm.io/v/11.18.0      │
+2026-Aug-02 00:<REDACTED>@11.18.0   │
+2026-Aug-02 00:01:51.156500 [DEBUG] #9 5.215    │                                               │
+2026-Aug-02 00:01:51.156500 [DEBUG] #9 5.215    ╰───────────────────────────────────────────────╯
+2026-Aug-02 00:01:51.156500 [DEBUG] #9 5.215
+2026-Aug-02 00:01:51.281213 [DEBUG] #9 5.879 Progress: resolved 306, reused 0, downloaded 4, added 4
+2026-Aug-02 00:01:52.281559 [DEBUG] #9 6.880 Progress: resolved 306, reused 0, downloaded 38, added 37
+2026-Aug-02 00:01:53.282389 [DEBUG] #9 7.880 Progress: resolved 306, reused 0, downloaded 76, added 75
+2026-Aug-02 00:01:54.286827 [DEBUG] #9 8.881 Progress: resolved 306, reused 0, downloaded 95, added 93
+2026-Aug-02 00:01:55.349043 [DEBUG] #9 9.947 Progress: resolved 306, reused 0, downloaded 96, added 93
+2026-Aug-02 00:01:56.351223 [DEBUG] #9 10.95 Progress: resolved 306, reused 0, downloaded 144, added 143
+2026-Aug-02 00:01:57.430669 [DEBUG] #9 12.03 Progress: resolved 306, reused 0, downloaded 145, added 143
+2026-Aug-02 00:01:58.431613 [DEBUG] #9 13.03 Progress: resolved 306, reused 0, downloaded 180, added 180
+2026-Aug-02 00:01:59.440273 [DEBUG] #9 14.04 Progress: resolved 306, reused 0, downloaded 211, added 210
+2026-Aug-02 00:02:00.821709 [DEBUG] #9 15.04 Progress: resolved 306, reused 0, downloaded 245, added 242
+2026-Aug-02 00:02:01.462359 [DEBUG] #9 16.04 Progress: resolved 306, reused 0, downloaded 276, added 274
+2026-Aug-02 00:02:02.449849 [DEBUG] #9 17.05 Progress: resolved 306, reused 0, downloaded 301, added 300
+2026-Aug-02 00:02:02.669730 [DEBUG] #9 17.27 Progress: resolved 306, reused 0, downloaded 306, added 306, done
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 dependencies:
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + @capacitor/android 8.4.2
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + @capacitor/app 8.1.1
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + @capacitor/cli 8.4.2
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + @capacitor/core 8.4.2
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + @capacitor/local-notifications 8.2.1
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + @tailwindcss/vite 4.3.3
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + bcryptjs 3.0.3
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + clsx 2.1.1
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + connect-pg-simple 10.0.0
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + date-fns 4.4.0
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + express 5.2.1
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + express-session 1.19.0
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + groq-sdk 1.5.0
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + lucide-react 1.28.0
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + motion 12.43.0
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + pg 8.22.0
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + react 18.3.1
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + react-dom 18.3.1
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + react-easy-crop 6.2.2
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + socket.io 4.8.3
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + socket.io-client 4.8.3
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + tailwind-merge 3.6.0
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + tailwindcss 4.3.3
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + web-push 3.6.7
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + xlsx 0.18.5
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 devDependencies:
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + @vitejs/plugin-react 4.7.0
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88 + vite 5.4.21
+2026-Aug-02 00:02:09.280836 [DEBUG] #9 23.88
+2026-Aug-02 00:02:09.497961 [DEBUG] #9 23.92 ╭ Warning ─────────────────────────────────────────────────────────────────────╮
+2026-Aug-02 00:02:09.497961 [DEBUG] #9 23.92 │                                                                              │
+2026-Aug-02 00:02:09.497961 [DEBUG] #9 23.92 │   Ignored build scripts: esbuild@0.21.5.                                     │
+2026-Aug-02 00:02:09.497961 [DEBUG] #9 23.92 │   Run "pnpm approve-builds" to pick which dependencies should be allowed     │
+2026-Aug-02 00:02:09.497961 [DEBUG] #9 23.92 │   to run scripts.                                                            │
+2026-Aug-02 00:02:09.497961 [DEBUG] #9 23.92 │                                                                              │
+2026-Aug-02 00:02:09.497961 [DEBUG] #9 23.92 ╰──────────────────────────────────────────────────────────────────────────────╯
+2026-Aug-02 00:02:09.497961 [DEBUG] #9 23.94 Done in 20.4s using pnpm v10.26.1
+2026-Aug-02 00:02:24.342817 [DEBUG] #9 DONE 38.9s
+2026-Aug-02 00:02:24.505486 [DEBUG] 
+2026-Aug-02 00:02:25.464280 [DEBUG] #10 [build 6/7] COPY . .
+2026-Aug-02 00:02:35.992332 [DEBUG] #10 DONE 11.5s
+2026-Aug-02 00:02:36.214554 [DEBUG] #11 [build 7/7] RUN pnpm run build
+2026-Aug-02 00:02:37.871353 [DEBUG] #11 1.811
+2026-Aug-02 00:02:37.871353 [DEBUG] #11 1.811 > smartisa-web@1.0.0 build /app
+2026-Aug-02 00:02:37.871353 [DEBUG] #11 1.811 > vite build
+2026-Aug-02 00:02:37.871353 [DEBUG] #11 1.811
+2026-Aug-02 00:02:38.418817 [DEBUG] #11 2.357 vite v5.4.21 building for production...
+2026-Aug-02 00:02:38.623673 [DEBUG] #11 2.562 transforming...
+2026-Aug-02 00:02:51.701683 [DEBUG] #11 15.64 ✓ 278 modules transformed.
+2026-Aug-02 00:02:53.412312 [DEBUG] #11 17.05 rendering chunks...
+2026-Aug-02 00:02:54.802397 [DEBUG] #11 18.74 computing gzip size...
+2026-Aug-02 00:02:54.971607 [DEBUG] #11 18.91 dist/index.html                                            9.11 kB │ gzip:   2.99 kB
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 18.91 dist/assets/logo-BWtpOck5.png                            474.27 kB
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 18.91 dist/assets/capacitor-local-notifications-cBPOS7RI.js      0.05 kB │ gzip:   0.07 kB
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 18.91 dist/assets/web-NeFvwYbm.js                                0.91 kB │ gzip:   0.44 kB
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 18.92 dist/assets/index-DPzUGne6.js                              8.67 kB │ gzip:   3.59 kB
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 18.92 dist/assets/vendor-react-BMML5I2x.js                     168.00 kB │ gzip:  52.90 kB
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 18.92 dist/assets/games-DN_s7NEG.js                            541.23 kB │ gzip: 102.58 kB
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 18.92 dist/assets/index-B2wyJkQS.js                          1,510.48 kB │ gzip: 378.50 kB
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 18.92 ✓ built in 16.50s
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 18.92 [sw-version] BUILD_VERSION = f67e536e9f75
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 19.05
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 19.05 > smartisa-web@1.0.0 postbuild /app
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 19.05 > node scripts/postbuild.js
+2026-Aug-02 00:02:55.212069 [DEBUG] #11 19.05
+2026-Aug-02 00:02:56.427431 [DEBUG] #11 19.14 📦 Membuat bundle tomat-1.4.5.zip...
+2026-Aug-02 00:03:00.421794 [DEBUG] #11 21.91 ✅ Bundle selesai!
+2026-Aug-02 00:03:00.421794 [DEBUG] #11 21.91    File    : bundles/tomat-1.4.5.zip
+2026-Aug-02 00:03:00.421794 [DEBUG] #11 21.91    Versi   : 1.4.5
+2026-Aug-02 00:03:00.421794 [DEBUG] #11 21.91    Ukuran  : 35.36 MB (37079627 bytes)
+2026-Aug-02 00:03:00.421794 [DEBUG] #11 21.91    SHA256  : 6880e665e274f43ec10fca6a8deb3de55407e5a08a6342bcbc91ce99b223b616
+2026-Aug-02 00:03:00.421794 [DEBUG] #11 21.91    URL     : https://y4e6icv3cej4ax65idvhusde.157.10.161.229.sslip.io/bundles/tomat-1.4.5.zip
+2026-Aug-02 00:<REDACTED>@10.26.1 --activate
+2026-Aug-02 00:03:19.995732 [DEBUG] #14 4.398 (1/9) Installing brotli-libs (1.2.0-r1)
+2026-Aug-02 00:03:20.506310 [DEBUG] #14 4.427 (2/9) Installing c-ares (1.34.8-r0)
+2026-Aug-02 00:03:20.506310 [DEBUG] #14 4.446 (3/9) Installing libunistring (1.4.2-r0)
+2026-Aug-02 00:03:20.506310 [DEBUG] #14 4.481 (4/9) Installing libidn2 (2.3.8-r0)
+2026-Aug-02 00:03:20.506310 [DEBUG] #14 4.503 (5/9) Installing nghttp2-libs (1.69.0-r0)
+2026-Aug-02 00:03:20.506310 [DEBUG] #14 4.521 (6/9) Installing libpsl (0.21.5-r3)
+2026-Aug-02 00:03:20.506310 [DEBUG] #14 4.538 (7/9) Installing zstd-libs (1.5.7-r2)
+2026-Aug-02 00:03:20.506310 [DEBUG] #14 4.570 (8/9) Installing libcurl (8.21.0-r0)
+2026-Aug-02 00:03:20.506310 [DEBUG] #14 4.596 (9/9) Installing curl (8.21.0-r0)
+2026-Aug-02 00:03:20.506310 [DEBUG] #14 4.617 Executing busybox-1.37.0-r31.trigger
+2026-Aug-02 00:03:20.506310 [DEBUG] #14 4.627 OK: 15.9 MiB in 27 packages
+2026-Aug-02 00:03:20.673686 [DEBUG] #14 5.075 Preparing pnpm@10.26.1 for immediate activation...
+2026-Aug-02 00:03:29.614399 [DEBUG] #14 DONE 14.0s
+2026-Aug-02 00:03:29.724293 [DEBUG] #13 [stage-1 4/8] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Aug-02 00:03:35.010705 [DEBUG] #13 DONE 5.3s
+2026-Aug-02 00:03:35.249189 [DEBUG] #12 [stage-1 5/8] RUN pnpm install --frozen-lockfile --prod
+2026-Aug-02 00:03:42.608526 [DEBUG] #12 7.511 Lockfile is up to date, resolution step is skipped
+2026-Aug-02 00:03:42.900020 [DEBUG] #12 7.801 Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-Aug-02 00:03:43.035527 [DEBUG] #12 7.936 Packages: +266
+2026-Aug-02 00:03:43.035527 [DEBUG] #12 7.936 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2026-Aug-02 00:03:43.363161 [DEBUG] #12 8.262
+2026-Aug-02 00:03:43.363161 [DEBUG] #12 8.262    ╭───────────────────────────────────────────────╮
+2026-Aug-02 00:03:43.363161 [DEBUG] #12 8.262    │                                               │
+2026-Aug-02 00:03:43.363161 [DEBUG] #12 8.262    │     Update available! 10.26.1 → 11.18.0.      │
+2026-Aug-02 00:03:43.363161 [DEBUG] #12 8.262    │     Changelog: https://pnpm.io/v/11.18.0      │
+2026-Aug-02 00:<REDACTED>@11.18.0   │
+2026-Aug-02 00:03:43.363161 [DEBUG] #12 8.262    │                                               │
+2026-Aug-02 00:03:43.363161 [DEBUG] #12 8.262    ╰───────────────────────────────────────────────╯
+2026-Aug-02 00:03:43.363161 [DEBUG] #12 8.262
+2026-Aug-02 00:03:43.897790 [DEBUG] #12 8.801 Progress: resolved 266, reused 0, downloaded 6, added 6
+2026-Aug-02 00:03:44.905950 [DEBUG] #12 9.808 Progress: resolved 266, reused 0, downloaded 37, added 37
+2026-Aug-02 00:03:45.912532 [DEBUG] #12 10.82 Progress: resolved 266, reused 0, downloaded 71, added 71
+2026-Aug-02 00:03:45.926757 [DEBUG] 
+2026-Aug-02 00:03:46.915758 [DEBUG] #12 11.82 Progress: resolved 266, reused 0, downloaded 95, added 95
+2026-Aug-02 00:03:47.917271 [DEBUG] #12 12.82 Progress: resolved 266, reused 0, downloaded 98, added 95
+2026-Aug-02 00:03:48.919902 [DEBUG] #12 13.82 Progress: resolved 266, reused 0, downloaded 144, added 143
+2026-Aug-02 00:03:49.921507 [DEBUG] #12 14.82 Progress: resolved 266, reused 0, downloaded 147, added 144
+2026-Aug-02 00:03:50.924934 [DEBUG] #12 15.83 Progress: resolved 266, reused 0, downloaded 175, added 175
+2026-Aug-02 00:03:51.925797 [DEBUG] #12 16.83 Progress: resolved 266, reused 0, downloaded 213, added 213
+2026-Aug-02 00:03:52.291889 [DEBUG] 
+2026-Aug-02 00:03:52.933772 [DEBUG] #12 17.83 Progress: resolved 266, reused 0, downloaded 254, added 251
+2026-Aug-02 00:03:53.244475 [DEBUG] #12 18.15 Progress: resolved 266, reused 0, downloaded 266, added 266, done
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 dependencies:
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + @capacitor/android 8.4.2
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + @capacitor/app 8.1.1
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + @capacitor/cli 8.4.2
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + @capacitor/core 8.4.2
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + @capacitor/local-notifications 8.2.1
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + @tailwindcss/vite 4.3.3
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + bcryptjs 3.0.3
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + clsx 2.1.1
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + connect-pg-simple 10.0.0
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + date-fns 4.4.0
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + express 5.2.1
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + express-session 1.19.0
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + groq-sdk 1.5.0
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + lucide-react 1.28.0
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + motion 12.43.0
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + pg 8.22.0
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + react 18.3.1
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + react-dom 18.3.1
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + react-easy-crop 6.2.2
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + socket.io 4.8.3
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + socket.io-client 4.8.3
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + tailwind-merge 3.6.0
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + tailwindcss 4.3.3
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + web-push 3.6.7
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 + xlsx 0.18.5
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65 devDependencies: skipped
+2026-Aug-02 00:03:53.744651 [DEBUG] #12 18.65
+2026-Aug-02 00:03:53.943103 [DEBUG] #12 18.68 ╭ Warning ─────────────────────────────────────────────────────────────────────╮
+2026-Aug-02 00:03:53.943103 [DEBUG] #12 18.68 │                                                                              │
+2026-Aug-02 00:03:53.943103 [DEBUG] #12 18.68 │   Ignored build scripts: esbuild@0.21.5.                                     │
+2026-Aug-02 00:03:53.943103 [DEBUG] #12 18.68 │   Run "pnpm approve-builds" to pick which dependencies should be allowed     │
+2026-Aug-02 00:03:53.943103 [DEBUG] #12 18.68 │   to run scripts.                                                            │
+2026-Aug-02 00:03:53.943103 [DEBUG] #12 18.68 │                                                                              │
+2026-Aug-02 00:03:53.943103 [DEBUG] #12 18.68 ╰──────────────────────────────────────────────────────────────────────────────╯
+2026-Aug-02 00:03:53.943103 [DEBUG] #12 18.69 Done in 12.8s using pnpm v10.26.1
+2026-Aug-02 00:04:06.238427 [DEBUG] #12 DONE 31.2s
+2026-Aug-02 00:04:06.448310 [DEBUG] #15 [stage-1 6/8] COPY --from=build /app/dist ./dist
+2026-Aug-02 00:04:11.478019 [DEBUG] #15 DONE 5.2s
+2026-Aug-02 00:04:11.691272 [DEBUG] #16 [stage-1 7/8] COPY --from=build /app/bundles ./bundles
+2026-Aug-02 00:04:13.512386 [DEBUG] #16 DONE 2.0s
+2026-Aug-02 00:04:13.748811 [DEBUG] #17 [stage-1 8/8] COPY server ./server
+2026-Aug-02 00:04:14.867279 [DEBUG] #17 DONE 1.3s
+2026-Aug-02 00:04:15.087158 [DEBUG] #18 exporting to image
+2026-Aug-02 00:04:15.087158 [DEBUG] #18 exporting layers
+2026-Aug-02 00:04:37.454409 [DEBUG] #18 exporting layers 22.4s done
+2026-Aug-02 00:04:37.606988 [DEBUG] #18 exporting manifest sha256:02bd63c957107c530521d9e5fcea0bd4f42fc4304f71aece8acd20357c9a5ef2
+2026-Aug-02 00:04:37.676480 [DEBUG] #18 exporting manifest sha256:02bd63c957107c530521d9e5fcea0bd4f42fc4304f71aece8acd20357c9a5ef2 0.2s done
+2026-Aug-02 00:04:37.676480 [DEBUG] #18 exporting config sha256:bff6634cc67a4f4aaa0e033ade0ff4272b4432c611b1de786c5c4ce10e037ee6
+2026-Aug-02 00:04:37.887825 [DEBUG] #18 exporting config sha256:bff6634cc67a4f4aaa0e033ade0ff4272b4432c611b1de786c5c4ce10e037ee6 0.2s done
+2026-Aug-02 00:04:38.141253 [DEBUG] #18 exporting attestation manifest sha256:e331eb4e2d2ee4d1a1b965a2e0890b9f636cb9f967e725b0ad3d8333660b53f7
+2026-Aug-02 00:04:38.653553 [DEBUG] #18 exporting attestation manifest sha256:e331eb4e2d2ee4d1a1b965a2e0890b9f636cb9f967e725b0ad3d8333660b53f7 0.5s done
+2026-Aug-02 00:04:38.666641 [DEBUG] #18 exporting manifest list sha256:7db4b7b469c0cd43ee0545396f404df4685f1056f48231bd121c17bb89344d71
+2026-Aug-02 00:04:38.858947 [DEBUG] #18 exporting manifest list sha256:7db4b7b469c0cd43ee0545396f404df4685f1056f48231bd121c17bb89344d71 0.2s done
+2026-Aug-02 00:04:38.858947 [DEBUG] #18 naming to docker.io/library/y4e6icv3cej4ax65idvhusde:4b799254b901ac25a4ee3466f304cb9b2c532084
+2026-Aug-02 00:04:39.063815 [DEBUG] #18 naming to docker.io/library/y4e6icv3cej4ax65idvhusde:4b799254b901ac25a4ee3466f304cb9b2c532084 0.1s done
+2026-Aug-02 00:04:39.063815 [DEBUG] #18 unpacking to docker.io/library/y4e6icv3cej4ax65idvhusde:4b799254b901ac25a4ee3466f304cb9b2c532084
+2026-Aug-02 00:04:54.530604 [DEBUG] #18 unpacking to docker.io/library/y4e6icv3cej4ax65idvhusde:4b799254b901ac25a4ee3466f304cb9b2c532084 15.6s done
+2026-Aug-02 00:04:54.918680 [DEBUG] #18 DONE 39.8s
+2026-Aug-02 00:05:03.744490 [DEBUG] 6 warnings found (use docker --debug to expand):
+2026-Aug-02 00:05:03.744490 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "VAPID_PRIVATE_KEY") (line 12)
+2026-Aug-02 00:05:03.744490 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "SESSION_SECRET") (line 33)
+2026-Aug-02 00:05:03.744490 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "GROQ_API_KEY") (line 34)
+2026-Aug-02 00:05:03.744490 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "VAPID_PRIVATE_KEY") (line 39)
+2026-Aug-02 00:05:03.744490 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "SESSION_SECRET") (line 6)
+2026-Aug-02 00:05:03.744490 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "GROQ_API_KEY") (line 7)
+2026-Aug-02 00:05:03.799970 Building docker image completed.
+2026-Aug-02 00:05:03.951867 [DEBUG] Creating .env file with runtime variables for container.
+2026-Aug-02 00:05:04.433022 ----------------------------------------
+2026-Aug-02 00:05:04.457854 Rolling update started.
+2026-Aug-02 00:05:05.511353 [DEBUG] [CMD]: docker exec i5yo4id67prjkrwe0c5mowd7 bash -c 'COOLIFY_URL=http://y4e6icv3cej4ax65idvhusde.157.10.161.229.sslip.io COOLIFY_FQDN=y4e6icv3cej4ax65idvhusde.157.10.161.229.sslip.io COOLIFY_BRANCH='\''main'\'' COOLIFY_RESOURCE_UUID=y4e6icv3cej4ax65idvhusde  docker compose --project-name y4e6icv3cej4ax65idvhusde --project-directory /artifacts/i5yo4id67prjkrwe0c5mowd7 -f /artifacts/i5yo4id67prjkrwe0c5mowd7/docker-compose.yaml up --build -d'
+2026-Aug-02 00:05:05.511353 [DEBUG] time="2026-08-02T00:05:05Z" level=warning msg="Found orphan containers ([y4e6icv3cej4ax65idvhusde-233152232147]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+2026-Aug-02 00:05:05.511353 [DEBUG] Container y4e6icv3cej4ax65idvhusde-235942679446  Creating
+2026-Aug-02 00:05:14.147975 [DEBUG] y4e6icv3cej4ax65idvhusde-235942679446 Your kernel does not support memory swappiness capabilities or the cgroup is not mounted. Memory swappiness discarded.
+2026-Aug-02 00:05:14.147975 [DEBUG] Container y4e6icv3cej4ax65idvhusde-235942679446  Created
+2026-Aug-02 00:05:14.200039 [DEBUG] Container y4e6icv3cej4ax65idvhusde-235942679446  Starting
+2026-Aug-02 00:05:15.257754 [DEBUG] Container y4e6icv3cej4ax65idvhusde-235942679446  Started
+2026-Aug-02 00:05:15.299758 New container started.
+2026-Aug-02 00:05:15.343571 Waiting for healthcheck to pass on the new container.
+2026-Aug-02 00:05:15.388894 Healthcheck URL (inside the container): GET: http://localhost:5000/
+2026-Aug-02 00:05:15.429208 Waiting for the start period (5 seconds) before starting healthcheck.
+2026-Aug-02 00:05:20.665814 [DEBUG] [CMD]: docker inspect --format='{{json .State.Health.Status}}' y4e6icv3cej4ax65idvhusde-235942679446
+2026-Aug-02 00:05:20.665814 [DEBUG] "healthy"
+2026-Aug-02 00:05:20.869515 [DEBUG] [CMD]: docker inspect --format='{{json .State.Health.Log}}' y4e6icv3cej4ax65idvhusde-235942679446
+2026-Aug-02 00:05:20.869515 [DEBUG] [{"Start":"2026-08-02T00:05:20.256404959Z","End":"2026-08-02T00:05:20.359586885Z","ExitCode":0,"Output":""}]
+2026-Aug-02 00:05:20.888557 Attempt 1 of 10 | Healthcheck status: "healthy"
+2026-Aug-02 00:05:20.918190 Healthcheck logs: (no logs) | Return code: 0
+2026-Aug-02 00:05:20.952911 New container is healthy.
+2026-Aug-02 00:05:20.982168 Removing old containers.
+2026-Aug-02 00:05:21.419221 [DEBUG] [CMD]: docker stop --time=30 y4e6icv3cej4ax65idvhusde-233152232147
+2026-Aug-02 00:05:21.419221 [DEBUG] Flag --time has been deprecated, use --timeout instead
+2026-Aug-02 00:05:53.479996 [DEBUG] y4e6icv3cej4ax65idvhusde-233152232147
+2026-Aug-02 00:05:54.309950 [DEBUG] [CMD]: docker rm -f y4e6icv3cej4ax65idvhusde-233152232147
+2026-Aug-02 00:05:54.309950 [DEBUG] y4e6icv3cej4ax65idvhusde-233152232147
+2026-Aug-02 00:05:54.331098 Rolling update completed.
+2026-Aug-02 00:05:54.957213 Gracefully shutting down build container: i5yo4id67prjkrwe0c5mowd7
+2026-Aug-02 00:05:55.166170 [DEBUG] [CMD]: docker stop --time=30 i5yo4id67prjkrwe0c5mowd7
+2026-Aug-02 00:05:55.166170 [DEBUG] Flag --time has been deprecated, use --timeout instead
+2026-Aug-02 00:05:57.026012 [DEBUG] i5yo4id67prjkrwe0c5mowd7

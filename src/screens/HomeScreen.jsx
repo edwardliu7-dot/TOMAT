@@ -260,7 +260,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
               <h2>
                 {nextTask
                   ? nextTask.gameName || nextTask.gameKey
-                  : zones.find(zone => !zone.locked)?.title || 'Mulai petualangan matematikamu'}
+                  : zones.find(zone => !zone.locked)?.title || 'Mulai petualanganmu'}
               </h2>
               <p>
                 {nextTask
@@ -349,6 +349,65 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
         )}
       </div>
 
+
+        {/* Aplikasi Lain — akses cepat ke BLP (siswa) atau BLP+EOB5 (guru) */}
+        {!guruMode && user?.role === 'siswa' && (
+          <div style={{ marginTop: 24, padding: '0 2px' }}>
+            <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
+              APLIKASI LAIN
+            </div>
+            <button
+              onClick={() => navigate('blp-home')}
+              style={{
+                width: '100%', background: 'rgba(16,185,129,0.1)',
+                border: '1px solid rgba(16,185,129,0.3)', borderRadius: 12,
+                padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                cursor: 'pointer', color: '#fff', fontFamily: 'inherit', textAlign: 'left',
+              }}
+            >
+              <span style={{ fontSize: 24 }}>📋</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>BLP Harian</div>
+                <div style={{ fontSize: 12, color: '#34d399', marginTop: 2 }}>Isi aktivitas BLP hari ini</div>
+              </div>
+              <span style={{ marginLeft: 'auto', color: '#34d399' }}>→</span>
+            </button>
+          </div>
+        )}
+
+        {!guruMode && user?.role === 'guru' && (
+          <div style={{ marginTop: 24, padding: '0 2px' }}>
+            <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
+              APLIKASI LAIN
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button onClick={() => navigate('blp-home')} style={{
+                background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
+                borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                cursor: 'pointer', color: '#fff', fontFamily: 'inherit', textAlign: 'left',
+              }}>
+                <span style={{ fontSize: 24 }}>📋</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>BLP Harian</div>
+                  <div style={{ fontSize: 12, color: '#34d399', marginTop: 2 }}>Rekap aktivitas siswa</div>
+                </div>
+                <span style={{ marginLeft: 'auto', color: '#34d399' }}>→</span>
+              </button>
+              <button onClick={() => navigate('eob5-dashboard')} style={{
+                background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)',
+                borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                cursor: 'pointer', color: '#fff', fontFamily: 'inherit', textAlign: 'left',
+              }}>
+                <span style={{ fontSize: 24 }}>🏫</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>Administrasi (EOB5)</div>
+                  <div style={{ fontSize: 12, color: '#fbbf24', marginTop: 2 }}>Absensi, nilai, jadwal, soal AI</div>
+                </div>
+                <span style={{ marginLeft: 'auto', color: '#fbbf24' }}>→</span>
+              </button>
+            </div>
+          </div>
+        )}
 
       {notice && <div className="home-notice">✦ {notice}<button type="button" onClick={() => setNotice('')}>×</button></div>}
 

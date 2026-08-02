@@ -39,7 +39,46 @@ import { connectSocket } from './socket'
 import { DUEL_GAME_KEYS } from './gamesCatalog'
 import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
+import OtaUpdateBanner from './components/OtaUpdateBanner'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
+import BlpHomeScreen from './screens/blp/BlpHomeScreen'
+import BlpSiswaDashboardScreen from './screens/blp/BlpSiswaDashboardScreen'
+import BlpIsiAktivitasScreen from './screens/blp/BlpIsiAktivitasScreen'
+import BlpRiwayatScreen from './screens/blp/BlpRiwayatScreen'
+import BlpQuranScreen from './screens/blp/BlpQuranScreen'
+import BlpHaidScreen from './screens/blp/BlpHaidScreen'
+import BlpGuruRekapScreen from './screens/blp/BlpGuruRekapScreen'
+import BlpGuruDashboardScreen from './screens/blp/BlpGuruDashboardScreen'
+import BlpGuruSiswaDetailScreen from './screens/blp/BlpGuruSiswaDetailScreen'
+import BlpGuruPeriodeScreen from './screens/blp/BlpGuruPeriodeScreen'
+import { BlpDataProvider } from './contexts/BlpDataContext'
+import Eob5DashboardScreen from './screens/eob5/Eob5DashboardScreen'
+import Eob5AbsensiScreen from './screens/eob5/Eob5AbsensiScreen'
+import Eob5ManajemenSiswaScreen from './screens/eob5/Eob5ManajemenSiswaScreen'
+import Eob5DetailSiswaScreen from './screens/eob5/Eob5DetailSiswaScreen'
+import Eob5NilaiScreen from './screens/eob5/Eob5NilaiScreen'
+import Eob5JadwalScreen from './screens/eob5/Eob5JadwalScreen'
+import Eob5ProsemScreen from './screens/eob5/Eob5ProsemScreen'
+import Eob5MateriScreen from './screens/eob5/Eob5MateriScreen'
+import Eob5SoalAiScreen from './screens/eob5/Eob5SoalAiScreen'
+import Eob5RekapScreen from './screens/eob5/Eob5RekapScreen'
+import Eob5InboxScreen from './screens/eob5/Eob5InboxScreen'
+import Eob5JurnalScreen from './screens/eob5/Eob5JurnalScreen'
+import Eob5KalenderScreen from './screens/eob5/Eob5KalenderScreen'
+import Eob5InfoPekananScreen from './screens/eob5/Eob5InfoPekananScreen'
+import Eob5PoinScreen from './screens/eob5/Eob5PoinScreen'
+import Eob5AkunSiswaScreen from './screens/eob5/Eob5AkunSiswaScreen'
+import Eob5DirektoriGuruScreen from './screens/eob5/Eob5DirektoriGuruScreen'
+import Eob5DirektoriSiswaScreen from './screens/eob5/Eob5DirektoriSiswaScreen'
+import Eob5KepsekScreen from './screens/eob5/Eob5KepsekScreen'
+import Eob5KesiswaanScreen from './screens/eob5/Eob5KesiswaanScreen'
+import Eob5WaliKelasScreen from './screens/eob5/Eob5WaliKelasScreen'
+import Eob5KurikulumScreen from './screens/eob5/Eob5KurikulumScreen'
+import Eob5AdministrasiScreen from './screens/eob5/Eob5AdministrasiScreen'
+import Eob5FeedbackScreen from './screens/eob5/Eob5FeedbackScreen'
+import Eob5PengaturanScreen from './screens/eob5/Eob5PengaturanScreen'
+import Eob5Layout from './components/eob5/Eob5Layout'
+import BlpLayout from './components/blp/BlpLayout'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
@@ -471,28 +510,28 @@ const GAME_ROUTES = {
   ipa7b4t1: { name: 'Force Application Quest',      emoji: '💪', Component: React.lazy(() => import('./minigames/Ipa7B4T1Game')) },
   ipa7b4t2: { name: 'Resultant Tug of War',         emoji: '⚖️', Component: React.lazy(() => import('./minigames/Ipa7B4T2Game')) },
   ipa7b4t3: { name: 'Motion Classifier',            emoji: '🏃', Component: React.lazy(() => import('./minigames/Ipa7B4T3Game')) },
-  ipa7b4t4: { name: 'Speed vs Velocity Pilot',      emoji: '✈️', Component: IpaGamePlaceholder },
-  ipa7b4t5: { name: "Newton's Law Arena",            emoji: '⚡', Component: IpaGamePlaceholder },
+  ipa7b4t4: { name: 'Speed vs Velocity Pilot',      emoji: '✈️', Component: React.lazy(() => import('./minigames/Ipa7B4T4Game')) },
+  ipa7b4t5: { name: "Newton's Law Arena",            emoji: '⚡', Component: React.lazy(() => import('./minigames/Ipa7B4T5Game')) },
   // IPA Kelas 8 — BAB 1
-  ipa8b1t1: { name: 'History Timeline Puzzle',      emoji: '🕰️', Component: IpaGamePlaceholder },
-  ipa8b1t2: { name: 'Microscope Selector',          emoji: '🔭', Component: IpaGamePlaceholder },
-  ipa8b1t3: { name: 'Cell Organelle Sorter',        emoji: '🧫', Component: IpaGamePlaceholder },
-  ipa8b1t4: { name: 'Specialized Cell Match',       emoji: '🔬', Component: IpaGamePlaceholder },
-  ipa8b1t5: { name: 'Stem Cell Regenerator',        emoji: '🌱', Component: IpaGamePlaceholder },
+  ipa8b1t1: { name: 'History Timeline Puzzle',      emoji: '🕰️', Component: React.lazy(() => import('./minigames/Ipa8B1T1Game')) },
+  ipa8b1t2: { name: 'Microscope Selector',          emoji: '🔭', Component: React.lazy(() => import('./minigames/Ipa8B1T2Game')) },
+  ipa8b1t3: { name: 'Cell Organelle Sorter',        emoji: '🧫', Component: React.lazy(() => import('./minigames/Ipa8B1T3Game')) },
+  ipa8b1t4: { name: 'Specialized Cell Match',       emoji: '🔬', Component: React.lazy(() => import('./minigames/Ipa8B1T4Game')) },
+  ipa8b1t5: { name: 'Stem Cell Regenerator',        emoji: '🌱', Component: React.lazy(() => import('./minigames/Ipa8B1T5Game')) },
   // IPA Kelas 8 — BAB 2
-  ipa8b2t1: { name: 'Nutritional Plate Balance',    emoji: '🥗', Component: IpaGamePlaceholder },
-  ipa8b2t2: { name: 'Virtual Food Reagent Test',    emoji: '🧪', Component: IpaGamePlaceholder },
-  ipa8b2t3: { name: 'Digestive Track Runner',       emoji: '🫁', Component: IpaGamePlaceholder },
-  ipa8b2t4: { name: 'Digestive Hospital Clinic',    emoji: '🏥', Component: IpaGamePlaceholder },
-  ipa8b2t5: { name: 'Circulatory System Navigator', emoji: '❤️', Component: IpaGamePlaceholder },
-  ipa8b2t6: { name: 'Blood Component Defender',     emoji: '🩸', Component: IpaGamePlaceholder },
-  ipa8b2t7: { name: 'Blood Transfusion Match',      emoji: '💉', Component: IpaGamePlaceholder },
-  ipa8b2t8: { name: 'Cardiovascular Healthy Life',  emoji: '🫀', Component: IpaGamePlaceholder },
+  ipa8b2t1: { name: 'Nutritional Plate Balance',    emoji: '🥗', Component: React.lazy(() => import('./minigames/Ipa8B2T1Game')) },
+  ipa8b2t2: { name: 'Virtual Food Reagent Test',    emoji: '🧪', Component: React.lazy(() => import('./minigames/Ipa8B2T2Game')) },
+  ipa8b2t3: { name: 'Digestive Track Runner',       emoji: '🫁', Component: React.lazy(() => import('./minigames/Ipa8B2T3Game')) },
+  ipa8b2t4: { name: 'Digestive Hospital Clinic',    emoji: '🏥', Component: React.lazy(() => import('./minigames/Ipa8B2T4Game')) },
+  ipa8b2t5: { name: 'Circulatory System Navigator', emoji: '❤️', Component: React.lazy(() => import('./minigames/Ipa8B2T5Game')) },
+  ipa8b2t6: { name: 'Blood Component Defender',     emoji: '🩸', Component: React.lazy(() => import('./minigames/Ipa8B2T6Game')) },
+  ipa8b2t7: { name: 'Blood Transfusion Match',      emoji: '💉', Component: React.lazy(() => import('./minigames/Ipa8B2T7Game')) },
+  ipa8b2t8: { name: 'Cardiovascular Healthy Life',  emoji: '🫀', Component: React.lazy(() => import('./minigames/Ipa8B2T8Game')) },
   // IPA Kelas 8 — BAB 3
-  ipa8b3t1: { name: 'Organ Anatomy Builder',        emoji: '🫀', Component: IpaGamePlaceholder },
-  ipa8b3t2: { name: 'Organ Function Cards',         emoji: '🃏', Component: IpaGamePlaceholder },
-  ipa8b3t3: { name: 'Breathing Mechanism Pump',     emoji: '🫁', Component: IpaGamePlaceholder },
-  ipa8b3t4: { name: 'Alveoli Gas Exchange',         emoji: '💨', Component: IpaGamePlaceholder },
+  ipa8b3t1: { name: 'Organ Anatomy Builder',        emoji: '🫀', Component: React.lazy(() => import('./minigames/Ipa8B3T1Game')) },
+  ipa8b3t2: { name: 'Organ Function Cards',         emoji: '🃏', Component: React.lazy(() => import('./minigames/Ipa8B3T2Game')) },
+  ipa8b3t3: { name: 'Breathing Mechanism Pump',     emoji: '🫁', Component: React.lazy(() => import('./minigames/Ipa8B3T3Game')) },
+  ipa8b3t4: { name: 'Alveoli Gas Exchange',         emoji: '💨', Component: React.lazy(() => import('./minigames/Ipa8B3T4Game')) },
   ipa8b3t5: { name: 'Nephron Urine Factory',        emoji: '🧫', Component: IpaGamePlaceholder },
   ipa8b3t6: { name: 'Medical Case Analyzer',        emoji: '🩺', Component: IpaGamePlaceholder },
   ipa8b3t7: { name: 'Healthy Habit Choice',         emoji: '🏃', Component: IpaGamePlaceholder },
@@ -538,6 +577,42 @@ const SCREEN_TITLES = {
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
   'tournament-wait': 'Turnamen',
+  'blp-home': 'BLP Harian',
+  'blp-isi-aktivitas': 'Isi Aktivitas BLP',
+  'blp-riwayat': 'Riwayat BLP',
+  'blp-quran': 'Quran Tracker',
+  'blp-haid': 'Periode Haid',
+  'blp-guru-daftar': 'BLP — Daftar Siswa',
+  'blp-guru-rekap-nilai': 'BLP — Rekap Nilai',
+  'blp-guru-haid': 'BLP — Haid Siswi',
+  'blp-guru-rekap': 'BLP — Daftar Siswa',
+  'blp-guru-siswa-detail': 'Detail Siswa BLP',
+  'blp-guru-periode': 'Atur Periode BLP',
+  'eob5-dashboard': 'GURU — Dashboard',
+  'eob5-absensi': 'GURU — Absensi',
+  'eob5-siswa': 'GURU — Manajemen Siswa',
+  'eob5-detail-siswa': 'GURU — Detail Siswa',
+  'eob5-nilai': 'GURU — Nilai',
+  'eob5-jadwal': 'GURU — Jadwal',
+  'eob5-prosem': 'GURU — Prosem',
+  'eob5-materi': 'GURU — Materi',
+  'eob5-soal-ai': 'GURU — Soal AI',
+  'eob5-rekap': 'GURU — Rekap',
+  'eob5-inbox': 'GURU — Pesan Siswa',
+  'eob5-jurnal': 'GURU — Jurnal Mengajar',
+  'eob5-kalender': 'GURU — Kalender Akademik',
+  'eob5-info-pekanan': 'GURU — Info Pekanan',
+  'eob5-poin': 'GURU — Poin Siswa',
+  'eob5-akun-siswa': 'GURU — Akun Siswa',
+  'eob5-direktori-guru': 'GURU — Direktori Guru',
+  'eob5-direktori-siswa': 'GURU — Direktori Siswa',
+  'eob5-kepsek': 'GURU — Progres Kinerja Guru',
+  'eob5-kesiswaan': 'GURU — Rekap Kesiswaan',
+  'eob5-walikelas': 'GURU — Rekap Wali Kelas',
+  'eob5-kurikulum': 'GURU — Supervisi Kurikulum',
+  'eob5-administrasi': 'GURU — Administrasi',
+  'eob5-feedback': 'GURU — Feedback',
+  'eob5-pengaturan': 'GURU — Pengaturan Profil',
 }
 
 // Rendered inside PlayerProvider — safe to call usePlayer().
@@ -668,6 +743,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const current = history[history.length - 1]
 
   const [komunikasiTarget, setKomunikasiTarget]     = useState(null)
+  const [blpStudentId, setBlpStudentId]             = useState(null)
   const [duelState, setDuelState]                   = useState(null) // { code, myIndex, question, round, maxRounds, scores }
   const [tournamentMatchData, setTournamentMatchData] = useState(null)  // from tournament:your-match
   const [tournamentBanner,    setTournamentBanner]    = useState(null)  // show notification banner
@@ -685,10 +761,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   useEffect(() => {
     const gameRoute = GAME_ROUTES[current]
     if (gameRoute) {
-      document.title = `${gameRoute.emoji} ${gameRoute.name} — TOMAT`
+      document.title = `${gameRoute.emoji} ${gameRoute.name} — SMARTISA`
     } else {
       const label = SCREEN_TITLES[current]
-      document.title = label ? `${label} — TOMAT` : 'TOMAT — Tantangan Otak Matematika'
+      document.title = label ? `${label} — SMARTISA` : 'SMARTISA — Platform Pembelajaran TISA'
     }
   }, [current])
 
@@ -702,6 +778,9 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       setPendingTaskId(options.taskId || null)
       setHistory(h => [...h, 'modeselect'])
     } else {
+      if (route === 'blp-guru-siswa-detail' && options.studentId) {
+        setBlpStudentId(options.studentId)
+      }
       setPendingTaskId(null)
       setHistory(h => [...h, route])
     }
@@ -838,6 +917,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     setPendingTaskId(null)
     replaceTop(pendingGame.key)
   }, [pendingGame, replaceTop])
+
+  const handleSwitchModule = useCallback((homeScreen) => {
+    setHistory([homeScreen])
+  }, [])
 
   // Called by TaskContext when a task session is fully completed
   const handleTaskComplete = useCallback((gradeRecord) => {
@@ -987,6 +1070,34 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       )
     }
 
+    // ── BLP siswa screens — wrapped with sidebar + mobile footer nav ──
+    if (current === 'blp-home' || current === 'blp-isi-aktivitas' ||
+        current === 'blp-riwayat' || current === 'blp-quran' || current === 'blp-haid') {
+      let blpScreen = null
+      if (current === 'blp-home')          blpScreen = <BlpSiswaDashboardScreen navigate={navigate} goBack={goBack} />
+      if (current === 'blp-isi-aktivitas') blpScreen = <BlpIsiAktivitasScreen navigate={navigate} goBack={goBack} />
+      if (current === 'blp-riwayat')       blpScreen = <BlpRiwayatScreen navigate={navigate} goBack={goBack} />
+      if (current === 'blp-quran')         blpScreen = <BlpQuranScreen navigate={navigate} goBack={goBack} />
+      if (current === 'blp-haid')          blpScreen = <BlpHaidScreen navigate={navigate} goBack={goBack} />
+      return (
+        <BlpLayout user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
+          {blpScreen}
+        </BlpLayout>
+      )
+    }
+
+    if (current === 'blp-guru-rekap') {
+      return <BlpGuruDashboardScreen navigate={navigate} goBack={goBack} />
+    }
+
+    if (current === 'blp-guru-siswa-detail') {
+      return <BlpGuruSiswaDetailScreen navigate={navigate} goBack={goBack} studentId={blpStudentId} />
+    }
+
+    if (current === 'blp-guru-periode') {
+      return <BlpGuruPeriodeScreen navigate={navigate} goBack={goBack} />
+    }
+
     if (current === 'home') {
       return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} openPetShop={() => { setTokoInitialTab('pet_skin'); navigate('toko') }} openEventShop={() => { setTokoInitialTab('event'); navigate('toko') }} />
     }
@@ -1000,7 +1111,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       <PetProvider>
         <TaskProvider onTaskComplete={handleTaskComplete}>
           <BabLockProvider>
-            <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
+            <BlpDataProvider>
+            <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout} onSwitchModule={handleSwitchModule}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
               {/* Inject CSS that filters ONLY structural nav/chrome elements.
                   Seasonal override (tema_merahputih during Jul 15–Aug 31) takes
@@ -1091,6 +1203,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               )}
             </div>
             </AppShell>
+            </BlpDataProvider>
           </BabLockProvider>
         </TaskProvider>
       </PetProvider>
@@ -1101,7 +1214,13 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 export default function App() {
   const { user, logout, checking } = useAuth()
   const [guruPracticeMode, setGuruPracticeMode] = useState(false)
-  const { checking: checkingUpdate, updateRequired, downloadUrl } = useAppUpdateCheck()
+  const [guruHistory, setGuruHistory] = useState(['guru-dashboard'])
+  const [eob5SiswaId, setEob5SiswaId] = useState(null)
+  const {
+    checking: checkingUpdate,
+    updateRequired, downloadUrl,
+    bundleUpdateAvailable, bundleVersion, bundleUrl, bundleSize, bundleNotes,
+  } = useAppUpdateCheck()
 
   // Hide the inline HTML splash once React has mounted and auth check is done
   useEffect(() => {
@@ -1110,13 +1229,23 @@ export default function App() {
     }
   }, [checking, checkingUpdate])
 
+  // EOB5: lihat detail siswa — dispatched by Eob5ManajemenSiswaScreen
+  useEffect(() => {
+    const handler = (e) => {
+      setEob5SiswaId(e.detail?.id || null)
+      setGuruHistory(h => [...h, 'eob5-detail-siswa'])
+    }
+    window.addEventListener('eob5:lihat-siswa', handler)
+    return () => window.removeEventListener('eob5:lihat-siswa', handler)
+  }, [])
+
   // Update tab title for guru dashboard and login screen
   useEffect(() => {
     if (checking) return
     if (user?.role === 'guru' && !guruPracticeMode) {
-      document.title = 'Dashboard Guru — TOMAT'
+      document.title = 'Dashboard Guru — SMARTISA'
     } else if (!user) {
-      document.title = 'TOMAT — Tantangan Otak Matematika'
+      document.title = 'SMARTISA — Platform Pembelajaran TISA'
     }
   }, [user, guruPracticeMode, checking])
 
@@ -1143,20 +1272,172 @@ export default function App() {
         </div>
       )
     }
+
+    const currentGuruScreen = guruHistory[guruHistory.length - 1]
+    const guruGoBack = () => {
+      if (guruHistory.length > 1) {
+        setGuruHistory(h => h.slice(0, -1))
+      }
+    }
     const guruNavigate = (key) => {
       if (key === 'guruMengajar') { setGuruPracticeMode(true); return }
+      if (key.startsWith('eob5-') || key.startsWith('blp-')) {
+        setGuruHistory(h => [...h, key])
+        return
+      }
+      // If currently on an eob5/blp sub-module screen, navigate back to the guru
+      // dashboard first so GuruDashboardScreen can mount and handle the tab event.
+      const isOnSubModule = currentGuruScreen?.startsWith('eob5-') || currentGuruScreen?.startsWith('blp-')
+      if (isOnSubModule) {
+        setGuruHistory(['guru-dashboard'])
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
+        }, 80)
+        return
+      }
       window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
     }
+
+    const handleSwitchGuruModule = (homeScreen) => {
+      setGuruHistory([homeScreen])
+    }
+
+    const renderGuruScreen = () => {
+      if (currentGuruScreen === 'eob5-dashboard') {
+        return <Eob5DashboardScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-absensi') {
+        return <Eob5AbsensiScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-siswa') {
+        return <Eob5ManajemenSiswaScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-detail-siswa') {
+        return <Eob5DetailSiswaScreen navigate={guruNavigate} goBack={guruGoBack} siswaId={eob5SiswaId} />
+      }
+      if (currentGuruScreen === 'eob5-nilai') {
+        return <Eob5NilaiScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-jadwal') {
+        return <Eob5JadwalScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-prosem') {
+        return <Eob5ProsemScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-materi') {
+        return <Eob5MateriScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-soal-ai') {
+        return <Eob5SoalAiScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-rekap') {
+        return <Eob5RekapScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-inbox') {
+        return <Eob5InboxScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-jurnal') {
+        return <Eob5JurnalScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-kalender') {
+        return <Eob5KalenderScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-info-pekanan') {
+        return <Eob5InfoPekananScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-poin') {
+        return <Eob5PoinScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-akun-siswa') {
+        return <Eob5AkunSiswaScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-direktori-guru') {
+        return <Eob5DirektoriGuruScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-direktori-siswa') {
+        return <Eob5DirektoriSiswaScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-kepsek') {
+        return <Eob5KepsekScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-kesiswaan') {
+        return <Eob5KesiswaanScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-walikelas') {
+        return <Eob5WaliKelasScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-kurikulum') {
+        return <Eob5KurikulumScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-administrasi') {
+        return <Eob5AdministrasiScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-feedback') {
+        return <Eob5FeedbackScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'eob5-pengaturan') {
+        return <Eob5PengaturanScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      if (currentGuruScreen === 'blp-guru-daftar' || currentGuruScreen === 'blp-guru-rekap') {
+        return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} activeTab="daftar" />
+      }
+      if (currentGuruScreen === 'blp-guru-rekap-nilai') {
+        return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} activeTab="rekap" />
+      }
+      if (currentGuruScreen === 'blp-guru-haid') {
+        return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} activeTab="haid" />
+      }
+      if (currentGuruScreen === 'blp-guru-siswa-detail') {
+        return <BlpGuruSiswaDetailScreen navigate={guruNavigate} goBack={guruGoBack} studentId={eob5SiswaId} />
+      }
+      if (currentGuruScreen === 'blp-guru-periode') {
+        return <BlpGuruPeriodeScreen navigate={guruNavigate} goBack={guruGoBack} />
+      }
+      // Default: main guru dashboard
+      return <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
+    }
+
+    const isEob5Screen = currentGuruScreen?.startsWith('eob5-')
+    const isBlpGuruScreen = currentGuruScreen?.startsWith('blp-')
+
     return (
-      <AppShell user={user} navigate={guruNavigate} currentScreen="guruDashboard" onLogout={logout}>
-        <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
-          <ErrorBoundary onReset={() => {}}>
-            <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
-          </ErrorBoundary>
-        </div>
-      </AppShell>
+      <BlpDataProvider>
+        <AppShell user={user} navigate={guruNavigate} currentScreen={currentGuruScreen} onLogout={logout} onSwitchModule={handleSwitchGuruModule}>
+          {isEob5Screen ? (
+            <Eob5Layout navigate={guruNavigate} currentScreen={currentGuruScreen} user={user} onLogout={logout}>
+              <ErrorBoundary onReset={guruGoBack}>
+                {renderGuruScreen()}
+              </ErrorBoundary>
+            </Eob5Layout>
+          ) : isBlpGuruScreen ? (
+            <BlpLayout user={user} navigate={guruNavigate} currentScreen={currentGuruScreen} onLogout={logout}>
+              <ErrorBoundary onReset={guruGoBack}>
+                {renderGuruScreen()}
+              </ErrorBoundary>
+            </BlpLayout>
+          ) : (
+            <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+              <ErrorBoundary onReset={guruGoBack}>
+                {renderGuruScreen()}
+              </ErrorBoundary>
+            </div>
+          )}
+        </AppShell>
+      </BlpDataProvider>
     )
   }
 
-  return <PlayerExperience />
+  return (
+    <>
+      <PlayerExperience />
+      {bundleUpdateAvailable && (
+        <OtaUpdateBanner
+          bundleVersion={bundleVersion}
+          bundleUrl={bundleUrl}
+          bundleSize={bundleSize}
+          bundleNotes={bundleNotes}
+        />
+      )}
+    </>
+  )
 }

@@ -1,15 +1,19 @@
-# RULES.md — Panduan Wajib Replit Agent untuk Proyek TOMAT
+# RULES.md — Panduan Wajib Replit Agent untuk Proyek SMARTISA
 
 > **⚠️ BACA FILE INI SEBELUM MELAKUKAN PERUBAHAN APAPUN.**
-> File ini adalah sumber kebenaran tunggal tentang arsitektur, konvensi, dan aturan proyek TOMAT.
+> File ini adalah sumber kebenaran tunggal tentang arsitektur, konvensi, dan aturan proyek SMARTISA.
 > Jika Anda menambahkan fitur baru, identifikasi dulu modul mana yang akan terdampak menggunakan panduan di bawah ini.
 
 ---
 
 ## 1. Identitas Proyek
 
-- **Nama:** TOMAT — Tantangan Otak MATematika
-- **Deskripsi:** Game RPG edukasi berbasis web untuk pelajar Matematika SMP (Kelas 7–9).
+- **Nama Platform:** SMARTISA — Platform Pembelajaran Resmi TISA
+- **Sub-modul:**
+  - **TOMAT** — Tantangan Otak Mendidik Anak TISA (platform belajar siswa, game RPG edukasi)
+  - **BLP** — BLP Harian (jurnal harian)
+  - **GURU** — Administrasi Guru (dahulu GuruEOB5)
+- **Deskripsi:** Platform pembelajaran terpadu untuk guru dan siswa SMP TISA Islamic School (Kelas 7–9).
 - **Stack:** React 18 + Vite (frontend), Express + Node.js + Socket.io (backend), PostgreSQL via Neon (database).
 - **Tidak menggunakan** library UI eksternal — semua styling adalah inline style / CSS vanilla.
 - **Semua teks in-game harus dalam Bahasa Indonesia.**
@@ -404,4 +408,116 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
-*Terakhir diperbarui: 31 Juli 2026. Update file ini setiap kali ada perubahan arsitektur signifikan.*
+---
+
+## 17. Modul BLP Harian
+
+- Backend routes: `server/blp/*.js` — prefix `/api/blp/*`
+- Frontend screens: `src/screens/blp/`
+- Komponen UI: `src/components/blp/`
+- Entry point layar: `BlpHomeScreen.jsx`
+- Auth: pakai session TOMAT yang ada — tidak ada login terpisah
+- Teks: semua Bahasa Indonesia
+- Styling: inline styles (BUKAN Tailwind)
+- Schema: tabel BLP **tidak menggunakan prefix `blp_`** untuk tabel baru. Tabel lama (`blp_periods`, `daily_records`, `haid_periods`) dipertahankan apa adanya karena merupakan nama asli dari standalone BLP app.
+
+## 18. Modul GuruEOB5
+
+- Backend routes: `server/eob5/*.js` — prefix `/api/eob5/*`
+- Frontend screens: `src/screens/eob5/`
+- Komponen UI: `src/components/eob5/` (Eob5Sidebar, Eob5Layout)
+- Entry point layar: `Eob5DashboardScreen.jsx`
+- Auth: pakai session TOMAT yang ada — tidak ada login terpisah
+- Teks: semua Bahasa Indonesia
+- Styling: inline styles (BUKAN Tailwind/ShadCN)
+- Schema: tabel modul GURU **tidak menggunakan prefix `eob5_`**. Nama tabel mengikuti skema lama standalone GuruEOB5 yang sudah berisi data (contoh: `grades`, `journal_entries`, `subjects`, `tujuan_pembelajaran`). Tabel baru yang tidak ada padanannya dibuat TANPA prefix (contoh: `absensi`, `kelas_guru`, `student_points`).
+- Layout: semua screen `eob5-*` dibungkus `Eob5Layout` di App.jsx → menampilkan `Eob5Sidebar` (desktop inline, mobile drawer via tombol ☰)
+
+### Daftar Lengkap Screen & Route
+
+#### Grup Utama
+| Route key | Screen file | Deskripsi |
+|-----------|-------------|-----------|
+| `eob5-dashboard` | `Eob5DashboardScreen.jsx` | Dashboard utama & statistik |
+| `eob5-absensi` | `Eob5AbsensiScreen.jsx` | Input & rekap kehadiran siswa |
+| `eob5-nilai` | `Eob5NilaiScreen.jsx` | Nilai Kurikulum Merdeka |
+| `eob5-jurnal` | `Eob5JurnalScreen.jsx` | Jurnal mengajar harian |
+| `eob5-jadwal` | `Eob5JadwalScreen.jsx` | Jadwal pelajaran |
+| `eob5-prosem` | `Eob5ProsemScreen.jsx` | Program semester |
+| `eob5-materi` | `Eob5MateriScreen.jsx` | Generate Modul Ajar via Groq AI, history, ekspor .txt |
+| `eob5-soal-ai` | `Eob5SoalAiScreen.jsx` | Generate soal otomatis via Groq AI, history, preview |
+| `eob5-rekap` | `Eob5RekapScreen.jsx` | Rekap kelas & periode |
+| `eob5-inbox` | `Eob5InboxScreen.jsx` | Pesan masuk dari siswa |
+
+#### Grup Jabatan
+| Route key | Screen file | Deskripsi |
+|-----------|-------------|-----------|
+| `eob5-kepsek` | `Eob5KepsekScreen.jsx` | Progres kinerja guru (Kepala Sekolah) |
+| `eob5-kesiswaan` | `Eob5KesiswaanScreen.jsx` | Rekap kesiswaan |
+| `eob5-walikelas` | `Eob5WaliKelasScreen.jsx` | Rekap wali kelas |
+| `eob5-kurikulum` | `Eob5KurikulumScreen.jsx` | Supervisi kurikulum |
+
+#### Grup Admin
+| Route key | Screen file | Deskripsi |
+|-----------|-------------|-----------|
+| `eob5-siswa` | `Eob5ManajemenSiswaScreen.jsx` | Manajemen data siswa |
+| `eob5-detail-siswa` | `Eob5DetailSiswaScreen.jsx` | Detail siswa (sub-screen, trigger via event `eob5:lihat-siswa`) |
+| `eob5-poin` | `Eob5PoinScreen.jsx` | Rekap poin perilaku siswa |
+| `eob5-akun-siswa` | `Eob5AkunSiswaScreen.jsx` | Generate akun login siswa |
+| `eob5-direktori-guru` | `Eob5DirektoriGuruScreen.jsx` | Direktori semua guru |
+| `eob5-direktori-siswa` | `Eob5DirektoriSiswaScreen.jsx` | Direktori semua siswa |
+| `eob5-kalender` | `Eob5KalenderScreen.jsx` | Kalender akademik & pekan |
+| `eob5-info-pekanan` | `Eob5InfoPekananScreen.jsx` | Ringkasan mingguan & WA |
+| `eob5-administrasi` | `Eob5AdministrasiScreen.jsx` | Upload/browse dokumen administrasi & bahan ajar |
+| `eob5-feedback` | `Eob5FeedbackScreen.jsx` | Kotak masuk feedback dari guru |
+| `eob5-pengaturan` | `Eob5PengaturanScreen.jsx` | Pengaturan profil guru: nama, jabatan, foto, password |
+
+### API Routes GuruEOB5
+```
+/api/eob5/dashboard          → server/eob5/dashboard.js
+/api/eob5/guru               → server/eob5/guru.js
+/api/eob5/siswa              → server/eob5/siswa-akun.js
+/api/eob5/absensi            → server/eob5/absensi.js
+/api/eob5/kelas              → server/eob5/kelas.js
+/api/eob5/nilai              → server/eob5/nilai.js
+/api/eob5/materi             → server/eob5/materi.js
+/api/eob5/modul-ajar         → server/eob5/modul-ajar.js       (Groq AI)
+/api/eob5/soal-otomatis      → server/eob5/soal-otomatis.js    (Groq AI)
+/api/eob5/jadwal             → server/eob5/jadwal.js
+/api/eob5/prosem             → server/eob5/prosem.js
+/api/eob5/rekap              → server/eob5/rekap.js
+/api/eob5/inbox              → server/eob5/inbox.js
+/api/eob5/subjects           → server/eob5/subjects.js
+/api/eob5/journal            → server/eob5/journal.js
+/api/eob5/attendance         → server/eob5/attendance.js
+/api/eob5/grades             → server/eob5/grades.js
+/api/eob5/points             → server/eob5/points.js
+/api/eob5/tujuan-pembelajaran→ server/eob5/tujuan-pembelajaran.js
+/api/eob5/documents          → server/eob5/documents.js
+/api/eob5/bahan-ajar         → server/eob5/bahan-ajar.js
+/api/eob5/student-accounts   → server/eob5/student-accounts.js
+/api/eob5/teachers           → server/eob5/teachers.js
+/api/eob5/info-pekanan       → server/eob5/info-pekanan.js
+/api/eob5/feedback           → server/eob5/feedback.js
+/api/eob5/kepsek             → server/eob5/kepsek.js
+/api/eob5/kesiswaan          → server/eob5/kesiswaan.js
+/api/eob5/walikelas          → server/eob5/walikelas.js
+/api/eob5/kurikulum          → server/eob5/kurikulum.js
+/api/eob5/                   → server/eob5/academic-calendars.js (/academic-calendars, /academic-weeks)
+```
+
+---
+
+## 19. App Switcher
+
+- Komponen: `src/components/AppSwitcher.jsx`
+- Ditampilkan di `AppShell` header untuk semua user yang sudah login
+- Siswa: tab TOMAT + BLP
+- Guru: tab TOMAT + BLP + GURU (dahulu EOB5)
+- Switch module: `setHistory([homeScreen])` — reset history ke home screen modul yang dipilih
+- Palet warna per modul: TOMAT = biru-ungu, BLP = hijau, GURU = amber-oranye
+- Route key tetap `eob5-*` secara internal — hanya label tampilan yang berubah ke "GURU"
+
+---
+
+*Terakhir diperbarui: 1 Agustus 2026 — Rebrand platform dari TOMAT → SMARTISA; integrasi akhir modul GuruEOB5 (25 screen, Eob5Sidebar, Eob5Layout). Update file ini setiap kali ada perubahan arsitektur signifikan.*

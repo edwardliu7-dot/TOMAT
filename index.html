@@ -4,15 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <title>TOMAT – Tantangan Otak Matematika</title>
-    <meta name="description" content="TOMAT - Platform gamifikasi matematika SMP dengan duel real-time, turnamen, dan sistem reward." />
+    <title>SMARTISA – Platform Pembelajaran TISA</title>
+    <meta name="description" content="SMARTISA - Platform pembelajaran resmi guru dan siswa TISA. Belajar, duel, turnamen, dan sistem reward." />
     <meta name="theme-color" content="#071321" />
-    <meta property="og:title" content="TOMAT — Tantangan Otak Matematika" />
-    <meta property="og:description" content="Belajar matematika SMP dengan cara yang menyenangkan. Duel teman, ikut turnamen, kumpulkan reward!" />
+    <meta property="og:title" content="SMARTISA — Platform Pembelajaran TISA" />
+    <meta property="og:description" content="Platform pembelajaran resmi SMP TISA Islamic School. Belajar matematika dengan cara yang menyenangkan!" />
     <meta property="og:type" content="website" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="TOMAT" />
+    <meta name="apple-mobile-web-app-title" content="SMARTISA" />
     <link rel="icon" type="image/png" href="/src/assets/logo.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Preload Tomi sprite sheet immediately so the pet is ready on first login -->
@@ -28,6 +28,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       :root {
@@ -102,7 +103,8 @@
       transition: opacity 0.25s ease;
     }
     #splash.hidden { opacity: 0; pointer-events: none; }
-    #splash-logo {
+    #splash-logo { display: flex; align-items: center; justify-content: center; }
+    #splash-logo-old {
       width: 88px; height: 88px; border-radius: 22px;
       background: #1E2128; display: flex; align-items: center; justify-content: center;
       font-size: 52px;
@@ -123,9 +125,9 @@
   </style>
   <body>
     <div id="splash">
-      <div id="splash-logo">🍅</div>
-      <div id="splash-title">TOMAT</div>
-      <div id="splash-sub">Tantangan Otak Matematika</div>
+      <div id="splash-logo"><img src="/logo-smartisa.png" alt="SMARTISA" style="width:72px;height:72px;object-fit:contain;border-radius:16px;" /></div>
+      <div id="splash-title">SMARTISA</div>
+      <div id="splash-sub">Platform Pembelajaran TISA</div>
       <div id="splash-dots"><span></span><span></span><span></span></div>
     </div>
     <div id="root"></div>

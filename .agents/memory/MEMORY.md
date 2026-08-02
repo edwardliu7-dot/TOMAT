@@ -1,3 +1,4 @@
+- [SMARTISA rebrand](smartisa-rebrand.md) — platform resmi berganti nama ke SMARTISA; sub-modul: TOMAT (siswa), BLP, GURU (dahulu EOB5); route key internal tetap eob5-*.
 - [TOMAT curriculum structure](tomat-curriculum.md) — Grade 7: 20 games (BAB I–III); Grade 8: 38 games (BAB I–VII, IV=Pola Bilangan, V=Bangun Datar, VI=Statistika, VII=Peluang); Grade 9: 31 games (BAB I–V, IV=Transformasi Geometri, V=Statistika & Peluang). All game files exist; catalog+zone screens updated.
 - [TOMAT G8/G9 game conventions](tomat-g8g9-game-conventions.md) — transformation games frame questions so slider answers are always positive integers; stat games generate integer means by computing the Nth value from a pre-chosen mean; probability games use dice (n(S)=6) or coins (n(S)=4) with integer n(A) answers.
 - [TOMAT fraction game data integrity](tomat-fraction-integrity.md) — hardcoded wrong-answer arrays must never include values equivalent to the correct answer (e.g. 2/6 ≡ 1/3); always verify before shipping.
@@ -33,3 +34,5 @@
 - [TOMAT event mission system](tomat-event-missions.md) — 3-misi Kemerdekaan (17 soal benar → bingkai, 8 duel menang → spanduk, keduanya → kelinsay merahputih); items missionOnly=true, harga=0; progress hooked di player/gain + duel finishGame.
 - [TOMAT event mission hooks](tomat-event-mission-hooks.md) — duel & tournament correct answers must hook incrementMissionProgress directly (not via /gain); duel win coins awarded server-side, client uses syncCoins() not addCoins().
 - [TOMAT mission progress notification](tomat-mission-progress-notif.md) — MissionProgressToast + MissionClaimNotification; EVENT_MISSIONS hanya boleh diimport di event-missions.js + gameplay-events.js; caller terima Array<MissionDelta> terformat.
+- [SMARTISA server URLs](smartisa-server-urls.md) — URL produksi per modul di Coolify: TOMAT/GURU(EOB5)/BLP; TOMAT URL sudah di nativePatch.js.
+- [GuruEOB5 table naming](tomat-gurueob5-table-naming.md) — JANGAN prefix eob5_ pada tabel; gunakan nama lama (teacher_id bukan guru_id di subjects/journal_entries/prosem/tujuan_pembelajaran; created_by di academic_calendars); nilai_guru bukan nilai (conflict TOMAT).

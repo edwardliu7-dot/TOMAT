@@ -25,12 +25,20 @@ function swVersionPlugin() {
 
 export default defineConfig({
   plugins: [react(), swVersionPlugin()],
+  resolve: {
+    alias: {
+      // @capacitor/local-notifications is only available in the native APK build.
+      // In browser/dev mode, resolve to a no-op stub so Vite doesn't error out.
+      '@capacitor/local-notifications': resolve('./src/stubs/capacitor-local-notifications.js'),
+    },
+  },
   server: {
     host: '0.0.0.0',
     port: 5000,
     allowedHosts: true,
   },
   build: {
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
         manualChunks(id) {

@@ -1,6 +1,7 @@
-# TOMAT – Tantangan Otak MATematika
+# SMARTISA – Platform Pembelajaran TISA
 
-Game RPG Edukasi berbasis web untuk pelajar matematika SMP (Kelas 7–9).
+Platform pembelajaran resmi guru dan siswa SMP TISA Islamic School.
+Terdiri dari tiga modul: **TOMAT** (belajar siswa), **BLP** (jurnal harian), dan **GURU** (administrasi guru).
 
 ## Stack
 - React 18 + Vite

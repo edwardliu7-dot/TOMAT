@@ -2089,8 +2089,9 @@ function TurnamenTab({ kelasDiampu }) {
                 const gameEmoji = gameLabel.split(' ')[0]
                 const gameName  = gameLabel.split(' ').slice(1).join(' ')
                 const isFinished = h.status === 'finished'
-                const date = new Date(h.finished_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-                const time = new Date(h.finished_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                const finishedDate = h.finished_at ? new Date(h.finished_at) : null
+                const date = finishedDate && !isNaN(finishedDate) ? finishedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : null
+                const time = finishedDate && !isNaN(finishedDate) ? finishedDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null
                 return (
                   <div key={h.id} style={{
                     background: '#111827', borderRadius: 12,
@@ -2237,10 +2238,9 @@ function useIsDesktop() {
 
 // ── Guru Home Overview Tab ────────────────────────────────────────────────────
 function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSelectTab, hideHeader = false }) {
-  const [tugas, setTugas]       = useState([])
-  const [students, setStudents] = useState([])
-  const [nilaiList, setNilai]   = useState([])
-  const [loading, setLoading]   = useState(true)
+  const [tugas, setTugas]             = useState([])
+  const [homeStats, setHomeStats]     = useState(null)   // { studentsByClass, studentCount, nilaiCount, avgScore }
+  const [loading, setLoading]         = useState(true)
   const [activeClass, setActiveClass] = useState('Semua kelas')
   const isDesktop = useIsDesktop()
 
@@ -2248,16 +2248,17 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
     setLoading(true)
     Promise.all([
       apiCall('/api/guru/tugas').then(d => setTugas(d.tugas || [])),
-      apiCall('/api/guru/students').then(d => setStudents(d.students || [])),
-      apiCall('/api/guru/nilai').then(d => setNilai(d.nilai || [])),
+      apiCall('/api/guru/home-stats').then(d => setHomeStats(d)),
     ]).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   const classes = ['Semua kelas', ...kelasDiampu]
   const filteredTugas = activeClass === 'Semua kelas' ? tugas : tugas.filter(t => t.kelas === activeClass)
   const activeTugas   = tugas.filter(t => t.status === 'active')
-  const avgScore      = nilaiList.length > 0
-    ? (nilaiList.reduce((s, n) => s + n.score, 0) / nilaiList.length).toFixed(1).replace('.', ',')
+  const studentCount  = homeStats?.studentCount ?? 0
+  const nilaiCount    = homeStats?.nilaiCount ?? 0
+  const avgScore      = nilaiCount > 0
+    ? String(homeStats.avgScore).replace('.', ',')
     : '—'
 
   const nama     = user?.name || 'Guru'
@@ -2266,10 +2267,10 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
   const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })
 
   const metrics = [
-    { label: 'Siswa',      value: students.length,          detail: `${kelasDiampu.length} kelas`,          icon: '👥', accent: '#9fe3bd',  bg: 'rgba(159,227,189,0.12)' },
-    { label: 'Tugas Aktif', value: activeTugas.length,      detail: 'berjalan',                              icon: '📋', accent: '#d7c7ff',  bg: 'rgba(215,199,255,0.12)' },
-    { label: 'Rata-rata',   value: avgScore,                 detail: nilaiList.length > 0 ? `${nilaiList.length} nilai` : 'Belum ada', icon: '🎓', accent: '#f5cf9c', bg: 'rgba(245,207,156,0.12)' },
-    { label: 'Kelas',       value: kelasDiampu.length,       detail: kelasDiampu[0] || '—',                  icon: '📅', accent: '#67E8F9',  bg: 'rgba(103,232,249,0.12)' },
+    { label: 'Siswa',      value: studentCount,             detail: `${kelasDiampu.length} kelas`,                              icon: '👥', accent: '#9fe3bd',  bg: 'rgba(159,227,189,0.12)' },
+    { label: 'Tugas Aktif', value: activeTugas.length,      detail: 'berjalan',                                                  icon: '📋', accent: '#d7c7ff',  bg: 'rgba(215,199,255,0.12)' },
+    { label: 'Rata-rata',   value: avgScore,                 detail: nilaiCount > 0 ? `${nilaiCount} nilai` : 'Belum ada',        icon: '🎓', accent: '#f5cf9c', bg: 'rgba(245,207,156,0.12)' },
+    { label: 'Kelas',       value: kelasDiampu.length,       detail: kelasDiampu[0] || '—',                                      icon: '📅', accent: '#67E8F9',  bg: 'rgba(103,232,249,0.12)' },
   ]
 
   const classColor = (kelas) => {
@@ -2290,7 +2291,7 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
           Selamat {greeting}, <span style={{ color: '#9fe3bd' }}>{nama.split(' ')[0]}.</span>
         </h1>
         <p style={{ fontSize: 12, color: '#64748B', marginTop: 6 }}>
-          {loading ? 'Memuat data kelas…' : `${kelasDiampu.length} kelas · ${activeTugas.length} tugas aktif · ${students.length} siswa`}
+          {loading ? 'Memuat data kelas…' : `${kelasDiampu.length} kelas · ${activeTugas.length} tugas aktif · ${studentCount} siswa`}
         </p>
       </div>
 
@@ -2401,7 +2402,7 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
             {kelasDiampu.map((kelas, idx) => {
               const colorPairs = [['#9fe3bd','rgba(159,227,189,0.1)'],['#d7c7ff','rgba(215,199,255,0.1)'],['#f5cf9c','rgba(245,207,156,0.1)'],['#67E8F9','rgba(103,232,249,0.1)']]
               const [accent, bg] = colorPairs[idx % 4]
-              const cnt = students.filter(s => s.kelas === kelas).length
+              const cnt = homeStats?.studentsByClass?.[kelas] ?? 0
               const aktif = activeTugas.filter(t => t.kelas === kelas).length
               return (
                 <button key={kelas} onClick={() => onSelectTab('siswa')} style={{
@@ -2478,6 +2479,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   useEffect(() => {
     const handler = (e) => {
       const key = e.detail?.key
+      if (key === 'profile') { setView('profile'); return }
       const nextTab = {
         guruDashboard: 'home',
         guruTugas: 'tugas',
@@ -2584,7 +2586,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
               <span style={{ width: 34, height: 34, borderRadius: 10, background: '#9fe3bd', color: '#0b2c2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 10, letterSpacing: '-0.05em', flexShrink: 0 }}>TM</span>
               <div>
-                <div style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.12em', color: '#9fe3bd', textTransform: 'uppercase' }}>TOMAT</div>
+                <div style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.12em', color: '#9fe3bd', textTransform: 'uppercase' }}>SMARTISA</div>
                 <div style={{ fontSize: 11, color: '#64748B' }}>Ruang Guru</div>
               </div>
             </div>
@@ -2674,52 +2676,25 @@ export default function GuruDashboardScreen({ onPlayGames }) {
     )
   }
 
-  // ── Mobile layout — fixed shell: topbar + scroll area + bottom nav ──
+  // ── Mobile layout — fully fixed shell ──
+  // AppShell header is fixed at top (64px). Bottom nav is fixed at bottom.
+  // Scrollable content fills the space between them via fixed inset positioning.
+  // This mirrors the siswa AppShell pattern and is immune to height arithmetic errors.
+  const navBottom = 'calc(56px + max(18px, env(safe-area-inset-bottom)))'
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: '#0A0B14', overflow: 'hidden', touchAction: 'pan-y' }}>
+    <div style={{ position: 'fixed', inset: 0, background: '#0A0B14', zIndex: 0 }}>
       {/* Background blobs */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
         <div style={{ position: 'absolute', top: '-10%', right: '-15%', width: '60%', height: '45%', borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(100px)' }} />
         <div style={{ position: 'absolute', bottom: '20%', left: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(16,185,129,0.08)', filter: 'blur(100px)' }} />
       </div>
 
-      {/* ── Fixed Topbar ── */}
+      {/* ── Scrollable Content — fixed between header and bottom nav ── */}
       <div style={{
-        flexShrink: 0, position: 'relative', zIndex: 10,
-        padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10,
-        background: 'rgba(10,11,20,0.97)', backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        position: 'fixed', top: 64, left: 0, right: 0, bottom: navBottom,
+        overflowY: 'auto', overflowX: 'hidden',
+        zIndex: 1, WebkitOverflowScrolling: 'touch', touchAction: 'pan-y',
       }}>
-        {/* Logo */}
-        <span style={{
-          width: 34, height: 34, borderRadius: 10, background: '#9fe3bd', color: '#0b2c2a',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 900, fontSize: 10, letterSpacing: '-0.05em', flexShrink: 0,
-        }}>TM</span>
-
-        {/* Tab title */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            <span style={{ fontSize: 16 }}>{currentTabInfo?.label}</span>
-            <span>{tab === 'home' ? 'Dashboard Guru' : currentTabInfo?.text}</span>
-          </div>
-          <div style={{ fontSize: 10, color: '#A78BFA', fontWeight: 600, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {user?.name} · {kelasDiampu.join(', ') || 'Guru'}
-          </div>
-        </div>
-
-        <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} suppress={tab === 'komunikasi'} />
-        <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} />
-
-        <button onClick={onPlayGames} style={{
-          background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)',
-          color: '#34D399', borderRadius: 16, padding: '6px 10px', cursor: 'pointer',
-          fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0,
-        }}>🎮</button>
-      </div>
-
-      {/* ── Scrollable Content ── */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', position: 'relative', zIndex: 1, WebkitOverflowScrolling: 'touch' }}>
         {tab !== 'home' && (
           <div style={{ padding: '16px 16px 0' }}>
             {tabContent}
@@ -2732,7 +2707,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
 
       {/* ── Fixed Bottom Nav ── */}
       <nav style={{
-        flexShrink: 0, position: 'relative', zIndex: 10,
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10,
         display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
         paddingTop: 4, paddingBottom: 'max(18px, env(safe-area-inset-bottom))',
         paddingLeft: 4, paddingRight: 4,

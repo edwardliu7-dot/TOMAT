@@ -922,7 +922,7 @@ function notificationLabel(notification) {
   if (notification.type === 'tugas_baru') return '📝 Tugas baru'
   if (notification.type === 'nilai_baru') return '⭐ Nilai baru'
   if (notification.type === 'hafalan') return '🧮 Hafalan'
-  return '🔔 Informasi TOMAT'
+  return '🔔 Informasi SMARTISA'
 }
 
 export function AppNotificationBell({ onCommunicationClick }) {

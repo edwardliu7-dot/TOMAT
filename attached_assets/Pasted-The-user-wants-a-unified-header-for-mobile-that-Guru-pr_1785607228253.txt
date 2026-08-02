@@ -1,0 +1,31 @@
+The user wants a unified header for mobile that:
+
+Guru: profile photo + name + jabatan/kelas + AppSwitcher + notifications
+Siswa: profile photo + name + kelas + poin/EXP/koin + AppSwitcher + notifications
+Clicking profile photo → TOMAT profile screen
+All 3 apps (TOMAT, BLP, EOB5) share this same header
+Let me also look at:
+
+How to get jabatan for guru from user object
+How to get koin/EXP/level for siswa from PlayerContext
+The GuruDashboardScreen's existing header to understand what to suppress
+What user.kelas contains for guru (it's kelas_diampu from the auth setup)
+Now I need to modify AppShell.jsx to create this unified top header for mobile, using the existing UserAvatar and notification bell components from shared.jsx, then display the appropriate user info based on role and handle navigation to the profile screen.
+
+I'm also checking where jabatan comes from in the user object — looking at the auth sanitization, it doesn't seem to be included for guru, so I need to verify if that field exists in the database. For siswa, I'll pull coins, level, and exp from PlayerContext.
+
+I also need to figure out how to hide the GuruDashboardScreen's header on mobile since AppShell will be providing it instead. Looking at the sanitizeUser function, I see that jabatan isn't included in the user session data—for guru users, the kelas field actually maps to kelas_diampu (their assigned classes). The coins and experience data come from PlayerContext, which only wraps siswa content, so AppShell won't have access to those metrics when it's rendered outside that context.
+
+Checking the app structure more carefully, AppShell is used for both guru and siswa routes, but PlayerContext is only available for siswa. So I need to figure out how to pass the coins data to AppShell when it's being used for siswa—either by lifting the context higher or passing it as a prop. So PlayerExperience wraps AppShell for siswa, which means I can safely use the usePlayer() hook inside AppShell in that context. For guru though, PlayerContext won't exist, so I need a way to handle that gracefully—either by checking the user role before calling the hook, or creating a wrapper that safely accesses the context only when it's available. The challenge is that React hooks can't be called conditionally, so I'll need to think through the best pattern here.
+
+I'm leaning toward creating a separate SiswaPlayerInfo component that lives inside AppShell and only renders when the user is a siswa, keeping the usePlayer() call isolated to that component. For the guru header, I'll need to figure out what to display for the jabatan field—either pull it from the session during auth or just show the kelas diampu instead. For guru, kelas maps to kelas_diampu from the database, which could be stored as an array or JSON string, so I'll handle both cases by joining if it's an array or displaying as-is if it's a string. Now I'm planning the AppShell changes: I need to import the avatar and notification components, create a SiswaInfo subcomponent that pulls player data like coins, level, and experience, and set up the layout structure.
+
+Writing component structure... I'm checking how the navigate function works for guru mode—it dispatches a custom event with the navigation key, and I need to trace where that event gets handled to understand how profile navigation works in the guru context. just use navigate('profile') for both siswa and guru since the GuruDashboardScreen has an onGoProfile callback that handles the navigation internally. I see there's a tab system in GuruDashboardScreen with different tabs like 'home' and 'komunikasi', so I should check if there's a 'profil' or 'profile' tab available. For now, I'll keep it simple and use navigate('profile') for both roles—if the guru event handler doesn't recognize it, we can refine the approach later.
+
+Looking at the guru navigation function, when a key like 'profile' is passed, it dispatches a custom event tomat:guru-nav that GuruDashboardScreen listens to and handles accordingly. I should search for how GuruDashboardScreen responds to this event to understand the full routing flow.
+
+Let me move forward with the implementation. I'm deciding to use navigate('profile') for siswa and navigate('profil-saya') for guru, with a SiswaInfo component to display coins and level. The AppShell will have a unified header design with the user avatar, message notifications, and app notifications.
+
+Writing component structure... Now I'm thinking about the header visibility on mobile—the GuruDashboardScreen already has its own header with the TM logo and tabs, so we need to avoid duplicating that when AppShell adds a mobile header. The simplest approach is to check the window width directly in GuruDashboardScreen and conditionally hide its header, or leverage the existing hideHeader prop that's already being passed to GuruHomeTab. I'm thinking through the simplest approach: just add a CSS rule that hides the GuruDashboardScreen's header when the mobile header is active, but I need to figure out what selector to target since that header element doesn't have a specific class name. The GuruDashboardScreen header contains the logo, notification bells, and other controls, which would duplicate what AppShell now provides on mobile. I'll create a context to pass a flag from AppShell down to GuruDashboardScreen so it can conditionally hide its own header when the mobile header is active.
+
+Setting up context provider... I need to locate where the header is being rendered in the main GuruDashboardScreen component so I can conditionally hide it based on the context value.

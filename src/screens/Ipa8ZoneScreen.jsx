@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { TopBar, PlayerHeader } from '../components/shared'
+import { GAMES_CATALOG } from '../gamesCatalog'
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -14,69 +15,37 @@ function useIsDesktop() {
 const ACCENT = '#3b82f6'
 
 const BABS = [
-  {
-    id: 'I',
-    color: '#3b82f6',
-    label: 'BAB I: Pengenalan Sel',
-    missions: [
-      {
-        key: 'ipa8sel',
-        emoji: '🔬',
-        title: 'Microscope Explorer & Cell Builder',
-        desc: 'Gunakan virtual mikroskop, bedakan sel hewan dan tumbuhan, dan kenali fungsi setiap organel.',
-      },
-    ],
-  },
-  {
-    id: 'II',
-    color: '#ec4899',
-    label: 'BAB II: Pencernaan & Peredaran Darah',
-    missions: [
-      {
-        key: 'ipa8pencernaan',
-        emoji: '🩸',
-        title: 'Nutrient Test & Blood Transfusion Master',
-        desc: 'Uji kandungan makanan dengan reagen, identifikasi golongan darah, dan kuasai aturan transfusi.',
-      },
-    ],
-  },
-  {
-    id: 'III',
-    color: '#06b6d4',
-    label: 'BAB III: Pernapasan & Ekskresi',
-    missions: [
-      {
-        key: 'ipa8pernapasan',
-        emoji: '🫁',
-        title: 'Respiration & Kidney Factory',
-        desc: 'Pahami mekanisme inspirasi/ekspirasi, pertukaran gas di alveolus, dan 3 tahap pembentukan urin.',
-      },
-    ],
-  },
+  { id: 'I',   color: '#3b82f6', label: 'BAB I: Pengenalan Sel',                    keys: ['ipa8b1t1','ipa8b1t2','ipa8b1t3','ipa8b1t4','ipa8b1t5'] },
+  { id: 'II',  color: '#ec4899', label: 'BAB II: Pencernaan & Peredaran Darah',     keys: ['ipa8b2t1','ipa8b2t2','ipa8b2t3','ipa8b2t4','ipa8b2t5','ipa8b2t6','ipa8b2t7','ipa8b2t8'] },
+  { id: 'III', color: '#06b6d4', label: 'BAB III: Pernapasan & Ekskresi',           keys: ['ipa8b3t1','ipa8b3t2','ipa8b3t3','ipa8b3t4','ipa8b3t5','ipa8b3t6','ipa8b3t7'] },
 ]
 
-function GameCard({ mission, babColor, onClick, desktop }) {
+const CATALOG_MAP = Object.fromEntries(GAMES_CATALOG.map(g => [g.key, g]))
+const TOTAL = BABS.reduce((s, b) => s + b.keys.length, 0)
+
+function GameCard({ gameKey, babColor, onClick, desktop }) {
+  const g = CATALOG_MAP[gameKey] || {}
   return (
     <div
       onClick={onClick}
       style={{
         background: '#1E2128',
         borderRadius: 14,
-        border: `1px solid rgba(255,255,255,0.08)`,
+        border: '1px solid rgba(255,255,255,0.08)',
         padding: desktop ? '16px' : '14px',
         cursor: 'pointer',
-        display: 'flex', gap: 12, alignItems: 'flex-start',
+        display: 'flex', gap: 12, alignItems: 'center',
         transition: 'all 0.15s',
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = babColor; e.currentTarget.style.transform = 'translateY(-1px)' }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = '' }}
     >
-      <div style={{ fontSize: desktop ? 32 : 28, flexShrink: 0, lineHeight: 1 }}>{mission.emoji}</div>
+      <div style={{ fontSize: desktop ? 30 : 26, flexShrink: 0, lineHeight: 1 }}>{g.emoji}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 3 }}>{mission.title}</div>
-        <div style={{ fontSize: 12, color: '#94A3B8', lineHeight: 1.5 }}>{mission.desc}</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 2 }}>{g.name}</div>
+        <div style={{ fontSize: 11, color: babColor, fontWeight: 600 }}>TP {g.tp}</div>
       </div>
-      <div style={{ flexShrink: 0, color: babColor, fontSize: 16, paddingTop: 4 }}>▶</div>
+      <div style={{ flexShrink: 0, color: babColor, fontSize: 16 }}>▶</div>
     </div>
   )
 }
@@ -92,7 +61,7 @@ export default function Ipa8ZoneScreen({ navigate, goBack }) {
         <PlayerHeader />
         <TopBar title="🔬 IPA Kelas 8 — Lab Biologi" onBack={goBack} accentColor={ACCENT} />
         <div style={{ padding: '0 16px 40px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
-          <div style={{ fontSize: 12, color: ACCENT, fontWeight: 600, marginBottom: 4 }}>KELAS 8 · 3 GAME IPA</div>
+          <div style={{ fontSize: 12, color: ACCENT, fontWeight: 600, marginBottom: 4 }}>KELAS 8 · {TOTAL} GAME IPA</div>
           <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 4 }}>Selami dunia sel dan sistem organ manusia!</div>
           {BABS.map(bab => (
             <div key={bab.id}>
@@ -101,8 +70,8 @@ export default function Ipa8ZoneScreen({ navigate, goBack }) {
                 <div style={{ height: 2, background: `linear-gradient(90deg, ${bab.color}, transparent)`, borderRadius: 2, marginTop: 6 }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {bab.missions.map(m => (
-                  <GameCard key={m.key} mission={m} babColor={bab.color} onClick={() => navigate(m.key)} />
+                {bab.keys.map(k => (
+                  <GameCard key={k} gameKey={k} babColor={bab.color} onClick={() => navigate(k)} />
                 ))}
               </div>
             </div>
@@ -117,7 +86,7 @@ export default function Ipa8ZoneScreen({ navigate, goBack }) {
       <TopBar title="🔬 IPA Kelas 8 — Lab Biologi" onBack={goBack} accentColor={ACCENT} />
       <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', padding: '16px var(--page-pad) 40px' }}>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12, color: ACCENT, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>KELAS 8 · 3 GAME IPA</div>
+          <div style={{ fontSize: 12, color: ACCENT, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>KELAS 8 · {TOTAL} GAME IPA</div>
           <div style={{ fontSize: 13, color: '#94A3B8', marginTop: 2 }}>Selami dunia sel dan sistem organ manusia!</div>
         </div>
         <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
@@ -134,7 +103,7 @@ export default function Ipa8ZoneScreen({ navigate, goBack }) {
               }}
             >
               <div style={{ fontSize: 13, fontWeight: 800 }}>Semua Bab</div>
-              <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>3 game</div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{TOTAL} game</div>
             </button>
             {BABS.map(bab => {
               const isActive = selectedBab === bab.id
@@ -152,7 +121,7 @@ export default function Ipa8ZoneScreen({ navigate, goBack }) {
                   }}
                 >
                   <div style={{ fontSize: 13, fontWeight: 800 }}>{bab.label}</div>
-                  <div style={{ fontSize: 11, color: bab.color, marginTop: 3 }}>{bab.missions.length} game</div>
+                  <div style={{ fontSize: 11, color: bab.color, marginTop: 3 }}>{bab.keys.length} game</div>
                 </button>
               )
             })}
@@ -162,8 +131,8 @@ export default function Ipa8ZoneScreen({ navigate, goBack }) {
               <div key={bab.id} style={{ marginBottom: 24 }}>
                 <div style={{ fontSize: 12, color: bab.color, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>{bab.label}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {bab.missions.map(m => (
-                    <GameCard key={m.key} mission={m} babColor={bab.color} onClick={() => navigate(m.key)} desktop />
+                  {bab.keys.map(k => (
+                    <GameCard key={k} gameKey={k} babColor={bab.color} onClick={() => navigate(k)} desktop />
                   ))}
                 </div>
               </div>

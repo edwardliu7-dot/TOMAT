@@ -62,21 +62,78 @@ export const GAMES_CATALOG = [
   { key: 'g9bintang',      name: 'Kompresi Inti Bintang',         emoji: '⭐',  bab: 'III', grade: 9, subject: 'matematika' },
   { key: 'g9upgradekapal', name: 'Upgrade Kapal Induk',           emoji: '🚀',  bab: 'III', grade: 9, subject: 'matematika' },
 
-  // IPA — Kelas 7
-  { key: 'ipa7pengukuran', name: 'Precision Measurement Lab',        emoji: '📏', bab: 'I',   grade: 7, subject: 'ipa' },
-  { key: 'ipa7zat',        name: 'Fluid & Molecular Quest',          emoji: '💧', bab: 'II',  grade: 7, subject: 'ipa' },
-  { key: 'ipa7suhu',       name: 'Thermal Control Center',           emoji: '🌡️', bab: 'III', grade: 7, subject: 'ipa' },
-  { key: 'ipa7gaya',       name: 'Physics Arena: Motion & Force',    emoji: '⚡', bab: 'IV',  grade: 7, subject: 'ipa' },
+  // ─── IPA Kelas 7 ─────────────────────────────────────────────────────────────
+  // BAB 1: Besaran dan Pengukuran
+  { key: 'ipa7b1t1', name: 'Unit Converter Dash',         emoji: '📏', bab: 'I',   tp: 1, grade: 7, subject: 'ipa' },
+  { key: 'ipa7b1t2', name: 'Baku vs Non-Baku Sort',       emoji: '⚖️', bab: 'I',   tp: 2, grade: 7, subject: 'ipa' },
+  { key: 'ipa7b1t3', name: 'Lab Measurement Simulator',   emoji: '🔬', bab: 'I',   tp: 3, grade: 7, subject: 'ipa' },
 
-  // IPA — Kelas 8
-  { key: 'ipa8sel',        name: 'Microscope Explorer & Cell Builder',emoji: '🔬', bab: 'I',   grade: 8, subject: 'ipa' },
-  { key: 'ipa8pencernaan', name: 'Nutrient Test & Blood Transfusion', emoji: '🩸', bab: 'II',  grade: 8, subject: 'ipa' },
-  { key: 'ipa8pernapasan', name: 'Respiration & Kidney Factory',      emoji: '🫁', bab: 'III', grade: 8, subject: 'ipa' },
+  // BAB 2: Zat dan Perubahannya
+  { key: 'ipa7b2t1', name: 'Matter Inspector',            emoji: '🧪', bab: 'II',  tp: 1, grade: 7, subject: 'ipa' },
+  { key: 'ipa7b2t2', name: 'Phase Change Master',         emoji: '❄️', bab: 'II',  tp: 2, grade: 7, subject: 'ipa' },
+  { key: 'ipa7b2t3', name: 'Cohesion vs Adhesion Lab',    emoji: '💧', bab: 'II',  tp: 3, grade: 7, subject: 'ipa' },
+  { key: 'ipa7b2t4', name: 'Capillary Tube Challenge',    emoji: '🌿', bab: 'II',  tp: 4, grade: 7, subject: 'ipa' },
 
-  // IPA — Kelas 9
-  { key: 'ipa9koordinasi', name: 'Homeostasis Balancer',             emoji: '🧠', bab: 'I',   grade: 9, subject: 'ipa' },
-  { key: 'ipa9adiktif',    name: 'Body Defender: Say No to Drugs',   emoji: '🛡️', bab: 'II',  grade: 9, subject: 'ipa' },
-  { key: 'ipa9reproduksi', name: 'Life Cycle & Propagation Match',   emoji: '🌱', bab: 'III', grade: 9, subject: 'ipa' },
+  // BAB 3: Suhu, Pemuaian, dan Kalor
+  { key: 'ipa7b3t1', name: 'Thermometer Reader',          emoji: '🌡️', bab: 'III', tp: 1, grade: 7, subject: 'ipa' },
+  { key: 'ipa7b3t2', name: 'Temperature Converter Wheel', emoji: '🔄', bab: 'III', tp: 2, grade: 7, subject: 'ipa' },
+  { key: 'ipa7b3t3', name: 'Thermal Expansion Builder',   emoji: '🔩', bab: 'III', tp: 3, grade: 7, subject: 'ipa' },
+
+  // BAB 4: Gaya dan Gerak
+  { key: 'ipa7b4t1', name: 'Force Application Quest',     emoji: '💪', bab: 'IV',  tp: 1, grade: 7, subject: 'ipa' },
+  { key: 'ipa7b4t2', name: 'Resultant Tug of War',        emoji: '⚖️', bab: 'IV',  tp: 2, grade: 7, subject: 'ipa' },
+  { key: 'ipa7b4t3', name: 'Motion Classifier',           emoji: '🏃', bab: 'IV',  tp: 3, grade: 7, subject: 'ipa' },
+  { key: 'ipa7b4t4', name: 'Speed vs Velocity Pilot',     emoji: '✈️', bab: 'IV',  tp: 4, grade: 7, subject: 'ipa' },
+  { key: 'ipa7b4t5', name: "Newton's Law Arena",           emoji: '⚡', bab: 'IV',  tp: 5, grade: 7, subject: 'ipa' },
+
+  // ─── IPA Kelas 8 ─────────────────────────────────────────────────────────────
+  // BAB 1: Pengenalan Sel
+  { key: 'ipa8b1t1', name: 'History Timeline Puzzle',     emoji: '🕰️', bab: 'I',   tp: 1, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b1t2', name: 'Microscope Selector',         emoji: '🔭', bab: 'I',   tp: 2, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b1t3', name: 'Cell Organelle Sorter',       emoji: '🧫', bab: 'I',   tp: 3, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b1t4', name: 'Specialized Cell Match',      emoji: '🔬', bab: 'I',   tp: 4, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b1t5', name: 'Stem Cell Regenerator',       emoji: '🌱', bab: 'I',   tp: 5, grade: 8, subject: 'ipa' },
+
+  // BAB 2: Sistem Pencernaan dan Peredaran Darah
+  { key: 'ipa8b2t1', name: 'Nutritional Plate Balance',   emoji: '🥗', bab: 'II',  tp: 1, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b2t2', name: 'Virtual Food Reagent Test',   emoji: '🧪', bab: 'II',  tp: 2, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b2t3', name: 'Digestive Track Runner',      emoji: '🫁', bab: 'II',  tp: 3, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b2t4', name: 'Digestive Hospital Clinic',   emoji: '🏥', bab: 'II',  tp: 4, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b2t5', name: 'Circulatory System Navigator',emoji: '❤️', bab: 'II',  tp: 5, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b2t6', name: 'Blood Component Defender',    emoji: '🩸', bab: 'II',  tp: 6, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b2t7', name: 'Blood Transfusion Match',     emoji: '💉', bab: 'II',  tp: 7, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b2t8', name: 'Cardiovascular Healthy Life', emoji: '🫀', bab: 'II',  tp: 8, grade: 8, subject: 'ipa' },
+
+  // BAB 3: Sistem Pernapasan dan Ekskresi
+  { key: 'ipa8b3t1', name: 'Organ Anatomy Builder',       emoji: '🫀', bab: 'III', tp: 1, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b3t2', name: 'Organ Function Cards',        emoji: '🃏', bab: 'III', tp: 2, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b3t3', name: 'Breathing Mechanism Pump',    emoji: '🫁', bab: 'III', tp: 3, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b3t4', name: 'Alveoli Gas Exchange',        emoji: '💨', bab: 'III', tp: 4, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b3t5', name: 'Nephron Urine Factory',       emoji: '🧫', bab: 'III', tp: 5, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b3t6', name: 'Medical Case Analyzer',       emoji: '🩺', bab: 'III', tp: 6, grade: 8, subject: 'ipa' },
+  { key: 'ipa8b3t7', name: 'Healthy Habit Choice',        emoji: '🏃', bab: 'III', tp: 7, grade: 8, subject: 'ipa' },
+
+  // ─── IPA Kelas 9 ─────────────────────────────────────────────────────────────
+  // BAB 1: Sistem Koordinasi dan Homeostasis
+  { key: 'ipa9b1t1', name: 'Body Command Center',          emoji: '🧠', bab: 'I',   tp: 1, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b1t2', name: 'Neuron Network Relay',         emoji: '⚡', bab: 'I',   tp: 2, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b1t3', name: 'Hormone Gland Factory',        emoji: '🏭', bab: 'I',   tp: 3, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b1t4', name: 'Homeostasis Stabilizer',       emoji: '⚖️', bab: 'I',   tp: 4, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b1t5', name: 'Daily Stress Survival',        emoji: '🧘', bab: 'I',   tp: 5, grade: 9, subject: 'ipa' },
+
+  // BAB 2: Zat Adiktif dan Psikotropika
+  { key: 'ipa9b2t1', name: 'Addictive Substance Quiz',     emoji: '⚠️', bab: 'II',  tp: 1, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b2t2', name: 'Substance Categorizer',        emoji: '🗂️', bab: 'II',  tp: 2, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b2t3', name: 'Impact Simulator',             emoji: '💔', bab: 'II',  tp: 3, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b2t4', name: 'Substance Flashcards',         emoji: '🃏', bab: 'II',  tp: 4, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b2t5', name: 'Consequence Analyzer',         emoji: '📊', bab: 'II',  tp: 5, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b2t6', name: 'Say No Challenge',             emoji: '🛡️', bab: 'II',  tp: 6, grade: 9, subject: 'ipa' },
+
+  // BAB 3: Sistem Reproduksi
+  { key: 'ipa9b3t1', name: 'Reproductive Anatomy Puzzle',  emoji: '🧬', bab: 'III', tp: 1, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b3t2', name: 'Human Life Stages Timeline',   emoji: '👶', bab: 'III', tp: 2, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b3t3', name: 'Reproductive Health Guardian', emoji: '🏥', bab: 'III', tp: 3, grade: 9, subject: 'ipa' },
+  { key: 'ipa9b3t4', name: 'Flora & Fauna Breeder',        emoji: '🌱', bab: 'III', tp: 4, grade: 9, subject: 'ipa' },
 ]
 
 export const BAB_LABELS = {

@@ -447,7 +447,7 @@ export async function ensureSchema() {
     insert into students
       (id, username, name, password, kelas, email, whatsapp, is_test_account)
     values
-      ('tomat-demo', 'tomat_demo', 'TOMAT Demo', 'TomatDemo2026!', 'IX Al Khawarizmi',
+      ('tomat-demo', 'tomat', 'TOMAT Demo', '1234', 'IX Al Khawarizmi',
        'tomat-demo@tomat.local', '0000000000', true)
     on conflict (id) do update set
       username = excluded.username,
@@ -566,4 +566,486 @@ export async function ensureSchema() {
       [id, nama, deskripsi, icon, color, sortOrder]
     )
   }
+
+  // ── GuruEOB5 Tables ──────────────────────────────────────────────────────────
+  // Kolom tambahan di tabel gurus untuk EOB5 role management
+  await pool.query(`ALTER TABLE gurus ADD COLUMN IF NOT EXISTS jabatan text[] NOT NULL DEFAULT '{}'`)
+  await pool.query(`ALTER TABLE gurus ADD COLUMN IF NOT EXISTS wali_kelas_kelas text`)
+
+  // Tabel absensi harian siswa
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS absensi (
+      id          SERIAL PRIMARY KEY,
+      student_id  text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id     text NOT NULL REFERENCES gurus(id),
+      tanggal     DATE NOT NULL,
+      status      varchar(20) NOT NULL DEFAULT 'hadir',
+      keterangan  text,
+      created_at  TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE (student_id, tanggal)
+    )
+  `)
+
+  // Tabel mapping guru ke kelas + mata pelajaran
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS kelas_guru (
+      id             SERIAL PRIMARY KEY,
+      guru_id        text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      kelas          varchar(50) NOT NULL,
+      mata_pelajaran varchar(100),
+      tahun_ajaran   varchar(20),
+      UNIQUE (guru_id, kelas, mata_pelajaran)
+    )
+  `)
+
+  // Tabel nilai siswa EOB5 (Kurikulum Merdeka: formatif, sumatif_lm, sumatif_akhir)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS nilai_guru (
+      id             SERIAL PRIMARY KEY,
+      student_id     text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id        text REFERENCES gurus(id),
+      mata_pelajaran varchar(100),
+      jenis          varchar(30) NOT NULL DEFAULT 'formatif',
+      nilai          numeric(5,2),
+      keterangan     text,
+      tanggal        DATE NOT NULL DEFAULT CURRENT_DATE,
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  // Tabel poin perilaku siswa (positif/negatif)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS poin (
+      id          SERIAL PRIMARY KEY,
+      student_id  text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id     text REFERENCES gurus(id),
+      jenis       varchar(10) NOT NULL DEFAULT 'positif',
+      poin        integer NOT NULL DEFAULT 1,
+      keterangan  text,
+      tanggal     DATE NOT NULL DEFAULT CURRENT_DATE,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  // ── GuruEOB5 Tables (Bagian 2) ───────────────────────────────────────────────
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS nilai_akademik (
+      id             SERIAL PRIMARY KEY,
+      student_id     text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id        text REFERENCES gurus(id),
+      mata_pelajaran VARCHAR(100) NOT NULL,
+      jenis_nilai    VARCHAR(50) NOT NULL,
+      nilai          NUMERIC(5,2),
+      semester       VARCHAR(10),
+      tahun_ajaran   VARCHAR(20),
+      keterangan     TEXT,
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS materi (
+      id             SERIAL PRIMARY KEY,
+      guru_id        text REFERENCES gurus(id),
+      judul          VARCHAR(255) NOT NULL,
+      deskripsi      TEXT,
+      kelas          VARCHAR(50),
+      mata_pelajaran VARCHAR(100),
+      url_file       TEXT,
+      tipe           VARCHAR(50),
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS jadwal (
+      id             SERIAL PRIMARY KEY,
+      guru_id        text REFERENCES gurus(id),
+      kelas          VARCHAR(50) NOT NULL,
+      mata_pelajaran VARCHAR(100) NOT NULL,
+      hari           VARCHAR(20) NOT NULL,
+      jam_mulai      TIME NOT NULL,
+      jam_selesai    TIME NOT NULL,
+      ruangan        VARCHAR(50),
+      tahun_ajaran   VARCHAR(20)
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS kalender_akademik (
+      id              SERIAL PRIMARY KEY,
+      guru_id         text REFERENCES gurus(id),
+      judul           VARCHAR(255) NOT NULL,
+      deskripsi       TEXT,
+      tanggal_mulai   DATE NOT NULL,
+      tanggal_selesai DATE,
+      tipe            VARCHAR(50),
+      tahun_ajaran    VARCHAR(20),
+      created_at      TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS info_pekanan (
+      id             SERIAL PRIMARY KEY,
+      guru_id        text REFERENCES gurus(id),
+      kelas          VARCHAR(50),
+      minggu_ke      INTEGER NOT NULL,
+      judul          VARCHAR(255),
+      isi            TEXT,
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS prosem (
+      id             SERIAL PRIMARY KEY,
+      teacher_id     text REFERENCES gurus(id),
+      mata_pelajaran VARCHAR(100) NOT NULL,
+      kelas          VARCHAR(50) NOT NULL,
+      semester       INTEGER NOT NULL,
+      tahun_ajaran   VARCHAR(20) NOT NULL,
+      konten         JSONB,
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ai_soal_otomatis (
+      id         SERIAL PRIMARY KEY,
+      guru_id    text REFERENCES gurus(id),
+      topik      VARCHAR(255),
+      soal_json  JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS inbox (
+      id          SERIAL PRIMARY KEY,
+      pengirim_id text REFERENCES gurus(id),
+      judul       VARCHAR(255) NOT NULL,
+      isi         TEXT NOT NULL,
+      target_role VARCHAR(20) DEFAULT 'guru',
+      dibaca_oleh JSONB DEFAULT '[]',
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tujuan_pembelajaran (
+      id             SERIAL PRIMARY KEY,
+      teacher_id     text REFERENCES gurus(id),
+      mata_pelajaran VARCHAR(100) NOT NULL,
+      kelas          VARCHAR(50),
+      description    TEXT NOT NULL,
+      kode_tp        VARCHAR(50),
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS feedback_siswa (
+      id               SERIAL PRIMARY KEY,
+      student_id       text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id          text REFERENCES gurus(id),
+      isi              TEXT NOT NULL,
+      sudah_ditanggapi BOOLEAN DEFAULT FALSE,
+      tanggapan        TEXT,
+      created_at       TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+
+  // ── GuruEOB5 Tables (Bagian 3 — router baru) ─────────────────────────────────
+
+  // Kolom tambahan gurus
+  await pool.query(`ALTER TABLE gurus ADD COLUMN IF NOT EXISTS school text`)
+  await pool.query(`ALTER TABLE gurus ADD COLUMN IF NOT EXISTS mapel text[] NOT NULL DEFAULT '{}'`)
+
+  // Mata pelajaran per guru (soft-delete)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS subjects (
+      id         SERIAL PRIMARY KEY,
+      teacher_id text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      name       VARCHAR(255) NOT NULL,
+      deleted_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (teacher_id, name)
+    )
+  `)
+
+  // Jurnal mengajar
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS journal_entries (
+      id              SERIAL PRIMARY KEY,
+      teacher_id      text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      subject_id      int  REFERENCES subjects(id) ON DELETE SET NULL,
+      tanggal         DATE NOT NULL,
+      kelas           VARCHAR(50) NOT NULL,
+      materi          TEXT NOT NULL,
+      kd              TEXT,
+      jp              NUMERIC(4,1),
+      catatan         TEXT,
+      prosem_item_id  int,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+  await pool.query(`CREATE INDEX IF NOT EXISTS journal_guru_tanggal ON journal_entries (teacher_id, tanggal)`)
+
+  // Nilai siswa (formatif / sumatif_lm / sumatif_akhir)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS grades (
+      id              SERIAL PRIMARY KEY,
+      student_id      text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id         text REFERENCES gurus(id),
+      subject_id      int  REFERENCES subjects(id) ON DELETE SET NULL,
+      calendar_id     int,
+      jenis           VARCHAR(30) NOT NULL DEFAULT 'formatif',
+      lingkup_materi  INT,
+      nilai           NUMERIC(5,2),
+      keterangan      TEXT,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Poin perilaku siswa
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS student_points (
+      id         SERIAL PRIMARY KEY,
+      student_id text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      guru_id    text REFERENCES gurus(id),
+      jenis      VARCHAR(20) NOT NULL DEFAULT 'positif',
+      poin       INT NOT NULL DEFAULT 1,
+      keterangan TEXT,
+      tanggal    DATE NOT NULL DEFAULT CURRENT_DATE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Kalender akademik
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS academic_calendars (
+      id           SERIAL PRIMARY KEY,
+      created_by   text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      nama         VARCHAR(255) NOT NULL,
+      tahun_ajaran VARCHAR(20) NOT NULL,
+      semester     INT NOT NULL DEFAULT 1,
+      is_shared    BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Pekan efektif per kalender
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS academic_weeks (
+      id               SERIAL PRIMARY KEY,
+      calendar_id      int NOT NULL REFERENCES academic_calendars(id) ON DELETE CASCADE,
+      pekan_ke         INT NOT NULL,
+      tanggal_mulai    DATE NOT NULL,
+      tanggal_selesai  DATE NOT NULL,
+      jenis            VARCHAR(30) NOT NULL DEFAULT 'efektif',
+      UNIQUE (calendar_id, pekan_ke)
+    )
+  `)
+
+  // Item-item prosem (materi per pekan)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS prosem_items (
+      id         SERIAL PRIMARY KEY,
+      prosem_id  int NOT NULL REFERENCES prosem(id) ON DELETE CASCADE,
+      subject_id int REFERENCES subjects(id) ON DELETE SET NULL,
+      kelas      VARCHAR(50),
+      materi     TEXT NOT NULL,
+      kd         TEXT,
+      jp         NUMERIC(4,1),
+      urutan     INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Kolom tambahan tujuan_pembelajaran untuk mendukung fitur baru
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS subject_id int REFERENCES subjects(id) ON DELETE SET NULL`)
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS calendar_id int`)
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS lingkup_materi INT`)
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS tp_number INT`)
+
+  // Dokumen per mata pelajaran (base64 di DB)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS documents (
+      id          SERIAL PRIMARY KEY,
+      subject_id  int NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+      name        VARCHAR(255) NOT NULL,
+      description TEXT,
+      file_name   VARCHAR(255),
+      file_type   VARCHAR(100),
+      file_size   INT,
+      file_data   TEXT,
+      uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Modul ajar yang di-generate oleh AI
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ai_modul_ajar (
+      id            SERIAL PRIMARY KEY,
+      guru_id       text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      subject_id    int REFERENCES subjects(id) ON DELETE SET NULL,
+      materi        TEXT NOT NULL,
+      alokasi_waktu VARCHAR(50) NOT NULL,
+      kelas         VARCHAR(50),
+      content       JSONB,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Akun login siswa yang di-generate wali kelas
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS student_accounts (
+      id              SERIAL PRIMARY KEY,
+      student_id      text NOT NULL UNIQUE REFERENCES students(id) ON DELETE CASCADE,
+      eob5_username   VARCHAR(100) NOT NULL UNIQUE,
+      password_plain  VARCHAR(100) NOT NULL,
+      created_by      text REFERENCES gurus(id),
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Bahan ajar (PDF base64 atau link URL)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bahan_ajar (
+      id              SERIAL PRIMARY KEY,
+      judul           VARCHAR(255) NOT NULL,
+      mata_pelajaran  VARCHAR(100),
+      kelas           VARCHAR(50),
+      deskripsi       TEXT,
+      file_name       VARCHAR(255),
+      file_type       VARCHAR(100),
+      file_size       INT,
+      file_data       TEXT,
+      link_url        TEXT,
+      created_by      text REFERENCES gurus(id),
+      created_by_name VARCHAR(255),
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // Feedback guru ke pengembang aplikasi
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS feedback (
+      id                SERIAL PRIMARY KEY,
+      guru_id           text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      guru_name         VARCHAR(255),
+      kategori          VARCHAR(20) NOT NULL CHECK (kategori IN ('saran','kritik','bug')),
+      pesan             TEXT NOT NULL,
+      screenshot_base64 TEXT,
+      page_url          VARCHAR(500),
+      is_read           BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  // ── Kolom tambahan di tabel LAMA (tanpa prefix) untuk modul GURU ─────────────
+  // Tabel-tabel lama ini dipakai oleh standalone GuruEOB5 app dan sudah berisi data.
+  // Kolom baru ditambahkan agar modul GURU di SMARTISA bisa menggunakannya.
+
+  // grades: tambah guru_id + keterangan
+  await pool.query(`ALTER TABLE grades ADD COLUMN IF NOT EXISTS guru_id text`)
+  await pool.query(`ALTER TABLE grades ADD COLUMN IF NOT EXISTS keterangan text`)
+
+  // journal_entries: tambah kd + jp
+  await pool.query(`ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS kd text`)
+  await pool.query(`ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS jp NUMERIC(4,1)`)
+
+  // tujuan_pembelajaran: tambah mata_pelajaran, kelas, kode_tp
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS mata_pelajaran text`)
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS kelas text`)
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS kode_tp text`)
+
+  // academic_calendars: tambah nama + is_shared
+  await pool.query(`ALTER TABLE academic_calendars ADD COLUMN IF NOT EXISTS nama text`)
+  await pool.query(`ALTER TABLE academic_calendars ADD COLUMN IF NOT EXISTS is_shared boolean NOT NULL DEFAULT false`)
+
+  // prosem: tambah mata_pelajaran, semester, tahun_ajaran, konten
+  await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS mata_pelajaran text`)
+  await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS semester text`)
+  await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS tahun_ajaran text`)
+  await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS konten jsonb`)
+
+  // prosem_items: tambah subject_id, kelas, urutan (tabel lama hanya punya week_id, kd, materi, jp, catatan)
+  await pool.query(`ALTER TABLE prosem_items ADD COLUMN IF NOT EXISTS subject_id int REFERENCES subjects(id) ON DELETE SET NULL`)
+  await pool.query(`ALTER TABLE prosem_items ADD COLUMN IF NOT EXISTS kelas VARCHAR(50)`)
+  await pool.query(`ALTER TABLE prosem_items ADD COLUMN IF NOT EXISTS urutan INT NOT NULL DEFAULT 0`)
+
+  // ai_modul_ajar: tambah kelas
+  await pool.query(`ALTER TABLE ai_modul_ajar ADD COLUMN IF NOT EXISTS kelas text`)
+
+  // ai_soal_otomatis: tambah topik
+  await pool.query(`ALTER TABLE ai_soal_otomatis ADD COLUMN IF NOT EXISTS topik text`)
+
+  // student_accounts: tambah created_by; pastikan ada UNIQUE pada student_id
+  await pool.query(`ALTER TABLE student_accounts ADD COLUMN IF NOT EXISTS created_by text`)
+  await pool.query(`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE table_name='student_accounts' AND constraint_type='UNIQUE'
+        AND constraint_name='student_accounts_student_id_unique'
+      ) THEN
+        ALTER TABLE student_accounts ADD CONSTRAINT student_accounts_student_id_unique UNIQUE (student_id);
+      END IF;
+    END $$
+  `)
+
+  // ── BLP Harian Tables ────────────────────────────────────────────────────────
+  // Tabel-tabel ini sudah ada di Neon (dipakai BLP app yang berjalan terpisah).
+  // CREATE TABLE IF NOT EXISTS memastikan idempoten — tidak merusak data yang ada.
+
+  // Kolom tambahan di tabel shared students (BLP-specific fields)
+  await pool.query(`
+    ALTER TABLE students ADD COLUMN IF NOT EXISTS jenis_kelamin text
+      CHECK (jenis_kelamin IN ('L', 'P'))
+  `)
+  await pool.query(`
+    ALTER TABLE students ADD COLUMN IF NOT EXISTS quran_bookmark jsonb
+  `)
+
+  // Checklist harian BLP per siswa per tanggal
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS daily_records (
+      student_id          text        NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      record_date         date        NOT NULL,
+      completed_activities text[]     NOT NULL DEFAULT '{}',
+      score               integer,
+      submissions         jsonb       NOT NULL DEFAULT '{}',
+      updated_at          timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY (student_id, record_date)
+    )
+  `)
+
+  // Rentang hari aktif BLP per kelas per bulan (diatur guru wali kelas)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS blp_periods (
+      kelas      text        NOT NULL,
+      year       integer     NOT NULL,
+      month      integer     NOT NULL,
+      start_day  integer     NOT NULL,
+      end_day    integer     NOT NULL,
+      updated_by text,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY (kelas, year, month)
+    )
+  `)
+
+  // Pelacakan periode haid untuk siswa perempuan
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS haid_periods (
+      id         serial      PRIMARY KEY,
+      student_id text        NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      start_date date        NOT NULL,
+      end_date   date,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )
+  `)
 }

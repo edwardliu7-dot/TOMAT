@@ -21,7 +21,7 @@ async function getPlugin() {
   if (!window.Capacitor) return null
   if (_plugin) return _plugin
   try {
-    const mod = await import('@capacitor/local-notifications')
+    const mod = await import(/* @vite-ignore */ '@capacitor/local-notifications')
     _plugin = mod.LocalNotifications
     return _plugin
   } catch {
@@ -92,8 +92,8 @@ export async function createNotificationChannels() {
   try {
     await plugin.createChannel({
       id:          'tomat_default',
-      name:        'Notifikasi TOMAT',
-      description: 'Notifikasi umum dari TOMAT',
+      name:        'Notifikasi SMARTISA',
+      description: 'Notifikasi umum dari SMARTISA',
       importance:  4,   // HIGH
       sound:       'default',
       vibration:   true,
@@ -101,7 +101,7 @@ export async function createNotificationChannels() {
     await plugin.createChannel({
       id:          'tomat_game',
       name:        'Event Game',
-      description: 'Duel, turnamen, dan event game TOMAT',
+      description: 'Duel, turnamen, dan event game SMARTISA',
       importance:  5,   // MAX
       sound:       'default',
       vibration:   true,
