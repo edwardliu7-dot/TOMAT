@@ -94,7 +94,11 @@ router.get('/', requireGuru, async (req, res) => {
         kelasDiampu: kelasDiajarRes.rows.map(r => r.kelas),
       },
       rekapMingguIni: absensiRekapRes.rows.map(r => ({
-        tanggal: r.tanggal,
+        // node-postgres returns DATE columns as JS Date objects — serialize to
+        // YYYY-MM-DD string so the client can safely append "T00:00:00".
+        tanggal: r.tanggal instanceof Date
+          ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(r.tanggal)
+          : (typeof r.tanggal === 'string' ? r.tanggal.slice(0, 10) : null),
         total: parseInt(r.total),
         hadir: parseInt(r.hadir),
         tidakHadir: parseInt(r.tidak_hadir),

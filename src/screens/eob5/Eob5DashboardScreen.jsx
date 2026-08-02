@@ -112,12 +112,16 @@ function BarChart({ data }) {
         const total = d.total || 0;
         const pct = (total / max) * 100;
         const hadirPct = total > 0 ? (d.hadir / total) * 100 : 0;
-        const label = d.tanggal
-          ? new Intl.DateTimeFormat("id-ID", {
-              weekday: "short",
-              day: "numeric",
-            }).format(new Date(d.tanggal + "T00:00:00"))
-          : "";
+        const dt = d.tanggal ? new Date(d.tanggal + "T00:00:00") : null;
+        const label =
+          dt && !isNaN(dt.getTime())
+            ? new Intl.DateTimeFormat("id-ID", {
+                weekday: "short",
+                day: "numeric",
+              }).format(dt)
+            : d.tanggal
+              ? String(d.tanggal).slice(0, 10)
+              : "";
         return (
           <div
             key={i}
