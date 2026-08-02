@@ -24,14 +24,11 @@ function useIsDesktop() {
 
 const BLP_PRIMARY = '#10b981'
 
-function getSiswaFooterNav(user) {
-  const showHaid = user?.jenisKelamin !== 'L'
+function getSiswaFooterNav() {
   return [
-    ['blp-home',          '🏠', 'Beranda'],
-    ['blp-isi-aktivitas', '✅', 'Aktivitas'],
-    ['blp-riwayat',       '📋', 'Riwayat'],
-    ['blp-quran',         '📖', 'Al-Quran'],
-    ...(showHaid ? [['blp-haid', '🌸', 'Haid']] : []),
+    ['blp-home',       '🏠', 'Beranda'   ],
+    ['blp-kalender',   '📅', 'Kalender'  ],
+    ['blp-pengaturan', '⚙️', 'Pengaturan'],
   ]
 }
 
@@ -44,7 +41,7 @@ const GURU_FOOTER_NAV = [
 export default function BlpLayout({ user, navigate, currentScreen, onLogout, children }) {
   const isDesktop = useIsDesktop()
   const isGuru = user?.role === 'guru'
-  const footerNav = isGuru ? GURU_FOOTER_NAV : getSiswaFooterNav(user)
+  const footerNav = isGuru ? GURU_FOOTER_NAV : getSiswaFooterNav()
 
   return (
     <>
