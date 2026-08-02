@@ -1104,4 +1104,61 @@ export async function ensureSchema() {
       updated_at timestamptz NOT NULL DEFAULT now()
     )
   `)
+
+  // Index untuk performa query daily_records per siswa per tanggal
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_daily_records_student_date
+      ON daily_records (student_id, record_date)
+  `)
+
+  // ── Migrasi ID aktivitas BLP ke ID kanonik GitHub ─────────────────────────
+  // Idempoten: hanya update baris yang masih mengandung ID lama.
+  // completed_activities bertipe text[] bukan jsonb — gunakan unnest/ARRAY.
+  await pool.query(`
+    UPDATE daily_records
+    SET completed_activities = ARRAY(
+      SELECT DISTINCT mapped
+      FROM (
+        SELECT
+          CASE
+            WHEN id = 'd_shalat5waktu' THEN 'd1'
+            WHEN id = 'd_dzikir_bada'  THEN 'd2'
+            WHEN id = 'd_sholawat'     THEN 'd3'
+            WHEN id = 'd_dhuha'        THEN 'd4'
+            WHEN id = 'd_baca_quran'   THEN 'd5'
+            WHEN id = 'd_rawatib'      THEN 'd6'
+            WHEN id = 'd_infaq'        THEN 'd7'
+            WHEN id = 'd_doa_ortu'     THEN 'd8'
+            WHEN id = 'r_tepat_waktu'    THEN 'r1'
+            WHEN id = 'r_tanggung_jawab' THEN 'r2'
+            WHEN id = 'r_tahajud'        THEN 'r3'
+            WHEN id = 'r_olahraga'       THEN 'r4'
+            WHEN id = 'rs_belajar'          THEN 'rs1'
+            WHEN id = 'rs_hafal_quran'      THEN 'rs2'
+            WHEN id = 'rs_internet_positif' THEN 'rs3'
+            WHEN id = 'rs_hafal_hadits'     THEN 'rs4'
+            WHEN id = 'rf_sholat_taubat' THEN 'rf1'
+            WHEN id = 'rf_istighfar'     THEN 'rf2'
+            WHEN id = 'rf_evaluasi_diri' THEN 'rf3'
+            WHEN id = 'rc_siapkan' THEN 'rp1'
+            WHEN id = 'rc_bantu'   THEN 'rp2'
+            WHEN id = 'rc_kerja'   THEN 'rp3'
+            WHEN id = 'rc_peka'    THEN 'rp4'
+            WHEN id IN ('subuh','dzuhur','ashar','maghrib','isya') THEN 'd1'
+            WHEN id = 'dhuha'    THEN 'd4'
+            WHEN id = 'tahajud'  THEN 'r3'
+            WHEN id = 'rawatib'  THEN 'd6'
+            WHEN id = 'quran'    THEN 'd5'
+            WHEN id IN ('dzikir_p','dzikir_s') THEN 'd2'
+            WHEN id = 'hafalan'  THEN 'rs2'
+            WHEN id = 'infaq'    THEN 'd7'
+            ELSE id
+          END AS mapped
+        FROM unnest(completed_activities) AS id
+      ) sub
+    )
+    WHERE array_length(completed_activities, 1) > 0
+      AND array_to_string(completed_activities, ',') ~ '(d_|r_|rs_|rf_|rc_|subuh|dzuhur|ashar|maghrib|isya|dhuha|tahajud|rawatib|quran|dzikir|hafalan|infaq)'
+  `)
+  console.log('[schema] BLP activity ID migration complete')
 }
