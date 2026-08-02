@@ -238,7 +238,7 @@ function GuruHome({ navigate, students, blpPeriods, guru }) {
 
       {/* Tombol navigasi guru */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-        <button onClick={() => navigate('blp-guru-rekap')} style={{
+        <button onClick={() => navigate('blp-guru-daftar')} style={{
           background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
           borderRadius: 14, padding: '14px 10px', color: '#fff',
           fontFamily: 'inherit', cursor: 'pointer', textAlign: 'center',
@@ -246,7 +246,7 @@ function GuruHome({ navigate, students, blpPeriods, guru }) {
           <div style={{ fontSize: 22, marginBottom: 4 }}>📊</div>
           <div style={{ fontSize: 12, fontWeight: 700 }}>Rekap Kelas</div>
         </button>
-        <button onClick={() => navigate('blp-guru-periode')} style={{
+        <button onClick={() => navigate('blp-guru-daftar')} style={{
           background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
           borderRadius: 14, padding: '14px 10px', color: '#fff',
           fontFamily: 'inherit', cursor: 'pointer', textAlign: 'center',
