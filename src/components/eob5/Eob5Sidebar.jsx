@@ -7,6 +7,8 @@
  * - onClose: dipanggil saat item diklik di mobile (untuk menutup drawer)
  */
 import { useState } from 'react'
+import logo from '../../assets/logo.png'
+import { UserAvatar } from '../shared'
 
 const C = {
   bg: '#1a1200',
@@ -87,11 +89,13 @@ function NavItem({ item, isActive, onClick }) {
   )
 }
 
-export default function Eob5Sidebar({ navigate, currentScreen, onClose }) {
+export default function Eob5Sidebar({ navigate, currentScreen, onClose, user, onLogout }) {
   const handleNav = (key) => {
     navigate(key)
     onClose?.()
   }
+
+  const kelasList = Array.isArray(user?.kelas) ? user.kelas.join(', ') : (user?.kelas || 'Guru')
 
   return (
     <div style={{
@@ -106,30 +110,46 @@ export default function Eob5Sidebar({ navigate, currentScreen, onClose }) {
       overflowX: 'hidden',
     }}>
       {/* Logo/brand */}
-      <div style={{
-        padding: '16px 14px 10px',
-        borderBottom: `1px solid ${C.border}`,
-        flexShrink: 0,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: 'rgba(245,158,11,0.2)',
-            border: `1px solid ${C.border}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, flexShrink: 0,
-          }}>🏫</div>
+      <div style={{ padding: '16px 14px 12px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <img src={logo} alt="SMARTISA" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
           <div>
             <div style={{ fontSize: 13, fontWeight: 800, color: C.primary, lineHeight: 1.2 }}>GURU</div>
-            <div style={{ fontSize: 9, color: C.sub, letterSpacing: 1 }}>SMARTISA</div>
+            <div style={{ fontSize: 9, color: C.sub, letterSpacing: 1, textTransform: 'uppercase' }}>SMARTISA</div>
           </div>
         </div>
+
+        {/* User info card */}
+        {user && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 10px',
+            background: 'rgba(245,158,11,0.07)',
+            border: `1px solid ${C.border}`,
+            borderRadius: 10,
+          }}>
+            <UserAvatar user={user} size={30} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.name || user.username}
+              </div>
+              <div style={{ fontSize: 10, color: '#d6b47a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {kelasList}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Nav section label */}
+      <div style={{ fontSize: 9, fontWeight: 800, color: C.sub, letterSpacing: 2, textTransform: 'uppercase', padding: '0 18px 6px' }}>
+        Navigasi
       </div>
 
       {/* Menu groups */}
-      <div style={{ flex: 1, padding: '10px 8px', overflowY: 'auto' }}>
+      <div style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
         {MENU_GROUPS.map((group) => (
-          <div key={group.label} style={{ marginBottom: 16 }}>
+          <div key={group.label} style={{ marginBottom: 14 }}>
             {/* Group header */}
             <div style={{
               fontSize: 9, fontWeight: 800, color: C.sub,
@@ -153,15 +173,28 @@ export default function Eob5Sidebar({ navigate, currentScreen, onClose }) {
         ))}
       </div>
 
-      {/* Footer version hint */}
-      <div style={{
-        padding: '10px 14px',
-        borderTop: `1px solid ${C.border}`,
-        flexShrink: 0,
-        fontSize: 10, color: C.sub, textAlign: 'center',
-      }}>
-        GURU · Administrasi Guru
-      </div>
+      {/* Logout */}
+      {onLogout && (
+        <div style={{ padding: '10px 8px', borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+          <button
+            onClick={onLogout}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 9,
+              width: '100%', border: 'none', cursor: 'pointer',
+              textAlign: 'left', fontFamily: 'inherit', fontSize: 12.5,
+              borderRadius: 8, padding: '7px 10px',
+              background: 'transparent', color: '#EF4444',
+              borderLeft: '3px solid transparent',
+              transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <span style={{ fontSize: 14 }}>🚪</span>
+            <span>Keluar</span>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

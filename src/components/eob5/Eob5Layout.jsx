@@ -1,14 +1,17 @@
 /**
  * Eob5Layout.jsx — Layout wrapper untuk semua screen modul GURU (eob5-*)
  *
- * Desktop (≥1024px): sidebar 210px di kiri + konten di kanan, keduanya 100dvh.
- * Mobile (<1024px) : footer navigation bar dengan 4 item utama + tombol "Menu"
- *                    yang membuka drawer sidebar lengkap.
+ * Desktop (≥1024px): sidebar 210px inline di kiri + konten di kanan (flex),
+ *                    keduanya 100dvh.
+ * Mobile (<1024px):  konten full-width + footer navigation bar di bawah.
+ *                    Tombol "Menu ☰" di footer membuka drawer sidebar lengkap.
  *
  * Props: { navigate, currentScreen, children }
  */
 import { useState, useEffect } from 'react'
 import Eob5Sidebar from './Eob5Sidebar'
+
+const EOB5_PRIMARY = '#f59e0b'
 
 function useIsDesktop() {
   const [desk, setDesk] = useState(() => window.innerWidth >= 1024)
@@ -22,24 +25,31 @@ function useIsDesktop() {
   return desk
 }
 
-const EOB5_PRIMARY = '#f59e0b'
-
-// 4 item utama di footer + tombol Menu untuk membuka drawer
+// 4 shortcut items in the mobile footer nav
 const FOOTER_QUICK = [
   { key: 'eob5-dashboard', emoji: '🏫', label: 'Dashboard' },
-  { key: 'eob5-absensi',   emoji: '📋', label: 'Absensi' },
-  { key: 'eob5-nilai',     emoji: '📊', label: 'Nilai' },
-  { key: 'eob5-jurnal',    emoji: '📖', label: 'Jurnal' },
+  { key: 'eob5-absensi',   emoji: '📋', label: 'Absensi'   },
+  { key: 'eob5-nilai',     emoji: '📊', label: 'Nilai'     },
+  { key: 'eob5-jurnal',    emoji: '📖', label: 'Jurnal'    },
 ]
 
-export default function Eob5Layout({ navigate, currentScreen, children }) {
+const NAV_BTN = {
+  position: 'relative', display: 'flex', flexDirection: 'column',
+  alignItems: 'center', gap: 4, minWidth: 56,
+  border: 0, background: 'none', color: '#92400e',
+  cursor: 'pointer', font: 'inherit',
+}
+const NAV_ICON = { fontSize: 20, opacity: .55 }
+const NAV_LBL  = { fontSize: 10 }
+const NAV_ACT_COLOR = EOB5_PRIMARY
+
+export default function Eob5Layout({ navigate, currentScreen, user, onLogout, children }) {
   const isDesktop = useIsDesktop()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  // Close drawer on desktop resize
+  // Close drawer when switching to desktop
   useEffect(() => { if (isDesktop) setDrawerOpen(false) }, [isDesktop])
 
-  // Close drawer when navigating on mobile
   const handleNavigate = (key) => {
     navigate(key)
     setDrawerOpen(false)
@@ -47,71 +57,22 @@ export default function Eob5Layout({ navigate, currentScreen, children }) {
 
   return (
     <>
-      <style>{`
-        .eob5-content-wrap {
-          width: 100%;
-          height: 100dvh;
-          overflow: hidden;
-          position: relative;
-        }
-        @media (min-width: 1024px) {
-          .eob5-layout-root {
-            display: flex;
-            width: 100%;
-            height: 100dvh;
-            overflow: hidden;
-          }
-          .eob5-content-wrap {
-            flex: 1;
-            min-width: 0;
-          }
-        }
-        @media (max-width: 1023px) {
-          .eob5-content-wrap {
-            padding-bottom: 80px;
-          }
-        }
-        .eob5-bottom-nav {
-          position: fixed; z-index: 100;
-          display: flex; left: 0; right: 0; bottom: 0;
-          justify-content: space-around;
-          padding: 10px 8px calc(18px + env(safe-area-inset-bottom, 0px));
-          padding-left: calc(8px + env(safe-area-inset-left, 0px));
-          padding-right: calc(8px + env(safe-area-inset-right, 0px));
-          border-top: 1px solid rgba(245,158,11,0.15);
-          background: rgba(26,18,0,0.97);
-          backdrop-filter: blur(16px);
-        }
-        .eob5-bottom-nav button {
-          position: relative; display: flex; flex-direction: column;
-          align-items: center; gap: 4px; min-width: 56px;
-          border: 0; background: none; color: #92400e;
-          cursor: pointer; font: inherit;
-        }
-        .eob5-bottom-nav button span { font-size: 20px; opacity: .55; }
-        .eob5-bottom-nav button small { font-size: 10px; }
-        .eob5-bottom-nav button.eob5-active { color: ${EOB5_PRIMARY}; font-weight: 800; }
-        .eob5-bottom-nav button.eob5-active span { opacity: 1; }
-        .eob5-bottom-nav button.eob5-active::before {
-          content: ''; position: absolute; top: -10px;
-          width: 20px; height: 3px; border-radius: 99px; background: ${EOB5_PRIMARY};
-        }
-        .eob5-menu-btn span { opacity: .7 !important; }
-      `}</style>
-
-      <div className="eob5-layout-root">
+      {/* Root flex container */}
+      <div style={{
+        display: 'flex',
+        width: '100%',
+        height: '100dvh',
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
         {/* ── Desktop: inline sidebar ── */}
         {isDesktop && (
-          <Eob5Sidebar
-            navigate={navigate}
-            currentScreen={currentScreen}
-          />
+          <Eob5Sidebar navigate={navigate} currentScreen={currentScreen} user={user} onLogout={onLogout} />
         )}
 
         {/* ── Mobile: drawer overlay ── */}
         {!isDesktop && drawerOpen && (
           <>
-            {/* Backdrop */}
             <div
               onClick={() => setDrawerOpen(false)}
               style={{
@@ -120,7 +81,6 @@ export default function Eob5Layout({ navigate, currentScreen, children }) {
                 backdropFilter: 'blur(2px)',
               }}
             />
-            {/* Drawer panel */}
             <div style={{
               position: 'fixed', top: 0, left: 0, bottom: 0,
               zIndex: 401, width: 230,
@@ -130,39 +90,77 @@ export default function Eob5Layout({ navigate, currentScreen, children }) {
                 navigate={handleNavigate}
                 currentScreen={currentScreen}
                 onClose={() => setDrawerOpen(false)}
+                user={user}
+                onLogout={onLogout}
               />
             </div>
           </>
         )}
 
         {/* ── Content area ── */}
-        <div className="eob5-content-wrap">
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          position: 'relative',
+          minWidth: 0,
+          ...((!isDesktop) ? { paddingBottom: 64 } : {}),
+        }}>
           {children}
         </div>
       </div>
 
-      {/* ── Mobile footer nav ── */}
+      {/* ── Mobile footer nav (fixed at bottom) ── */}
       {!isDesktop && (
-        <nav className="eob5-bottom-nav">
-          {FOOTER_QUICK.map(({ key, emoji, label }) => (
-            <button
-              key={key}
-              type="button"
-              className={currentScreen === key ? 'eob5-active' : ''}
-              onClick={() => handleNavigate(key)}
-            >
-              <span>{emoji}</span>
-              <small>{label}</small>
-            </button>
-          ))}
-          {/* Menu button — opens full sidebar drawer */}
+        <nav style={{
+          position: 'fixed', zIndex: 200,
+          display: 'flex', left: 0, right: 0, bottom: 0,
+          justifyContent: 'space-around',
+          padding: `10px 8px calc(18px + env(safe-area-inset-bottom, 0px))`,
+          paddingLeft:  'calc(8px + env(safe-area-inset-left, 0px))',
+          paddingRight: 'calc(8px + env(safe-area-inset-right, 0px))',
+          borderTop: 'rgba(245,158,11,0.15) solid 1px',
+          background: 'rgba(26,18,0,0.97)',
+          backdropFilter: 'blur(16px)',
+        }}>
+          {FOOTER_QUICK.map(({ key, emoji, label }) => {
+            const active = currentScreen === key
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleNavigate(key)}
+                style={{
+                  ...NAV_BTN,
+                  color: active ? NAV_ACT_COLOR : '#92400e',
+                  fontWeight: active ? 800 : 400,
+                }}
+              >
+                <span style={{ ...NAV_ICON, opacity: active ? 1 : 0.55 }}>{emoji}</span>
+                <small style={NAV_LBL}>{label}</small>
+                {active && (
+                  <span style={{
+                    position: 'absolute', top: -10,
+                    width: 20, height: 3, borderRadius: 99,
+                    background: EOB5_PRIMARY,
+                  }} />
+                )}
+              </button>
+            )
+          })}
+
+          {/* Menu button — opens the full sidebar drawer */}
           <button
             type="button"
-            className={`eob5-menu-btn${drawerOpen ? ' eob5-active' : ''}`}
             onClick={() => setDrawerOpen(v => !v)}
+            style={{
+              ...NAV_BTN,
+              color: drawerOpen ? NAV_ACT_COLOR : '#92400e',
+              fontWeight: drawerOpen ? 800 : 400,
+            }}
           >
-            <span>☰</span>
-            <small>Menu</small>
+            <span style={{ ...NAV_ICON, opacity: drawerOpen ? 1 : 0.7 }}>☰</span>
+            <small style={NAV_LBL}>Menu</small>
           </button>
         </nav>
       )}

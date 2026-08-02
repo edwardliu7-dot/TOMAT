@@ -1282,6 +1282,16 @@ export default function App() {
         setGuruHistory(h => [...h, key])
         return
       }
+      // If currently on an eob5/blp sub-module screen, navigate back to the guru
+      // dashboard first so GuruDashboardScreen can mount and handle the tab event.
+      const isOnSubModule = currentGuruScreen?.startsWith('eob5-') || currentGuruScreen?.startsWith('blp-')
+      if (isOnSubModule) {
+        setGuruHistory(['guru-dashboard'])
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
+        }, 80)
+        return
+      }
       window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
     }
 
@@ -1388,7 +1398,7 @@ export default function App() {
       <BlpDataProvider>
         <AppShell user={user} navigate={guruNavigate} currentScreen={currentGuruScreen} onLogout={logout} onSwitchModule={handleSwitchGuruModule}>
           {isEob5Screen ? (
-            <Eob5Layout navigate={guruNavigate} currentScreen={currentGuruScreen}>
+            <Eob5Layout navigate={guruNavigate} currentScreen={currentGuruScreen} user={user} onLogout={logout}>
               <ErrorBoundary onReset={guruGoBack}>
                 {renderGuruScreen()}
               </ErrorBoundary>

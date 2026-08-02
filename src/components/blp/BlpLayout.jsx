@@ -1,8 +1,9 @@
 /**
  * BlpLayout.jsx — Layout wrapper modul BLP Harian
  *
- * Desktop (≥1024px): sidebar 220px fixed di kiri + konten digeser ke kanan.
- * Mobile (<1024px):  footer navigation bar di bawah (seperti TOMAT mobile nav).
+ * Desktop (≥1024px): sidebar 220px inline di kiri + konten di kanan (flex),
+ *                    keduanya height 100dvh.
+ * Mobile (<1024px):  konten full-width + footer navigation bar di bawah.
  *
  * Props: { user, navigate, currentScreen, onLogout, children }
  */
@@ -21,6 +22,8 @@ function useIsDesktop() {
   return desk
 }
 
+const BLP_PRIMARY = '#10b981'
+
 function getSiswaFooterNav(user) {
   const showHaid = user?.jenisKelamin !== 'L'
   return [
@@ -37,8 +40,6 @@ const GURU_FOOTER_NAV = [
   ['blp-guru-periode', '📅', 'Periode'],
 ]
 
-const BLP_PRIMARY = '#10b981'
-
 export default function BlpLayout({ user, navigate, currentScreen, onLogout, children }) {
   const isDesktop = useIsDesktop()
   const isGuru = user?.role === 'guru'
@@ -46,26 +47,14 @@ export default function BlpLayout({ user, navigate, currentScreen, onLogout, chi
 
   return (
     <>
+      {/* Bottom nav styles — injected once, global scope */}
       <style>{`
-        .blp-content-wrap {
-          min-height: 100dvh;
-        }
-        @media (min-width: 1024px) {
-          .blp-content-wrap {
-            margin-left: 220px;
-          }
-        }
-        @media (max-width: 1023px) {
-          .blp-content-wrap.blp-has-footer {
-            padding-bottom: 80px;
-          }
-        }
         .blp-bottom-nav {
-          position: fixed; z-index: 100;
+          position: fixed; z-index: 200;
           display: flex; left: 0; right: 0; bottom: 0;
           justify-content: space-around;
           padding: 10px 16px calc(18px + env(safe-area-inset-bottom, 0px));
-          padding-left: calc(16px + env(safe-area-inset-left, 0px));
+          padding-left:  calc(16px + env(safe-area-inset-left, 0px));
           padding-right: calc(16px + env(safe-area-inset-right, 0px));
           border-top: 1px solid rgba(16,185,129,0.15);
           background: rgba(7,26,16,0.97);
@@ -77,32 +66,49 @@ export default function BlpLayout({ user, navigate, currentScreen, onLogout, chi
           border: 0; background: none; color: #4a7a5a;
           cursor: pointer; font: inherit;
         }
-        .blp-bottom-nav button span { font-size: 20px; opacity: .55; }
+        .blp-bottom-nav button span  { font-size: 20px; opacity: .55; }
         .blp-bottom-nav button small { font-size: 10px; }
-        .blp-bottom-nav button.blp-active { color: ${BLP_PRIMARY}; font-weight: 800; }
-        .blp-bottom-nav button.blp-active span { opacity: 1; }
+        .blp-bottom-nav button.blp-active              { color: ${BLP_PRIMARY}; font-weight: 800; }
+        .blp-bottom-nav button.blp-active span         { opacity: 1; }
         .blp-bottom-nav button.blp-active::before {
           content: ''; position: absolute; top: -10px;
-          width: 20px; height: 3px; border-radius: 99px; background: ${BLP_PRIMARY};
+          width: 20px; height: 3px; border-radius: 99px;
+          background: ${BLP_PRIMARY};
         }
       `}</style>
 
-      {/* Desktop sidebar */}
-      {isDesktop && (
-        <BlpSidebar
-          user={user}
-          navigate={navigate}
-          currentScreen={currentScreen}
-          onLogout={onLogout}
-        />
-      )}
+      {/* Root flex container — fills the viewport */}
+      <div style={{
+        display: 'flex',
+        width: '100%',
+        height: '100dvh',
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
+        {/* Desktop: inline sidebar */}
+        {isDesktop && (
+          <BlpSidebar
+            user={user}
+            navigate={navigate}
+            currentScreen={currentScreen}
+            onLogout={onLogout}
+          />
+        )}
 
-      {/* Content area */}
-      <div className={`blp-content-wrap${!isDesktop ? ' blp-has-footer' : ''}`}>
-        {children}
+        {/* Content area — scrollable */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          position: 'relative',
+          minWidth: 0,
+          ...((!isDesktop) ? { paddingBottom: 80 } : {}),
+        }}>
+          {children}
+        </div>
       </div>
 
-      {/* Mobile footer nav */}
+      {/* Mobile footer navigation */}
       {!isDesktop && (
         <nav className="blp-bottom-nav">
           {footerNav.map(([key, emoji, label]) => (

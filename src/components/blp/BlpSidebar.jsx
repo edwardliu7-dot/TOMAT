@@ -1,6 +1,6 @@
 /**
  * BlpSidebar.jsx — Sidebar navigasi modul BLP Harian
- * Desktop only (≥1024px). Mobile menggunakan footer nav di BlpLayout.
+ * Digunakan sebagai inline flex-child di dalam BlpLayout (bukan position:fixed).
  * Props: { user, navigate, currentScreen, onLogout }
  */
 import { useState } from 'react'
@@ -66,14 +66,16 @@ export default function BlpSidebar({ user, navigate, currentScreen, onLogout }) 
 
   return (
     <div style={{
-      position: 'fixed', top: 0, left: 0,
-      width: 220, height: '100vh',
+      width: 220,
+      height: '100%',
       background: C.bg,
       borderRight: `1px solid ${C.border}`,
-      display: 'flex', flexDirection: 'column',
+      display: 'flex',
+      flexDirection: 'column',
       padding: '20px 10px',
-      zIndex: 100,
+      flexShrink: 0,
       overflowY: 'auto',
+      overflowX: 'hidden',
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 4, marginBottom: 20 }}>
@@ -121,7 +123,7 @@ export default function BlpSidebar({ user, navigate, currentScreen, onLogout }) 
       </div>
 
       {/* Logout */}
-      <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+      <div style={{ paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
         <button
           onClick={onLogout}
           style={{
@@ -129,8 +131,7 @@ export default function BlpSidebar({ user, navigate, currentScreen, onLogout }) 
             width: '100%', border: 'none', cursor: 'pointer',
             textAlign: 'left', fontFamily: 'inherit', fontSize: 13.5,
             borderRadius: 9, padding: '8px 12px', height: 42,
-            background: 'transparent',
-            color: '#EF4444',
+            background: 'transparent', color: '#EF4444',
             transition: 'background 0.12s',
           }}
           onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}

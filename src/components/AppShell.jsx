@@ -127,7 +127,13 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
         currentScreen={currentScreen}
         onLogout={onLogout}
       />
-      <div className={`with-sidebar${showNav ? ' with-nav' : ''}${!isDesktop && onSwitchModule ? ' with-module-header' : ''}`}>
+      {/* When showing BLP/EOB5 modules, the TOMAT sidebar is hidden but the
+          CSS var still adds 220 px of margin-left. Override it to 0 so those
+          modules' own sidebars fill the full viewport width. */}
+      <div
+        className={`with-sidebar${showNav ? ' with-nav' : ''}${!isDesktop && onSwitchModule ? ' with-module-header' : ''}`}
+        style={isDesktop && activeModule !== 'tomat' ? { marginLeft: 0 } : undefined}
+      >
         {children}
       </div>
 
