@@ -2089,8 +2089,9 @@ function TurnamenTab({ kelasDiampu }) {
                 const gameEmoji = gameLabel.split(' ')[0]
                 const gameName  = gameLabel.split(' ').slice(1).join(' ')
                 const isFinished = h.status === 'finished'
-                const date = new Date(h.finished_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-                const time = new Date(h.finished_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                const finishedDate = h.finished_at ? new Date(h.finished_at) : null
+                const date = finishedDate && !isNaN(finishedDate) ? finishedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : null
+                const time = finishedDate && !isNaN(finishedDate) ? finishedDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null
                 return (
                   <div key={h.id} style={{
                     background: '#111827', borderRadius: 12,
