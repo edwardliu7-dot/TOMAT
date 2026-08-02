@@ -701,7 +701,7 @@ export async function ensureSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS prosem (
       id             SERIAL PRIMARY KEY,
-      guru_id        text REFERENCES gurus(id),
+      teacher_id     text REFERENCES gurus(id),
       mata_pelajaran VARCHAR(100) NOT NULL,
       kelas          VARCHAR(50) NOT NULL,
       semester       INTEGER NOT NULL,
@@ -736,10 +736,10 @@ export async function ensureSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tujuan_pembelajaran (
       id             SERIAL PRIMARY KEY,
-      guru_id        text REFERENCES gurus(id),
+      teacher_id     text REFERENCES gurus(id),
       mata_pelajaran VARCHAR(100) NOT NULL,
       kelas          VARCHAR(50),
-      deskripsi      TEXT NOT NULL,
+      description    TEXT NOT NULL,
       kode_tp        VARCHAR(50),
       created_at     TIMESTAMPTZ DEFAULT NOW()
     )
@@ -767,11 +767,11 @@ export async function ensureSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS subjects (
       id         SERIAL PRIMARY KEY,
-      guru_id    text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      teacher_id text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
       name       VARCHAR(255) NOT NULL,
       deleted_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      UNIQUE (guru_id, name)
+      UNIQUE (teacher_id, name)
     )
   `)
 
@@ -779,7 +779,7 @@ export async function ensureSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS journal_entries (
       id              SERIAL PRIMARY KEY,
-      guru_id         text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      teacher_id      text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
       subject_id      int  REFERENCES subjects(id) ON DELETE SET NULL,
       tanggal         DATE NOT NULL,
       kelas           VARCHAR(50) NOT NULL,
@@ -791,7 +791,7 @@ export async function ensureSchema() {
       created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `)
-  await pool.query(`CREATE INDEX IF NOT EXISTS journal_guru_tanggal ON journal_entries (guru_id, tanggal)`)
+  await pool.query(`CREATE INDEX IF NOT EXISTS journal_guru_tanggal ON journal_entries (teacher_id, tanggal)`)
 
   // Nilai siswa (formatif / sumatif_lm / sumatif_akhir)
   await pool.query(`
@@ -827,7 +827,7 @@ export async function ensureSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS academic_calendars (
       id           SERIAL PRIMARY KEY,
-      guru_id      text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      created_by   text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
       nama         VARCHAR(255) NOT NULL,
       tahun_ajaran VARCHAR(20) NOT NULL,
       semester     INT NOT NULL DEFAULT 1,
