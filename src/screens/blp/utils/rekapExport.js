@@ -1,5 +1,4 @@
 // src/screens/blp/utils/rekapExport.js
-// Port dari rekapExport.ts GitHub — hapus TypeScript annotations, logika identik.
 
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -14,6 +13,9 @@ const BRAND_GREEN = 'FF107C57'
 const LIGHT_GREEN = 'FFDCEFE6'
 const GREY = 'FFF2F2F2'
 
+// A day only "counts" for an activity row if it's within the class's active
+// BLP period for that month, and — for school-only activities like "Datang
+// ke sekolah tepat waktu" — only if it's also a school day (Mon-Fri).
 function isDayCountedForActivity(day, activityId, kelas, blpPeriods) {
   if (!isDateCountedForRecap(day, kelas, blpPeriods)) return false
   if (SCHOOL_ONLY_ACTIVITY_IDS.includes(activityId) && !isSchoolDay(day)) return false
@@ -36,13 +38,16 @@ function buildRekapRows(user, monthDate, blpPeriods) {
         const rec = user.records[key]
         return !!rec && rec.completedActivities.includes(activity.id)
       })
+      const capaian = marks.filter(Boolean).length
+      const targetCount = counted.filter(Boolean).length
       return {
         no: idx + 1,
         name: activity.name,
         target: activity.target,
-        marks, counted,
-        capaian: marks.filter(Boolean).length,
-        targetCount: counted.filter(Boolean).length,
+        marks,
+        counted,
+        capaian,
+        targetCount,
       }
     })
     rows.push(catRows)
@@ -54,7 +59,9 @@ function buildRekapRows(user, monthDate, blpPeriods) {
 function getSemesterLabel(monthDate) {
   const month = monthDate.getMonth() + 1
   const year = monthDate.getFullYear()
-  if (month >= 7) return `SEMESTER 1 T.A ${year}-${year + 1}`
+  if (month >= 7) {
+    return `SEMESTER 1 T.A ${year}-${year + 1}`
+  }
   return `SEMESTER 2 T.A ${year - 1}-${year}`
 }
 

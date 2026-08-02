@@ -1,17 +1,16 @@
 // src/screens/blp/utils/blpScoring.js
-// Port dari blpScoring.ts GitHub — hapus TypeScript annotations, logika identik.
 
-import { BLP_CATEGORIES } from '../blpAktivitasData.js'
-
-export const ALL_ACTIVITY_IDS = BLP_CATEGORIES.flatMap(cat => cat.activities.map(a => a.id))
+import { BLP_CATEGORIES, ALL_ACTIVITY_IDS } from '../blpAktivitasData.js'
 
 // r1 (datang tepat waktu) hanya berlaku hari sekolah (Sen-Jum)
 export const SCHOOL_ONLY_ACTIVITY_IDS = ['r1']
 
 // rp1 (siapkan perlengkapan) tidak berlaku Sabtu
+// (boleh disiapkan malam Minggu untuk Senin)
 export const SATURDAY_ONLY_BLOCK_IDS = ['rp1']
 
 // Saat haid: d1 (shalat 5 waktu) dan d5 (baca quran) di-auto-credit
+// agar siswi tidak dihukum karena pengecualian syariat
 export const HAID_AUTO_CREDIT_IDS = ['d1', 'd5']
 
 export function isSchoolDay(date) {
