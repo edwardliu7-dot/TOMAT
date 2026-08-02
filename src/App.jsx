@@ -43,8 +43,6 @@ import OtaUpdateBanner from './components/OtaUpdateBanner'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
 import BlpHomeScreen from './screens/blp/BlpHomeScreen'
 import BlpSiswaDashboardScreen from './screens/blp/BlpSiswaDashboardScreen'
-import BlpIsiAktivitasScreen from './screens/blp/BlpIsiAktivitasScreen'
-import BlpRiwayatScreen from './screens/blp/BlpRiwayatScreen'
 import BlpQuranScreen from './screens/blp/BlpQuranScreen'
 import BlpHaidScreen from './screens/blp/BlpHaidScreen'
 import BlpGuruDashboardScreen from './screens/blp/BlpGuruDashboardScreen'
@@ -574,11 +572,11 @@ const SCREEN_TITLES = {
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
   'tournament-wait': 'Turnamen',
-  'blp-home': 'BLP Harian',
-  'blp-isi-aktivitas': 'Isi Aktivitas BLP',
-  'blp-riwayat': 'Riwayat BLP',
-  'blp-quran': 'Quran Tracker',
-  'blp-haid': 'Periode Haid',
+  'blp-home':       'BLP Harian',
+  'blp-kalender':   'Kalender BLP',
+  'blp-pengaturan': 'Pengaturan BLP',
+  'blp-quran':      'Quran Tracker',
+  'blp-haid':       'Periode Haid',
   'blp-guru-daftar': 'BLP — Daftar Siswa',
   'blp-guru-rekap-nilai': 'BLP — Rekap Nilai',
   'blp-guru-haid': 'BLP — Haid Siswi',
@@ -1061,14 +1059,14 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     // ── BLP siswa screens — wrapped with sidebar + mobile footer nav ──
-    if (current === 'blp-home' || current === 'blp-isi-aktivitas' ||
-        current === 'blp-riwayat' || current === 'blp-quran' || current === 'blp-haid') {
+    if (current === 'blp-home' || current === 'blp-kalender' ||
+        current === 'blp-pengaturan' || current === 'blp-quran' || current === 'blp-haid') {
       let blpScreen = null
-      if (current === 'blp-home')          blpScreen = <BlpSiswaDashboardScreen navigate={navigate} goBack={goBack} />
-      if (current === 'blp-isi-aktivitas') blpScreen = <BlpIsiAktivitasScreen navigate={navigate} goBack={goBack} />
-      if (current === 'blp-riwayat')       blpScreen = <BlpRiwayatScreen navigate={navigate} goBack={goBack} />
-      if (current === 'blp-quran')         blpScreen = <BlpQuranScreen navigate={navigate} goBack={goBack} />
-      if (current === 'blp-haid')          blpScreen = <BlpHaidScreen navigate={navigate} goBack={goBack} />
+      if (current === 'blp-home')       blpScreen = <BlpSiswaDashboardScreen navigate={navigate} goBack={goBack} view="harian" />
+      if (current === 'blp-kalender')   blpScreen = <BlpSiswaDashboardScreen navigate={navigate} goBack={goBack} view="kalender" />
+      if (current === 'blp-pengaturan') blpScreen = <BlpSiswaDashboardScreen navigate={navigate} goBack={goBack} view="pengaturan" />
+      if (current === 'blp-quran')      blpScreen = <BlpQuranScreen navigate={navigate} goBack={goBack} />
+      if (current === 'blp-haid')       blpScreen = <BlpHaidScreen navigate={navigate} goBack={goBack} />
       return (
         <BlpLayout user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
           {blpScreen}

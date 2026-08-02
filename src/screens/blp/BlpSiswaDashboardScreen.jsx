@@ -346,11 +346,26 @@ function TabHarian({ student, today }) {
             {/* Daftar aktivitas */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 4 }}>
               {cat.activities.map(act => {
-                const disabled  = sedangHaid && act.sholat
-                const isChecked = checked.includes(act.id)
-                const sub       = submissions?.[act.id]
-                const schoolOnly = SCHOOL_ONLY_ACTIVITY_IDS.includes(act.id)
+                const disabled     = sedangHaid && act.sholat
+                const isChecked    = checked.includes(act.id)
+                const sub          = submissions?.[act.id]
+                const schoolOnly   = SCHOOL_ONLY_ACTIVITY_IDS.includes(act.id)
                 const notSchoolDay = schoolOnly && !isSchoolDay(todayDate)
+
+                // Tentukan jenis task untuk indikator visual
+                const taskType = act.id === QURAN_ACTIVITY_ID
+                  ? 'audio'
+                  : getChecklistConfig(act.id)
+                  ? 'checklist'
+                  : getSubmissionConfig(act.id)
+                  ? 'text'
+                  : null
+                const taskLabel = taskType === 'audio'     ? { icon: '🎤', text: 'Rekam bacaan' }
+                                : taskType === 'checklist' ? { icon: '☑️', text: 'Ceklis perlengkapan' }
+                                : taskType === 'text'      ? { icon: '✏️', text: 'Wajib isi tulisan' }
+                                : null
+                const hasBorder = (act.note || taskLabel) && !disabled
+
                 return (
                   <button
                     key={act.id}
@@ -359,7 +374,7 @@ function TabHarian({ student, today }) {
                     style={{
                       display: 'flex', alignItems: 'flex-start', gap: 12,
                       background: disabled || notSchoolDay ? 'rgba(255,255,255,0.02)' : C.itemBg,
-                      border: `1px solid ${act.note && !disabled ? `${cat.accentColor}40` : C.border}`,
+                      border: `1px solid ${hasBorder ? `${cat.accentColor}40` : C.border}`,
                       borderRadius: 12, padding: '12px 14px',
                       cursor: (disabled || notSchoolDay) ? 'default' : 'pointer',
                       opacity: (disabled || notSchoolDay) ? 0.4 : 1,
@@ -385,8 +400,22 @@ function TabHarian({ student, today }) {
                       <div style={{ fontSize: 10, color: C.dimText, marginTop: 3, letterSpacing: 0.3 }}>
                         TARGET: {act.target}
                       </div>
+
+                      {/* Task indicator — tampil kalau belum selesai */}
+                      {taskLabel && !isChecked && !disabled && (
+                        <div style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 5,
+                          background: `${cat.accentColor}18`,
+                          border: `1px solid ${cat.accentColor}50`,
+                          borderRadius: 99, padding: '2px 8px',
+                        }}>
+                          <span style={{ fontSize: 10 }}>{taskLabel.icon}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: cat.accentColor }}>{taskLabel.text}</span>
+                        </div>
+                      )}
+
                       {act.note && (
-                        <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 3 }}>📌 {act.note}</div>
+                        <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 4 }}>📌 {act.note}</div>
                       )}
                       {notSchoolDay && (
                         <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>🔒 Hanya hari sekolah</div>
@@ -400,13 +429,24 @@ function TabHarian({ student, today }) {
                             : ` ayat ${student.quranBookmark.ayat}`}
                         </div>
                       )}
-                      {/* Submission badge */}
+                      {/* Submission badge — sudah diisi */}
                       {sub && isChecked && (
                         <div style={{ marginTop: 5 }}>
                           <SubmissionBadge type={sub.type} />
                         </div>
                       )}
                     </div>
+
+                    {/* Ikon task di kanan — indikator cepat */}
+                    {taskLabel && (
+                      <div style={{
+                        flexShrink: 0, fontSize: 16, marginTop: 1,
+                        opacity: isChecked ? 0.35 : 0.9,
+                        filter: isChecked ? 'grayscale(1)' : 'none',
+                      }}>
+                        {taskLabel.icon}
+                      </div>
+                    )}
                   </button>
                 )
               })}
@@ -813,10 +853,9 @@ function TabPengaturan({ student, onEditProfil, selectedMonth, blpPeriods }) {
 }
 
 // ─── Screen Utama ─────────────────────────────────────────────────────────────
-export default function BlpSiswaDashboardScreen({ navigate, goBack }) {
+export default function BlpSiswaDashboardScreen({ navigate, goBack, view = 'harian' }) {
   const { user }                         = useAuth()
   const { data, loading, error, loadDashboard } = useBlpData()
-  const [tab, setTab]                    = useState('harian')
   const [showProfileModal, setShowProfileModal] = useState(false)
 
   useEffect(() => { loadDashboard() }, [])
@@ -836,12 +875,6 @@ export default function BlpSiswaDashboardScreen({ navigate, goBack }) {
   [data])
 
   const blpPeriods = data?.blpPeriods || {}
-
-  const TABS = [
-    { id: 'harian',     label: 'Harian',     icon: '✅' },
-    { id: 'kalender',   label: 'Kalender',   icon: '📅' },
-    { id: 'pengaturan', label: 'Pengaturan', icon: '⚙️' },
-  ]
 
   if (loading || !data) return (
     <div style={{
@@ -944,37 +977,17 @@ export default function BlpSiswaDashboardScreen({ navigate, goBack }) {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, padding: '0 16px' }}>
-          {TABS.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5, flex: 1, justifyContent: 'center',
-                padding: '9px 6px', fontSize: 12, fontWeight: 600,
-                border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer',
-                fontFamily: 'inherit', transition: 'all 0.15s',
-                background: tab === t.id ? '#fff' : 'transparent',
-                color: tab === t.id ? '#1a3028' : C.muted,
-              }}
-            >
-              <span style={{ fontSize: 13 }}>{t.icon}</span>
-              <span>{t.label}</span>
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* ── Konten ── */}
       <div style={{ padding: '16px 16px 0' }}>
-        {tab === 'harian' && (
+        {view === 'harian' && (
           <TabHarian student={student} today={today} />
         )}
-        {tab === 'kalender' && (
+        {view === 'kalender' && (
           <TabKalender student={student} />
         )}
-        {tab === 'pengaturan' && (
+        {view === 'pengaturan' && (
           <TabPengaturan
             student={student}
             onEditProfil={() => setShowProfileModal(true)}

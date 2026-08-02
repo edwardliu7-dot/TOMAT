@@ -43,14 +43,11 @@ function NavItem({ item, isActive, onClick }) {
   )
 }
 
-function getSiswaNav(user) {
-  const showHaid = user?.jenisKelamin !== 'L'
+function getSiswaNav() {
   return [
-    { key: 'blp-home',          emoji: '🏠', label: 'Beranda' },
-    { key: 'blp-isi-aktivitas', emoji: '✅', label: 'Isi Aktivitas' },
-    { key: 'blp-riwayat',       emoji: '📋', label: 'Riwayat' },
-    { key: 'blp-quran',         emoji: '📖', label: 'Al-Quran' },
-    ...(showHaid ? [{ key: 'blp-haid', emoji: '🌸', label: 'Catatan Haid' }] : []),
+    { key: 'blp-home',       emoji: '🏠', label: 'Beranda'    },
+    { key: 'blp-kalender',   emoji: '📅', label: 'Kalender'   },
+    { key: 'blp-pengaturan', emoji: '⚙️', label: 'Pengaturan' },
   ]
 }
 
@@ -62,7 +59,7 @@ const GURU_NAV = [
 
 export default function BlpSidebar({ user, navigate, currentScreen, onLogout }) {
   const isGuru = user?.role === 'guru'
-  const navItems = isGuru ? GURU_NAV : getSiswaNav(user)
+  const navItems = isGuru ? GURU_NAV : getSiswaNav()
   const kelasList = Array.isArray(user?.kelas) ? user.kelas.join(', ') : (user?.kelas || '')
 
   return (
