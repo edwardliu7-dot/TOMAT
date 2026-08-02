@@ -13,7 +13,7 @@ export default function BlpQuranScreen({ goBack }) {
 
   // Form state
   const [surahNo, setSurahNo] = useState(1)
-  const [surahName, setSurahName] = useState(SURAH_LIST[0]?.nama || 'Al-Fatihah')
+  const [surahName, setSurahName] = useState(SURAH_LIST[0]?.nameLatin || 'Al-Fatihah')
   const [ayat, setAyat] = useState(1)
   const [halaman, setHalaman] = useState('')
 
@@ -43,7 +43,7 @@ export default function BlpQuranScreen({ goBack }) {
     const no = Number(e.target.value)
     const found = SURAH_LIST.find(s => s.no === no)
     setSurahNo(no)
-    setSurahName(found ? found.nama : `Surah ${no}`)
+    setSurahName(found ? found.nameLatin : `Surah ${no}`)
     setAyat(1)
   }
 
@@ -74,7 +74,7 @@ export default function BlpQuranScreen({ goBack }) {
   }
 
   const selectedSurah = SURAH_LIST.find(s => s.no === surahNo)
-  const maxAyat = selectedSurah?.ayat || 999
+  const maxAyat = selectedSurah?.ayatCount || 999
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a1a12', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -139,7 +139,7 @@ export default function BlpQuranScreen({ goBack }) {
             >
               {SURAH_LIST.map(s => (
                 <option key={s.no} value={s.no} style={{ background: '#0d2d1a' }}>
-                  {s.no}. {s.nama} ({s.ayat} ayat)
+                  {s.no}. {s.nameLatin} ({s.ayatCount} ayat)
                 </option>
               ))}
               <option value={surahNo} style={{ background: '#0d2d1a' }}>
@@ -156,7 +156,7 @@ export default function BlpQuranScreen({ goBack }) {
                   const no = Math.min(114, Math.max(1, Number(e.target.value)))
                   const found = SURAH_LIST.find(s => s.no === no)
                   setSurahNo(no)
-                  setSurahName(found ? found.nama : `Surah ${no}`)
+                  setSurahName(found ? found.nameLatin : `Surah ${no}`)
                   setAyat(1)
                 }}
                 style={{
@@ -187,7 +187,7 @@ export default function BlpQuranScreen({ goBack }) {
             />
             {selectedSurah && (
               <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
-                Surah {selectedSurah.nama} memiliki {selectedSurah.ayat} ayat
+                Surah {selectedSurah.nameLatin} memiliki {selectedSurah.ayatCount} ayat
               </div>
             )}
           </div>
