@@ -22,7 +22,7 @@ const TAB_COLORS = {
 const TABS = {
   guru: [
     { key: 'tomat', label: 'TOMAT',   emoji: '🍅', homeScreen: 'guruDashboard' },
-    { key: 'blp',   label: 'BLP',     emoji: '📋', homeScreen: 'blp-home' },
+    { key: 'blp',   label: 'BLP',     emoji: '📋', homeScreen: 'blp-guru-daftar' },
     { key: 'eob5',  label: 'GURU',    emoji: '🏫', homeScreen: 'eob5-dashboard' },
   ],
   siswa: [

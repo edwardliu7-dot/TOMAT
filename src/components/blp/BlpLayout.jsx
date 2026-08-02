@@ -36,8 +36,9 @@ function getSiswaFooterNav(user) {
 }
 
 const GURU_FOOTER_NAV = [
-  ['blp-guru-rekap',   '📊', 'Dashboard'],
-  ['blp-guru-periode', '📅', 'Periode'],
+  ['blp-guru-daftar',      '👥', 'Daftar Siswa'],
+  ['blp-guru-rekap-nilai', '📊', 'Rekap Nilai' ],
+  ['blp-guru-haid',        '🌸', 'Haid Siswi'  ],
 ]
 
 export default function BlpLayout({ user, navigate, currentScreen, onLogout, children }) {

@@ -582,7 +582,10 @@ const SCREEN_TITLES = {
   'blp-riwayat': 'Riwayat BLP',
   'blp-quran': 'Quran Tracker',
   'blp-haid': 'Periode Haid',
-  'blp-guru-rekap': 'Rekap Kelas BLP',
+  'blp-guru-daftar': 'BLP — Daftar Siswa',
+  'blp-guru-rekap-nilai': 'BLP — Rekap Nilai',
+  'blp-guru-haid': 'BLP — Haid Siswi',
+  'blp-guru-rekap': 'BLP — Daftar Siswa',
   'blp-guru-siswa-detail': 'Detail Siswa BLP',
   'blp-guru-periode': 'Atur Periode BLP',
   'eob5-dashboard': 'GURU — Dashboard',
@@ -1375,11 +1378,14 @@ export default function App() {
       if (currentGuruScreen === 'eob5-pengaturan') {
         return <Eob5PengaturanScreen navigate={guruNavigate} goBack={guruGoBack} />
       }
-      if (currentGuruScreen === 'blp-home') {
-        return <BlpHomeScreen navigate={guruNavigate} goBack={guruGoBack} />
+      if (currentGuruScreen === 'blp-guru-daftar' || currentGuruScreen === 'blp-guru-rekap') {
+        return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} activeTab="daftar" />
       }
-      if (currentGuruScreen === 'blp-guru-rekap') {
-        return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} />
+      if (currentGuruScreen === 'blp-guru-rekap-nilai') {
+        return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} activeTab="rekap" />
+      }
+      if (currentGuruScreen === 'blp-guru-haid') {
+        return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} activeTab="haid" />
       }
       if (currentGuruScreen === 'blp-guru-siswa-detail') {
         return <BlpGuruSiswaDetailScreen navigate={guruNavigate} goBack={guruGoBack} studentId={eob5SiswaId} />

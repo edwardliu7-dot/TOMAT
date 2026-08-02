@@ -1,23 +1,30 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react'
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react'
+import { useAuth } from '../AuthContext.jsx'
 
 const BlpDataContext = createContext(null)
 
 export function BlpDataProvider({ children }) {
-  const [data, setData] = useState(null)      // null = belum pernah fetch
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const fetchingRef = useRef(false)           // cegah concurrent fetch
+  const fetchingRef = useRef(false)
+  const dataRef = useRef(null)        // stable ref so loadDashboard has no deps
+  const { user } = useAuth()
 
-  // Fetch dashboard — hanya ambil dari server jika cache kosong atau force=true
+  // Sync dataRef with state so loadDashboard always sees current value
+  dataRef.current = data
+
+  // Stable loadDashboard — no deps, uses refs internally
   const loadDashboard = useCallback(async ({ force = false } = {}) => {
-    if (!force && data) return data           // kembalikan cache langsung
-    if (fetchingRef.current) return           // sudah ada fetch berjalan
+    if (!force && dataRef.current) return dataRef.current
+    if (fetchingRef.current) return
     fetchingRef.current = true
     setLoading(true)
     try {
       const res = await fetch('/api/blp/dashboard', { credentials: 'include' })
       if (!res.ok) throw new Error('Gagal memuat data BLP')
       const json = await res.json()
+      dataRef.current = json
       setData(json)
       setError(null)
       return json
@@ -27,13 +34,15 @@ export function BlpDataProvider({ children }) {
       setLoading(false)
       fetchingRef.current = false
     }
-  }, [data])
+  }, [])  // no deps — stable forever
 
   // Invalidate cache — panggil setelah aksi yang mengubah data (review, buat periode, dll)
-  const invalidate = useCallback(() => setData(null), [])
+  const invalidate = useCallback(() => {
+    dataRef.current = null
+    setData(null)
+  }, [])
 
   // Patch satu record siswa di cache lokal tanpa re-fetch
-  // Dipakai oleh BlpGuruSiswaDetailScreen setelah review
   const patchSubmission = useCallback((studentId, date, activityId, reviewData) => {
     setData(prev => {
       if (!prev) return prev
@@ -52,6 +61,11 @@ export function BlpDataProvider({ children }) {
       }
     })
   }, [])
+
+  // Preload saat provider mount — guru langsung fetch di background agar sudah siap
+  useEffect(() => {
+    if (user) loadDashboard()
+  }, [user?.id, loadDashboard])
 
   return (
     <BlpDataContext.Provider value={{ data, loading, error, loadDashboard, invalidate, patchSubmission }}>

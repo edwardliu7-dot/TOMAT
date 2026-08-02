@@ -512,10 +512,10 @@ function HaidSiswiTab({ students, search }) {
 }
 
 // ─── Screen Utama ─────────────────────────────────────────────────────────────
-export default function BlpGuruDashboardScreen({ navigate, goBack }) {
+export default function BlpGuruDashboardScreen({ navigate, goBack, activeTab = 'daftar' }) {
   const { data, loading, error, loadDashboard } = useBlpData()
   const { user } = useAuth()
-  const [tab, setTab] = useState('daftar')
+  const [tab, setTab] = useState(activeTab)
   const [selectedDate, setSelectedDate] = useState(getJakartaToday())
   const [search, setSearch] = useState('')
 

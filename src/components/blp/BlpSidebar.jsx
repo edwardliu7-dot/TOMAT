@@ -55,8 +55,9 @@ function getSiswaNav(user) {
 }
 
 const GURU_NAV = [
-  { key: 'blp-guru-rekap',   emoji: '📊', label: 'Dashboard' },
-  { key: 'blp-guru-periode', emoji: '📅', label: 'Periode BLP' },
+  { key: 'blp-guru-daftar',       emoji: '👥', label: 'Daftar Siswa'  },
+  { key: 'blp-guru-rekap-nilai',  emoji: '📊', label: 'Rekap Nilai'   },
+  { key: 'blp-guru-haid',         emoji: '🌸', label: 'Haid Siswi'    },
 ]
 
 export default function BlpSidebar({ user, navigate, currentScreen, onLogout }) {
