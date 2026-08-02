@@ -261,3 +261,7 @@ export const SURAH_LIST = [
   { no: 113, nameArab: 'الفلق',      nameLatin: 'Al-Falaq',      translatedName: 'Waktu Subuh',            ayatCount:   5, revelationPlace: 'makkah'  },
   { no: 114, nameArab: 'الناس',      nameLatin: 'An-Nas',        translatedName: 'Manusia',                ayatCount:   6, revelationPlace: 'makkah'  },
 ]
+
+export function getSurah(no) {
+  return SURAH_LIST.find(s => s.no === no) || null
+}
