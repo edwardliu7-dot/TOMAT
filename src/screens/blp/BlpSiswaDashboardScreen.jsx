@@ -1,17 +1,29 @@
 /**
  * BlpSiswaDashboardScreen.jsx
- * Dashboard utama siswa BLP Harian — implementasi mockup siswa-dashboard.
- * Tabs: Harian | Kalender | Riwayat
- * Fitur: toggle aktivitas inline, auto-save, skor bulat SVG, 5 kategori 5R.
- * Styling: SEMUA inline style — tidak menggunakan Tailwind/className UI.
+ * Dashboard utama siswa BLP Harian.
+ * Tabs: Harian | Kalender | Pengaturan
+ * Scoring: getEffectiveCompletedCount (school-day + haid-aware)
+ * Submission: Text, Checklist, Quran modals
  */
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useAuth } from '../../AuthContext.jsx'
 import { useBlpData } from '../../contexts/BlpDataContext.jsx'
 import {
-  BLP_CATEGORIES, hitungSkorV2, isSedangHaid, isV2Record,
-  hitungSkor, AKTIVITAS_LIST,
+  BLP_CATEGORIES,
+  QURAN_ACTIVITY_ID, BELAJAR_ACTIVITY_ID, EVALUASI_ACTIVITY_ID,
+  PERLENGKAPAN_ACTIVITY_ID, RECIPROCITY_ACTIVITY_IDS,
+  PERLENGKAPAN_SEKOLAH_ITEMS,
+  isSedangHaid,
 } from './blpAktivitasData.js'
+import {
+  getEffectiveTotalActivities, getEffectiveCompletedCount,
+  isDateCountedForRecap, isHaidDay, SCHOOL_ONLY_ACTIVITY_IDS, isSchoolDay,
+} from './utils/blpScoring.js'
+import { downloadRekapPDF, downloadRekapExcel } from './utils/rekapExport.js'
+import TextSubmissionModal from './modals/TextSubmissionModal.jsx'
+import ChecklistSubmissionModal from './modals/ChecklistSubmissionModal.jsx'
+import QuranReadingModal from './modals/QuranReadingModal.jsx'
+import ProfileModal from './modals/ProfileModal.jsx'
 
 // ─── Warna tema ───────────────────────────────────────────────────────────────
 const C = {
@@ -24,7 +36,7 @@ const C = {
   dimText: '#4a7a5a',
 }
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function getJakartaToday() {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -52,17 +64,40 @@ function initials(name = '') {
   return (name || '').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '??'
 }
 
+// ─── Submission config helpers ────────────────────────────────────────────────
+function getSubmissionConfig(activityId) {
+  if (activityId === BELAJAR_ACTIVITY_ID) {
+    return { minChars: 100, title: 'Rangkuman Belajar Hari Ini',
+             placeholder: 'Tuliskan rangkuman materi yang kamu pelajari hari ini...' }
+  }
+  if (activityId === EVALUASI_ACTIVITY_ID) {
+    return { minChars: 100, title: 'Evaluasi Diri Sebelum Tidur',
+             placeholder: 'Tuliskan evaluasi dirimu hari ini...' }
+  }
+  if (RECIPROCITY_ACTIVITY_IDS.includes(activityId)) {
+    return { title: 'Laporan Kegiatan',
+             placeholder: 'Ceritakan kegiatan yang kamu lakukan...' }
+  }
+  return null
+}
+
+function getChecklistConfig(activityId) {
+  if (activityId === PERLENGKAPAN_ACTIVITY_ID) {
+    return { title: 'Ceklis Perlengkapan Sekolah', items: PERLENGKAPAN_SEKOLAH_ITEMS }
+  }
+  return null
+}
+
 // ─── Circular Progress SVG ────────────────────────────────────────────────────
 function CircleProgress({ pct, size = 80, stroke = 8 }) {
   const r = (size - stroke) / 2
   const circ = 2 * Math.PI * r
-  const offset = circ - (pct / 100) * circ
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={size / 2} cy={size / 2} r={r}
+        <circle cx={size/2} cy={size/2} r={r}
           fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r}
+        <circle cx={size/2} cy={size/2} r={r}
           fill="none" stroke="white" strokeWidth={stroke}
           strokeDasharray={`${circ * pct / 100} ${circ}`}
           strokeLinecap="round" />
@@ -78,66 +113,69 @@ function CircleProgress({ pct, size = 80, stroke = 8 }) {
   )
 }
 
-// ─── Stars ────────────────────────────────────────────────────────────────────
 function Stars({ filled, size = 14 }) {
   return (
     <div style={{ display: 'flex', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map(i => (
+      {[1,2,3,4,5].map(i => (
         <span key={i} style={{ fontSize: size, color: i <= filled ? '#fde047' : 'rgba(255,255,255,0.25)' }}>★</span>
       ))}
     </div>
   )
 }
 
+// ─── Submission badge ─────────────────────────────────────────────────────────
+function SubmissionBadge({ type }) {
+  const labels = { text: '📝', audio: '🎤', checklist: '☑️' }
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, background: 'rgba(16,185,129,0.2)',
+      color: '#6ee7b7', borderRadius: 99, padding: '2px 7px', letterSpacing: 0.3,
+    }}>
+      {labels[type] || '📎'} Tersimpan
+    </span>
+  )
+}
+
 // ─── Tab Harian ───────────────────────────────────────────────────────────────
-function TabHarian({ student, today, navigate }) {
-  const sedangHaid  = isSedangHaid(student.haidPeriods || [])
-  const existingRec = student.records?.[today]
+function TabHarian({ student, today }) {
+  const existingRec = student.records?.[today] || {}
+  const todayDate   = new Date(today + 'T00:00:00')
+  const haidPeriods = student.haidPeriods || []
+  const sedangHaid  = isHaidDay(todayDate, haidPeriods)
 
-  // Deteksi versi: jika ada record yang pakai v2 IDs, pakai v2; kalau tidak, init kosong
-  const initChecked = useMemo(() => {
-    if (!existingRec) return []
-    const ids = existingRec.completedActivities || []
-    return ids
-  }, [existingRec])
-
-  const [checked, setChecked] = useState(initChecked)
-  const [saving, setSaving]   = useState(false)
-  const [saveOk, setSaveOk]   = useState(false)
-  const [saveErr, setSaveErr] = useState('')
+  const [checked, setChecked]   = useState(existingRec.completedActivities || [])
+  const [submissions, setSubs]  = useState(existingRec.submissions || {})
+  const [saving, setSaving]     = useState(false)
+  const [saveOk, setSaveOk]     = useState(false)
+  const [saveErr, setSaveErr]   = useState('')
+  const [activeModalActivityId, setActiveModal] = useState(null)
   const saveTimer = useRef(null)
 
-  // Sync jika student.records berubah dari luar
+  // Sync kalau data dari server berubah
   useEffect(() => {
-    setChecked(existingRec?.completedActivities || [])
+    setChecked(existingRec.completedActivities || [])
+    setSubs(existingRec.submissions || {})
   }, [existingRec])
 
-  const pct  = hitungSkorV2(checked, sedangHaid)
-  const stars = starCount(pct)
+  // Scoring dengan metode baru
+  const totalActs  = getEffectiveTotalActivities(todayDate)
+  const doneCount  = getEffectiveCompletedCount(todayDate, checked, haidPeriods)
+  const pct        = totalActs > 0 ? Math.round((doneCount / totalActs) * 100) : 0
+  const stars      = starCount(pct)
 
-  // Hitung total aktivitas (exclude sholat kalau haid)
-  const totalActs = useMemo(() => {
-    return BLP_CATEGORIES.reduce((sum, cat) =>
-      sum + cat.activities.filter(a => !(sedangHaid && a.sholat)).length, 0)
-  }, [sedangHaid])
-  const doneCount = checked.filter(id => {
-    const allActs = BLP_CATEGORIES.flatMap(c => c.activities)
-    const act = allActs.find(a => a.id === id)
-    return act && !(sedangHaid && act.sholat)
-  }).length
-
-  // Auto-save dengan debounce 800ms
-  const doSave = useCallback(async (ids) => {
+  const doSave = useCallback(async (ids, subs) => {
     if (!student?.id) return
     setSaving(true)
     setSaveErr('')
+    const score = totalActs > 0
+      ? Math.round((getEffectiveCompletedCount(todayDate, ids, haidPeriods) / totalActs) * 100)
+      : 0
     try {
-      const score = hitungSkorV2(ids, sedangHaid)
       const res = await fetch(`/api/blp/students/${student.id}/records/${today}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ completedActivities: ids, score, submissions: {} }),
+        body: JSON.stringify({ completedActivities: ids, score, submissions: subs || {} }),
       })
       if (!res.ok) {
         const j = await res.json()
@@ -150,18 +188,56 @@ function TabHarian({ student, today, navigate }) {
       setSaveErr('Koneksi gagal, coba lagi')
     }
     setSaving(false)
-  }, [student?.id, today, sedangHaid])
+  }, [student?.id, today, totalActs, haidPeriods]) // eslint-disable-line
 
-  function toggle(id) {
+  function toggleActivity(activityId) {
+    if (SCHOOL_ONLY_ACTIVITY_IDS.includes(activityId) && !isSchoolDay(todayDate)) {
+      setSaveErr('Kegiatan ini hanya berlaku pada hari sekolah (Senin–Jumat).')
+      setTimeout(() => setSaveErr(''), 3000)
+      return
+    }
     setChecked(prev => {
-      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+      const next = prev.includes(activityId) ? prev.filter(x => x !== activityId) : [...prev, activityId]
+      // Jika di-uncheck, hapus submission-nya juga
+      let nextSubs = submissions
+      if (prev.includes(activityId)) {
+        nextSubs = { ...submissions }
+        delete nextSubs[activityId]
+        setSubs(nextSubs)
+      }
       clearTimeout(saveTimer.current)
-      saveTimer.current = setTimeout(() => doSave(next), 800)
+      saveTimer.current = setTimeout(() => doSave(next, nextSubs), 800)
       return next
     })
   }
 
+  function handleActivityClick(activityId) {
+    const isDone = checked.includes(activityId)
+    // Kalau sudah dicentang → toggle off langsung (tidak perlu modal ulang)
+    if (isDone) { toggleActivity(activityId); return }
+    // Kalau belum: cek apakah perlu modal
+    const needsModal = activityId === QURAN_ACTIVITY_ID
+      || !!getChecklistConfig(activityId)
+      || !!getSubmissionConfig(activityId)
+    if (needsModal) {
+      setActiveModal(activityId)
+    } else {
+      toggleActivity(activityId)
+    }
+  }
+
+  function applySubmissionCompletion(activityId, submission) {
+    const nextChecked = checked.includes(activityId) ? checked : [...checked, activityId]
+    const nextSubs    = { ...submissions, [activityId]: submission }
+    setChecked(nextChecked)
+    setSubs(nextSubs)
+    setActiveModal(null)
+    clearTimeout(saveTimer.current)
+    doSave(nextChecked, nextSubs)
+  }
+
   const todayLabel = formatTanggal(today)
+  const allActs    = BLP_CATEGORIES.flatMap(c => c.activities)
 
   return (
     <div style={{ paddingBottom: 60 }}>
@@ -184,16 +260,10 @@ function TabHarian({ student, today, navigate }) {
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.8, letterSpacing: 1, marginBottom: 6 }}>
             NILAI BLP HARI INI
-            <span style={{
-              marginLeft: 8, background: 'rgba(255,255,255,0.2)', borderRadius: 99,
-              padding: '2px 8px', fontSize: 9,
-            }}>HARI INI</span>
           </div>
           <div style={{ fontSize: 44, fontWeight: 900, lineHeight: 1 }}>{pct}</div>
           <div style={{ fontSize: 13, opacity: 0.8, marginTop: 4 }}>Nilai BLP Hari Ini</div>
-          <div style={{ marginTop: 8 }}>
-            <Stars filled={stars} size={15} />
-          </div>
+          <div style={{ marginTop: 8 }}><Stars filled={stars} size={15} /></div>
           <div style={{ fontSize: 11, opacity: 0.75, marginTop: 4 }}>
             {pct < 100 ? 'Ayo selesaikan amaliyahmu!' : 'Luar biasa! Semua selesai 🎉'}
           </div>
@@ -219,7 +289,7 @@ function TabHarian({ student, today, navigate }) {
           borderRadius: 12, padding: '10px 14px', marginBottom: 14,
           fontSize: 12, color: '#f9a8d4',
         }}>
-          🌸 Periode haid aktif — aktivitas sholat dikecualikan secara otomatis
+          🌸 Periode haid aktif — Shalat &amp; Quran dikecualikan, auto-credit dihitung ✓
         </div>
       )}
 
@@ -229,50 +299,40 @@ function TabHarian({ student, today, navigate }) {
           background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)',
           borderRadius: 10, padding: '8px 14px', marginBottom: 12,
           fontSize: 12, color: '#6ee7b7', fontWeight: 600,
-        }}>
-          ✅ Tersimpan otomatis
-        </div>
+        }}>✅ Tersimpan otomatis</div>
       )}
       {saving && (
         <div style={{
           background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`,
           borderRadius: 10, padding: '8px 14px', marginBottom: 12,
           fontSize: 12, color: C.muted,
-        }}>
-          💾 Menyimpan...
-        </div>
+        }}>💾 Menyimpan...</div>
       )}
       {saveErr && (
         <div style={{
           background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
           borderRadius: 10, padding: '8px 14px', marginBottom: 12,
           fontSize: 12, color: '#f87171',
-        }}>
-          ⚠️ {saveErr}
-        </div>
+        }}>⚠️ {saveErr}</div>
       )}
 
-      {/* Kategori */}
+      {/* Kategori aktivitas */}
       {BLP_CATEGORIES.map(cat => {
         const visibleActs = cat.activities.filter(a => !(sedangHaid && a.sholat))
         const catDone = visibleActs.filter(a => checked.includes(a.id)).length
-        const catPct = visibleActs.length > 0 ? Math.round((catDone / visibleActs.length) * 100) : 0
+        const catPct  = visibleActs.length > 0 ? Math.round((catDone / visibleActs.length) * 100) : 0
 
         return (
           <div key={cat.id} style={{ marginBottom: 18 }}>
-            {/* Header kategori — kartu putih dengan border kiri berwarna */}
+            {/* Header kategori */}
             <div style={{
               background: '#fff', borderLeft: `4px solid ${cat.accentColor}`,
               borderRadius: 12, padding: '10px 14px',
-              display: 'flex', alignItems: 'center', gap: 10,
-              marginBottom: 8,
+              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8,
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 800, fontSize: 12, color: cat.accentColor, letterSpacing: 0.5 }}>
                   {cat.label}
-                </div>
-                <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {cat.sub}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -286,27 +346,29 @@ function TabHarian({ student, today, navigate }) {
             {/* Daftar aktivitas */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 4 }}>
               {cat.activities.map(act => {
-                const disabled = sedangHaid && act.sholat
+                const disabled  = sedangHaid && act.sholat
                 const isChecked = checked.includes(act.id)
+                const sub       = submissions?.[act.id]
+                const schoolOnly = SCHOOL_ONLY_ACTIVITY_IDS.includes(act.id)
+                const notSchoolDay = schoolOnly && !isSchoolDay(todayDate)
                 return (
                   <button
                     key={act.id}
-                    onClick={() => !disabled && toggle(act.id)}
-                    disabled={disabled}
+                    onClick={() => !disabled && !notSchoolDay && handleActivityClick(act.id)}
+                    disabled={disabled || notSchoolDay}
                     style={{
                       display: 'flex', alignItems: 'flex-start', gap: 12,
-                      background: disabled ? 'rgba(255,255,255,0.02)' : C.itemBg,
+                      background: disabled || notSchoolDay ? 'rgba(255,255,255,0.02)' : C.itemBg,
                       border: `1px solid ${act.note && !disabled ? `${cat.accentColor}40` : C.border}`,
                       borderRadius: 12, padding: '12px 14px',
-                      cursor: disabled ? 'default' : 'pointer',
-                      opacity: disabled ? 0.4 : 1,
-                      textAlign: 'left', fontFamily: 'inherit',
-                      transition: 'background 0.15s, border-color 0.15s',
+                      cursor: (disabled || notSchoolDay) ? 'default' : 'pointer',
+                      opacity: (disabled || notSchoolDay) ? 0.4 : 1,
+                      textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s',
                     }}
                   >
-                    {/* Circle checkbox */}
+                    {/* Checkbox */}
                     <div style={{
-                      width: 20, height: 20, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                      width: 20, height: 20, borderRadius: '50%', flexShrink: 0, marginTop: 2,
                       border: `2px solid ${isChecked && !disabled ? cat.accentColor : '#3a5545'}`,
                       background: isChecked && !disabled ? cat.accentColor : 'transparent',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -316,13 +378,33 @@ function TabHarian({ student, today, navigate }) {
                         <span style={{ color: '#fff', fontSize: 11, fontWeight: 900, lineHeight: 1 }}>✓</span>
                       )}
                     </div>
+
+                    {/* Teks */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', lineHeight: 1.4 }}>{act.label}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', lineHeight: 1.4 }}>{act.name}</div>
                       <div style={{ fontSize: 10, color: C.dimText, marginTop: 3, letterSpacing: 0.3 }}>
                         TARGET: {act.target}
                       </div>
                       {act.note && (
                         <div style={{ fontSize: 11, color: '#fbbf24', marginTop: 3 }}>📌 {act.note}</div>
+                      )}
+                      {notSchoolDay && (
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>🔒 Hanya hari sekolah</div>
+                      )}
+                      {/* Quran bookmark hint */}
+                      {act.id === QURAN_ACTIVITY_ID && student.quranBookmark && !isChecked && (
+                        <div style={{ fontSize: 10, color: '#fbbf24', marginTop: 3 }}>
+                          🔖 {student.quranBookmark.surahName}
+                          {student.quranBookmark.halaman
+                            ? ` — Hal. ${student.quranBookmark.halaman}`
+                            : ` ayat ${student.quranBookmark.ayat}`}
+                        </div>
+                      )}
+                      {/* Submission badge */}
+                      {sub && isChecked && (
+                        <div style={{ marginTop: 5 }}>
+                          <SubmissionBadge type={sub.type} />
+                        </div>
                       )}
                     </div>
                   </button>
@@ -333,33 +415,92 @@ function TabHarian({ student, today, navigate }) {
         )
       })}
 
-      {/* Footer */}
       <div style={{ textAlign: 'center', fontSize: 11, color: C.dimText, padding: '16px 0' }}>
         🌐 © 2026 BLP Harian · SMP TISA Islamic School 🌐
       </div>
+
+      {/* ── Modals ── */}
+      {activeModalActivityId === QURAN_ACTIVITY_ID && (
+        <QuranReadingModal
+          activityName="Membaca Al Qur'an"
+          bookmark={student.quranBookmark || null}
+          onClose={() => setActiveModal(null)}
+          onSubmit={(audioDataUrl, quranRef) => {
+            applySubmissionCompletion(QURAN_ACTIVITY_ID, {
+              type: 'audio', content: audioDataUrl, quranRef,
+              recordedAt: new Date().toISOString(),
+            })
+            // Simpan bookmark quran
+            if (student?.id) {
+              fetch(`/api/blp/students/${student.id}/quran-bookmark`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  surahNo: quranRef.surahNo,
+                  surahName: quranRef.surahName,
+                  ayat: quranRef.ayatTo + 1,
+                  halaman: quranRef.halaman || null,
+                }),
+              }).catch(console.error)
+            }
+          }}
+        />
+      )}
+
+      {activeModalActivityId && activeModalActivityId !== QURAN_ACTIVITY_ID
+        && getChecklistConfig(activeModalActivityId) && (
+        <ChecklistSubmissionModal
+          title={getChecklistConfig(activeModalActivityId).title}
+          activityName={allActs.find(a => a.id === activeModalActivityId)?.name || ''}
+          items={getChecklistConfig(activeModalActivityId).items}
+          initialValues={submissions?.[activeModalActivityId]?.items}
+          onClose={() => setActiveModal(null)}
+          onSubmit={items => {
+            applySubmissionCompletion(activeModalActivityId, {
+              type: 'checklist', items, recordedAt: new Date().toISOString(),
+            })
+          }}
+        />
+      )}
+
+      {activeModalActivityId && activeModalActivityId !== QURAN_ACTIVITY_ID
+        && getSubmissionConfig(activeModalActivityId) && (
+        <TextSubmissionModal
+          title={getSubmissionConfig(activeModalActivityId).title}
+          activityName={allActs.find(a => a.id === activeModalActivityId)?.name || ''}
+          placeholder={getSubmissionConfig(activeModalActivityId).placeholder}
+          minChars={getSubmissionConfig(activeModalActivityId).minChars}
+          initialValue={submissions?.[activeModalActivityId]?.content || ''}
+          onClose={() => setActiveModal(null)}
+          onSubmit={text => {
+            applySubmissionCompletion(activeModalActivityId, {
+              type: 'text', content: text, charCount: text.trim().length,
+              recordedAt: new Date().toISOString(),
+            })
+          }}
+        />
+      )}
     </div>
   )
 }
 
 // ─── Tab Kalender ─────────────────────────────────────────────────────────────
-function TabKalender({ student, navigate }) {
-  const today = getJakartaToday()
+function TabKalender({ student }) {
+  const today     = getJakartaToday()
   const thisMonth = today.slice(0, 7)
   const [viewMonth, setViewMonth] = useState(thisMonth)
+  const records     = student.records || {}
+  const haidPeriods = student.haidPeriods || []
 
-  const records = student.records || {}
-
-  // Hitung grid kalender
   const { weeks, monthLabel } = useMemo(() => {
     const [year, month] = viewMonth.split('-').map(Number)
-    const firstDay = new Date(year, month - 1, 1).getDay() // 0=Sun
+    const firstDay   = new Date(year, month - 1, 1).getDay()
     const daysInMonth = new Date(year, month, 0).getDate()
-    const label = new Date(year, month - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
-
+    const label      = new Date(year, month - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
     const cells = []
     for (let i = 0; i < firstDay; i++) cells.push(null)
     for (let d = 1; d <= daysInMonth; d++) cells.push(d)
-
     const rows = []
     for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7))
     return { weeks: rows, monthLabel: label }
@@ -377,14 +518,10 @@ function TabKalender({ student, navigate }) {
   }
   function nextMonth() {
     const [y, m] = viewMonth.split('-').map(Number)
-    const next = `${y}-${String(m + 1).padStart(2, '0')}`
-    if (next.slice(0, 7) <= today.slice(0, 7)) {
-      const d = new Date(y, m, 1)
-      setViewMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
-    }
+    const d = new Date(y, m, 1)
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (next <= today.slice(0, 7)) setViewMonth(next)
   }
-
-  const sedangHaid = isSedangHaid(student.haidPeriods || [])
 
   return (
     <div style={{ paddingBottom: 40 }}>
@@ -392,8 +529,7 @@ function TabKalender({ student, navigate }) {
       <div style={{
         background: C.cardBg, border: `1px solid ${C.border}`,
         borderRadius: 16, padding: '10px 14px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 14,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14,
       }}>
         <button onClick={prevMonth} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 20, padding: '0 8px', fontFamily: 'inherit' }}>‹</button>
         <span style={{ fontWeight: 700, fontSize: 15 }}>{monthLabel}</span>
@@ -410,26 +546,27 @@ function TabKalender({ student, navigate }) {
 
       {/* Grid kalender */}
       <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden' }}>
-        {/* Header hari */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', padding: '10px 8px 6px' }}>
           {['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d => (
             <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: C.dimText, letterSpacing: 0.5 }}>{d}</div>
           ))}
         </div>
-        {/* Baris minggu */}
         {weeks.map((week, wi) => (
           <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', padding: '2px 8px' }}>
             {week.map((d, di) => {
               if (!d) return <div key={di} />
-              const key = dayKey(d)
-              const rec = records[key]
-              const isToday = key === today
+              const key      = dayKey(d)
+              const rec      = records[key]
+              const isToday  = key === today
               const isFuture = key > today
-              const sedangHaidThisDay = isSedangHaid(student.haidPeriods || [])
-              const skor = rec
-                ? (isV2Record(rec.completedActivities || [])
-                  ? hitungSkorV2(rec.completedActivities, sedangHaidThisDay)
-                  : hitungSkor(rec.completedActivities, sedangHaidThisDay))
+              // Scoring per-hari: gunakan haidPeriods + tanggal spesifik
+              const dayDate  = new Date(key + 'T00:00:00')
+              const effectiveTotal = getEffectiveTotalActivities(dayDate)
+              const effectiveDone  = rec
+                ? getEffectiveCompletedCount(dayDate, rec.completedActivities || [], haidPeriods)
+                : null
+              const skor = effectiveDone !== null && effectiveTotal > 0
+                ? Math.round((effectiveDone / effectiveTotal) * 100)
                 : null
 
               let bg = 'transparent'
@@ -476,69 +613,234 @@ function TabKalender({ student, navigate }) {
   )
 }
 
-// ─── Tab Riwayat ──────────────────────────────────────────────────────────────
-function TabRiwayat({ student, navigate }) {
-  const sedangHaid = isSedangHaid(student.haidPeriods || [])
-  const records = student.records || {}
-  const sorted = Object.entries(records).sort(([a], [b]) => b.localeCompare(a)).slice(0, 30)
+// ─── Tab Pengaturan ───────────────────────────────────────────────────────────
+function TabPengaturan({ student, onEditProfil, selectedMonth, blpPeriods }) {
+  const [haidLoading, setHaidLoading] = useState(false)
+  const [haidErr, setHaidErr]         = useState('')
+  const [haidOk, setHaidOk]           = useState('')
+  const [dlLoading, setDlLoading]     = useState('')
+
+  const activeHaid = (student.haidPeriods || []).find(p => !p.endDate)
+  const isPerempuan = student.jenisKelamin !== 'L'
+
+  const handleToggleHaid = async () => {
+    setHaidLoading(true)
+    setHaidErr('')
+    setHaidOk('')
+    try {
+      const url = activeHaid
+        ? `/api/blp/students/${student.id}/haid/end`
+        : `/api/blp/students/${student.id}/haid`
+      const res = await fetch(url, {
+        method: activeHaid ? 'PUT' : 'POST',
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        const j = await res.json()
+        setHaidErr(j.error || 'Gagal')
+      } else {
+        setHaidOk(activeHaid ? 'Periode haid ditutup.' : 'Periode haid dimulai.')
+        setTimeout(() => setHaidOk(''), 3000)
+        // reload data
+        window.dispatchEvent(new CustomEvent('blp:reload'))
+      }
+    } catch {
+      setHaidErr('Koneksi gagal')
+    }
+    setHaidLoading(false)
+  }
+
+  const handleDownload = async (type) => {
+    setDlLoading(type)
+    try {
+      if (type === 'pdf') {
+        await downloadRekapPDF(student, selectedMonth, blpPeriods)
+      } else {
+        await downloadRekapExcel(student, selectedMonth, blpPeriods)
+      }
+    } catch (e) {
+      console.error('Download gagal:', e)
+      alert('Download gagal: ' + (e?.message || 'Error tidak diketahui'))
+    }
+    setDlLoading('')
+  }
+
+  const sectionStyle = {
+    background: C.cardBg, border: `1px solid ${C.border}`,
+    borderRadius: 16, padding: '16px 18px', marginBottom: 14,
+    display: 'flex', flexDirection: 'column', gap: 14,
+  }
+  const rowStyle = {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+  }
+  const iconBoxStyle = (bg) => ({
+    padding: 8, borderRadius: 12, background: bg,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  })
+  const btnStyle = (bg, color = '#fff') => ({
+    padding: '9px 18px', borderRadius: 12, fontWeight: 700, fontSize: 13,
+    background: bg, color, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+    display: 'flex', alignItems: 'center', gap: 6,
+  })
 
   return (
-    <div style={{ paddingBottom: 40 }}>
-      {sorted.length === 0 && (
-        <div style={{ textAlign: 'center', color: C.dimText, padding: '40px 0', fontSize: 14 }}>
-          Belum ada riwayat aktivitas.
-        </div>
-      )}
-      {sorted.map(([date, rec]) => {
-        const ids = rec.completedActivities || []
-        const skor = isV2Record(ids)
-          ? hitungSkorV2(ids, sedangHaid)
-          : hitungSkor(ids, sedangHaid)
-        const label = formatTanggal(date)
-        const sColor = skor >= 80 ? '#22c55e' : skor >= 50 ? '#f59e0b' : '#ef4444'
-        return (
-          <div key={date} style={{
-            background: C.cardBg, border: `1px solid ${C.border}`,
-            borderRadius: 14, padding: '12px 16px', marginBottom: 8,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{label}</div>
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>
-                {ids.length} aktivitas tercatat
-              </div>
+    <div style={{ paddingBottom: 60 }}>
+
+      {/* ── Profil ── */}
+      <div style={sectionStyle}>
+        <div style={rowStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={iconBoxStyle('#d1fae5')}>
+              <span style={{ fontSize: 18 }}>👤</span>
             </div>
-            <div style={{
-              background: `${sColor}20`, border: `1px solid ${sColor}55`,
-              borderRadius: 10, padding: '4px 12px',
-              fontSize: 14, fontWeight: 800, color: sColor,
-            }}>
-              {skor}%
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>Edit Profil</div>
+              <div style={{ fontSize: 11, color: C.muted }}>Foto &amp; bio</div>
             </div>
           </div>
-        )
-      })}
+          <button onClick={onEditProfil} style={btnStyle('#059669')}>
+            Edit
+          </button>
+        </div>
+      </div>
+
+      {/* ── Download Rekap ── */}
+      <div style={sectionStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <div style={iconBoxStyle('#d1fae5')}>
+            <span style={{ fontSize: 18 }}>📥</span>
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>Download Rekap</div>
+            <div style={{ fontSize: 11, color: C.muted }}>
+              {selectedMonth
+                ? new Date(selectedMonth + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+                : 'Bulan ini'}
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={() => handleDownload('pdf')}
+            disabled={!!dlLoading}
+            style={{ ...btnStyle('#dc2626'), flex: 1, justifyContent: 'center', opacity: dlLoading === 'pdf' ? 0.6 : 1 }}
+          >
+            {dlLoading === 'pdf' ? '...' : '📄'} PDF
+          </button>
+          <button
+            onClick={() => handleDownload('excel')}
+            disabled={!!dlLoading}
+            style={{ ...btnStyle('#16a34a'), flex: 1, justifyContent: 'center', opacity: dlLoading === 'excel' ? 0.6 : 1 }}
+          >
+            {dlLoading === 'excel' ? '...' : '📊'} Excel
+          </button>
+        </div>
+      </div>
+
+      {/* ── Status Haid (hanya perempuan / unknown) ── */}
+      {isPerempuan && (
+        <div style={sectionStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={iconBoxStyle('#ffe4e6')}>
+              <span style={{ fontSize: 18 }}>🩷</span>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>Status Haid</div>
+              <div style={{ fontSize: 11, color: C.muted }}>
+                Shalat &amp; Quran otomatis ✓ saat haid
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            borderRadius: 12, border: `1px solid ${activeHaid ? '#fda4af' : C.border}`,
+            background: activeHaid ? 'rgba(244,63,94,0.1)' : 'rgba(255,255,255,0.04)',
+            padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          }}>
+            <div>
+              {activeHaid ? (
+                <>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#fda4af' }}>🩷 Sedang haid</div>
+                  <div style={{ fontSize: 11, color: '#fb7185', marginTop: 2 }}>
+                    Mulai: {new Date(activeHaid.startDate + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#fff' }}>Tidak sedang haid</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Tekan tombol saat haid dimulai</div>
+                </>
+              )}
+            </div>
+            <button
+              onClick={handleToggleHaid}
+              disabled={haidLoading}
+              style={{
+                ...btnStyle(activeHaid ? '#f43f5e' : '#059669'),
+                opacity: haidLoading ? 0.6 : 1, flexShrink: 0,
+              }}
+            >
+              {haidLoading ? '...' : activeHaid ? 'Selesai Haid' : 'Mulai Haid'}
+            </button>
+          </div>
+
+          {haidErr && <p style={{ fontSize: 12, color: '#f87171', margin: 0 }}>{haidErr}</p>}
+          {haidOk  && <p style={{ fontSize: 12, color: '#6ee7b7', margin: 0 }}>{haidOk}</p>}
+
+          {/* Riwayat haid */}
+          {(student.haidPeriods || []).filter(p => p.endDate).length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 6 }}>RIWAYAT HAID</div>
+              {(student.haidPeriods || [])
+                .filter(p => p.endDate)
+                .slice(0, 6)
+                .map(p => (
+                  <div key={p.id} style={{
+                    fontSize: 12, color: C.muted, padding: '6px 0',
+                    borderBottom: `1px solid ${C.border}`,
+                  }}>
+                    {new Date(p.startDate + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {' – '}
+                    {new Date(p.endDate + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
 // ─── Screen Utama ─────────────────────────────────────────────────────────────
 export default function BlpSiswaDashboardScreen({ navigate, goBack }) {
-  const { user } = useAuth()
+  const { user }                         = useAuth()
   const { data, loading, error, loadDashboard } = useBlpData()
-  const [tab, setTab] = useState('harian')
+  const [tab, setTab]                    = useState('harian')
+  const [showProfileModal, setShowProfileModal] = useState(false)
 
   useEffect(() => { loadDashboard() }, [])
 
+  // Listen untuk reload event dari TabPengaturan (haid toggle)
+  useEffect(() => {
+    const handler = () => loadDashboard({ force: true })
+    window.addEventListener('blp:reload', handler)
+    return () => window.removeEventListener('blp:reload', handler)
+  }, [loadDashboard])
+
   const today = getJakartaToday()
+  const selectedMonth = today.slice(0, 7) // YYYY-MM
+
   const student = useMemo(() =>
     data ? Object.values(data.students || {})[0] : null,
   [data])
 
+  const blpPeriods = data?.blpPeriods || {}
+
   const TABS = [
-    { id: 'harian',   label: 'Harian',    icon: '✅' },
-    { id: 'kalender', label: 'Kalender',  icon: '📅' },
-    { id: 'riwayat',  label: 'Riwayat',   icon: '📋' },
+    { id: 'harian',     label: 'Harian',     icon: '✅' },
+    { id: 'kalender',   label: 'Kalender',   icon: '📅' },
+    { id: 'pengaturan', label: 'Pengaturan', icon: '⚙️' },
   ]
 
   if (loading || !data) return (
@@ -574,13 +876,27 @@ export default function BlpSiswaDashboardScreen({ navigate, goBack }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       gap: 12, padding: 24,
     }}>
-      <div style={{ color: C.muted, fontSize: 14, textAlign: 'center' }}>Data siswa tidak ditemukan.</div>
+      <div style={{ color: C.muted, fontSize: 14 }}>Data siswa tidak ditemukan.</div>
       <button onClick={goBack} style={{
         background: '#10b981', border: 'none', borderRadius: 12, padding: '10px 24px',
         color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
       }}>Kembali</button>
     </div>
   )
+
+  const handleSaveProfile = async (photoUrl, bio) => {
+    const res = await fetch(`/api/blp/students/${student.id}/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ photoUrl, bio }),
+    })
+    if (!res.ok) {
+      const j = await res.json()
+      throw new Error(j.error || 'Gagal menyimpan profil')
+    }
+    loadDashboard({ force: true })
+  }
 
   return (
     <div style={{
@@ -589,11 +905,8 @@ export default function BlpSiswaDashboardScreen({ navigate, goBack }) {
     }}>
       {/* ── Header ── */}
       <div style={{ background: C.navBg, borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{
-          padding: '10px 16px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          {/* Kiri: back + logo */}
+        <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Kiri */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {goBack && (
               <button onClick={goBack} style={{
@@ -612,17 +925,23 @@ export default function BlpSiswaDashboardScreen({ navigate, goBack }) {
             </div>
           </div>
 
-          {/* Kanan: avatar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'linear-gradient(135deg,#10b981,#0d9488)',
+          {/* Kanan: avatar / edit profil */}
+          <button
+            onClick={() => setShowProfileModal(true)}
+            title="Edit Profil"
+            style={{
+              width: 34, height: 34, borderRadius: '50%',
+              background: student.photoUrl ? 'none' : 'linear-gradient(135deg,#10b981,#0d9488)',
+              border: 'none', cursor: 'pointer', overflow: 'hidden',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 700, fontSize: 11, color: '#fff',
-            }}>
-              {initials(student.name || user?.name || '')}
-            </div>
-          </div>
+              padding: 0,
+            }}
+          >
+            {student.photoUrl
+              ? <img src={student.photoUrl} alt="profil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : initials(student.name || user?.name || '')}
+          </button>
         </div>
 
         {/* Tabs */}
@@ -650,15 +969,31 @@ export default function BlpSiswaDashboardScreen({ navigate, goBack }) {
       {/* ── Konten ── */}
       <div style={{ padding: '16px 16px 0' }}>
         {tab === 'harian' && (
-          <TabHarian student={student} today={today} navigate={navigate} />
+          <TabHarian student={student} today={today} />
         )}
         {tab === 'kalender' && (
-          <TabKalender student={student} navigate={navigate} />
+          <TabKalender student={student} />
         )}
-        {tab === 'riwayat' && (
-          <TabRiwayat student={student} navigate={navigate} />
+        {tab === 'pengaturan' && (
+          <TabPengaturan
+            student={student}
+            onEditProfil={() => setShowProfileModal(true)}
+            selectedMonth={selectedMonth}
+            blpPeriods={blpPeriods}
+          />
         )}
       </div>
+
+      {/* ── ProfileModal ── */}
+      {showProfileModal && (
+        <ProfileModal
+          name={student.name || user?.name || ''}
+          currentPhotoUrl={student.photoUrl || null}
+          currentBio={student.bio || null}
+          onClose={() => setShowProfileModal(false)}
+          onSave={handleSaveProfile}
+        />
+      )}
     </div>
   )
 }
