@@ -29,7 +29,7 @@ router.get('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      SELECT * FROM eob5_jadwal
+      SELECT * FROM jadwal
       WHERE ${conditions.join(' AND ')}
       ORDER BY hari, jam_mulai
     `, params)
@@ -52,7 +52,7 @@ router.post('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      INSERT INTO eob5_jadwal (guru_id, kelas, mata_pelajaran, hari, jam_mulai, jam_selesai, ruangan, tahun_ajaran)
+      INSERT INTO jadwal (guru_id, kelas, mata_pelajaran, hari, jam_mulai, jam_selesai, ruangan, tahun_ajaran)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `, [guruId, kelas, mata_pelajaran, hari, jam_mulai, jam_selesai, ruangan, tahun_ajaran])
@@ -72,7 +72,7 @@ router.put('/:id', requireGuru, async (req, res) => {
     const { kelas, mata_pelajaran, hari, jam_mulai, jam_selesai, ruangan, tahun_ajaran } = req.body
 
     const { rows } = await pool.query(`
-      UPDATE eob5_jadwal
+      UPDATE jadwal
       SET kelas          = COALESCE($1, kelas),
           mata_pelajaran = COALESCE($2, mata_pelajaran),
           hari           = COALESCE($3, hari),
@@ -109,7 +109,7 @@ router.get('/kalender-akademik', requireGuru, async (req, res) => {
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
     const { rows } = await pool.query(`
-      SELECT * FROM eob5_kalender_akademik
+      SELECT * FROM kalender_akademik
       ${where}
       ORDER BY tanggal_mulai
     `, params)
@@ -132,7 +132,7 @@ router.post('/kalender-akademik', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      INSERT INTO eob5_kalender_akademik (guru_id, judul, deskripsi, tanggal_mulai, tanggal_selesai, tipe, tahun_ajaran)
+      INSERT INTO kalender_akademik (guru_id, judul, deskripsi, tanggal_mulai, tanggal_selesai, tipe, tahun_ajaran)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `, [guruId, judul, deskripsi, tanggal_mulai, tanggal_selesai, tipe, tahun_ajaran])
@@ -160,7 +160,7 @@ router.get('/info-pekanan', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      SELECT * FROM eob5_info_pekanan
+      SELECT * FROM info_pekanan
       WHERE ${conditions.join(' AND ')}
       ORDER BY minggu_ke DESC
     `, params)

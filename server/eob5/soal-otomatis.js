@@ -1,7 +1,8 @@
 /**
  * server/eob5/soal-otomatis.js
  * Generate soal otomatis menggunakan Groq AI (llama-3.1-70b-versatile).
- * Soal yang di-generate dapat disimpan ke eob5_soal_tersimpan.
+ * Menggunakan tabel lama `ai_soal_otomatis` (bukan ai_soal_otomatis).
+ * Kolom: teacher_id (bukan guru_id), content (bukan soal_json).
  */
 
 import { Router } from 'express'
@@ -52,9 +53,9 @@ Format output JSON:
     // Simpan ke database jika diminta
     if (simpan && result.soal) {
       await pool.query(`
-        INSERT INTO eob5_soal_tersimpan (guru_id, topik, soal_json)
-        VALUES ($1, $2, $3)
-      `, [guruId, topik, JSON.stringify(result)])
+        INSERT INTO ai_soal_otomatis (teacher_id, topik, materi, content)
+        VALUES ($1, $2, $3, $4)
+      `, [guruId, topik, topik, JSON.stringify(result)])
     }
 
     res.json(result)
@@ -73,9 +74,9 @@ router.get('/tersimpan', requireGuru, async (req, res) => {
     const guruId = req.session.user.id
 
     const { rows } = await pool.query(`
-      SELECT id, topik, created_at
-      FROM eob5_soal_tersimpan
-      WHERE guru_id = $1
+      SELECT id, COALESCE(topik, materi) AS topik, created_at
+      FROM ai_soal_otomatis
+      WHERE teacher_id = $1
       ORDER BY created_at DESC
     `, [guruId])
 
@@ -93,7 +94,8 @@ router.get('/tersimpan/:id', requireGuru, async (req, res) => {
     const { id } = req.params
 
     const { rows } = await pool.query(
-      'SELECT * FROM eob5_soal_tersimpan WHERE id = $1 AND guru_id = $2',
+      `SELECT id, COALESCE(topik, materi) AS topik, content AS soal_json, created_at
+       FROM ai_soal_otomatis WHERE id = $1 AND teacher_id = $2`,
       [id, guruId]
     )
 
@@ -114,7 +116,7 @@ router.delete('/tersimpan/:id', requireGuru, async (req, res) => {
     const { id } = req.params
 
     const { rowCount } = await pool.query(
-      'DELETE FROM eob5_soal_tersimpan WHERE id = $1 AND guru_id = $2',
+      'DELETE FROM ai_soal_otomatis WHERE id = $1 AND teacher_id = $2',
       [id, guruId]
     )
 

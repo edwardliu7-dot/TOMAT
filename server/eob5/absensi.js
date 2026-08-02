@@ -40,7 +40,7 @@ router.get('/hari-ini', requireGuru, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT a.id, a.student_id, a.tanggal, a.status, a.keterangan,
               s.name AS siswa_name, s.kelas, s.username
-       FROM eob5_absensi a
+       FROM absensi a
        JOIN students s ON s.id = a.student_id
        WHERE a.guru_id = $1 AND a.tanggal = $2 ${kelasFilter}
        ORDER BY s.kelas, s.name`,
@@ -84,7 +84,7 @@ router.get('/rekap', requireGuru, async (req, res) => {
               COUNT(*) FILTER (WHERE a.status = 'alpha') AS alpha,
               COUNT(a.id) AS total_tercatat
        FROM students s
-       LEFT JOIN eob5_absensi a ON a.student_id = s.id
+       LEFT JOIN absensi a ON a.student_id = s.id
        ${where}
        GROUP BY s.id, s.name, s.kelas, s.username
        ORDER BY s.kelas, s.name`,
@@ -131,7 +131,7 @@ router.get('/', requireGuru, async (req, res) => {
       `SELECT a.id, a.student_id, a.tanggal, a.status, a.keterangan,
               a.guru_id, a.created_at,
               s.name AS siswa_name, s.kelas
-       FROM eob5_absensi a
+       FROM absensi a
        JOIN students s ON s.id = a.student_id
        ${where}
        ORDER BY a.tanggal DESC, s.name
@@ -163,7 +163,7 @@ router.post('/', requireGuru, async (req, res) => {
     if (siswaRes.rowCount === 0) return res.status(404).json({ error: 'Siswa tidak ditemukan' })
 
     const { rows } = await pool.query(
-      `INSERT INTO eob5_absensi (student_id, guru_id, tanggal, status, keterangan)
+      `INSERT INTO absensi (student_id, guru_id, tanggal, status, keterangan)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (student_id, tanggal)
        DO UPDATE SET
@@ -203,7 +203,7 @@ router.post('/bulk', requireGuru, async (req, res) => {
       await client.query('BEGIN')
       for (const item of absensi) {
         const { rows } = await client.query(
-          `INSERT INTO eob5_absensi (student_id, guru_id, tanggal, status, keterangan)
+          `INSERT INTO absensi (student_id, guru_id, tanggal, status, keterangan)
            VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT (student_id, tanggal)
            DO UPDATE SET

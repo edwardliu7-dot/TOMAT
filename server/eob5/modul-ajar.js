@@ -1,12 +1,8 @@
 /**
  * server/eob5/modul-ajar.js
  * Generate modul ajar via Groq AI + simpan ke DB.
- * Menggantikan materi.js untuk use-case modul ajar AI.
- *
- * GET    /api/eob5/modul-ajar               — daftar modul (metadata)
- * GET    /api/eob5/modul-ajar/:id           — detail modul (lengkap)
- * POST   /api/eob5/modul-ajar/generate      — generate via Groq + simpan
- * DELETE /api/eob5/modul-ajar/:id           — hapus modul
+ * Menggunakan tabel lama `ai_modul_ajar` dan `subjects`.
+ * Kolom: teacher_id (bukan guru_id).
  */
 
 import { Router } from 'express'
@@ -21,7 +17,7 @@ const MAX_PER_GURU = 15
 
 async function getOwnSubject(subjectId, guruId) {
   const { rows } = await pool.query(
-    'SELECT id, name FROM eob5_subjects WHERE id = $1 AND guru_id = $2 AND deleted_at IS NULL',
+    'SELECT id, name FROM subjects WHERE id = $1 AND teacher_id = $2 AND deleted_at IS NULL',
     [subjectId, guruId]
   )
   return rows[0] || null
@@ -42,8 +38,8 @@ router.get('/', requireGuru, async (req, res) => {
 
     const { rows } = await pool.query(
       `SELECT id, subject_id, materi, alokasi_waktu, kelas, created_at
-       FROM eob5_modul_ajar
-       WHERE guru_id = $1 ${subjectFilter}
+       FROM ai_modul_ajar
+       WHERE teacher_id = $1 ${subjectFilter}
        ORDER BY created_at DESC`,
       params
     )
@@ -59,7 +55,7 @@ router.get('/:id', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
     const { rows } = await pool.query(
-      'SELECT * FROM eob5_modul_ajar WHERE id = $1 AND guru_id = $2',
+      'SELECT * FROM ai_modul_ajar WHERE id = $1 AND teacher_id = $2',
       [req.params.id, guruId]
     )
     if (!rows.length) return res.status(404).json({ error: 'Modul ajar tidak ditemukan' })
@@ -80,7 +76,6 @@ router.post('/generate', requireGuru, async (req, res) => {
       return res.status(400).json({ error: 'materi dan alokasi_waktu wajib diisi' })
     }
 
-    // Ambil nama guru & mata pelajaran jika subject_id diberikan
     let mataPelajaran = req.body.mata_pelajaran || materi
     let namaGuru = req.session.user.name || 'Guru'
 
@@ -147,7 +142,7 @@ Format JSON yang harus dihasilkan:
     }
 
     const { rows } = await pool.query(
-      `INSERT INTO eob5_modul_ajar (guru_id, subject_id, materi, alokasi_waktu, kelas, content)
+      `INSERT INTO ai_modul_ajar (teacher_id, subject_id, materi, alokasi_waktu, kelas, content)
        VALUES ($1,$2,$3,$4,$5,$6)
        RETURNING id, subject_id, materi, alokasi_waktu, kelas, created_at`,
       [guruId, subject_id || null, materi, alokasi_waktu, kelas || null, JSON.stringify(content)]
@@ -157,13 +152,13 @@ Format JSON yang harus dihasilkan:
     // Pruning: pertahankan max 15 modul per guru
     try {
       const { rows: allIds } = await pool.query(
-        `SELECT id FROM eob5_modul_ajar WHERE guru_id = $1 ORDER BY created_at DESC`,
+        `SELECT id FROM ai_modul_ajar WHERE teacher_id = $1 ORDER BY created_at DESC`,
         [guruId]
       )
       if (allIds.length > MAX_PER_GURU) {
         const toDelete = allIds.slice(MAX_PER_GURU).map(r => r.id)
         await pool.query(
-          'DELETE FROM eob5_modul_ajar WHERE guru_id = $1 AND id = ANY($2::int[])',
+          'DELETE FROM ai_modul_ajar WHERE teacher_id = $1 AND id = ANY($2::uuid[])',
           [guruId, toDelete]
         )
       }
@@ -183,7 +178,7 @@ router.delete('/:id', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
     const { rows } = await pool.query(
-      'DELETE FROM eob5_modul_ajar WHERE id = $1 AND guru_id = $2 RETURNING id',
+      'DELETE FROM ai_modul_ajar WHERE id = $1 AND teacher_id = $2 RETURNING id',
       [req.params.id, guruId]
     )
     if (!rows.length) return res.status(404).json({ error: 'Modul ajar tidak ditemukan' })

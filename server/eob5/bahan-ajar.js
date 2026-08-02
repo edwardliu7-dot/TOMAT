@@ -1,11 +1,7 @@
 /**
  * server/eob5/bahan-ajar.js
  * Upload bahan ajar (PDF base64 atau link URL) — semua guru bisa lihat & upload.
- *
- * GET    /api/eob5/bahan-ajar          — daftar bahan ajar (metadata, tanpa file_data)
- * GET    /api/eob5/bahan-ajar/:id/file — download file
- * POST   /api/eob5/bahan-ajar          — upload bahan ajar
- * DELETE /api/eob5/bahan-ajar/:id      — hapus (pemilik atau admin)
+ * Menggunakan tabel lama `bahan_ajar` (bukan bahan_ajar).
  */
 
 import { Router } from 'express'
@@ -35,7 +31,7 @@ router.get('/', requireGuru, async (req, res) => {
       `SELECT id, judul, mata_pelajaran, kelas, deskripsi,
               file_name, file_type, file_size, link_url,
               created_by, created_by_name, created_at
-       FROM eob5_bahan_ajar ${where}
+       FROM bahan_ajar ${where}
        ORDER BY created_at DESC`,
       params
     )
@@ -50,7 +46,7 @@ router.get('/', requireGuru, async (req, res) => {
 router.get('/:id/file', requireGuru, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT file_data, file_name, file_type FROM eob5_bahan_ajar WHERE id = $1',
+      'SELECT file_data, file_name, file_type FROM bahan_ajar WHERE id = $1',
       [req.params.id]
     )
     if (!rows.length || !rows[0].file_data) {
@@ -84,13 +80,12 @@ router.post('/', requireGuru, async (req, res) => {
     if (!file_data && !link_url) {
       return res.status(400).json({ error: 'file_data (base64) atau link_url wajib diisi' })
     }
-    // Batasi ukuran file: ~10 MB base64
     if (file_data && file_data.length > 14_000_000) {
       return res.status(413).json({ error: 'File terlalu besar (maks. ~10 MB)' })
     }
 
     const { rows } = await pool.query(
-      `INSERT INTO eob5_bahan_ajar
+      `INSERT INTO bahan_ajar
          (judul, mata_pelajaran, kelas, deskripsi, file_name, file_type, file_size,
           file_data, link_url, created_by, created_by_name)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
@@ -113,7 +108,7 @@ router.delete('/:id', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
     const { rows } = await pool.query(
-      'SELECT id, created_by FROM eob5_bahan_ajar WHERE id = $1', [req.params.id]
+      'SELECT id, created_by FROM bahan_ajar WHERE id = $1', [req.params.id]
     )
     if (!rows.length) return res.status(404).json({ error: 'Bahan ajar tidak ditemukan' })
 
@@ -122,7 +117,7 @@ router.delete('/:id', requireGuru, async (req, res) => {
       return res.status(403).json({ error: 'Hanya pembuat atau admin yang dapat menghapus bahan ajar ini' })
     }
 
-    await pool.query('DELETE FROM eob5_bahan_ajar WHERE id = $1', [req.params.id])
+    await pool.query('DELETE FROM bahan_ajar WHERE id = $1', [req.params.id])
     res.json({ success: true })
   } catch (err) {
     console.error('[eob5/bahan-ajar] delete error:', err)

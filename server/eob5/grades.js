@@ -1,11 +1,7 @@
 /**
  * server/eob5/grades.js
  * CRUD nilai siswa (formatif / sumatif_lm / sumatif_akhir).
- *
- * GET    /api/eob5/grades            — daftar nilai (filter: student_id, subject_id, calendar_id)
- * POST   /api/eob5/grades            — input nilai
- * PATCH  /api/eob5/grades/:id        — update nilai
- * DELETE /api/eob5/grades/:id        — hapus nilai
+ * Menggunakan tabel lama `grades` dan `subjects`.
  */
 
 import { Router } from 'express'
@@ -26,7 +22,7 @@ async function getStudentIds(guruId) {
 
 async function ownsSubject(subjectId, guruId) {
   const { rows } = await pool.query(
-    'SELECT id FROM eob5_subjects WHERE id = $1 AND guru_id = $2 AND deleted_at IS NULL',
+    'SELECT id FROM subjects WHERE id = $1 AND teacher_id = $2 AND deleted_at IS NULL',
     [subjectId, guruId]
   )
   return rows.length > 0
@@ -56,9 +52,9 @@ router.get('/', requireGuru, async (req, res) => {
 
     const { rows } = await pool.query(
       `SELECT g.*, s.name AS siswa_name, s.kelas, sub.name AS subject_name
-       FROM eob5_grades g
+       FROM grades g
        JOIN students s ON s.id = g.student_id
-       LEFT JOIN eob5_subjects sub ON sub.id = g.subject_id
+       LEFT JOIN subjects sub ON sub.id = g.subject_id
        WHERE ${conditions.join(' AND ')}
        ORDER BY g.created_at DESC`,
       params
@@ -89,7 +85,7 @@ router.post('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `INSERT INTO eob5_grades
+      `INSERT INTO grades
          (student_id, guru_id, subject_id, calendar_id, jenis, lingkup_materi, nilai, keterangan)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
        RETURNING *`,
@@ -112,14 +108,14 @@ router.patch('/:id', requireGuru, async (req, res) => {
 
     const allowed = await getStudentIds(guruId)
     const { rows: existing } = await pool.query(
-      'SELECT student_id FROM eob5_grades WHERE id = $1', [id]
+      'SELECT student_id FROM grades WHERE id = $1', [id]
     )
     if (!existing.length || !allowed.has(existing[0].student_id)) {
       return res.status(404).json({ error: 'Nilai tidak ditemukan' })
     }
 
     const { rows } = await pool.query(
-      `UPDATE eob5_grades
+      `UPDATE grades
        SET nilai          = COALESCE($1, nilai),
            keterangan     = COALESCE($2, keterangan),
            jenis          = COALESCE($3, jenis),
@@ -144,13 +140,13 @@ router.delete('/:id', requireGuru, async (req, res) => {
 
     const allowed = await getStudentIds(guruId)
     const { rows: existing } = await pool.query(
-      'SELECT student_id FROM eob5_grades WHERE id = $1', [id]
+      'SELECT student_id FROM grades WHERE id = $1', [id]
     )
     if (!existing.length || !allowed.has(existing[0].student_id)) {
       return res.status(404).json({ error: 'Nilai tidak ditemukan' })
     }
 
-    await pool.query('DELETE FROM eob5_grades WHERE id = $1', [id])
+    await pool.query('DELETE FROM grades WHERE id = $1', [id])
     res.json({ success: true })
   } catch (err) {
     console.error('[eob5/grades] delete error:', err)

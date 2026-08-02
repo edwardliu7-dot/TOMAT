@@ -1,6 +1,8 @@
 /**
  * server/eob5/prosem.js
  * CRUD program semester (prosem).
+ * Menggunakan tabel lama `prosem`.
+ * Kolom: teacher_id (bukan guru_id).
  */
 
 import { Router } from 'express'
@@ -15,7 +17,7 @@ router.get('/', requireGuru, async (req, res) => {
     const guruId = req.session.user.id
     const { kelas, mata_pelajaran, semester, tahun_ajaran } = req.query
 
-    const conditions = ['guru_id = $1']
+    const conditions = ['teacher_id = $1']
     const params = [guruId]
     let idx = 2
 
@@ -37,8 +39,8 @@ router.get('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      SELECT id, guru_id, mata_pelajaran, kelas, semester, tahun_ajaran, created_at
-      FROM eob5_prosem
+      SELECT id, teacher_id AS guru_id, mata_pelajaran, kelas, semester, tahun_ajaran, created_at
+      FROM prosem
       WHERE ${conditions.join(' AND ')}
       ORDER BY created_at DESC
     `, params)
@@ -57,7 +59,8 @@ router.get('/:id', requireGuru, async (req, res) => {
     const { id } = req.params
 
     const { rows } = await pool.query(
-      'SELECT * FROM eob5_prosem WHERE id = $1 AND guru_id = $2',
+      `SELECT id, teacher_id AS guru_id, mata_pelajaran, kelas, semester, tahun_ajaran, konten, created_at
+       FROM prosem WHERE id = $1 AND teacher_id = $2`,
       [id, guruId]
     )
 
@@ -82,9 +85,9 @@ router.post('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      INSERT INTO eob5_prosem (guru_id, mata_pelajaran, kelas, semester, tahun_ajaran, konten)
+      INSERT INTO prosem (teacher_id, mata_pelajaran, kelas, semester, tahun_ajaran, konten)
       VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *
+      RETURNING id, teacher_id AS guru_id, mata_pelajaran, kelas, semester, tahun_ajaran, konten, created_at
     `, [guruId, mata_pelajaran, kelas, semester, tahun_ajaran, konten ? JSON.stringify(konten) : null])
 
     res.status(201).json(rows[0])
@@ -102,14 +105,14 @@ router.put('/:id', requireGuru, async (req, res) => {
     const { mata_pelajaran, kelas, semester, tahun_ajaran, konten } = req.body
 
     const { rows } = await pool.query(`
-      UPDATE eob5_prosem
+      UPDATE prosem
       SET mata_pelajaran = COALESCE($1, mata_pelajaran),
           kelas          = COALESCE($2, kelas),
           semester       = COALESCE($3, semester),
           tahun_ajaran   = COALESCE($4, tahun_ajaran),
           konten         = COALESCE($5, konten)
-      WHERE id = $6 AND guru_id = $7
-      RETURNING *
+      WHERE id = $6 AND teacher_id = $7
+      RETURNING id, teacher_id AS guru_id, mata_pelajaran, kelas, semester, tahun_ajaran, konten, created_at
     `, [mata_pelajaran, kelas, semester, tahun_ajaran, konten ? JSON.stringify(konten) : null, id, guruId])
 
     if (rows.length === 0) {
@@ -129,7 +132,7 @@ router.delete('/:id', requireGuru, async (req, res) => {
     const { id } = req.params
 
     const { rowCount } = await pool.query(
-      'DELETE FROM eob5_prosem WHERE id = $1 AND guru_id = $2',
+      'DELETE FROM prosem WHERE id = $1 AND teacher_id = $2',
       [id, guruId]
     )
 

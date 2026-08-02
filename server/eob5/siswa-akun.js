@@ -43,7 +43,7 @@ router.get('/list', requireGuru, async (req, res) => {
          SELECT student_id,
                 COUNT(*) FILTER (WHERE status = 'hadir') AS total_hadir,
                 COUNT(*) FILTER (WHERE status = 'alpha') AS total_alpha
-         FROM eob5_absensi
+         FROM absensi
          GROUP BY student_id
        ) rek ON rek.student_id = s.id
        ${where}
@@ -199,17 +199,17 @@ router.get('/:id/rekap', requireGuru, async (req, res) => {
 
     const [absensiRes, nilaiRes, poinRes] = await Promise.all([
       pool.query(
-        `SELECT tanggal, status, keterangan, guru_id FROM eob5_absensi
+        `SELECT tanggal, status, keterangan, guru_id FROM absensi
          WHERE student_id = $1 ${dateFilter} ORDER BY tanggal DESC`,
         filterParams
       ),
       pool.query(
-        `SELECT id, jenis, nilai, keterangan, tanggal, mata_pelajaran FROM eob5_nilai
+        `SELECT id, jenis, nilai, keterangan, tanggal, mata_pelajaran FROM nilai_guru
          WHERE student_id = $1 ${dateFilter} ORDER BY tanggal DESC`,
         filterParams
       ).catch(() => ({ rows: [] })),  // graceful fallback jika tabel belum ada
       pool.query(
-        `SELECT id, jenis, poin, keterangan, tanggal FROM eob5_poin
+        `SELECT id, jenis, poin, keterangan, tanggal FROM poin
          WHERE student_id = $1 ${dateFilter} ORDER BY tanggal DESC`,
         filterParams
       ).catch(() => ({ rows: [] })),

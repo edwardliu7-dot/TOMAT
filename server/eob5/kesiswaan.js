@@ -27,8 +27,8 @@ router.get('/overview', requireGuru, async (req, res) => {
         COALESCE(SUM(p.poin) FILTER (WHERE p.jenis = 'negatif'), 0) AS "totalPoinNegatif",
         COALESCE(SUM(p.poin) FILTER (WHERE p.jenis = 'positif'), 0) AS "totalPoinPositif"
       FROM students st
-      LEFT JOIN eob5_absensi       a  ON a.student_id = st.id
-      LEFT JOIN eob5_student_points p ON p.student_id = st.id
+      LEFT JOIN absensi       a  ON a.student_id = st.id
+      LEFT JOIN student_points p ON p.student_id = st.id
       GROUP BY st.kelas
       ORDER BY st.kelas
     `)
@@ -41,7 +41,7 @@ router.get('/overview', requireGuru, async (req, res) => {
         st.kelas,
         SUM(p.poin) FILTER (WHERE p.jenis = 'negatif') AS "totalPoin"
       FROM students st
-      JOIN eob5_student_points p ON p.student_id = st.id
+      JOIN student_points p ON p.student_id = st.id
       WHERE p.jenis = 'negatif'
       GROUP BY st.id, st.name, st.kelas
       HAVING SUM(p.poin) FILTER (WHERE p.jenis = 'negatif') > 0
@@ -57,7 +57,7 @@ router.get('/overview', requireGuru, async (req, res) => {
         st.kelas,
         SUM(p.poin) FILTER (WHERE p.jenis = 'positif') AS "totalPoin"
       FROM students st
-      JOIN eob5_student_points p ON p.student_id = st.id
+      JOIN student_points p ON p.student_id = st.id
       WHERE p.jenis = 'positif'
       GROUP BY st.id, st.name, st.kelas
       HAVING SUM(p.poin) FILTER (WHERE p.jenis = 'positif') > 0
@@ -102,8 +102,8 @@ router.get('/siswa-absensi', requireGuru, async (req, res) => {
         COALESCE(SUM(p.poin) FILTER (WHERE p.jenis = 'positif'), 0) AS "totalPoinPositif",
         COALESCE(SUM(p.poin) FILTER (WHERE p.jenis = 'negatif'), 0) AS "totalPoinNegatif"
       FROM students st
-      LEFT JOIN eob5_absensi        a  ON a.student_id = st.id
-      LEFT JOIN eob5_student_points p  ON p.student_id = st.id
+      LEFT JOIN absensi        a  ON a.student_id = st.id
+      LEFT JOIN student_points p  ON p.student_id = st.id
       GROUP BY st.id, st.name, st.kelas
       ORDER BY st.kelas, st.name
     `)

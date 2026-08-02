@@ -1,6 +1,6 @@
 /**
  * server/eob5/nilai.js
- * CRUD nilai akademik mata pelajaran (eob5_nilai_akademik).
+ * CRUD nilai akademik mata pelajaran (nilai_akademik).
  * Terpisah dari tabel `nilai` TOMAT yang hanya untuk skor game.
  */
 
@@ -39,7 +39,7 @@ router.get('/', requireGuru, async (req, res) => {
 
     const { rows } = await pool.query(`
       SELECT n.*, s.name AS nama_siswa, s.kelas
-      FROM eob5_nilai_akademik n
+      FROM nilai_akademik n
       JOIN students s ON s.id = n.student_id
       WHERE ${conditions.join(' AND ')}
       ORDER BY s.name, n.created_at DESC
@@ -84,7 +84,7 @@ router.get('/rekap', requireGuru, async (req, res) => {
         n.jenis_nilai,
         AVG(n.nilai) AS rata_rata,
         COUNT(*) AS jumlah_nilai
-      FROM eob5_nilai_akademik n
+      FROM nilai_akademik n
       JOIN students s ON s.id = n.student_id
       WHERE ${conditions.join(' AND ')}
       GROUP BY s.id, s.name, s.kelas, n.mata_pelajaran, n.jenis_nilai
@@ -106,7 +106,7 @@ router.get('/siswa/:studentId', requireGuru, async (req, res) => {
 
     const { rows } = await pool.query(`
       SELECT n.*, s.name AS nama_siswa, s.kelas
-      FROM eob5_nilai_akademik n
+      FROM nilai_akademik n
       JOIN students s ON s.id = n.student_id
       WHERE n.guru_id = $1 AND n.student_id = $2
       ORDER BY n.created_at DESC
@@ -130,7 +130,7 @@ router.post('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      INSERT INTO eob5_nilai_akademik (student_id, guru_id, mata_pelajaran, jenis_nilai, nilai, semester, tahun_ajaran, keterangan)
+      INSERT INTO nilai_akademik (student_id, guru_id, mata_pelajaran, jenis_nilai, nilai, semester, tahun_ajaran, keterangan)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `, [student_id, guruId, mata_pelajaran, jenis_nilai, nilai, semester, tahun_ajaran, keterangan])
@@ -150,7 +150,7 @@ router.put('/:id', requireGuru, async (req, res) => {
     const { mata_pelajaran, jenis_nilai, nilai, semester, tahun_ajaran, keterangan } = req.body
 
     const { rows } = await pool.query(`
-      UPDATE eob5_nilai_akademik
+      UPDATE nilai_akademik
       SET mata_pelajaran = COALESCE($1, mata_pelajaran),
           jenis_nilai    = COALESCE($2, jenis_nilai),
           nilai          = COALESCE($3, nilai),
@@ -178,7 +178,7 @@ router.delete('/:id', requireGuru, async (req, res) => {
     const { id } = req.params
 
     const { rowCount } = await pool.query(
-      'DELETE FROM eob5_nilai_akademik WHERE id = $1 AND guru_id = $2',
+      'DELETE FROM nilai_akademik WHERE id = $1 AND guru_id = $2',
       [id, guruId]
     )
 

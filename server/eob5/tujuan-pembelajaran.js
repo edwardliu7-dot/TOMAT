@@ -1,12 +1,8 @@
 /**
  * server/eob5/tujuan-pembelajaran.js
  * CRUD tujuan pembelajaran per prosem/subject.
- *
- * GET    /api/eob5/tujuan-pembelajaran           — daftar TP
- * POST   /api/eob5/tujuan-pembelajaran           — buat TP
- * PATCH  /api/eob5/tujuan-pembelajaran/:id       — update TP
- * DELETE /api/eob5/tujuan-pembelajaran/:id       — hapus TP
- * POST   /api/eob5/tujuan-pembelajaran/bulk      — bulk buat TP
+ * Menggunakan tabel lama `tujuan_pembelajaran` dan `subjects`.
+ * Kolom: teacher_id (bukan guru_id), description (bukan deskripsi).
  */
 
 import { Router } from 'express'
@@ -18,7 +14,7 @@ const router = Router()
 async function ownsSubject(subjectId, guruId) {
   if (!subjectId) return true
   const { rows } = await pool.query(
-    'SELECT id FROM eob5_subjects WHERE id = $1 AND guru_id = $2 AND deleted_at IS NULL',
+    'SELECT id FROM subjects WHERE id = $1 AND teacher_id = $2 AND deleted_at IS NULL',
     [subjectId, guruId]
   )
   return rows.length > 0
@@ -33,7 +29,7 @@ router.get('/', requireGuru, async (req, res) => {
     if (subject_id && !(await ownsSubject(subject_id, guruId))) return res.json([])
 
     const params = [guruId]
-    const conditions = ['guru_id = $1']
+    const conditions = ['teacher_id = $1']
     let idx = 2
 
     if (subject_id) { params.push(subject_id); conditions.push(`subject_id = $${idx++}`) }
@@ -42,7 +38,10 @@ router.get('/', requireGuru, async (req, res) => {
     if (mata_pelajaran) { params.push(mata_pelajaran); conditions.push(`mata_pelajaran = $${idx++}`) }
 
     const { rows } = await pool.query(
-      `SELECT * FROM eob5_tujuan_pembelajaran
+      `SELECT id, teacher_id AS guru_id, subject_id, calendar_id,
+              mata_pelajaran, kelas, description AS deskripsi, kode_tp,
+              lingkup_materi, tp_number, created_at
+       FROM tujuan_pembelajaran
        WHERE ${conditions.join(' AND ')}
        ORDER BY tp_number ASC, created_at ASC`,
       params
@@ -67,11 +66,13 @@ router.post('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `INSERT INTO eob5_tujuan_pembelajaran
-         (guru_id, subject_id, calendar_id, mata_pelajaran, kelas, deskripsi,
+      `INSERT INTO tujuan_pembelajaran
+         (teacher_id, subject_id, calendar_id, mata_pelajaran, kelas, description,
           kode_tp, lingkup_materi, tp_number)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-       RETURNING *`,
+       RETURNING id, teacher_id AS guru_id, subject_id, calendar_id,
+                 mata_pelajaran, kelas, description AS deskripsi, kode_tp,
+                 lingkup_materi, tp_number, created_at`,
       [guruId, subject_id || null, calendar_id || null, mata_pelajaran || null,
        kelas || null, deskripsi, kode_tp || null,
        lingkup_materi !== undefined ? lingkup_materi : null,
@@ -104,8 +105,8 @@ router.post('/bulk', requireGuru, async (req, res) => {
       for (const item of items) {
         if (!item.deskripsi) continue
         await client.query(
-          `INSERT INTO eob5_tujuan_pembelajaran
-             (guru_id, subject_id, calendar_id, mata_pelajaran, kelas, deskripsi,
+          `INSERT INTO tujuan_pembelajaran
+             (teacher_id, subject_id, calendar_id, mata_pelajaran, kelas, description,
               kode_tp, lingkup_materi, tp_number)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
           [guruId, subject_id || item.subject_id || null,
@@ -139,15 +140,17 @@ router.patch('/:id', requireGuru, async (req, res) => {
     const { deskripsi, kode_tp, mata_pelajaran, kelas, lingkup_materi, tp_number } = req.body || {}
 
     const { rows } = await pool.query(
-      `UPDATE eob5_tujuan_pembelajaran
-       SET deskripsi      = COALESCE($1, deskripsi),
+      `UPDATE tujuan_pembelajaran
+       SET description    = COALESCE($1, description),
            kode_tp        = COALESCE($2, kode_tp),
            mata_pelajaran = COALESCE($3, mata_pelajaran),
            kelas          = COALESCE($4, kelas),
            lingkup_materi = COALESCE($5, lingkup_materi),
            tp_number      = COALESCE($6, tp_number)
-       WHERE id = $7 AND guru_id = $8
-       RETURNING *`,
+       WHERE id = $7 AND teacher_id = $8
+       RETURNING id, teacher_id AS guru_id, subject_id, calendar_id,
+                 mata_pelajaran, kelas, description AS deskripsi, kode_tp,
+                 lingkup_materi, tp_number, created_at`,
       [deskripsi || null, kode_tp !== undefined ? kode_tp : null,
        mata_pelajaran || null, kelas || null,
        lingkup_materi !== undefined ? lingkup_materi : null,
@@ -167,7 +170,7 @@ router.delete('/:id', requireGuru, async (req, res) => {
     const guruId = req.session.user.id
     const { id } = req.params
     const { rows } = await pool.query(
-      'DELETE FROM eob5_tujuan_pembelajaran WHERE id = $1 AND guru_id = $2 RETURNING id',
+      'DELETE FROM tujuan_pembelajaran WHERE id = $1 AND teacher_id = $2 RETURNING id',
       [id, guruId]
     )
     if (!rows.length) return res.status(404).json({ error: 'TP tidak ditemukan' })

@@ -67,7 +67,7 @@ router.get('/rekap', requireGuru, async (req, res) => {
               COUNT(*) FILTER (WHERE a.status IN ('alpha','alpa')) AS alpha,
               COUNT(a.id) AS total_tercatat
        FROM students s
-       LEFT JOIN eob5_absensi a ON a.student_id = s.id
+       LEFT JOIN absensi a ON a.student_id = s.id
        ${where}
        GROUP BY s.id, s.name, s.kelas, s.username
        ORDER BY s.kelas, s.name`,
@@ -102,7 +102,7 @@ router.get('/', requireGuru, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT a.id, a.student_id, a.tanggal, a.status, a.keterangan,
               s.name AS siswa_name, s.kelas, s.username
-       FROM eob5_absensi a
+       FROM absensi a
        JOIN students s ON s.id = a.student_id
        WHERE ${conditions.join(' AND ')}
        ORDER BY a.tanggal DESC, s.kelas, s.name`,
@@ -129,7 +129,7 @@ router.post('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `INSERT INTO eob5_absensi (student_id, guru_id, tanggal, status, keterangan)
+      `INSERT INTO absensi (student_id, guru_id, tanggal, status, keterangan)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (student_id, tanggal)
        DO UPDATE SET status = EXCLUDED.status, keterangan = EXCLUDED.keterangan,
@@ -163,7 +163,7 @@ router.post('/bulk', requireGuru, async (req, res) => {
       await client.query('BEGIN')
       for (const sid of student_ids) {
         const { rows } = await client.query(
-          `INSERT INTO eob5_absensi (student_id, guru_id, tanggal, status, keterangan)
+          `INSERT INTO absensi (student_id, guru_id, tanggal, status, keterangan)
            VALUES ($1,$2,$3,$4,$5)
            ON CONFLICT (student_id, tanggal) DO UPDATE
              SET status=$4, keterangan=$5, guru_id=$2
@@ -206,7 +206,7 @@ router.post('/bulk-mixed', requireGuru, async (req, res) => {
       await client.query('BEGIN')
       for (const item of absensi) {
         const { rows } = await client.query(
-          `INSERT INTO eob5_absensi (student_id, guru_id, tanggal, status, keterangan)
+          `INSERT INTO absensi (student_id, guru_id, tanggal, status, keterangan)
            VALUES ($1,$2,$3,$4,$5)
            ON CONFLICT (student_id, tanggal) DO UPDATE
              SET status=EXCLUDED.status, keterangan=EXCLUDED.keterangan, guru_id=EXCLUDED.guru_id
@@ -241,7 +241,7 @@ router.patch('/:id', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `UPDATE eob5_absensi
+      `UPDATE absensi
        SET status     = COALESCE($1, status),
            keterangan = COALESCE($2, keterangan)
        WHERE id = $3 AND guru_id = $4
@@ -272,7 +272,7 @@ router.delete('/bulk-kelas', requireGuru, async (req, res) => {
     }
 
     const { rowCount } = await pool.query(
-      `DELETE FROM eob5_absensi
+      `DELETE FROM absensi
        WHERE student_id = ANY($1::text[]) AND tanggal = $2`,
       [studentIds, tanggal]
     )

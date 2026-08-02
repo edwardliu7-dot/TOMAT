@@ -47,9 +47,9 @@ router.get('/rekap', requireGuru, async (req, res) => {
         COALESCE(SUM(p.poin) FILTER (WHERE p.jenis = 'positif'), 0)
           - COALESCE(SUM(p.poin) FILTER (WHERE p.jenis = 'negatif'), 0) AS "totalPoin"
       FROM students st
-      LEFT JOIN eob5_absensi        a ON a.student_id = st.id
-      LEFT JOIN eob5_nilai_akademik n ON n.student_id = st.id
-      LEFT JOIN eob5_student_points p ON p.student_id = st.id
+      LEFT JOIN absensi        a ON a.student_id = st.id
+      LEFT JOIN nilai_akademik n ON n.student_id = st.id
+      LEFT JOIN student_points p ON p.student_id = st.id
       WHERE st.kelas = ANY($1::text[])
       GROUP BY st.id, st.name, st.kelas, st.nisn
       ORDER BY st.kelas, st.name
@@ -97,9 +97,9 @@ router.get('/jurnal', requireGuru, async (req, res) => {
         g.name                AS "teacherName",
         s.subject_name        AS "subjectName",
         s.kelas
-      FROM eob5_journal_entries j
-      JOIN gurus           g ON g.id = j.guru_id
-      LEFT JOIN eob5_subjects s ON s.id = j.subject_id
+      FROM journal_entries j
+      JOIN gurus           g ON g.id = j.teacher_id
+      LEFT JOIN subjects s ON s.id = j.subject_id
       WHERE s.kelas = ANY($1::text[])
       ORDER BY j.tanggal DESC, j.created_at DESC
       LIMIT 50

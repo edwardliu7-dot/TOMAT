@@ -1,11 +1,8 @@
 /**
  * server/eob5/student-accounts.js
  * Generate akun login siswa (username otomatis) untuk wali kelas.
- *
- * GET  /api/eob5/student-accounts             — daftar akun kelas wali kelas ini
- * POST /api/eob5/student-accounts/:id/generate — generate/regen akun satu siswa
- * GET  /api/eob5/student-accounts/:id          — detail akun satu siswa
- * POST /api/eob5/student-accounts/generate-all — generate semua siswa sekaligus
+ * Menggunakan tabel lama `student_accounts` (bukan student_accounts).
+ * Kolom: username (bukan eob5_username), password (bukan password_plain).
  */
 
 import { Router } from 'express'
@@ -14,11 +11,10 @@ import { requireGuru } from './middleware.js'
 
 const router = Router()
 
-// Buat username dari nama siswa: lowercase, hapus karakter non-alfanumerik, potong 20 karakter
 function makeUsername(name, kelas, index) {
   const base = name
     .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // hapus aksen
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '')
     .slice(0, 16)
   const suffix = String(index).padStart(3, '0')
@@ -34,7 +30,6 @@ function makePassword(length = 8) {
   return pwd
 }
 
-// Ambil wali_kelas_kelas dari session guru
 async function getWaliKelas(guruId) {
   const { rows } = await pool.query(
     'SELECT wali_kelas_kelas, name FROM gurus WHERE id = $1', [guruId]
@@ -45,7 +40,7 @@ async function getWaliKelas(guruId) {
 
 async function getStudentAccount(studentId) {
   const { rows } = await pool.query(
-    'SELECT * FROM eob5_student_accounts WHERE student_id = $1', [studentId]
+    'SELECT * FROM student_accounts WHERE student_id = $1', [studentId]
   )
   return rows[0] || null
 }
@@ -71,8 +66,8 @@ router.get('/', requireGuru, async (req, res) => {
         nama_lengkap: s.name,
         kelas: s.kelas,
         has_account: !!acct,
-        username: acct?.eob5_username ?? null,
-        password: acct?.password_plain ?? null,
+        username: acct?.username ?? null,
+        password: acct?.password ?? null,
         created_at: acct?.created_at ?? null,
       }
     }))
@@ -103,24 +98,23 @@ router.post('/generate-all', requireGuru, async (req, res) => {
       const s = students[i]
       const existing = await getStudentAccount(s.id)
       if (existing) {
-        results.push({ student_id: s.id, nama_lengkap: s.name, skipped: true, username: existing.eob5_username })
+        results.push({ student_id: s.id, nama_lengkap: s.name, skipped: true, username: existing.username })
         continue
       }
 
       let username = makeUsername(s.name, guru.wali_kelas_kelas, i + 1)
-      // Pastikan username unik
       const { rows: dup } = await pool.query(
-        'SELECT id FROM eob5_student_accounts WHERE eob5_username = $1', [username]
+        'SELECT id FROM student_accounts WHERE username = $1', [username]
       )
       if (dup.length) username = username.slice(0, 14) + String(Date.now()).slice(-4)
 
       const password = makePassword()
       await pool.query(
-        `INSERT INTO eob5_student_accounts (student_id, eob5_username, password_plain, created_by)
+        `INSERT INTO student_accounts (student_id, username, password, created_by)
          VALUES ($1,$2,$3,$4)
          ON CONFLICT (student_id) DO UPDATE
-           SET eob5_username = EXCLUDED.eob5_username,
-               password_plain = EXCLUDED.password_plain,
+           SET username = EXCLUDED.username,
+               password = EXCLUDED.password,
                created_by = EXCLUDED.created_by`,
         [s.id, username, password, guruId]
       )
@@ -157,29 +151,29 @@ router.post('/:id/generate', requireGuru, async (req, res) => {
     if (existing && !forceRegen) {
       return res.json({
         student_id: student.id, nama_lengkap: student.name,
-        username: existing.eob5_username, password: existing.password_plain,
+        username: existing.username, password: existing.password,
         already_exists: true,
       })
     }
 
     const { rows: count } = await pool.query(
-      'SELECT COUNT(*) AS n FROM eob5_student_accounts', []
+      'SELECT COUNT(*) AS n FROM student_accounts', []
     )
     const idx = parseInt(count[0].n) + 1
     let username = makeUsername(student.name, guru.wali_kelas_kelas, idx)
     const { rows: dup } = await pool.query(
-      'SELECT id FROM eob5_student_accounts WHERE eob5_username = $1 AND student_id != $2',
+      'SELECT id FROM student_accounts WHERE username = $1 AND student_id != $2',
       [username, student.id]
     )
     if (dup.length) username = username.slice(0, 14) + String(Date.now()).slice(-4)
 
     const password = makePassword()
     const { rows } = await pool.query(
-      `INSERT INTO eob5_student_accounts (student_id, eob5_username, password_plain, created_by)
+      `INSERT INTO student_accounts (student_id, username, password, created_by)
        VALUES ($1,$2,$3,$4)
        ON CONFLICT (student_id) DO UPDATE
-         SET eob5_username = EXCLUDED.eob5_username,
-             password_plain = EXCLUDED.password_plain,
+         SET username = EXCLUDED.username,
+             password = EXCLUDED.password,
              created_by = EXCLUDED.created_by
        RETURNING *`,
       [student.id, username, password, guruId]
@@ -187,7 +181,7 @@ router.post('/:id/generate', requireGuru, async (req, res) => {
 
     res.status(201).json({
       student_id: student.id, nama_lengkap: student.name,
-      username: rows[0].eob5_username, password: rows[0].password_plain,
+      username: rows[0].username, password: rows[0].password,
     })
   } catch (err) {
     console.error('[eob5/student-accounts] generate error:', err)
@@ -218,8 +212,8 @@ router.get('/:id', requireGuru, async (req, res) => {
     res.json({
       student_id: studentRows[0].id,
       nama_lengkap: studentRows[0].name,
-      username: acct.eob5_username,
-      password: acct.password_plain,
+      username: acct.username,
+      password: acct.password,
       created_at: acct.created_at,
     })
   } catch (err) {

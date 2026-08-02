@@ -2,7 +2,7 @@
  * server/eob5/kelas.js
  * Manajemen kelas dan pengajar.
  *
- * GET /api/eob5/kelas/list        — daftar semua kelas (dari data siswa + eob5_kelas_guru)
+ * GET /api/eob5/kelas/list        — daftar semua kelas (dari data siswa + kelas_guru)
  * GET /api/eob5/kelas/:id/siswa   — siswa di kelas tertentu
  * GET /api/eob5/kelas/:id/guru    — guru yang mengajar kelas ini
  * POST /api/eob5/kelas/assign     — assign guru ke kelas + mapel
@@ -20,7 +20,7 @@ router.get('/list', requireGuru, async (req, res) => {
   try {
     const [kelasStudentsRes, kelasGuruRes] = await Promise.all([
       pool.query('SELECT DISTINCT kelas FROM students WHERE kelas IS NOT NULL ORDER BY kelas'),
-      pool.query('SELECT DISTINCT kelas FROM eob5_kelas_guru ORDER BY kelas'),
+      pool.query('SELECT DISTINCT kelas FROM kelas_guru ORDER BY kelas'),
     ])
 
     const kelasSet = new Set()
@@ -69,7 +69,7 @@ router.get('/:id/guru', requireGuru, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT kg.id, kg.guru_id, kg.kelas, kg.mata_pelajaran, kg.tahun_ajaran,
               g.name AS guru_name, g.username AS guru_username, g.jabatan
-       FROM eob5_kelas_guru kg
+       FROM kelas_guru kg
        JOIN gurus g ON g.id = kg.guru_id
        WHERE kg.kelas = $1
        ORDER BY kg.mata_pelajaran`,
@@ -95,7 +95,7 @@ router.post('/assign', requireGuru, async (req, res) => {
     if (guruRes.rowCount === 0) return res.status(404).json({ error: 'Guru tidak ditemukan' })
 
     const { rows } = await pool.query(
-      `INSERT INTO eob5_kelas_guru (guru_id, kelas, mata_pelajaran, tahun_ajaran)
+      `INSERT INTO kelas_guru (guru_id, kelas, mata_pelajaran, tahun_ajaran)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (guru_id, kelas, mata_pelajaran)
        DO UPDATE SET tahun_ajaran = EXCLUDED.tahun_ajaran
@@ -121,7 +121,7 @@ router.post('/assign', requireGuru, async (req, res) => {
 router.delete('/assign/:id', requireGuru, async (req, res) => {
   try {
     const result = await pool.query(
-      'DELETE FROM eob5_kelas_guru WHERE id = $1 RETURNING *',
+      'DELETE FROM kelas_guru WHERE id = $1 RETURNING *',
       [req.params.id]
     )
     if (result.rowCount === 0) return res.status(404).json({ error: 'Assignment tidak ditemukan' })

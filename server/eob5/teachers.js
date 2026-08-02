@@ -39,18 +39,18 @@ router.get('/progress', requireAdmin, async (req, res) => {
 
     const [subjectsRes, docsRes, journalsRes] = await Promise.all([
       pool.query(
-        'SELECT id, guru_id FROM eob5_subjects WHERE guru_id = ANY($1::text[]) AND deleted_at IS NULL',
+        'SELECT id, teacher_id AS guru_id FROM subjects WHERE teacher_id = ANY($1::text[]) AND deleted_at IS NULL',
         [guruIds]
       ),
       pool.query(
-        `SELECT d.subject_id FROM eob5_documents d
-         JOIN eob5_subjects s ON s.id = d.subject_id
-         WHERE s.guru_id = ANY($1::text[])`,
+        `SELECT d.subject_id FROM documents d
+         JOIN subjects s ON s.id = d.subject_id
+         WHERE s.teacher_id = ANY($1::text[])`,
         [guruIds]
       ),
       pool.query(
-        `SELECT guru_id FROM eob5_journal_entries
-         WHERE tanggal >= $1 AND guru_id = ANY($2::text[])`,
+        `SELECT teacher_id AS guru_id FROM journal_entries
+         WHERE tanggal >= $1 AND teacher_id = ANY($2::text[])`,
         [monthStartStr, guruIds]
       ),
     ])

@@ -38,7 +38,7 @@ router.get('/kelas/:kelas', requireGuru, async (req, res) => {
         n.jenis_nilai,
         AVG(n.nilai) AS rata_rata,
         COUNT(*) AS jumlah_penilaian
-      FROM eob5_nilai_akademik n
+      FROM nilai_akademik n
       JOIN students s ON s.id = n.student_id
       WHERE ${nilaiConditions.join(' AND ')}
       GROUP BY s.id, s.name, n.mata_pelajaran, n.jenis_nilai
@@ -58,7 +58,7 @@ router.get('/kelas/:kelas', requireGuru, async (req, res) => {
         COUNT(*) FILTER (WHERE a.status = 'izin') AS izin,
         COUNT(*) FILTER (WHERE a.status = 'alpha') AS alpha,
         COUNT(*) AS total_pertemuan
-      FROM eob5_absensi a
+      FROM absensi a
       JOIN students s ON s.id = a.student_id
       WHERE ${absensiConditions.join(' AND ')}
       GROUP BY a.student_id, s.name
@@ -90,7 +90,7 @@ router.get('/siswa/:id', requireGuru, async (req, res) => {
     // Nilai
     const { rows: nilaiRows } = await pool.query(`
       SELECT mata_pelajaran, jenis_nilai, nilai, semester, tahun_ajaran, keterangan, created_at
-      FROM eob5_nilai_akademik
+      FROM nilai_akademik
       WHERE student_id = $1 AND guru_id = $2
       ORDER BY created_at DESC
     `, [studentId, guruId])
@@ -103,7 +103,7 @@ router.get('/siswa/:id', requireGuru, async (req, res) => {
         COUNT(*) FILTER (WHERE status = 'izin') AS izin,
         COUNT(*) FILTER (WHERE status = 'alpha') AS alpha,
         COUNT(*) AS total
-      FROM eob5_absensi
+      FROM absensi
       WHERE student_id = $1 AND guru_id = $2
     `, [studentId, guruId])
 
@@ -130,19 +130,19 @@ router.get('/guru/:id', requireGuru, async (req, res) => {
 
     const [nilaiRes, absensiRes, materiRes, jadwalRes] = await Promise.all([
       pool.query(
-        'SELECT COUNT(*) AS total_nilai FROM eob5_nilai_akademik WHERE guru_id = $1',
+        'SELECT COUNT(*) AS total_nilai FROM nilai_akademik WHERE guru_id = $1',
         [guruId]
       ),
       pool.query(
-        'SELECT COUNT(*) AS total_sesi FROM eob5_absensi WHERE guru_id = $1',
+        'SELECT COUNT(*) AS total_sesi FROM absensi WHERE guru_id = $1',
         [guruId]
       ),
       pool.query(
-        'SELECT COUNT(*) AS total_materi FROM eob5_materi WHERE guru_id = $1',
+        'SELECT COUNT(*) AS total_materi FROM materi WHERE guru_id = $1',
         [guruId]
       ),
       pool.query(
-        'SELECT COUNT(*) AS total_jadwal FROM eob5_jadwal WHERE guru_id = $1',
+        'SELECT COUNT(*) AS total_jadwal FROM jadwal WHERE guru_id = $1',
         [guruId]
       ),
     ])
@@ -187,7 +187,7 @@ router.get('/periode', requireGuru, async (req, res) => {
         COUNT(DISTINCT student_id) AS jumlah_siswa,
         COUNT(*) AS jumlah_penilaian,
         AVG(nilai) AS rata_rata_kelas
-      FROM eob5_nilai_akademik
+      FROM nilai_akademik
       WHERE ${conditions.join(' AND ')}
       GROUP BY semester, tahun_ajaran, mata_pelajaran
       ORDER BY tahun_ajaran DESC, semester, mata_pelajaran
@@ -212,7 +212,7 @@ router.get('/absensi-chart', requireGuru, async (req, res) => {
         COUNT(*) FILTER (WHERE a.status = 'sakit') AS sakit,
         COUNT(*) FILTER (WHERE a.status = 'alpha') AS alpa,
         COUNT(*)                                    AS total
-      FROM eob5_absensi a
+      FROM absensi a
       JOIN students s ON s.id = a.student_id
       GROUP BY bulan, s.kelas
       ORDER BY bulan, s.kelas
@@ -251,7 +251,7 @@ router.get('/nilai-chart', requireGuru, async (req, res) => {
         COUNT(*)                           AS "jumlahNilai",
         -- simplified distribusi: bucket by 10s
         JSON_AGG(JSON_BUILD_OBJECT('range', CONCAT(FLOOR(n.nilai/10)*10,'-',FLOOR(n.nilai/10)*10+9), 'jumlah', 1) ORDER BY n.nilai) AS raw
-      FROM eob5_nilai_akademik n
+      FROM nilai_akademik n
       JOIN students s ON s.id = n.student_id
       GROUP BY n.mata_pelajaran, s.kelas
       ORDER BY s.kelas, n.mata_pelajaran

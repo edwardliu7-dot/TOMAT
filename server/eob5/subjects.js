@@ -1,11 +1,8 @@
 /**
  * server/eob5/subjects.js
  * CRUD mata pelajaran per guru.
- *
- * GET    /api/eob5/subjects         — daftar mata pelajaran (soft-delete aware)
- * POST   /api/eob5/subjects         — buat mata pelajaran baru
- * PATCH  /api/eob5/subjects/:id     — update nama
- * DELETE /api/eob5/subjects/:id     — soft-delete
+ * Menggunakan tabel lama `subjects` (bukan eob5_subjects).
+ * Kolom: teacher_id (bukan guru_id).
  */
 
 import { Router } from 'express'
@@ -21,9 +18,8 @@ const router = Router()
 async function syncSubjectFolders(guruId, mapel, kelasDiampu) {
   if (!mapel?.length || !kelasDiampu?.length) return
 
-  // Ambil semua (termasuk yang terhapus) agar tidak recreate yang dihapus
   const { rows: existing } = await pool.query(
-    'SELECT name FROM eob5_subjects WHERE guru_id = $1',
+    'SELECT name FROM subjects WHERE teacher_id = $1',
     [guruId]
   )
   const existingNames = new Set(existing.map(s => s.name))
@@ -38,7 +34,7 @@ async function syncSubjectFolders(guruId, mapel, kelasDiampu) {
 
   for (const [gid, name] of missing) {
     await pool.query(
-      'INSERT INTO eob5_subjects (guru_id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      'INSERT INTO subjects (teacher_id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING',
       [gid, name]
     )
   }
@@ -49,7 +45,6 @@ router.get('/', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
 
-    // Ambil data guru untuk sync folder
     const { rows: guruRows } = await pool.query(
       'SELECT mapel, kelas_diampu FROM gurus WHERE id = $1',
       [guruId]
@@ -60,9 +55,9 @@ router.get('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `SELECT id, guru_id, name, created_at
-       FROM eob5_subjects
-       WHERE guru_id = $1 AND deleted_at IS NULL
+      `SELECT id, teacher_id AS guru_id, name, created_at
+       FROM subjects
+       WHERE teacher_id = $1 AND deleted_at IS NULL
        ORDER BY name`,
       [guruId]
     )
@@ -83,10 +78,10 @@ router.post('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `INSERT INTO eob5_subjects (guru_id, name)
+      `INSERT INTO subjects (teacher_id, name)
        VALUES ($1, $2)
        ON CONFLICT DO NOTHING
-       RETURNING id, guru_id, name, created_at`,
+       RETURNING id, teacher_id AS guru_id, name, created_at`,
       [guruId, name.trim()]
     )
     if (!rows.length) {
@@ -110,10 +105,10 @@ router.patch('/:id', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `UPDATE eob5_subjects
+      `UPDATE subjects
        SET name = $1
-       WHERE id = $2 AND guru_id = $3 AND deleted_at IS NULL
-       RETURNING id, guru_id, name, created_at`,
+       WHERE id = $2 AND teacher_id = $3 AND deleted_at IS NULL
+       RETURNING id, teacher_id AS guru_id, name, created_at`,
       [name.trim(), id, guruId]
     )
     if (!rows.length) {
@@ -133,9 +128,9 @@ router.delete('/:id', requireGuru, async (req, res) => {
     const { id } = req.params
 
     const { rows } = await pool.query(
-      `UPDATE eob5_subjects
+      `UPDATE subjects
        SET deleted_at = NOW()
-       WHERE id = $1 AND guru_id = $2 AND deleted_at IS NULL
+       WHERE id = $1 AND teacher_id = $2 AND deleted_at IS NULL
        RETURNING id`,
       [id, guruId]
     )

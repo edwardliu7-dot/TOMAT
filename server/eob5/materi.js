@@ -33,7 +33,7 @@ router.get('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      SELECT * FROM eob5_materi
+      SELECT * FROM materi
       WHERE ${conditions.join(' AND ')}
       ORDER BY created_at DESC
     `, params)
@@ -52,7 +52,7 @@ router.get('/:id', requireGuru, async (req, res) => {
     const { id } = req.params
 
     const { rows } = await pool.query(
-      'SELECT * FROM eob5_materi WHERE id = $1 AND guru_id = $2',
+      'SELECT * FROM materi WHERE id = $1 AND guru_id = $2',
       [id, guruId]
     )
 
@@ -77,7 +77,7 @@ router.post('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      INSERT INTO eob5_materi (guru_id, judul, deskripsi, kelas, mata_pelajaran, url_file, tipe)
+      INSERT INTO materi (guru_id, judul, deskripsi, kelas, mata_pelajaran, url_file, tipe)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `, [guruId, judul, deskripsi, kelas, mata_pelajaran, url_file, tipe])
@@ -97,7 +97,7 @@ router.put('/:id', requireGuru, async (req, res) => {
     const { judul, deskripsi, kelas, mata_pelajaran, url_file, tipe } = req.body
 
     const { rows } = await pool.query(`
-      UPDATE eob5_materi
+      UPDATE materi
       SET judul          = COALESCE($1, judul),
           deskripsi      = COALESCE($2, deskripsi),
           kelas          = COALESCE($3, kelas),
@@ -125,7 +125,7 @@ router.delete('/:id', requireGuru, async (req, res) => {
     const { id } = req.params
 
     const { rowCount } = await pool.query(
-      'DELETE FROM eob5_materi WHERE id = $1 AND guru_id = $2',
+      'DELETE FROM materi WHERE id = $1 AND guru_id = $2',
       [id, guruId]
     )
 
@@ -145,7 +145,7 @@ router.get('/tujuan-pembelajaran', requireGuru, async (req, res) => {
     const guruId = req.session.user.id
     const { kelas, mata_pelajaran } = req.query
 
-    const conditions = ['guru_id = $1']
+    const conditions = ['teacher_id = $1']
     const params = [guruId]
     let idx = 2
 
@@ -159,7 +159,7 @@ router.get('/tujuan-pembelajaran', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      SELECT * FROM eob5_tujuan_pembelajaran
+      SELECT * FROM tujuan_pembelajaran
       WHERE ${conditions.join(' AND ')}
       ORDER BY created_at DESC
     `, params)

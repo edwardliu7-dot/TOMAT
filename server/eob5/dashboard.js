@@ -42,13 +42,13 @@ router.get('/', requireGuru, async (req, res) => {
                 COUNT(*) FILTER (WHERE status = 'sakit') AS sakit,
                 COUNT(*) FILTER (WHERE status = 'izin')  AS izin,
                 COUNT(*) FILTER (WHERE status = 'alpha') AS alpha
-         FROM eob5_absensi
+         FROM absensi
          WHERE guru_id = $1 AND tanggal = $2`,
         [guruId, today]
       ),
       // Kelas yang diampu
       pool.query(
-        `SELECT DISTINCT kelas FROM eob5_kelas_guru WHERE guru_id = $1 ORDER BY kelas`,
+        `SELECT DISTINCT kelas FROM kelas_guru WHERE guru_id = $1 ORDER BY kelas`,
         [guruId]
       ),
       // Rekap absensi 7 hari terakhir
@@ -56,7 +56,7 @@ router.get('/', requireGuru, async (req, res) => {
         `SELECT tanggal, COUNT(*) AS total,
                 COUNT(*) FILTER (WHERE status = 'hadir') AS hadir,
                 COUNT(*) FILTER (WHERE status != 'hadir') AS tidak_hadir
-         FROM eob5_absensi
+         FROM absensi
          WHERE guru_id = $1 AND tanggal >= NOW() - INTERVAL '7 days'
          GROUP BY tanggal ORDER BY tanggal DESC`,
         [guruId]
@@ -65,7 +65,7 @@ router.get('/', requireGuru, async (req, res) => {
       pool.query(
         `SELECT a.id, a.tanggal, a.status, a.keterangan,
                 s.name AS siswa_name, s.kelas
-         FROM eob5_absensi a
+         FROM absensi a
          JOIN students s ON s.id = a.student_id
          WHERE a.guru_id = $1
          ORDER BY a.created_at DESC LIMIT 5`,

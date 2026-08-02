@@ -1,12 +1,8 @@
 /**
  * server/eob5/feedback.js
  * Feedback dari guru ke pengembang aplikasi + unread count untuk admin.
- *
- * POST   /api/eob5/feedback              — kirim feedback (semua guru)
- * GET    /api/eob5/feedback              — daftar feedback (admin only)
- * GET    /api/eob5/feedback/unread-count — jumlah belum dibaca (admin only)
- * PATCH  /api/eob5/feedback/:id/read    — tandai sudah dibaca (admin only)
- * DELETE /api/eob5/feedback/:id          — hapus (admin only)
+ * Menggunakan tabel lama `feedback` (bukan eob5_app_feedback).
+ * Kolom: teacher_id (bukan guru_id), teacher_name (bukan guru_name).
  */
 
 import { Router } from 'express'
@@ -25,7 +21,7 @@ router.get('/unread-count', requireGuru, async (req, res) => {
   try {
     if (!isAdmin(req.session.user)) return res.json({ count: 0 })
     const { rows } = await pool.query(
-      'SELECT COUNT(*) AS n FROM eob5_app_feedback WHERE is_read = false'
+      'SELECT COUNT(*) AS n FROM feedback WHERE is_read = false'
     )
     res.json({ count: parseInt(rows[0].n) })
   } catch (err) {
@@ -59,8 +55,8 @@ router.post('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `INSERT INTO eob5_app_feedback
-         (guru_id, guru_name, kategori, pesan, screenshot_base64, page_url)
+      `INSERT INTO feedback
+         (teacher_id, teacher_name, kategori, pesan, screenshot_base64, page_url)
        VALUES ($1,$2,$3,$4,$5,$6)
        RETURNING id`,
       [guruId, guruName, kategori, pesan.trim(),
@@ -80,8 +76,9 @@ router.get('/', requireGuru, async (req, res) => {
       return res.status(403).json({ error: 'Hanya admin yang dapat melihat feedback.' })
     }
     const { rows } = await pool.query(
-      `SELECT id, guru_id, guru_name, kategori, pesan, page_url, is_read, created_at
-       FROM eob5_app_feedback ORDER BY created_at DESC`
+      `SELECT id, teacher_id AS guru_id, teacher_name AS guru_name,
+              kategori, pesan, page_url, is_read, created_at
+       FROM feedback ORDER BY created_at DESC`
     )
     res.json(rows)
   } catch (err) {
@@ -97,7 +94,7 @@ router.patch('/:id/read', requireGuru, async (req, res) => {
       return res.status(403).json({ error: 'Hanya admin yang dapat menandai feedback.' })
     }
     await pool.query(
-      'UPDATE eob5_app_feedback SET is_read = true WHERE id = $1', [req.params.id]
+      'UPDATE feedback SET is_read = true WHERE id = $1', [req.params.id]
     )
     res.json({ ok: true })
   } catch (err) {
@@ -112,7 +109,7 @@ router.delete('/:id', requireGuru, async (req, res) => {
     if (!isAdmin(req.session.user)) {
       return res.status(403).json({ error: 'Hanya admin yang dapat menghapus feedback.' })
     }
-    await pool.query('DELETE FROM eob5_app_feedback WHERE id = $1', [req.params.id])
+    await pool.query('DELETE FROM feedback WHERE id = $1', [req.params.id])
     res.json({ ok: true })
   } catch (err) {
     console.error('[eob5/feedback] delete error:', err)

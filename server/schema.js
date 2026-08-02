@@ -574,7 +574,7 @@ export async function ensureSchema() {
 
   // Tabel absensi harian siswa
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_absensi (
+    CREATE TABLE IF NOT EXISTS absensi (
       id          SERIAL PRIMARY KEY,
       student_id  text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       guru_id     text NOT NULL REFERENCES gurus(id),
@@ -588,7 +588,7 @@ export async function ensureSchema() {
 
   // Tabel mapping guru ke kelas + mata pelajaran
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_kelas_guru (
+    CREATE TABLE IF NOT EXISTS kelas_guru (
       id             SERIAL PRIMARY KEY,
       guru_id        text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
       kelas          varchar(50) NOT NULL,
@@ -600,7 +600,7 @@ export async function ensureSchema() {
 
   // Tabel nilai siswa EOB5 (Kurikulum Merdeka: formatif, sumatif_lm, sumatif_akhir)
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_nilai (
+    CREATE TABLE IF NOT EXISTS nilai_guru (
       id             SERIAL PRIMARY KEY,
       student_id     text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       guru_id        text REFERENCES gurus(id),
@@ -615,7 +615,7 @@ export async function ensureSchema() {
 
   // Tabel poin perilaku siswa (positif/negatif)
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_poin (
+    CREATE TABLE IF NOT EXISTS poin (
       id          SERIAL PRIMARY KEY,
       student_id  text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       guru_id     text REFERENCES gurus(id),
@@ -630,7 +630,7 @@ export async function ensureSchema() {
   // ── GuruEOB5 Tables (Bagian 2) ───────────────────────────────────────────────
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_nilai_akademik (
+    CREATE TABLE IF NOT EXISTS nilai_akademik (
       id             SERIAL PRIMARY KEY,
       student_id     text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       guru_id        text REFERENCES gurus(id),
@@ -645,7 +645,7 @@ export async function ensureSchema() {
   `)
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_materi (
+    CREATE TABLE IF NOT EXISTS materi (
       id             SERIAL PRIMARY KEY,
       guru_id        text REFERENCES gurus(id),
       judul          VARCHAR(255) NOT NULL,
@@ -659,7 +659,7 @@ export async function ensureSchema() {
   `)
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_jadwal (
+    CREATE TABLE IF NOT EXISTS jadwal (
       id             SERIAL PRIMARY KEY,
       guru_id        text REFERENCES gurus(id),
       kelas          VARCHAR(50) NOT NULL,
@@ -673,7 +673,7 @@ export async function ensureSchema() {
   `)
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_kalender_akademik (
+    CREATE TABLE IF NOT EXISTS kalender_akademik (
       id              SERIAL PRIMARY KEY,
       guru_id         text REFERENCES gurus(id),
       judul           VARCHAR(255) NOT NULL,
@@ -687,7 +687,7 @@ export async function ensureSchema() {
   `)
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_info_pekanan (
+    CREATE TABLE IF NOT EXISTS info_pekanan (
       id             SERIAL PRIMARY KEY,
       guru_id        text REFERENCES gurus(id),
       kelas          VARCHAR(50),
@@ -699,7 +699,7 @@ export async function ensureSchema() {
   `)
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_prosem (
+    CREATE TABLE IF NOT EXISTS prosem (
       id             SERIAL PRIMARY KEY,
       guru_id        text REFERENCES gurus(id),
       mata_pelajaran VARCHAR(100) NOT NULL,
@@ -712,7 +712,7 @@ export async function ensureSchema() {
   `)
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_soal_tersimpan (
+    CREATE TABLE IF NOT EXISTS ai_soal_otomatis (
       id         SERIAL PRIMARY KEY,
       guru_id    text REFERENCES gurus(id),
       topik      VARCHAR(255),
@@ -722,7 +722,7 @@ export async function ensureSchema() {
   `)
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_inbox (
+    CREATE TABLE IF NOT EXISTS inbox (
       id          SERIAL PRIMARY KEY,
       pengirim_id text REFERENCES gurus(id),
       judul       VARCHAR(255) NOT NULL,
@@ -734,7 +734,7 @@ export async function ensureSchema() {
   `)
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_tujuan_pembelajaran (
+    CREATE TABLE IF NOT EXISTS tujuan_pembelajaran (
       id             SERIAL PRIMARY KEY,
       guru_id        text REFERENCES gurus(id),
       mata_pelajaran VARCHAR(100) NOT NULL,
@@ -746,7 +746,7 @@ export async function ensureSchema() {
   `)
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_feedback (
+    CREATE TABLE IF NOT EXISTS feedback_siswa (
       id               SERIAL PRIMARY KEY,
       student_id       text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       guru_id          text REFERENCES gurus(id),
@@ -765,7 +765,7 @@ export async function ensureSchema() {
 
   // Mata pelajaran per guru (soft-delete)
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_subjects (
+    CREATE TABLE IF NOT EXISTS subjects (
       id         SERIAL PRIMARY KEY,
       guru_id    text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
       name       VARCHAR(255) NOT NULL,
@@ -777,10 +777,10 @@ export async function ensureSchema() {
 
   // Jurnal mengajar
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_journal_entries (
+    CREATE TABLE IF NOT EXISTS journal_entries (
       id              SERIAL PRIMARY KEY,
       guru_id         text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
-      subject_id      int  REFERENCES eob5_subjects(id) ON DELETE SET NULL,
+      subject_id      int  REFERENCES subjects(id) ON DELETE SET NULL,
       tanggal         DATE NOT NULL,
       kelas           VARCHAR(50) NOT NULL,
       materi          TEXT NOT NULL,
@@ -791,15 +791,15 @@ export async function ensureSchema() {
       created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `)
-  await pool.query(`CREATE INDEX IF NOT EXISTS eob5_journal_guru_tanggal ON eob5_journal_entries (guru_id, tanggal)`)
+  await pool.query(`CREATE INDEX IF NOT EXISTS journal_guru_tanggal ON journal_entries (guru_id, tanggal)`)
 
   // Nilai siswa (formatif / sumatif_lm / sumatif_akhir)
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_grades (
+    CREATE TABLE IF NOT EXISTS grades (
       id              SERIAL PRIMARY KEY,
       student_id      text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       guru_id         text REFERENCES gurus(id),
-      subject_id      int  REFERENCES eob5_subjects(id) ON DELETE SET NULL,
+      subject_id      int  REFERENCES subjects(id) ON DELETE SET NULL,
       calendar_id     int,
       jenis           VARCHAR(30) NOT NULL DEFAULT 'formatif',
       lingkup_materi  INT,
@@ -811,7 +811,7 @@ export async function ensureSchema() {
 
   // Poin perilaku siswa
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_student_points (
+    CREATE TABLE IF NOT EXISTS student_points (
       id         SERIAL PRIMARY KEY,
       student_id text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       guru_id    text REFERENCES gurus(id),
@@ -825,7 +825,7 @@ export async function ensureSchema() {
 
   // Kalender akademik
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_academic_calendars (
+    CREATE TABLE IF NOT EXISTS academic_calendars (
       id           SERIAL PRIMARY KEY,
       guru_id      text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
       nama         VARCHAR(255) NOT NULL,
@@ -838,9 +838,9 @@ export async function ensureSchema() {
 
   // Pekan efektif per kalender
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_academic_weeks (
+    CREATE TABLE IF NOT EXISTS academic_weeks (
       id               SERIAL PRIMARY KEY,
-      calendar_id      int NOT NULL REFERENCES eob5_academic_calendars(id) ON DELETE CASCADE,
+      calendar_id      int NOT NULL REFERENCES academic_calendars(id) ON DELETE CASCADE,
       pekan_ke         INT NOT NULL,
       tanggal_mulai    DATE NOT NULL,
       tanggal_selesai  DATE NOT NULL,
@@ -851,10 +851,10 @@ export async function ensureSchema() {
 
   // Item-item prosem (materi per pekan)
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_prosem_items (
+    CREATE TABLE IF NOT EXISTS prosem_items (
       id         SERIAL PRIMARY KEY,
-      prosem_id  int NOT NULL REFERENCES eob5_prosem(id) ON DELETE CASCADE,
-      subject_id int REFERENCES eob5_subjects(id) ON DELETE SET NULL,
+      prosem_id  int NOT NULL REFERENCES prosem(id) ON DELETE CASCADE,
+      subject_id int REFERENCES subjects(id) ON DELETE SET NULL,
       kelas      VARCHAR(50),
       materi     TEXT NOT NULL,
       kd         TEXT,
@@ -864,17 +864,17 @@ export async function ensureSchema() {
     )
   `)
 
-  // Kolom tambahan eob5_tujuan_pembelajaran untuk mendukung fitur baru
-  await pool.query(`ALTER TABLE eob5_tujuan_pembelajaran ADD COLUMN IF NOT EXISTS subject_id int REFERENCES eob5_subjects(id) ON DELETE SET NULL`)
-  await pool.query(`ALTER TABLE eob5_tujuan_pembelajaran ADD COLUMN IF NOT EXISTS calendar_id int`)
-  await pool.query(`ALTER TABLE eob5_tujuan_pembelajaran ADD COLUMN IF NOT EXISTS lingkup_materi INT`)
-  await pool.query(`ALTER TABLE eob5_tujuan_pembelajaran ADD COLUMN IF NOT EXISTS tp_number INT`)
+  // Kolom tambahan tujuan_pembelajaran untuk mendukung fitur baru
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS subject_id int REFERENCES subjects(id) ON DELETE SET NULL`)
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS calendar_id int`)
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS lingkup_materi INT`)
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS tp_number INT`)
 
   // Dokumen per mata pelajaran (base64 di DB)
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_documents (
+    CREATE TABLE IF NOT EXISTS documents (
       id          SERIAL PRIMARY KEY,
-      subject_id  int NOT NULL REFERENCES eob5_subjects(id) ON DELETE CASCADE,
+      subject_id  int NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
       name        VARCHAR(255) NOT NULL,
       description TEXT,
       file_name   VARCHAR(255),
@@ -887,10 +887,10 @@ export async function ensureSchema() {
 
   // Modul ajar yang di-generate oleh AI
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_modul_ajar (
+    CREATE TABLE IF NOT EXISTS ai_modul_ajar (
       id            SERIAL PRIMARY KEY,
       guru_id       text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
-      subject_id    int REFERENCES eob5_subjects(id) ON DELETE SET NULL,
+      subject_id    int REFERENCES subjects(id) ON DELETE SET NULL,
       materi        TEXT NOT NULL,
       alokasi_waktu VARCHAR(50) NOT NULL,
       kelas         VARCHAR(50),
@@ -901,7 +901,7 @@ export async function ensureSchema() {
 
   // Akun login siswa yang di-generate wali kelas
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_student_accounts (
+    CREATE TABLE IF NOT EXISTS student_accounts (
       id              SERIAL PRIMARY KEY,
       student_id      text NOT NULL UNIQUE REFERENCES students(id) ON DELETE CASCADE,
       eob5_username   VARCHAR(100) NOT NULL UNIQUE,
@@ -913,7 +913,7 @@ export async function ensureSchema() {
 
   // Bahan ajar (PDF base64 atau link URL)
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_bahan_ajar (
+    CREATE TABLE IF NOT EXISTS bahan_ajar (
       id              SERIAL PRIMARY KEY,
       judul           VARCHAR(255) NOT NULL,
       mata_pelajaran  VARCHAR(100),
@@ -932,7 +932,7 @@ export async function ensureSchema() {
 
   // Feedback guru ke pengembang aplikasi
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS eob5_app_feedback (
+    CREATE TABLE IF NOT EXISTS feedback (
       id                SERIAL PRIMARY KEY,
       guru_id           text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
       guru_name         VARCHAR(255),
@@ -943,6 +943,58 @@ export async function ensureSchema() {
       is_read           BOOLEAN NOT NULL DEFAULT FALSE,
       created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `)
+
+  // ── Kolom tambahan di tabel LAMA (tanpa prefix) untuk modul GURU ─────────────
+  // Tabel-tabel lama ini dipakai oleh standalone GuruEOB5 app dan sudah berisi data.
+  // Kolom baru ditambahkan agar modul GURU di SMARTISA bisa menggunakannya.
+
+  // grades: tambah guru_id + keterangan
+  await pool.query(`ALTER TABLE grades ADD COLUMN IF NOT EXISTS guru_id text`)
+  await pool.query(`ALTER TABLE grades ADD COLUMN IF NOT EXISTS keterangan text`)
+
+  // journal_entries: tambah kd + jp
+  await pool.query(`ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS kd text`)
+  await pool.query(`ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS jp NUMERIC(4,1)`)
+
+  // tujuan_pembelajaran: tambah mata_pelajaran, kelas, kode_tp
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS mata_pelajaran text`)
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS kelas text`)
+  await pool.query(`ALTER TABLE tujuan_pembelajaran ADD COLUMN IF NOT EXISTS kode_tp text`)
+
+  // academic_calendars: tambah nama + is_shared
+  await pool.query(`ALTER TABLE academic_calendars ADD COLUMN IF NOT EXISTS nama text`)
+  await pool.query(`ALTER TABLE academic_calendars ADD COLUMN IF NOT EXISTS is_shared boolean NOT NULL DEFAULT false`)
+
+  // prosem: tambah mata_pelajaran, semester, tahun_ajaran, konten
+  await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS mata_pelajaran text`)
+  await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS semester text`)
+  await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS tahun_ajaran text`)
+  await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS konten jsonb`)
+
+  // prosem_items: tambah subject_id, kelas, urutan (tabel lama hanya punya week_id, kd, materi, jp, catatan)
+  await pool.query(`ALTER TABLE prosem_items ADD COLUMN IF NOT EXISTS subject_id int REFERENCES subjects(id) ON DELETE SET NULL`)
+  await pool.query(`ALTER TABLE prosem_items ADD COLUMN IF NOT EXISTS kelas VARCHAR(50)`)
+  await pool.query(`ALTER TABLE prosem_items ADD COLUMN IF NOT EXISTS urutan INT NOT NULL DEFAULT 0`)
+
+  // ai_modul_ajar: tambah kelas
+  await pool.query(`ALTER TABLE ai_modul_ajar ADD COLUMN IF NOT EXISTS kelas text`)
+
+  // ai_soal_otomatis: tambah topik
+  await pool.query(`ALTER TABLE ai_soal_otomatis ADD COLUMN IF NOT EXISTS topik text`)
+
+  // student_accounts: tambah created_by; pastikan ada UNIQUE pada student_id
+  await pool.query(`ALTER TABLE student_accounts ADD COLUMN IF NOT EXISTS created_by text`)
+  await pool.query(`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE table_name='student_accounts' AND constraint_type='UNIQUE'
+        AND constraint_name='student_accounts_student_id_unique'
+      ) THEN
+        ALTER TABLE student_accounts ADD CONSTRAINT student_accounts_student_id_unique UNIQUE (student_id);
+      END IF;
+    END $$
   `)
 
   // ── BLP Harian Tables ────────────────────────────────────────────────────────

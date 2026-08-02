@@ -25,19 +25,19 @@ router.get('/overview', requireGuru, async (req, res) => {
     // Ambil semua subjects + dokumen per subject
     const { rows: subjectRows } = await pool.query(`
       SELECT
-        s.id          AS "subjectId",
-        s.guru_id,
-        s.subject_name AS "subjectName",
-        s.kelas,
+        s.id            AS "subjectId",
+        s.teacher_id    AS guru_id,
+        s.name          AS "subjectName",
         COALESCE(
           JSON_AGG(
             JSON_BUILD_OBJECT('id', d.id, 'name', d.name, 'description', d.description)
           ) FILTER (WHERE d.id IS NOT NULL),
           '[]'
         ) AS documents
-      FROM eob5_subjects  s
-      LEFT JOIN eob5_documents d ON d.subject_id = s.id
-      GROUP BY s.id, s.guru_id, s.subject_name, s.kelas
+      FROM subjects  s
+      LEFT JOIN documents d ON d.subject_id = s.id
+      WHERE s.deleted_at IS NULL
+      GROUP BY s.id, s.teacher_id, s.name
     `)
 
     // Group subjects by guru_id
@@ -76,11 +76,11 @@ router.get('/jurnal', requireGuru, async (req, res) => {
         j.materi,
         j.catatan,
         g.name            AS "teacherName",
-        s.subject_name    AS "subjectName",
-        s.kelas
-      FROM eob5_journal_entries j
-      JOIN gurus           g ON g.id = j.guru_id
-      LEFT JOIN eob5_subjects s ON s.id = j.subject_id
+        s.name            AS "subjectName",
+        j.kelas
+      FROM journal_entries j
+      JOIN gurus           g ON g.id = j.teacher_id
+      LEFT JOIN subjects s ON s.id = j.subject_id
       ORDER BY j.tanggal DESC, j.created_at DESC
       LIMIT 50
     `)

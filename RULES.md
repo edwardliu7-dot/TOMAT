@@ -419,6 +419,7 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 - Auth: pakai session TOMAT yang ada — tidak ada login terpisah
 - Teks: semua Bahasa Indonesia
 - Styling: inline styles (BUKAN Tailwind)
+- Schema: tabel BLP **tidak menggunakan prefix `blp_`** untuk tabel baru. Tabel lama (`blp_periods`, `daily_records`, `haid_periods`) dipertahankan apa adanya karena merupakan nama asli dari standalone BLP app.
 
 ## 18. Modul GuruEOB5
 
@@ -429,7 +430,7 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 - Auth: pakai session TOMAT yang ada — tidak ada login terpisah
 - Teks: semua Bahasa Indonesia
 - Styling: inline styles (BUKAN Tailwind/ShadCN)
-- Schema: semua tabel `eob5_*` di `server/schema.js` dengan `CREATE TABLE IF NOT EXISTS`
+- Schema: tabel modul GURU **tidak menggunakan prefix `eob5_`**. Nama tabel mengikuti skema lama standalone GuruEOB5 yang sudah berisi data (contoh: `grades`, `journal_entries`, `subjects`, `tujuan_pembelajaran`). Tabel baru yang tidak ada padanannya dibuat TANPA prefix (contoh: `absensi`, `kelas_guru`, `student_points`).
 - Layout: semua screen `eob5-*` dibungkus `Eob5Layout` di App.jsx → menampilkan `Eob5Sidebar` (desktop inline, mobile drawer via tombol ☰)
 
 ### Daftar Lengkap Screen & Route

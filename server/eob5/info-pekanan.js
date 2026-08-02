@@ -45,15 +45,15 @@ router.get('/', requireGuru, async (req, res) => {
 
     // Verifikasi kalender
     const { rows: calRows } = await pool.query(
-      `SELECT id FROM eob5_academic_calendars
-       WHERE id = $1 AND (guru_id = $2 OR is_shared = true)`,
+      `SELECT id FROM academic_calendars
+       WHERE id = $1 AND (created_by = $2 OR is_shared = true)`,
       [calendar_id, guruId]
     )
     if (!calRows.length) return res.json(empty)
 
     // Ambil pekan
     const { rows: weekRows } = await pool.query(
-      `SELECT * FROM eob5_academic_weeks WHERE id = $1 AND calendar_id = $2`,
+      `SELECT * FROM academic_weeks WHERE id = $1 AND calendar_id = $2`,
       [week_id, calendar_id]
     )
     if (!weekRows.length) return res.json(empty)
@@ -68,16 +68,16 @@ router.get('/', requireGuru, async (req, res) => {
 
     // Ambil subjects & jadwal guru ini
     const [subjectsRes, jadwalRes, prosemRes] = await Promise.all([
-      pool.query('SELECT id, name FROM eob5_subjects WHERE guru_id = $1 AND deleted_at IS NULL', [guruId]),
+      pool.query('SELECT id, name FROM subjects WHERE teacher_id = $1 AND deleted_at IS NULL', [guruId]),
       pool.query(
-        'SELECT subject_id, kelas, hari FROM eob5_jadwal WHERE guru_id = $1', [guruId]
+        'SELECT subject_id, kelas, hari FROM jadwal WHERE guru_id = $1', [guruId]
       ),
       pool.query(
         `SELECT pi.id, pi.prosem_id, pi.materi, pi.kd, pi.jp, pi.kelas,
-                pi.urutan, p.guru_id
-         FROM eob5_prosem_items pi
-         JOIN eob5_prosem p ON p.id = pi.prosem_id
-         WHERE p.guru_id = $1`,
+                pi.urutan, p.teacher_id AS guru_id
+         FROM prosem_items pi
+         JOIN prosem p ON p.id = pi.prosem_id
+         WHERE p.teacher_id = $1`,
         [guruId]
       ),
     ])
@@ -93,8 +93,8 @@ router.get('/', requireGuru, async (req, res) => {
     // Jurnal dalam pekan ini
     const { rows: journals } = await pool.query(
       `SELECT id, subject_id, kelas, materi, tanggal, prosem_item_id
-       FROM eob5_journal_entries
-       WHERE guru_id = $1 AND tanggal >= $2 AND tanggal <= $3`,
+       FROM journal_entries
+       WHERE teacher_id = $1 AND tanggal >= $2 AND tanggal <= $3`,
       [guruId, weekStart, weekEnd]
     )
 

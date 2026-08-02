@@ -30,9 +30,9 @@ router.get('/overview', requireGuru, async (req, res) => {
         COUNT(DISTINCT d.id)                     AS dokumen_selesai,
         COUNT(DISTINCT s.id) * 3                 AS dokumen_total
       FROM gurus g
-      LEFT JOIN eob5_journal_entries j  ON j.guru_id = g.id
-      LEFT JOIN eob5_subjects        s  ON s.guru_id = g.id
-      LEFT JOIN eob5_documents       d  ON d.subject_id = s.id
+      LEFT JOIN journal_entries j  ON j.teacher_id = g.id
+      LEFT JOIN subjects        s  ON s.teacher_id = g.id
+      LEFT JOIN documents       d  ON d.subject_id = s.id
       GROUP BY g.id, g.name, g.mata_pelajaran
       ORDER BY g.name
     `, [bulanIni])
@@ -74,9 +74,9 @@ router.get('/jurnal', requireGuru, async (req, res) => {
         g.name  AS "teacherName",
         s.subject_name AS "subjectName",
         s.kelas
-      FROM eob5_journal_entries j
-      JOIN gurus          g ON g.id = j.guru_id
-      LEFT JOIN eob5_subjects s ON s.id = j.subject_id
+      FROM journal_entries j
+      JOIN gurus          g ON g.id = j.teacher_id
+      LEFT JOIN subjects s ON s.id = j.subject_id
       ORDER BY j.tanggal DESC, j.created_at DESC
       LIMIT 30
     `)

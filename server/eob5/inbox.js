@@ -4,7 +4,7 @@
  *
  * CATATAN DESAIN: Ini adalah inbox PENGUMUMAN (broadcast resmi dari admin/kepala sekolah ke guru),
  * bukan sistem percakapan. Berbeda dari sistem chat TOMAT (/api/komunikasi/*) yang untuk
- * chat pribadi guru↔siswa. Tabel eob5_inbox terpisah dari pesan_pribadi/pesan_forum_kelas.
+ * chat pribadi guru↔siswa. Tabel inbox terpisah dari pesan_pribadi/pesan_forum_kelas.
  */
 
 import { Router } from 'express'
@@ -23,7 +23,7 @@ router.get('/', requireGuru, async (req, res) => {
         i.*,
         g.name AS nama_pengirim,
         (i.dibaca_oleh @> $2::jsonb) AS sudah_dibaca
-      FROM eob5_inbox i
+      FROM inbox i
       LEFT JOIN gurus g ON g.id = i.pengirim_id
       WHERE i.target_role = 'semua' OR i.target_role = 'guru'
       ORDER BY i.created_at DESC
@@ -51,7 +51,7 @@ router.post('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      INSERT INTO eob5_inbox (pengirim_id, judul, isi, target_role)
+      INSERT INTO inbox (pengirim_id, judul, isi, target_role)
       VALUES ($1, $2, $3, $4)
       RETURNING *
     `, [guruId, judul, isi, target_role])
@@ -71,7 +71,7 @@ router.put('/:id/baca', requireGuru, async (req, res) => {
 
     // Tambahkan guruId ke array dibaca_oleh (jsonb) jika belum ada
     const { rows } = await pool.query(`
-      UPDATE eob5_inbox
+      UPDATE inbox
       SET dibaca_oleh = CASE
         WHEN dibaca_oleh @> $1::jsonb THEN dibaca_oleh
         ELSE dibaca_oleh || $1::jsonb
@@ -111,7 +111,7 @@ router.get('/feedback', requireGuru, async (req, res) => {
 
     const { rows } = await pool.query(`
       SELECT f.*, s.name AS nama_siswa, s.kelas
-      FROM eob5_feedback f
+      FROM feedback_siswa f
       JOIN students s ON s.id = f.student_id
       WHERE ${conditions.join(' AND ')}
       ORDER BY f.created_at DESC
