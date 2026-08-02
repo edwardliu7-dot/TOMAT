@@ -78,6 +78,7 @@ import Eob5AdministrasiScreen from './screens/eob5/Eob5AdministrasiScreen'
 import Eob5FeedbackScreen from './screens/eob5/Eob5FeedbackScreen'
 import Eob5PengaturanScreen from './screens/eob5/Eob5PengaturanScreen'
 import Eob5Layout from './components/eob5/Eob5Layout'
+import BlpLayout from './components/blp/BlpLayout'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
@@ -1066,24 +1067,20 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       )
     }
 
-    if (current === 'blp-home') {
-      return <BlpSiswaDashboardScreen navigate={navigate} goBack={goBack} />
-    }
-
-    if (current === 'blp-isi-aktivitas') {
-      return <BlpIsiAktivitasScreen navigate={navigate} goBack={goBack} />
-    }
-
-    if (current === 'blp-riwayat') {
-      return <BlpRiwayatScreen navigate={navigate} goBack={goBack} />
-    }
-
-    if (current === 'blp-quran') {
-      return <BlpQuranScreen navigate={navigate} goBack={goBack} />
-    }
-
-    if (current === 'blp-haid') {
-      return <BlpHaidScreen navigate={navigate} goBack={goBack} />
+    // ── BLP siswa screens — wrapped with sidebar + mobile footer nav ──
+    if (current === 'blp-home' || current === 'blp-isi-aktivitas' ||
+        current === 'blp-riwayat' || current === 'blp-quran' || current === 'blp-haid') {
+      let blpScreen = null
+      if (current === 'blp-home')          blpScreen = <BlpSiswaDashboardScreen navigate={navigate} goBack={goBack} />
+      if (current === 'blp-isi-aktivitas') blpScreen = <BlpIsiAktivitasScreen navigate={navigate} goBack={goBack} />
+      if (current === 'blp-riwayat')       blpScreen = <BlpRiwayatScreen navigate={navigate} goBack={goBack} />
+      if (current === 'blp-quran')         blpScreen = <BlpQuranScreen navigate={navigate} goBack={goBack} />
+      if (current === 'blp-haid')          blpScreen = <BlpHaidScreen navigate={navigate} goBack={goBack} />
+      return (
+        <BlpLayout user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
+          {blpScreen}
+        </BlpLayout>
+      )
     }
 
     if (current === 'blp-guru-rekap') {
@@ -1385,6 +1382,7 @@ export default function App() {
     }
 
     const isEob5Screen = currentGuruScreen?.startsWith('eob5-')
+    const isBlpGuruScreen = currentGuruScreen?.startsWith('blp-')
 
     return (
       <BlpDataProvider>
@@ -1395,6 +1393,12 @@ export default function App() {
                 {renderGuruScreen()}
               </ErrorBoundary>
             </Eob5Layout>
+          ) : isBlpGuruScreen ? (
+            <BlpLayout user={user} navigate={guruNavigate} currentScreen={currentGuruScreen} onLogout={logout}>
+              <ErrorBoundary onReset={guruGoBack}>
+                {renderGuruScreen()}
+              </ErrorBoundary>
+            </BlpLayout>
           ) : (
             <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
               <ErrorBoundary onReset={guruGoBack}>

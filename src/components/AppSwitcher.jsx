@@ -19,21 +19,15 @@ const TAB_COLORS = {
   },
 }
 
-// Live production URLs untuk modul eksternal
-const EXTERNAL_URLS = {
-  blp:  'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io',
-  eob5: 'https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io',
-}
-
 const TABS = {
   guru: [
-    { key: 'tomat', label: 'TOMAT', emoji: '🍅', homeScreen: 'guruDashboard' },
-    { key: 'blp',   label: 'BLP',   emoji: '📋', externalUrl: EXTERNAL_URLS.blp },
-    { key: 'eob5',  label: 'GURU',  emoji: '🏫', externalUrl: EXTERNAL_URLS.eob5 },
+    { key: 'tomat', label: 'TOMAT',   emoji: '🍅', homeScreen: 'guruDashboard' },
+    { key: 'blp',   label: 'BLP',     emoji: '📋', homeScreen: 'blp-home' },
+    { key: 'eob5',  label: 'GURU',    emoji: '🏫', homeScreen: 'eob5-dashboard' },
   ],
   siswa: [
-    { key: 'tomat', label: 'TOMAT', emoji: '🍅', homeScreen: 'home' },
-    { key: 'blp',   label: 'BLP',   emoji: '📋', externalUrl: EXTERNAL_URLS.blp },
+    { key: 'tomat', label: 'TOMAT',   emoji: '🍅', homeScreen: 'home' },
+    { key: 'blp',   label: 'BLP',     emoji: '📋', homeScreen: 'blp-home' },
   ],
 }
 
