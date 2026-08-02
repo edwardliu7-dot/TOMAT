@@ -18,3 +18,10 @@ export const pool = new Pool({
   query_timeout: 15000,
   idleTimeoutMillis: 30000,
 })
+
+// Prevent idle-client errors from crashing the Node.js process.
+// Without this handler, any error on an idle pool connection would throw
+// an unhandled 'error' event and kill the server.
+pool.on('error', (err) => {
+  console.error('[db] Unexpected pool client error:', err.message)
+})
