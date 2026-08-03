@@ -66,14 +66,27 @@ router.get('/', requireGuru, async (req, res) => {
   }
 })
 
-// POST / — input nilai
+const JENIS_VALID = ['formatif', 'sumatif_lm', 'sumatif_tengah', 'sumatif_akhir']
+
+// POST / — input nilai (upsert per jenis)
 router.post('/', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
-    const { student_id, subject_id, calendar_id, jenis, lingkup_materi, nilai, keterangan } = req.body || {}
+    // Support both camelCase (frontend) and snake_case (API)
+    const student_id    = req.body?.student_id    || req.body?.studentId
+    const subject_id    = req.body?.subject_id    || req.body?.subjectId    || null
+    const calendar_id   = req.body?.calendar_id   || req.body?.calendarId   || null
+    const jenis         = req.body?.jenis
+    const lingkup_materi = req.body?.lingkup_materi ?? req.body?.lingkupMateri ?? null
+    const tp_number     = req.body?.tp_number     ?? req.body?.tpNumber     ?? null
+    const nilai         = req.body?.nilai
+    const keterangan    = req.body?.keterangan    || null
 
     if (!student_id || !jenis || nilai === undefined) {
       return res.status(400).json({ error: 'student_id, jenis, dan nilai wajib diisi' })
+    }
+    if (!JENIS_VALID.includes(jenis)) {
+      return res.status(400).json({ error: `Jenis tidak valid: ${jenis}. Harus salah satu dari: ${JENIS_VALID.join(', ')}` })
     }
 
     const allowed = await getStudentIds(guruId)
@@ -84,15 +97,56 @@ router.post('/', requireGuru, async (req, res) => {
       return res.status(404).json({ error: 'Mata pelajaran tidak ditemukan' })
     }
 
-    const { rows } = await pool.query(
-      `INSERT INTO grades
-         (student_id, guru_id, subject_id, calendar_id, jenis, lingkup_materi, nilai, keterangan)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       RETURNING *`,
-      [student_id, guruId, subject_id || null, calendar_id || null,
-       jenis, lingkup_materi || null, nilai, keterangan || null]
-    )
-    res.status(201).json(rows[0])
+    // Upsert: cek apakah sudah ada berdasarkan constraint per jenis
+    let existingId = null
+    if (jenis === 'sumatif_tengah' || jenis === 'sumatif_akhir') {
+      const { rows: ex } = await pool.query(
+        `SELECT id FROM grades
+         WHERE student_id=$1 AND subject_id IS NOT DISTINCT FROM $2
+           AND calendar_id IS NOT DISTINCT FROM $3 AND jenis=$4`,
+        [student_id, subject_id, calendar_id, jenis]
+      )
+      if (ex.length) existingId = ex[0].id
+    } else if (jenis === 'sumatif_lm') {
+      const { rows: ex } = await pool.query(
+        `SELECT id FROM grades
+         WHERE student_id=$1 AND subject_id IS NOT DISTINCT FROM $2
+           AND calendar_id IS NOT DISTINCT FROM $3 AND jenis=$4
+           AND lingkup_materi IS NOT DISTINCT FROM $5`,
+        [student_id, subject_id, calendar_id, jenis, lingkup_materi]
+      )
+      if (ex.length) existingId = ex[0].id
+    } else {
+      // formatif: unique per student+subject+calendar+lm+tp
+      const { rows: ex } = await pool.query(
+        `SELECT id FROM grades
+         WHERE student_id=$1 AND subject_id IS NOT DISTINCT FROM $2
+           AND calendar_id IS NOT DISTINCT FROM $3 AND jenis=$4
+           AND lingkup_materi IS NOT DISTINCT FROM $5
+           AND tp_number IS NOT DISTINCT FROM $6`,
+        [student_id, subject_id, calendar_id, jenis, lingkup_materi, tp_number]
+      )
+      if (ex.length) existingId = ex[0].id
+    }
+
+    let row
+    if (existingId) {
+      const { rows } = await pool.query(
+        `UPDATE grades SET nilai=$1, keterangan=$2, guru_id=$3 WHERE id=$4 RETURNING *`,
+        [nilai, keterangan, guruId, existingId]
+      )
+      row = rows[0]
+    } else {
+      const { rows } = await pool.query(
+        `INSERT INTO grades
+           (student_id, guru_id, subject_id, calendar_id, jenis, lingkup_materi, tp_number, nilai, keterangan)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         RETURNING *`,
+        [student_id, guruId, subject_id, calendar_id, jenis, lingkup_materi, tp_number, nilai, keterangan]
+      )
+      row = rows[0]
+    }
+    res.status(existingId ? 200 : 201).json(row)
   } catch (err) {
     console.error('[eob5/grades] create error:', err)
     res.status(500).json({ error: 'Gagal menyimpan nilai' })
