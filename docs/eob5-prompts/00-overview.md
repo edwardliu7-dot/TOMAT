@@ -51,7 +51,7 @@ Jika GitHub original memakai prefix `eob5_`, **abaikan** — workspace ini tidak
 | `eob5_absensi` | `absensi` | Data sudah ada di sini |
 | `eob5_student_points` | `student_points` | Data sudah ada di sini |
 | `eob5_kelas_guru` | `kelas_guru` | — |
-| `eob5_nilai` | `nilai_guru` | Jangan pakai `nilai` — konflik dengan TOMAT |
+| `eob5_nilai` | `nilai_guru` | — |
 | `eob5_poin` | `poin` | — |
 | `eob5_nilai_akademik` | `nilai_akademik` | — |
 | `eob5_materi` | `materi` | — |
@@ -59,7 +59,7 @@ Jika GitHub original memakai prefix `eob5_`, **abaikan** — workspace ini tidak
 | `eob5_kalender_akademik` | `kalender_akademik` | — |
 | `eob5_info_pekanan` | `info_pekanan` | — |
 | `eob5_inbox` | `inbox` | — |
-| `eob5_feedback` | `feedback_siswa` | Jangan pakai `feedback` — sudah dipakai |
+| `eob5_feedback` | `feedback_siswa` | — |
 
 ---
 
