@@ -2,6 +2,8 @@
 
 > Eksekusi ini terakhir, setelah semua backend prompt selesai.
 
+> ⚠️ **WAJIB BACA**: Lihat tabel pemetaan lengkap di `00-overview.md`. Semua API call dari frontend harus ke endpoint `/api/eob5/...` yang sudah benar di backend. Frontend tidak query DB langsung, tapi perlu dipastikan field name yang dikirim/diterima sesuai (tidak ada `eob5_` prefix di nama field).
+
 ## Latar Belakang
 
 Original frontend (TypeScript + ShadCN + Tailwind) sudah dikonversi ke workspace (JSX + inline styles). Audit ini memetakan fitur per screen yang mungkin hilang atau berbeda dalam konversi.
@@ -43,6 +45,7 @@ Setelah Prompt 06 selesai:
 - Tampilkan pesan "Hanya wali kelas" untuk guru non-wali-kelas
 - Tombol "Download Kartu" (ikon PDF) per siswa yang sudah punya akun
 - Tombol "Download Semua Kartu" di header
+- Data akun menampilkan `username` dan `password` — pastikan tidak ada referensi ke `eob5_username` di response API
 
 ### 6. `Eob5SoalAiScreen.jsx` — ⚠️ PERLU FIX (tergantung Prompt 07)
 Setelah Prompt 07 selesai:
@@ -53,7 +56,7 @@ Setelah Prompt 07 selesai:
 ### 7. `Eob5ProsemScreen.jsx` — ⚠️ PERLU FIX (tergantung Prompt 08)
 Setelah Prompt 08 selesai:
 - Field mata pelajaran → dropdown dari subjects API (bukan text bebas)
-- Pilih kalender akademik dari dropdown
+- Pilih kalender akademik dari dropdown (GET /api/eob5/academic-calendars)
 - Tombol "Import dari File" untuk AI prosem extraction
 
 ### 8. Screens yang Perlu VERIFIKASI (kemungkinan sudah OK)
@@ -70,14 +73,22 @@ Buka dan test setiap screen berikut — cari bug atau fitur yang kelihatannya ko
 - `Eob5InboxScreen.jsx` — daftar percakapan + baca/kirim pesan
 - `Eob5FeedbackScreen.jsx` — form feedback dengan kategori
 
-### 9. Cross-cutting: Loading & Error States
+### 9. Cross-cutting: Field Names di API Response
+
+Pastikan tidak ada field dengan prefix `eob5_` yang muncul di response API maupun dikirim dari form:
+
+- Kolom akun siswa: `username`, `password` (bukan `eob5_username`, `password_plain`)
+- Kolom mata pelajaran dari dropdown: `id`, `name` (bukan `eob5_id`, `eob5_name`)
+- Kolom TP: `description` (bukan `deskripsi`)
+
+### 10. Cross-cutting: Loading & Error States
 
 Cek semua screen untuk:
 - Tampilkan skeleton/spinner saat data loading (bukan blank screen)
 - Error boundary atau error message yang informatif saat API error
 - Konfirmasi dialog sebelum DELETE (sudah ada di sebagian screen, pastikan konsisten)
 
-### 10. Cross-cutting: Navigasi
+### 11. Cross-cutting: Navigasi
 
 Cek `src/App.jsx` dan screen EOB5:
 - Semua route `eob5-*` terdaftar dengan benar

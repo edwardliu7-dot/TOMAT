@@ -2,13 +2,15 @@
 
 > Bisa dieksekusi paralel dengan Prompt 02.
 
+> ⚠️ **WAJIB BACA**: Lihat tabel pemetaan lengkap di `00-overview.md`. Tabel absensi lama adalah `absensi` (BUKAN `eob5_absensi`). Tabel absensi baru adalah `attendance_records` (BUKAN `eob5_attendance_records`). JANGAN membuat tabel baru dengan prefix `eob5_`.
+
 ## Latar Belakang
 
 Original (`artifacts/api-server/src/routes/attendance.ts`) punya 3 perbedaan penting vs workspace:
 
 1. **Rekap masih pakai tabel `absensi` lama** — `attendance.js` di workspace sudah tulis ke `attendance_records`, tapi `GET /rekap` di file yang sama masih JOIN ke tabel `absensi`. Akibatnya rekap kosong meskipun data sudah diinput.
 
-2. **`filledByTeacherName` tidak diisi saat bulk** — endpoint `POST /bulk` dan `POST /bulk-mixed` tidak menyimpan nama guru yang mengisi absensi. Original menyimpan ini (`filledByTeacherId` + `filledByTeacherName`) untuk audit trail.
+2. **`filled_by_teacher_id` + `filled_by_teacher_name` tidak diisi saat bulk** — endpoint `POST /bulk` dan `POST /bulk-mixed` tidak menyimpan nama guru yang mengisi absensi. Original menyimpan ini untuk audit trail.
 
 3. **Status `alpha` masih diterima** — sudah ditangani di Prompt 01, tapi verifikasi di semua endpoint (bulk dan bulk-mixed juga).
 
@@ -25,6 +27,8 @@ Ubah ke `attendance_records`:
 ```sql
 FROM students s LEFT JOIN attendance_records a ON a.student_id = s.id
 ```
+
+> **Ingat:** Tabel yang benar adalah `attendance_records`, BUKAN `eob5_attendance_records`.
 
 Sesuaikan juga nama kolom — `attendance_records` tidak punya kolom `guru_id`, melainkan `filled_by_teacher_id`. Filter rekap harus disesuaikan.
 
@@ -50,11 +54,11 @@ ORDER BY s.kelas, s.name
 Di `POST /bulk` dan `POST /bulk-mixed`, ambil nama guru dari session/DB dan sertakan saat INSERT:
 
 ```js
-// Ambil nama guru
+// Ambil nama guru dari tabel gurus (BUKAN eob5_gurus — pakai gurus)
 const { rows: guruRows } = await pool.query('SELECT name FROM gurus WHERE id = $1', [guruId])
 const guruName = guruRows[0]?.name || ''
 
-// Sertakan di INSERT
+// Sertakan di INSERT ke attendance_records (BUKAN eob5_attendance_records)
 INSERT INTO attendance_records (student_id, tanggal, status, filled_by_teacher_id, filled_by_teacher_name)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (student_id, tanggal) DO UPDATE SET
@@ -75,7 +79,16 @@ File `server/eob5/absensi.js` adalah versi lama. Pastikan di `server/index.js` (
 
 ### 5. Perbaiki GET /rekap di `server/eob5/rekap.js`
 
-File `rekap.js` punya endpoint `GET /rekap/absensi`. Ini juga kemungkinan masih JOIN ke tabel `absensi` lama. Perbaiki dengan logika sama seperti poin 1.
+File `rekap.js` punya endpoint `GET /rekap/absensi`. Ini juga kemungkinan masih JOIN ke tabel `absensi` lama. Perbaiki dengan logika sama seperti poin 1 — gunakan `attendance_records`.
+
+## Nama Tabel yang Digunakan di File Ini
+
+| Tabel | Nama Benar | Catatan |
+|---|---|---|
+| Absensi lama (baca-only) | `absensi` | BUKAN `eob5_absensi` — ada data lama di sini |
+| Absensi baru (tulis) | `attendance_records` | BUKAN `eob5_attendance_records` |
+| Data guru | `gurus` | BUKAN `eob5_gurus` |
+| Data siswa | `students` | BUKAN `eob5_students` |
 
 ## Verifikasi
 

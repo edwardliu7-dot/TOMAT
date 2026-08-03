@@ -2,6 +2,8 @@
 
 > Bisa dieksekusi paralel dengan Prompt 07.
 
+> ⚠️ **WAJIB BACA**: Lihat tabel pemetaan lengkap di `00-overview.md`. Tabel yang dipakai: `student_accounts` (BUKAN `eob5_student_accounts`). Kolom yang benar: `username` (BUKAN `eob5_username`), `password` (BUKAN `password_plain`). Data siswa ada di `students` (BUKAN `eob5_students`).
+
 ## Latar Belakang
 
 Original (`artifacts/api-server/src/routes/student-accounts.ts`) berbeda signifikan dengan workspace:
@@ -12,7 +14,7 @@ Original (`artifacts/api-server/src/routes/student-accounts.ts`) berbeda signifi
 
 3. **PDF card export** — Original punya `GET /walikelas/akun-siswa/:id/pdf` dan `GET /walikelas/akun-siswa/pdf-all` yang generate kartu akun siswa sebagai PDF (bisa dicetak); workspace belum ada.
 
-4. **Username generation** — Original: maksimal 7 karakter, hanya alfanumerik, berbasis nama siswa, cek uniqueness di tabel `tomat_students`; workspace: format berbeda.
+4. **Username generation** — Original: maksimal 7 karakter, hanya alfanumerik, berbasis nama siswa, cek uniqueness di tabel `students`; workspace: format berbeda.
 
 ## Yang Harus Dilakukan
 
@@ -21,6 +23,7 @@ Original (`artifacts/api-server/src/routes/student-accounts.ts`) berbeda signifi
 Pastikan semua endpoint student accounts dicek jabatan wali_kelas:
 
 ```js
+// Tabel guru: gurus  (BUKAN eob5_gurus)
 async function getWaliKelas(guruId) {
   const { rows } = await pool.query(
     'SELECT wali_kelas_kelas, name, jabatan FROM gurus WHERE id = $1', [guruId]
@@ -68,6 +71,8 @@ async function uniqueUsername(namaLengkap) {
   return base + Math.floor(Math.random() * 1000)
 }
 
+// Cek uniqueness di tabel students (BUKAN eob5_students)
+// Kolom: username  (BUKAN eob5_username)
 async function usernameTaken(username) {
   const { rows } = await pool.query(
     'SELECT id FROM students WHERE username = $1', [username]
@@ -98,6 +103,8 @@ import PDFDocument from 'pdfkit'
  */
 export function buildAccountCardsPdf(accounts) {
   // accounts: [{ name, kelas, username, password }]
+  // username dan password diambil dari tabel student_accounts
+  // kolom: username (BUKAN eob5_username), password (BUKAN password_plain)
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: [283, 170], margin: 16 }) // 10cm x 6cm
     const chunks = []
@@ -131,6 +138,8 @@ Tambahkan route di `student-accounts.js`:
 
 ```js
 // GET /:id/pdf — PDF kartu satu siswa
+// Query ke: students (BUKAN eob5_students), student_accounts (BUKAN eob5_student_accounts)
+// Kolom student_accounts: username, password  (BUKAN eob5_username, password_plain)
 router.get('/:id/pdf', requireGuru, async (req, res) => {
   const guruId = req.session.user.id
   const guru = await getWaliKelas(guruId)
@@ -158,13 +167,18 @@ router.get('/:id/pdf', requireGuru, async (req, res) => {
 })
 
 // GET /pdf-all — PDF semua siswa di kelas wali kelas ini
+// Query ke: students, student_accounts (kolom: username, password)
 router.get('/pdf-all', requireGuru, async (req, res) => {
   const guruId = req.session.user.id
   const guru = await getWaliKelas(guruId)
   if (!guru) return res.status(403).json({ error: 'Hanya wali kelas' })
 
   const { rows: students } = await pool.query(
-    'SELECT s.id, s.name, s.kelas, sa.username, sa.password FROM students s LEFT JOIN student_accounts sa ON sa.student_id = s.id WHERE s.kelas = $1 ORDER BY s.name',
+    `SELECT s.id, s.name, s.kelas, sa.username, sa.password
+     FROM students s
+     LEFT JOIN student_accounts sa ON sa.student_id = s.id
+     WHERE s.kelas = $1
+     ORDER BY s.name`,
     [guru.wali_kelas_kelas]
   )
 
@@ -182,6 +196,14 @@ router.get('/pdf-all', requireGuru, async (req, res) => {
 - Tambahkan tombol "Download Kartu (PDF)" per siswa yang sudah punya akun
 - Tambahkan tombol "Download Semua Kartu" di header
 - Disable tombol untuk guru yang bukan wali kelas (cek jabatan dari session)
+
+## Nama Tabel yang Digunakan di File Ini
+
+| Tabel | Nama Benar | Kolom Perlu Diperhatikan |
+|---|---|---|
+| Akun siswa | `student_accounts` | `username` (bukan `eob5_username`), `password` (bukan `password_plain`) |
+| Data siswa | `students` | BUKAN `eob5_students` |
+| Data guru | `gurus` | BUKAN `eob5_gurus` |
 
 ## Verifikasi
 

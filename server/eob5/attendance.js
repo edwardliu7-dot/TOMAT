@@ -17,7 +17,7 @@ import { pool } from '../db.js'
 import { requireGuru } from './middleware.js'
 
 const router = Router()
-const STATUS_VALID = ['hadir', 'sakit', 'izin', 'alpha', 'alpa']
+const STATUS_VALID = ['hadir', 'sakit', 'izin', 'alpa']
 
 function getJakartaToday() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -64,7 +64,7 @@ router.get('/rekap', requireGuru, async (req, res) => {
               COUNT(*) FILTER (WHERE a.status = 'hadir') AS hadir,
               COUNT(*) FILTER (WHERE a.status = 'sakit') AS sakit,
               COUNT(*) FILTER (WHERE a.status = 'izin')  AS izin,
-              COUNT(*) FILTER (WHERE a.status IN ('alpha','alpa')) AS alpha,
+              COUNT(*) FILTER (WHERE a.status = 'alpa') AS alpa,
               COUNT(a.id) AS total_tercatat
        FROM students s
        LEFT JOIN absensi a ON a.student_id = s.id

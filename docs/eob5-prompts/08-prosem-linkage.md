@@ -2,12 +2,14 @@
 
 > Eksekusi ini setelah Prompt 04 selesai (ada kesamaan infrastruktur AI file parsing).
 
+> ⚠️ **WAJIB BACA**: Lihat tabel pemetaan lengkap di `00-overview.md`. Tabel yang dipakai: `prosem` (BUKAN `eob5_prosem`), `prosem_items` (BUKAN `eob5_prosem_items`), `subjects` (BUKAN `eob5_subjects`), `academic_calendars` (BUKAN `eob5_academic_calendars`). Kolom guru di prosem: `teacher_id` (BUKAN `guru_id`). Kolom guru di academic_calendars: `created_by` (BUKAN `guru_id`).
+
 ## Latar Belakang
 
 Prosem di original (`artifacts/api-server/src/routes/prosem.ts`) menggunakan pendekatan relasional:
 
-- `prosem` berisi: `teacherId`, `subjectId` (FK ke subjects), `calendarId` (FK ke academic_calendars), `kelas`
-- `prosem_items` berisi: `prosemId`, `weekId` (FK ke academic_weeks), `kd`, `materi`, `jp`, `catatan`
+- `prosem` berisi: `teacher_id`, `subject_id` (FK ke subjects), `calendar_id` (FK ke academic_calendars), `kelas`
+- `prosem_items` berisi: `prosem_id`, `week_id` (FK ke academic_weeks), `kd`, `materi`, `jp`, `catatan`
 
 Workspace menggunakan pendekatan denormalized:
 - `prosem` berisi: `teacher_id`, `mata_pelajaran`, `kelas`, `semester`, `tahun_ajaran`, `konten` (JSONB)
@@ -25,8 +27,17 @@ Workspace: prosem hanya punya `mata_pelajaran` (text bebas). Ini mempersulit sin
 
 **Yang perlu dilakukan:** Di frontend `Eob5ProsemScreen.jsx`, ketika guru membuat prosem baru, tampilkan dropdown mata pelajaran yang diambil dari `GET /api/eob5/subjects` — bukan text input bebas. Isi `mata_pelajaran` dari `subject.name` dan simpan juga `subject_id` jika kolom sudah ada di tabel.
 
+Query `subjects` harus pakai kolom `teacher_id` untuk filter kepemilikan guru:
+```sql
+-- Ambil subjects milik guru ini
+-- Tabel: subjects  (BUKAN eob5_subjects)
+-- Kolom guru: teacher_id  (BUKAN guru_id)
+SELECT id, name FROM subjects WHERE teacher_id = $1 ORDER BY name
+```
+
 Cek schema: apakah `prosem` punya kolom `subject_id`? Kalau belum:
 ```sql
+-- Tabel: prosem  (BUKAN eob5_prosem)
 ALTER TABLE prosem ADD COLUMN IF NOT EXISTS subject_id text;
 ```
 (pakai text/uuid sesuai tipe subjects.id di workspace)
@@ -37,13 +48,30 @@ Original: prosem terikat ke `calendar_id` (FK ke academic_calendars). Ini memung
 
 Workspace mungkin tidak enforce FK ini. Pastikan:
 - Saat create prosem, kalau ada `calendar_id` di body → simpan ke kolom `calendar_id`
-- Kalau kolom belum ada: `ALTER TABLE prosem ADD COLUMN IF NOT EXISTS calendar_id text`
+- Kalau kolom belum ada:
+  ```sql
+  -- Tabel: prosem  (BUKAN eob5_prosem)
+  ALTER TABLE prosem ADD COLUMN IF NOT EXISTS calendar_id text
+  ```
+
+Query `academic_calendars` pakai kolom `created_by` untuk filter kepemilikan guru:
+```sql
+-- Tabel: academic_calendars  (BUKAN eob5_academic_calendars)
+-- Kolom guru: created_by  (BUKAN guru_id)
+SELECT id, nama, tahun_ajaran, semester
+FROM academic_calendars
+WHERE created_by = $1
+ORDER BY created_at DESC
+```
 
 ### 3. Validasi ownership prosem items
 
 Original memastikan `prosemItemId` yang dilink dari jurnal entries milik guru yang sama. Cek di `server/eob5/journal.js`:
 
 ```js
+// Tabel: prosem_items  (BUKAN eob5_prosem_items)
+// Tabel: prosem        (BUKAN eob5_prosem)
+// Kolom guru di prosem: teacher_id  (BUKAN guru_id)
 async function ownsProsemItem(prosemItemId, guruId) {
   const { rows } = await pool.query(
     `SELECT pi.id FROM prosem_items pi
@@ -57,6 +85,13 @@ async function ownsProsemItem(prosemItemId, guruId) {
 
 Pastikan ini sudah ada dan dipanggil saat POST/PATCH jurnal entry dengan `prosem_item_id`.
 
+Query jurnal juga pakai `teacher_id`:
+```sql
+-- Tabel: journal_entries  (BUKAN eob5_journal_entries)
+-- Kolom guru: teacher_id  (BUKAN guru_id)
+SELECT * FROM journal_entries WHERE teacher_id = $1
+```
+
 ### 4. AI Prosem Extraction dari File (Fitur Baru)
 
 Original punya `extractProsemFromFile` (via Groq) yang parse PDF/DOCX syllabus dan menghasilkan prosem items per minggu. Ini adalah fitur lanjutan.
@@ -64,6 +99,8 @@ Original punya `extractProsemFromFile` (via Groq) yang parse PDF/DOCX syllabus d
 Tambahkan endpoint `POST /prosem/import-analyze`:
 
 ```js
+// Semua query AI prosem ke tabel: prosem, prosem_items
+// BUKAN eob5_prosem atau eob5_prosem_items
 router.post('/import-analyze', requireGuru, upload.single('file'), async (req, res) => {
   // Parse file PDF atau DOCX
   // Kirim teks ke Groq dengan prompt untuk ekstrak:
@@ -119,6 +156,17 @@ Jika JP tidak disebutkan, gunakan 2 sebagai default. pekanKe mulai dari 1.`
 - Ubah field "Mata Pelajaran" dari text input bebas → dropdown pilih dari `GET /api/eob5/subjects`
 - Tambahkan tombol "Import dari File" (PDF/DOCX) → call `/prosem/import-analyze` → preview → konfirmasi simpan
 - Pastikan ada dropdown pilih `calendar_id` dari `GET /api/eob5/academic-calendars`
+
+## Nama Tabel yang Digunakan di File Ini
+
+| Tabel | Nama Benar | Kolom Perlu Diperhatikan |
+|---|---|---|
+| Program Semester | `prosem` | `teacher_id` (bukan `guru_id`) |
+| Item Prosem | `prosem_items` | BUKAN `eob5_prosem_items` |
+| Jurnal | `journal_entries` | `teacher_id` (bukan `guru_id`) |
+| Mata Pelajaran | `subjects` | `teacher_id` (bukan `guru_id`) |
+| Kalender Akademik | `academic_calendars` | `created_by` (bukan `guru_id`) |
+| Minggu Akademik | `academic_weeks` | BUKAN `eob5_academic_weeks` |
 
 ## Verifikasi
 

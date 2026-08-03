@@ -3,11 +3,13 @@
 > Bisa dieksekusi paralel dengan Prompt 03 dan 04.
 > **Prasyarat:** Prompt 01 harus selesai dulu (rename `student_points` → `point_records`).
 
+> ⚠️ **WAJIB BACA**: Lihat tabel pemetaan lengkap di `00-overview.md`. Tabel poin yang benar setelah rename adalah `point_records`. JANGAN pakai `eob5_point_records`, `eob5_student_points`, atau `eob5_poin`. Data lama ada di `student_points` — Prompt 01 sudah merenamenya ke `point_records`.
+
 ## Latar Belakang
 
 Original (`artifacts/api-server/src/routes/points.ts`) vs workspace:
 
-1. **Nama tabel berbeda** — Original: `point_records`; workspace: `student_points`. Sudah diperbaiki di schema (Prompt 01), tapi query di `points.js` harus ikut diupdate.
+1. **Nama tabel berbeda** — Original: `point_records`; workspace sebelum Prompt 01: `student_points`. Sudah diperbaiki di schema (Prompt 01), tapi query di `points.js` harus ikut diupdate.
 
 2. **Missing endpoint `POST /bulk-mixed`** — Original punya endpoint ini untuk input satu hari sekaligus semua siswa dengan poin berbeda-beda per siswa (mirip `attendance/bulk-mixed`).
 
@@ -36,6 +38,7 @@ Original: endpoint ini menerima satu tanggal + array entries, masing-masing entr
 
 ```js
 // POST /bulk-mixed — input poin berbeda per siswa untuk satu hari
+// Semua query ke tabel: point_records  (BUKAN eob5_point_records atau student_points)
 router.post('/bulk-mixed', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
@@ -79,6 +82,7 @@ router.post('/bulk-mixed', requireGuru, async (req, res) => {
 Mirip bulk-mixed tapi satu jenis+poin+keterangan untuk banyak siswa sekaligus:
 
 ```js
+// Semua query ke tabel: point_records  (BUKAN eob5_point_records atau student_points)
 router.post('/bulk', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
@@ -125,6 +129,13 @@ Tambahkan UI untuk input poin massal per hari:
 - Tiap baris punya input jenis (positif/negatif) + poin + keterangan
 - Tombol "Simpan Semua" → call `POST /api/eob5/points/bulk-mixed`
 - Siswa yang kolom poin-nya kosong → skip (tidak dikirim)
+
+## Nama Tabel yang Digunakan di File Ini
+
+| Tabel | Nama Benar | Catatan |
+|---|---|---|
+| Poin siswa | `point_records` | Hasil rename dari `student_points`; BUKAN `eob5_point_records` |
+| Data siswa | `students` | BUKAN `eob5_students` |
 
 ## Verifikasi
 

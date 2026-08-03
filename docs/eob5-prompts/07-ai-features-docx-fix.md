@@ -2,6 +2,8 @@
 
 > Bisa dieksekusi paralel dengan Prompt 06.
 
+> ⚠️ **WAJIB BACA**: Lihat tabel pemetaan lengkap di `00-overview.md`. Tabel yang dipakai: `ai_soal_otomatis` (BUKAN `eob5_soal_tersimpan` atau `eob5_soal_otomatis`), `ai_modul_ajar` (BUKAN `eob5_modul_ajar`). Kolom guru: `teacher_id` (BUKAN `guru_id`).
+
 ## Latar Belakang
 
 Original (`artifacts/api-server/src/routes/soal-otomatis.ts` dan `modul-ajar.ts`) punya beberapa perbedaan dengan workspace:
@@ -61,10 +63,12 @@ Format JSON:
 
 ### 3. Tambah storage limit (prune oldest) di soal-otomatis dan modul-ajar
 
-Setelah INSERT berhasil, tambahkan cleanup:
+Setelah INSERT berhasil, tambahkan cleanup.
 
+Untuk `soal-otomatis` — tabel: `ai_soal_otomatis`, kolom guru: `teacher_id`:
 ```js
-// Untuk soal-otomatis:
+// Tabel: ai_soal_otomatis  (BUKAN eob5_soal_tersimpan atau eob5_soal_otomatis)
+// Kolom guru: teacher_id   (BUKAN guru_id)
 const MAX_PER_TEACHER = 15
 const { rows: allIds } = await pool.query(
   'SELECT id FROM ai_soal_otomatis WHERE teacher_id = $1 ORDER BY created_at DESC',
@@ -79,7 +83,22 @@ if (allIds.length > MAX_PER_TEACHER) {
 }
 ```
 
-Sama untuk `ai_modul_ajar` di `modul-ajar.js`.
+Untuk `modul-ajar` — tabel: `ai_modul_ajar`, kolom guru: `teacher_id`:
+```js
+// Tabel: ai_modul_ajar  (BUKAN eob5_modul_ajar)
+// Kolom guru: teacher_id (BUKAN guru_id)
+const { rows: allIds } = await pool.query(
+  'SELECT id FROM ai_modul_ajar WHERE teacher_id = $1 ORDER BY created_at DESC',
+  [guruId]
+)
+if (allIds.length > MAX_PER_TEACHER) {
+  const toDelete = allIds.slice(MAX_PER_TEACHER).map(r => r.id)
+  await pool.query(
+    'DELETE FROM ai_modul_ajar WHERE id = ANY($1::text[])',
+    [toDelete]
+  )
+}
+```
 
 ### 4. Verifikasi/tambah DOCX export untuk soal-otomatis
 
@@ -126,6 +145,8 @@ export async function buildSoalDocx(soalData, metadata) {
 
 Tambahkan route di `soal-otomatis.js`:
 ```js
+// Query ke tabel: ai_soal_otomatis  (BUKAN eob5_soal_tersimpan)
+// Kolom guru: teacher_id            (BUKAN guru_id)
 router.get('/:id/docx', requireGuru, async (req, res) => {
   const guruId = req.session.user.id
   const { rows } = await pool.query(
@@ -149,11 +170,21 @@ router.get('/:id/docx', requireGuru, async (req, res) => {
 
 Cek apakah `GET /modul-ajar/:id/docx` sudah ada dan berfungsi. Kalau sudah ada, test download-nya. Kalau belum ada, implementasi serupa dengan soal.
 
+Query ke tabel `ai_modul_ajar` (BUKAN `eob5_modul_ajar`), kolom guru `teacher_id` (BUKAN `guru_id`).
+
 ### 6. Frontend — `src/screens/eob5/Eob5SoalAiScreen.jsx`
 
 - Ganti field `jenis` → `jenisSoal`, `jumlah` → `jumlahSoal` di form
 - Tambahkan dropdown `tingkatKesulitan` (Mudah/Sedang/Sulit) kalau belum ada
 - Tambahkan tombol "Download DOCX" di list soal tersimpan
+
+## Nama Tabel yang Digunakan di File Ini
+
+| Tabel | Nama Benar | Kolom Perlu Diperhatikan |
+|---|---|---|
+| Soal AI tersimpan | `ai_soal_otomatis` | `teacher_id` (bukan `guru_id`) |
+| Modul ajar AI | `ai_modul_ajar` | `teacher_id` (bukan `guru_id`) |
+| Mata Pelajaran | `subjects` | `teacher_id` (bukan `guru_id`) |
 
 ## Verifikasi
 

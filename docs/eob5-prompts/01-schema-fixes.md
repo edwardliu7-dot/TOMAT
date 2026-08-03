@@ -2,13 +2,15 @@
 
 > Eksekusi ini **pertama** sebelum prompt lainnya. Semua perbaikan logika bergantung pada schema yang benar.
 
+> ⚠️ **WAJIB BACA**: Lihat tabel pemetaan lengkap di `00-overview.md` sebelum menulis query apapun. JANGAN pakai prefix `eob5_` pada nama tabel atau kolom.
+
 ## Latar Belakang
 
 Perbandingan `lib/db/src/schema/*.ts` di GitHub vs `server/schema.js` di workspace menemukan 4 masalah schema:
 
 1. **`grades.jenis` enum kurang satu nilai** — original punya 4: `formatif`, `sumatif_lm`, `sumatif_tengah`, `sumatif_akhir`; workspace hanya 3 (tidak ada `sumatif_tengah`)
 2. **Unique constraint pada `grades` belum lengkap** — original punya 4 partial unique index per jenis; workspace tidak punya constraint ini sehingga duplikat nilai bisa masuk
-3. **Tabel `points` salah nama** — workspace memakai `student_points` tapi original bernama `point_records`; akibatnya query di `points.js` bisa error kalau tabel belum dibuat
+3. **Tabel `student_points` perlu rename** — workspace memakai `student_points`, original bernama `point_records`; rename diperlukan agar query di `points.js` konsisten
 4. **`attendance_records` status enum inkonsisten** — original hanya: `hadir`, `izin`, `sakit`, `alpa`; workspace masih accept `alpha` (typo lama) di validasi `STATUS_VALID` di `attendance.js`
 
 ## Yang Harus Dilakukan
@@ -57,13 +59,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS grades_sumatif_akhir_unique
 
 ### 3. Rename `student_points` → `point_records`
 
-Cari di `server/schema.js` apakah tabelnya bernama `student_points` atau `point_records`.  
-- Kalau bernama `student_points`: tambahkan migration di `ensureSchema()`:
-  ```sql
-  ALTER TABLE IF EXISTS student_points RENAME TO point_records;
-  ```
-  Lalu ubah nama tabel di `CREATE TABLE IF NOT EXISTS` menjadi `point_records`.
-- Kalau sudah bernama `point_records`: tidak ada yang perlu diubah di schema. Cek `server/eob5/points.js` — ubah semua referensi `student_points` → `point_records`.
+> **Catatan penting:** Data sudah ada di tabel `student_points` (data dipindah dari `eob5_student_points`). Rename ke `point_records` mengikuti nama original GitHub. JANGAN buat tabel baru kosong — rename tabel yang sudah ada.
+
+Tambahkan migration di `ensureSchema()`:
+```sql
+-- Rename hanya jika student_points ada dan point_records belum ada
+ALTER TABLE IF EXISTS student_points RENAME TO point_records;
+```
+
+Lalu ubah nama tabel di `CREATE TABLE IF NOT EXISTS` menjadi `point_records`.
+
+Setelah itu, ubah semua referensi `student_points` → `point_records` di `server/eob5/points.js`.
 
 ### 4. Perbaiki Status Enum di Attendance
 
@@ -78,6 +84,14 @@ const STATUS_VALID = ['hadir', 'sakit', 'izin', 'alpa']
 
 Pastikan juga di `server/schema.js`, tabel `absensi` (jika masih ada) tidak punya CHECK constraint yang memblokir status `alpa`. Tabel `attendance_records` yang baru sudah benar.
 
+## Nama Tabel yang Digunakan di File Ini
+
+| Tabel | Nama Benar | Catatan |
+|---|---|---|
+| Nilai/Penilaian | `grades` | BUKAN `eob5_grades` |
+| Absensi baru | `attendance_records` | BUKAN `eob5_absensi` atau `absensi` |
+| Poin siswa | `point_records` (setelah rename dari `student_points`) | BUKAN `eob5_student_points` |
+
 ## Verifikasi
 
 Setelah selesai:
@@ -90,4 +104,4 @@ Setelah selesai:
 ## File yang Disentuh
 - `server/schema.js`
 - `server/eob5/attendance.js`
-- `server/eob5/points.js` (jika perlu rename tabel)
+- `server/eob5/points.js` (rename tabel)

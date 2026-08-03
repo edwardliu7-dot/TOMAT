@@ -2,6 +2,8 @@
 
 > Bisa dieksekusi paralel dengan Prompt 03.
 
+> ⚠️ **WAJIB BACA**: Lihat tabel pemetaan lengkap di `00-overview.md`. Tabel yang dipakai: `tujuan_pembelajaran` (BUKAN `eob5_tujuan_pembelajaran`). Kolom guru: `teacher_id` (BUKAN `guru_id`). Kolom deskripsi: `description` (BUKAN `deskripsi`).
+
 ## Latar Belakang
 
 Original (`artifacts/api-server/src/routes/tujuan-pembelajaran.ts`) punya dua fitur lanjutan yang belum ada di workspace:
@@ -35,6 +37,10 @@ Tambahkan helper function sebelum route handlers:
 /**
  * Geser semua tp_number >= insertAt sebesar +amount untuk subject+calendar tertentu.
  * Dipanggil sebelum insert TP baru agar tidak bentrok dengan urutan yang sudah ada.
+ *
+ * Tabel: tujuan_pembelajaran  (BUKAN eob5_tujuan_pembelajaran)
+ * Kolom FK guru: teacher_id   (BUKAN guru_id)
+ * Kolom deskripsi: description (BUKAN deskripsi)
  */
 async function shiftTpNumbers(subjectId, calendarId, insertAt, amount) {
   await pool.query(
@@ -56,6 +62,10 @@ Lalu di endpoint `POST /bulk` (atau buat endpoint baru `POST /bulk-import` jika 
 //   3. shiftTpNumbers(subjectId, calendarId, insertAt, jumlahItemBaru)
 //   4. Insert item baru mulai dari insertAt
 //   5. Update globalLastUsed = insertAt + jumlahItemBaru - 1
+
+// INSERT ke tujuan_pembelajaran (BUKAN eob5_tujuan_pembelajaran):
+// Kolom wajib: subject_id, calendar_id, teacher_id, lingkup_materi, tp_number, description
+// JANGAN pakai: guru_id (nama kolom salah), deskripsi (nama kolom salah)
 ```
 
 Jika endpoint `POST /bulk` sudah ada, refactor agar memakai `shiftTpNumbers`.
@@ -152,6 +162,14 @@ Tambahkan tombol "Import dari File" yang:
 3. Tampilkan preview daftar TP yang diekstrak
 4. Guru bisa uncheck item yang tidak mau disimpan
 5. Konfirmasi → `POST /api/eob5/tujuan-pembelajaran/bulk` untuk simpan semua
+
+## Nama Tabel yang Digunakan di File Ini
+
+| Tabel | Nama Benar | Kolom Perlu Diperhatikan |
+|---|---|---|
+| TP | `tujuan_pembelajaran` | `teacher_id` (bukan `guru_id`), `description` (bukan `deskripsi`) |
+| Mata Pelajaran | `subjects` | `teacher_id` (bukan `guru_id`) |
+| Kalender Akademik | `academic_calendars` | `created_by` (bukan `guru_id`) |
 
 ## Verifikasi
 

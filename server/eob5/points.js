@@ -46,7 +46,7 @@ router.get('/', requireGuru, async (req, res) => {
 
     const { rows } = await pool.query(
       `SELECT p.*, s.name AS siswa_name, s.kelas
-       FROM student_points p
+       FROM point_records p
        JOIN students s ON s.id = p.student_id
        WHERE ${where}
        ORDER BY p.tanggal DESC, p.created_at DESC`,
@@ -75,7 +75,7 @@ router.post('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `INSERT INTO student_points (student_id, guru_id, jenis, poin, keterangan, tanggal)
+      `INSERT INTO point_records (student_id, guru_id, jenis, poin, keterangan, tanggal)
        VALUES ($1,$2,$3,$4,$5,$6)
        RETURNING *`,
       [student_id, guruId, jenis, poin, keterangan || null, tanggal || null]
@@ -109,7 +109,7 @@ router.post('/bulk', requireGuru, async (req, res) => {
       await client.query('BEGIN')
       for (const sid of targets) {
         await client.query(
-          `INSERT INTO student_points (student_id, guru_id, jenis, poin, keterangan, tanggal)
+          `INSERT INTO point_records (student_id, guru_id, jenis, poin, keterangan, tanggal)
            VALUES ($1,$2,$3,$4,$5,$6)`,
           [sid, guruId, jenis, poin, keterangan || null, tanggal || null]
         )
@@ -149,7 +149,7 @@ router.post('/bulk-mixed', requireGuru, async (req, res) => {
       await client.query('BEGIN')
       for (const e of targets) {
         await client.query(
-          `INSERT INTO student_points (student_id, guru_id, jenis, poin, keterangan, tanggal)
+          `INSERT INTO point_records (student_id, guru_id, jenis, poin, keterangan, tanggal)
            VALUES ($1,$2,$3,$4,$5,$6)`,
           [e.student_id, guruId, e.jenis, e.poin, e.keterangan || null, tanggal]
         )
@@ -178,14 +178,14 @@ router.patch('/:id', requireGuru, async (req, res) => {
 
     const allowed = await getStudentIds(guruId)
     const { rows: existing } = await pool.query(
-      'SELECT student_id FROM student_points WHERE id = $1', [id]
+      'SELECT student_id FROM point_records WHERE id = $1', [id]
     )
     if (!existing.length || !allowed.has(existing[0].student_id)) {
       return res.status(404).json({ error: 'Record poin tidak ditemukan' })
     }
 
     const { rows } = await pool.query(
-      `UPDATE student_points
+      `UPDATE point_records
        SET jenis      = COALESCE($1, jenis),
            poin       = COALESCE($2, poin),
            keterangan = COALESCE($3, keterangan),
@@ -210,13 +210,13 @@ router.delete('/:id', requireGuru, async (req, res) => {
 
     const allowed = await getStudentIds(guruId)
     const { rows: existing } = await pool.query(
-      'SELECT student_id FROM student_points WHERE id = $1', [id]
+      'SELECT student_id FROM point_records WHERE id = $1', [id]
     )
     if (!existing.length || !allowed.has(existing[0].student_id)) {
       return res.status(404).json({ error: 'Record poin tidak ditemukan' })
     }
 
-    await pool.query('DELETE FROM student_points WHERE id = $1', [id])
+    await pool.query('DELETE FROM point_records WHERE id = $1', [id])
     res.json({ success: true })
   } catch (err) {
     console.error('[eob5/points] delete error:', err)

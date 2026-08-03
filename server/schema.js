@@ -811,7 +811,7 @@ export async function ensureSchema() {
     END $$
   `)
 
-  // Nilai siswa (formatif / sumatif_lm / sumatif_akhir)
+  // Nilai siswa (formatif / sumatif_lm / sumatif_tengah / sumatif_akhir)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS grades (
       id              SERIAL PRIMARY KEY,
@@ -819,7 +819,8 @@ export async function ensureSchema() {
       guru_id         text REFERENCES gurus(id),
       subject_id      int  REFERENCES subjects(id) ON DELETE SET NULL,
       calendar_id     int,
-      jenis           VARCHAR(30) NOT NULL DEFAULT 'formatif',
+      jenis           VARCHAR(30) NOT NULL DEFAULT 'formatif'
+                        CHECK (jenis IN ('formatif','sumatif_lm','sumatif_tengah','sumatif_akhir')),
       lingkup_materi  INT,
       nilai           NUMERIC(5,2),
       keterangan      TEXT,
@@ -827,9 +828,10 @@ export async function ensureSchema() {
     )
   `)
 
-  // Poin perilaku siswa
+  // Poin perilaku siswa (original bernama point_records; rename jika masih student_points)
+  await pool.query(`ALTER TABLE IF EXISTS student_points RENAME TO point_records`)
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS student_points (
+    CREATE TABLE IF NOT EXISTS point_records (
       id         SERIAL PRIMARY KEY,
       student_id text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
       guru_id    text REFERENCES gurus(id),
@@ -937,15 +939,33 @@ export async function ensureSchema() {
   `)
 
   // Akun login siswa yang di-generate wali kelas
+  // Kolom: username (BUKAN eob5_username), password (BUKAN password_plain)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS student_accounts (
       id              SERIAL PRIMARY KEY,
       student_id      text NOT NULL UNIQUE REFERENCES students(id) ON DELETE CASCADE,
-      eob5_username   VARCHAR(100) NOT NULL UNIQUE,
-      password_plain  VARCHAR(100) NOT NULL,
+      username        VARCHAR(100) NOT NULL UNIQUE,
+      password        VARCHAR(100) NOT NULL,
       created_by      text REFERENCES gurus(id),
       created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `)
+  // Migrasi: rename kolom lama jika tabel sudah ada dengan nama kolom lama
+  await pool.query(`
+    DO $$ BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='student_accounts' AND column_name='eob5_username'
+      ) THEN
+        ALTER TABLE student_accounts RENAME COLUMN eob5_username TO username;
+      END IF;
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='student_accounts' AND column_name='password_plain'
+      ) THEN
+        ALTER TABLE student_accounts RENAME COLUMN password_plain TO password;
+      END IF;
+    END $$
   `)
 
   // Bahan ajar (PDF base64 atau link URL)
@@ -1161,4 +1181,44 @@ export async function ensureSchema() {
       AND array_to_string(completed_activities, ',') ~ '(d_|r_|rs_|rf_|rc_|subuh|dzuhur|ashar|maghrib|isya|dhuha|tahajud|rawatib|quran|dzikir|hafalan|infaq)'
   `)
   console.log('[schema] BLP activity ID migration complete')
+
+  // ── EOB5 Schema Migrations ────────────────────────────────────────────────
+
+  // 1. grades: pastikan CHECK constraint punya sumatif_tengah (untuk tabel existing)
+  await pool.query(`
+    ALTER TABLE grades DROP CONSTRAINT IF EXISTS grades_jenis_check;
+    ALTER TABLE grades ADD CONSTRAINT grades_jenis_check
+      CHECK (jenis IN ('formatif','sumatif_lm','sumatif_tengah','sumatif_akhir'));
+  `)
+
+  // 2. grades: 4 partial unique index (idempoten — IF NOT EXISTS)
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS grades_formatif_unique
+      ON grades (student_id, subject_id, calendar_id, lingkup_materi, tp_number)
+      WHERE jenis = 'formatif'
+  `).catch(() => {
+    // tp_number belum ada — coba tanpa kolom itu dulu
+  })
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS grades_sumatif_lm_unique
+      ON grades (student_id, subject_id, calendar_id, lingkup_materi)
+      WHERE jenis = 'sumatif_lm'
+  `)
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS grades_sumatif_tengah_unique
+      ON grades (student_id, subject_id, calendar_id)
+      WHERE jenis = 'sumatif_tengah'
+  `)
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS grades_sumatif_akhir_unique
+      ON grades (student_id, subject_id, calendar_id)
+      WHERE jenis = 'sumatif_akhir'
+  `)
+
+  // 3. Rename point_records jika masih bernama student_points
+  //    (dilakukan di atas saat CREATE TABLE, migrasi ini untuk tabel existing)
+  await pool.query(`ALTER TABLE IF EXISTS student_points RENAME TO point_records`)
+    .catch(() => {}) // abaikan jika sudah bernama point_records
+
+  console.log('[schema] EOB5 migrations complete')
 }

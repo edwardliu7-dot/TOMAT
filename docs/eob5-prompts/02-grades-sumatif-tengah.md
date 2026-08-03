@@ -2,6 +2,8 @@
 
 > **Prasyarat:** Prompt 01 harus selesai dulu (schema `sumatif_tengah` harus sudah ada).
 
+> ⚠️ **WAJIB BACA**: Lihat tabel pemetaan lengkap di `00-overview.md`. Tabel yang dipakai di sini adalah `grades` (BUKAN `eob5_grades`). Kolom guru: tidak ada `guru_id` di `grades` — kolom yang benar bergantung pada skema workspace (cek `server/schema.js`).
+
 ## Latar Belakang
 
 Original (`artifacts/api-server/src/routes/grades.ts`) mendukung 4 jenis penilaian Kurikulum Merdeka:
@@ -41,15 +43,14 @@ Untuk `sumatif_tengah`, konflik terjadi bila student_id + subject_id + calendar_
 // 2. Kalau ada → UPDATE, kalau tidak → INSERT
 ```
 
-Implementasi yang aman (menghindari race condition) menggunakan INSERT ... ON CONFLICT DO UPDATE dengan WHERE clause:
-```sql
-INSERT INTO grades (student_id, subject_id, calendar_id, jenis, lingkup_materi, tp_number, nilai, guru_id, keterangan)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-ON CONFLICT ON CONSTRAINT grades_sumatif_tengah_unique   -- hanya berlaku jika jenis='sumatif_tengah'
-DO UPDATE SET nilai = EXCLUDED.nilai, ...
-```
+Implementasi yang aman (menghindari race condition) — lihat pola yang sudah ada di kode untuk `sumatif_akhir` sebagai referensi, tambahkan case serupa untuk `sumatif_tengah`:
 
-Karena partial index tidak bisa dipakai langsung di ON CONFLICT tanpa nama constraint, gunakan pendekatan: cari dulu, update kalau ada, insert kalau belum ada (lihat pola yang sudah ada di kode untuk `sumatif_akhir` sebagai referensi).
+```sql
+-- Untuk sumatif_tengah: cari dulu, update kalau ada, insert kalau belum ada
+-- Semua query ke tabel: grades  (BUKAN eob5_grades)
+SELECT id FROM grades
+WHERE student_id = $1 AND subject_id = $2 AND calendar_id = $3 AND jenis = 'sumatif_tengah'
+```
 
 ### 2. Frontend — `src/screens/eob5/Eob5NilaiScreen.jsx`
 
@@ -80,6 +81,14 @@ Sesuaikan form input — untuk `sumatif_tengah`:
 ### 3. Frontend — Filter/Tab di NilaiScreen
 
 Pastikan tab/filter "Sumatif Tengah" juga muncul di rekap/tampilan nilai. Kalau ada switch-case per jenis yang menentukan kolom apa yang ditampilkan, tambahkan case untuk `sumatif_tengah`.
+
+## Nama Tabel yang Digunakan di File Ini
+
+| Tabel | Nama Benar | Catatan |
+|---|---|---|
+| Nilai/Penilaian | `grades` | BUKAN `eob5_grades` |
+| Mata Pelajaran | `subjects` | BUKAN `eob5_subjects`; kolom guru: `teacher_id` |
+| Kalender Akademik | `academic_calendars` | BUKAN `eob5_academic_calendars`; kolom guru: `created_by` |
 
 ## Verifikasi
 
