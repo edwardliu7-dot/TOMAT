@@ -1044,6 +1044,28 @@ export async function ensureSchema() {
   await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS tahun_ajaran text`)
   await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS konten jsonb`)
 
+  // prosem: tambah subject_id dan calendar_id untuk linkage relasional
+  await pool.query(`
+    DO $$
+    DECLARE subj_type text;
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='prosem' AND column_name='subject_id'
+      ) THEN
+        SELECT data_type INTO subj_type
+          FROM information_schema.columns
+         WHERE table_name='subjects' AND column_name='id';
+        IF subj_type = 'uuid' THEN
+          EXECUTE 'ALTER TABLE prosem ADD COLUMN subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL';
+        ELSE
+          EXECUTE 'ALTER TABLE prosem ADD COLUMN subject_id INT REFERENCES subjects(id) ON DELETE SET NULL';
+        END IF;
+      END IF;
+    END $$
+  `)
+  await pool.query(`ALTER TABLE prosem ADD COLUMN IF NOT EXISTS calendar_id int REFERENCES academic_calendars(id) ON DELETE SET NULL`)
+
   // prosem_items: tambah subject_id, kelas, urutan (tabel lama hanya punya week_id, kd, materi, jp, catatan)
   // Gunakan DO block — di production subjects.id mungkin UUID, di dev SERIAL/integer
   await pool.query(`

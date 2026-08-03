@@ -19,6 +19,18 @@ async function ownsSubject(subjectId, guruId) {
   return rows.length > 0
 }
 
+// Validasi: prosem_item_id harus milik guru yang sama
+async function ownsProsemItem(prosemItemId, guruId) {
+  if (!prosemItemId) return true
+  const { rows } = await pool.query(
+    `SELECT pi.id FROM prosem_items pi
+     JOIN prosem p ON p.id = pi.prosem_id
+     WHERE pi.id = $1 AND p.teacher_id = $2`,
+    [prosemItemId, guruId]
+  )
+  return rows.length > 0
+}
+
 // GET / — daftar jurnal
 router.get('/', requireGuru, async (req, res) => {
   try {
@@ -67,6 +79,9 @@ router.post('/', requireGuru, async (req, res) => {
     if (!(await ownsSubject(subject_id, guruId))) {
       return res.status(404).json({ error: 'Mata pelajaran tidak ditemukan' })
     }
+    if (prosem_item_id && !(await ownsProsemItem(prosem_item_id, guruId))) {
+      return res.status(403).json({ error: 'Prosem item tidak ditemukan atau bukan milik guru ini' })
+    }
 
     const { rows } = await pool.query(
       `INSERT INTO journal_entries
@@ -91,6 +106,9 @@ router.patch('/:id', requireGuru, async (req, res) => {
 
     if (subject_id && !(await ownsSubject(subject_id, guruId))) {
       return res.status(404).json({ error: 'Mata pelajaran tidak ditemukan' })
+    }
+    if (prosem_item_id && !(await ownsProsemItem(prosem_item_id, guruId))) {
+      return res.status(403).json({ error: 'Prosem item tidak ditemukan atau bukan milik guru ini' })
     }
 
     const { rows } = await pool.query(

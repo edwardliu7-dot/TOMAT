@@ -1,9 +1,10 @@
 /**
  * Eob5ProsemScreen.jsx
- * List prosem + view detail grid minggu × materi, CRUD item, ekspor XLSX.
+ * List prosem + view detail grid minggu × materi, CRUD item, ekspor XLSX, AI import dari file.
  * Items disimpan di field `konten` JSON: { items: [{ id, pekan_ke, kd, materi, jp, catatan }] }
+ * Linkage: subject_id → subjects, calendar_id → academic_calendars
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../AuthContext'
 import * as XLSX from 'xlsx'
 
@@ -14,7 +15,7 @@ const C = {
   white: 'rgba(255,255,255,0.07)', overlay: 'rgba(0,0,0,0.75)',
 }
 const inp = { background:'rgba(255,255,255,0.07)', border:`1px solid ${C.border}`, borderRadius:8, padding:'9px 11px', color:'#fff', fontFamily:'inherit', fontSize:13, width:'100%', boxSizing:'border-box', outline:'none' }
-const BLANK_PROSEM = { mata_pelajaran:'', kelas:'', semester:'1', tahun_ajaran:'2025/2026' }
+const BLANK_PROSEM = { mata_pelajaran:'', kelas:'', semester:'1', tahun_ajaran:'2025/2026', subject_id:'', calendar_id:'' }
 const BLANK_ITEM = { pekan_ke:'', kd:'', materi:'', jp:'2', catatan:'' }
 
 let _uid = 0
@@ -59,10 +60,12 @@ function JenisBadge({ jenis }) {
 }
 
 // ── Prosem List View ─────────────────────────────────────────────────────────
-function ProsemList({ onOpen, onEdit }) {
+function ProsemList({ onOpen }) {
   const { user } = useAuth()
   const [list, setList] = useState([])
   const [kelasList, setKelasList] = useState([])
+  const [subjects, setSubjects] = useState([])
+  const [calendars, setCalendars] = useState([])
   const [loading, setLoading] = useState(true)
   const [filterKelas, setFilterKelas] = useState('')
   const [filterMapel, setFilterMapel] = useState('')
@@ -86,13 +89,41 @@ function ProsemList({ onOpen, onEdit }) {
   }
 
   useEffect(()=>{
-    fetch('/api/eob5/kelas/list',{credentials:'include'}).then(r=>r.ok?r.json():[]).then(d=>{ if(Array.isArray(d)) setKelasList(d) }).catch(()=>{})
+    Promise.all([
+      fetch('/api/eob5/kelas/list',{credentials:'include'}).then(r=>r.ok?r.json():[]).catch(()=>[]),
+      fetch('/api/eob5/subjects',{credentials:'include'}).then(r=>r.ok?r.json():[]).catch(()=>[]),
+      fetch('/api/eob5/academic-calendars',{credentials:'include'}).then(r=>r.ok?r.json():[]).catch(()=>[]),
+    ]).then(([kelas, subj, cals]) => {
+      if (Array.isArray(kelas)) setKelasList(kelas)
+      if (Array.isArray(subj)) setSubjects(subj)
+      if (Array.isArray(cals)) setCalendars(cals)
+    })
     load()
   }, [])
   useEffect(()=>{ load() }, [filterKelas, filterMapel])
 
   const openCreate = () => { setEditProsem(null); setForm(BLANK_PROSEM); setFormOpen(true) }
-  const openEdit = (p) => { setEditProsem(p); setForm({ mata_pelajaran:p.mata_pelajaran, kelas:p.kelas, semester:String(p.semester), tahun_ajaran:p.tahun_ajaran }); setFormOpen(true) }
+  const openEdit = (p) => {
+    setEditProsem(p)
+    setForm({
+      mata_pelajaran: p.mata_pelajaran,
+      kelas: p.kelas,
+      semester: String(p.semester),
+      tahun_ajaran: p.tahun_ajaran,
+      subject_id: p.subject_id ? String(p.subject_id) : '',
+      calendar_id: p.calendar_id ? String(p.calendar_id) : '',
+    })
+    setFormOpen(true)
+  }
+
+  // When subject changes, auto-fill mata_pelajaran
+  const handleSubjectChange = (subjectId) => {
+    f('subject_id', subjectId)
+    if (subjectId) {
+      const subj = subjects.find(s => String(s.id) === String(subjectId))
+      if (subj) f('mata_pelajaran', subj.name)
+    }
+  }
 
   const handleSave = async () => {
     if (!form.mata_pelajaran||!form.kelas||!form.semester||!form.tahun_ajaran) { showMsg('error','Semua field wajib diisi'); return }
@@ -100,7 +131,13 @@ function ProsemList({ onOpen, onEdit }) {
     const url = editProsem ? `/api/eob5/prosem/${editProsem.id}` : '/api/eob5/prosem'
     const method = editProsem ? 'PUT' : 'POST'
     try {
-      const r = await fetch(url, { method, credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ ...form, semester:parseInt(form.semester) }) })
+      const body = {
+        ...form,
+        semester: parseInt(form.semester),
+        subject_id: form.subject_id || null,
+        calendar_id: form.calendar_id || null,
+      }
+      const r = await fetch(url, { method, credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
       if (r.ok) { showMsg('ok', editProsem?'Prosem diperbarui!':'Prosem berhasil dibuat!'); setFormOpen(false); load() }
       else { const d=await r.json(); showMsg('error', d.error||'Gagal menyimpan') }
     } catch { showMsg('error','Gagal terhubung') }
@@ -149,10 +186,53 @@ function ProsemList({ onOpen, onEdit }) {
         </div>
       </div>
 
+      {/* Tombol FAB buat prosem */}
+      <div style={{ position:'fixed', bottom:24, right:20, zIndex:100 }}>
+        <button onClick={openCreate} style={{ background:'linear-gradient(90deg,#f59e0b,#d97706)', border:'none', borderRadius:14, padding:'12px 20px', color:'#1a0a00', fontWeight:800, fontSize:14, cursor:'pointer', fontFamily:'inherit', boxShadow:'0 4px 20px rgba(245,158,11,0.35)' }}>
+          ➕ Buat Prosem
+        </button>
+      </div>
+
       <Modal open={formOpen} onClose={()=>setFormOpen(false)}>
         <div style={{ fontSize:15, fontWeight:800, color:C.primary, marginBottom:14 }}>{editProsem?'✏️ Edit Prosem':'➕ Buat Prosem Baru'}</div>
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-          <div><Label>Mata Pelajaran</Label><input value={form.mata_pelajaran} onChange={e=>f('mata_pelajaran',e.target.value)} placeholder="Matematika" style={inp} /></div>
+
+          {/* Mata Pelajaran — dropdown dari subjects */}
+          <div>
+            <Label>Mata Pelajaran</Label>
+            {subjects.length > 0 ? (
+              <select
+                value={form.subject_id}
+                onChange={e => handleSubjectChange(e.target.value)}
+                style={inp}
+              >
+                <option value="">— Pilih Mata Pelajaran —</option>
+                {subjects.map(s=><option key={s.id} value={String(s.id)}>{s.name}</option>)}
+              </select>
+            ) : (
+              <input
+                value={form.mata_pelajaran}
+                onChange={e=>f('mata_pelajaran',e.target.value)}
+                placeholder="Matematika"
+                style={inp}
+              />
+            )}
+            {subjects.length > 0 && form.mata_pelajaran && (
+              <div style={{ fontSize:11, color:C.sub, marginTop:3 }}>Terisi: {form.mata_pelajaran}</div>
+            )}
+          </div>
+
+          {/* Kalender Akademik */}
+          {calendars.length > 0 && (
+            <div>
+              <Label>Kalender Akademik (opsional)</Label>
+              <select value={form.calendar_id} onChange={e=>f('calendar_id',e.target.value)} style={inp}>
+                <option value="">— Pilih Kalender —</option>
+                {calendars.map(c=><option key={c.id} value={String(c.id)}>{c.nama || `${c.tahun_ajaran} — Sem ${c.semester}`}</option>)}
+              </select>
+            </div>
+          )}
+
           <div>
             <Label>Kelas</Label>
             <select value={form.kelas} onChange={e=>f('kelas',e.target.value)} style={inp}>
@@ -179,6 +259,34 @@ function ProsemList({ onOpen, onEdit }) {
   )
 }
 
+// ── AI Import Preview Modal ───────────────────────────────────────────────────
+function ImportPreviewModal({ open, onClose, importedItems, onConfirm, weeks }) {
+  if (!open) return null
+  return (
+    <Modal open={open} onClose={onClose} wide>
+      <div style={{ fontSize:15, fontWeight:800, color:C.primary, marginBottom:6 }}>📄 Preview Hasil AI Extraction</div>
+      <div style={{ fontSize:12, color:C.sub, marginBottom:12 }}>{importedItems.length} item diekstrak. Konfirmasi untuk menambahkan ke prosem.</div>
+      <div style={{ maxHeight:'50vh', overflowY:'auto', display:'flex', flexDirection:'column', gap:6, marginBottom:14 }}>
+        {importedItems.map((it, i) => (
+          <div key={i} style={{ background:'rgba(255,255,255,0.05)', border:`1px solid ${C.border}`, borderRadius:8, padding:'8px 10px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
+              <span style={{ fontSize:10, fontWeight:700, color:C.primary, background:C.dim, borderRadius:4, padding:'1px 6px' }}>Pekan {it.pekanKe}</span>
+              <span style={{ fontSize:10, color:C.sub }}>{it.jp} JP</span>
+              {it.kd && <span style={{ fontSize:10, color:'#a78bfa' }}>{it.kd}</span>}
+            </div>
+            <div style={{ fontSize:12, color:'#fff' }}>{it.materi}</div>
+            {it.catatan && <div style={{ fontSize:11, color:C.sub, marginTop:2 }}>{it.catatan}</div>}
+          </div>
+        ))}
+      </div>
+      <div style={{ display:'flex', gap:8 }}>
+        <button onClick={onClose} style={{ flex:'0 0 auto', background:'none', border:`1px solid ${C.border}`, borderRadius:10, padding:'10px 14px', color:C.sub, cursor:'pointer', fontFamily:'inherit' }}>Batal</button>
+        <button onClick={onConfirm} style={{ flex:1, background:'linear-gradient(90deg,#f59e0b,#d97706)', border:'none', borderRadius:10, padding:'10px', color:'#1a0a00', fontWeight:800, cursor:'pointer', fontFamily:'inherit', fontSize:14 }}>✅ Simpan {importedItems.length} Materi</button>
+      </div>
+    </Modal>
+  )
+}
+
 // ── Prosem Detail (grid minggu × materi) ─────────────────────────────────────
 function ProsemDetail({ prosemId, onBack }) {
   const [prosem, setProsem] = useState(null)
@@ -193,6 +301,12 @@ function ProsemDetail({ prosemId, onBack }) {
   const [itemForm, setItemForm] = useState(BLANK_ITEM)
   const [msg, setMsg] = useState({ type:'', text:'' })
 
+  // AI Import state
+  const [importing, setImporting] = useState(false)
+  const [importPreview, setImportPreview] = useState([])
+  const [importPreviewOpen, setImportPreviewOpen] = useState(false)
+  const fileInputRef = useRef(null)
+
   function showMsg(type, text) { setMsg({type,text}); setTimeout(()=>setMsg({type:'',text:''}), 3000) }
   const fi = (k,v) => setItemForm(p=>({...p,[k]:v}))
 
@@ -205,8 +319,14 @@ function ProsemDetail({ prosemId, onBack }) {
       setProsem(p)
       const calArr = Array.isArray(cals) ? cals : []
       setCalendars(calArr)
-      if (calArr.length) setCalId(calArr[0].id)
-      // Load items from konten
+
+      // Prioritize the calendar linked to this prosem
+      if (p?.calendar_id) {
+        setCalId(String(p.calendar_id))
+      } else if (calArr.length) {
+        setCalId(String(calArr[0].id))
+      }
+
       const stored = p?.konten?.items
       setItems(Array.isArray(stored) ? stored : [])
       setLoading(false)
@@ -216,14 +336,19 @@ function ProsemDetail({ prosemId, onBack }) {
   // Load weeks when calendar changes
   useEffect(()=>{
     if (!calId) { setWeeks([]); return }
-    fetch(`/api/eob5/academic-weeks?calendar_id=${calId}`, { credentials:'include' }).then(r=>r.ok?r.json():[]).then(d=>setWeeks(Array.isArray(d)?d:[])).catch(()=>setWeeks([]))
+    fetch(`/api/eob5/academic-weeks?calendar_id=${calId}`, { credentials:'include' })
+      .then(r=>r.ok?r.json():[]).then(d=>setWeeks(Array.isArray(d)?d:[])).catch(()=>setWeeks([]))
   }, [calId])
 
   // Persist items → save to konten
   const saveItems = async (newItems) => {
     setSaving(true)
     try {
-      const r = await fetch(`/api/eob5/prosem/${prosemId}`, { method:'PUT', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ konten: { items: newItems } }) })
+      const r = await fetch(`/api/eob5/prosem/${prosemId}`, {
+        method:'PUT', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ konten: { items: newItems } })
+      })
       if (r.ok) { setItems(newItems); showMsg('ok','Materi disimpan!') }
       else showMsg('error','Gagal menyimpan')
     } catch { showMsg('error','Gagal terhubung') }
@@ -243,7 +368,14 @@ function ProsemDetail({ prosemId, onBack }) {
 
   const handleItemSave = async () => {
     if (!itemForm.materi.trim()) { showMsg('error','Materi wajib diisi'); return }
-    const newItem = { id: editItem?.id || uid(), pekan_ke: parseInt(itemForm.pekan_ke)||0, kd: itemForm.kd.trim(), materi: itemForm.materi.trim(), jp: parseInt(itemForm.jp)||2, catatan: itemForm.catatan.trim() }
+    const newItem = {
+      id: editItem?.id || uid(),
+      pekan_ke: parseInt(itemForm.pekan_ke)||0,
+      kd: itemForm.kd.trim(),
+      materi: itemForm.materi.trim(),
+      jp: parseInt(itemForm.jp)||2,
+      catatan: itemForm.catatan.trim()
+    }
     const newItems = editItem ? items.map(i=>i.id===editItem.id ? newItem : i) : [...items, newItem]
     setItemFormOpen(false)
     await saveItems(newItems)
@@ -252,6 +384,54 @@ function ProsemDetail({ prosemId, onBack }) {
   const handleDeleteItem = async (id) => {
     if (!confirm('Hapus materi ini?')) return
     await saveItems(items.filter(i=>i.id!==id))
+  }
+
+  // ── AI Import from File ────────────────────────────────────────────────────
+  const handleImportClick = () => { fileInputRef.current?.click() }
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+
+    setImporting(true)
+    showMsg('ok', 'Menganalisis file dengan AI…')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const r = await fetch('/api/eob5/prosem/import-analyze', {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      })
+      const data = await r.json()
+      if (!r.ok) { showMsg('error', data.error || 'Gagal menganalisis'); setImporting(false); return }
+
+      // Map AI items to internal format
+      const mapped = (data.items || []).map(it => ({
+        id: uid(),
+        pekan_ke: it.pekanKe || it.pekan_ke || 0,
+        materi: it.materi || '',
+        jp: it.jp || 2,
+        kd: it.kd || '',
+        catatan: it.catatan || '',
+      }))
+
+      if (!mapped.length) { showMsg('error', 'Tidak ada materi yang diekstrak'); setImporting(false); return }
+      setImportPreview(mapped)
+      setImportPreviewOpen(true)
+    } catch {
+      showMsg('error', 'Gagal terhubung ke server')
+    }
+    setImporting(false)
+  }
+
+  const handleConfirmImport = async () => {
+    setImportPreviewOpen(false)
+    const newItems = [...items, ...importPreview]
+    await saveItems(newItems)
+    showMsg('ok', `${importPreview.length} materi berhasil diimpor!`)
+    setImportPreview([])
   }
 
   const handleExportXLSX = () => {
@@ -268,7 +448,6 @@ function ProsemDetail({ prosemId, onBack }) {
         })
       }
     }
-    // Weeks without matching calendar
     const noWeekItems = items.filter(i=>!sortedWeeks.some(w=>w.pekan_ke===i.pekan_ke))
     noWeekItems.forEach(it => rows.push([it.pekan_ke, '', '', '', it.kd||'', it.materi||'', it.jp||'', it.catatan||'']))
 
@@ -281,17 +460,31 @@ function ProsemDetail({ prosemId, onBack }) {
   if (loading) return <div style={{ textAlign:'center', color:C.sub, padding:60 }}>Memuat prosem…</div>
   if (!prosem) return <div style={{ textAlign:'center', color:'#f87171', padding:40 }}>Prosem tidak ditemukan.</div>
 
-  const sortedWeeks = weeks.length > 0
-    ? [...weeks].sort((a,b)=>a.pekan_ke-b.pekan_ke)
-    : []
-
-  // For display: show weeks from calendar + items without week
+  const sortedWeeks = weeks.length > 0 ? [...weeks].sort((a,b)=>a.pekan_ke-b.pekan_ke) : []
   const pekanUsed = new Set(items.map(i=>i.pekan_ke))
   const orphanPekans = [...pekanUsed].filter(pk => !sortedWeeks.some(w=>w.pekan_ke===pk)).sort((a,b)=>a-b)
 
   return (
     <>
       <Toast msg={msg} />
+
+      {/* Hidden file input for AI import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.docx"
+        style={{ display:'none' }}
+        onChange={handleFileChange}
+      />
+
+      <ImportPreviewModal
+        open={importPreviewOpen}
+        onClose={()=>setImportPreviewOpen(false)}
+        importedItems={importPreview}
+        onConfirm={handleConfirmImport}
+        weeks={weeks}
+      />
+
       <div style={{ padding:'14px 14px 0' }}>
 
         {/* Prosem header info */}
@@ -301,6 +494,9 @@ function ProsemDetail({ prosemId, onBack }) {
             {[['Kelas', prosem.kelas], ['Semester', `Semester ${prosem.semester}`], ['T.A.', prosem.tahun_ajaran]].map(([l,v])=>(
               <span key={l}><span style={{ color:C.sub }}>{l}: </span><span style={{ color:'#fff', fontWeight:700 }}>{v}</span></span>
             ))}
+            {prosem.subject_name && (
+              <span><span style={{ color:C.sub }}>Mapel: </span><span style={{ color:C.primary, fontWeight:700 }}>{prosem.subject_name}</span></span>
+            )}
           </div>
         </div>
 
@@ -310,7 +506,7 @@ function ProsemDetail({ prosemId, onBack }) {
           {calendars.length === 0
             ? <div style={{ fontSize:12, color:C.sub, padding:'8px 0' }}>Belum ada kalender akademik. Buat di menu Kalender terlebih dahulu.</div>
             : <select value={calId} onChange={e=>setCalId(e.target.value)} style={inp}>
-                {calendars.map(c=><option key={c.id} value={c.id}>{c.nama || `${c.tahun_ajaran} — Semester ${c.semester}`}</option>)}
+                {calendars.map(c=><option key={c.id} value={String(c.id)}>{c.nama || `${c.tahun_ajaran} — Semester ${c.semester}`}</option>)}
               </select>
           }
         </div>
@@ -318,7 +514,19 @@ function ProsemDetail({ prosemId, onBack }) {
         {/* Action bar */}
         <div style={{ display:'flex', gap:8, marginBottom:14 }}>
           <button onClick={()=>openAddItem(null)} style={{ flex:1, background:C.dim, border:`1px solid ${C.border}`, borderRadius:10, padding:'9px 14px', color:C.primary, fontWeight:700, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>➕ Tambah Materi</button>
+          <button
+            onClick={handleImportClick}
+            disabled={importing}
+            style={{ flex:'0 0 auto', background:'rgba(139,92,246,0.12)', border:'1px solid rgba(139,92,246,0.35)', borderRadius:10, padding:'9px 12px', color:'#a78bfa', fontWeight:700, fontSize:12, cursor:importing?'not-allowed':'pointer', fontFamily:'inherit' }}
+          >
+            {importing ? '⏳ Menganalisis…' : '🤖 Import File'}
+          </button>
           <button onClick={handleExportXLSX} style={{ flex:'0 0 auto', background:'rgba(255,255,255,0.06)', border:`1px solid ${C.border}`, borderRadius:10, padding:'9px 12px', color:C.sub, fontWeight:700, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>📥 XLSX</button>
+        </div>
+
+        {/* Import hint */}
+        <div style={{ fontSize:11, color:'rgba(167,139,250,0.6)', marginBottom:10 }}>
+          🤖 Import File: upload silabus PDF/DOCX → AI ekstrak materi per pekan otomatis
         </div>
 
         {/* Summary */}
@@ -334,7 +542,6 @@ function ProsemDetail({ prosemId, onBack }) {
               const isKBM = ['efektif','kbm'].includes(w.jenis?.toLowerCase())
               return (
                 <div key={w.id} style={{ background:C.card, border:`1px solid ${isKBM && wItems.length>0 ? 'rgba(34,197,94,0.4)' : C.border}`, borderRadius:12 }}>
-                  {/* Week header */}
                   <div style={{ padding:'10px 12px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom: wItems.length>0 ? `1px solid ${C.border}` : 'none' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                       <span style={{ fontWeight:800, color:C.primary, fontSize:12 }}>Pekan {w.pekan_ke}</span>
@@ -346,7 +553,6 @@ function ProsemDetail({ prosemId, onBack }) {
                     )}
                   </div>
 
-                  {/* Items */}
                   {wItems.length === 0 && isKBM && (
                     <div style={{ padding:'10px 12px', fontSize:11, color:C.sub }}>Belum ada materi untuk pekan ini.</div>
                   )}
