@@ -122,8 +122,9 @@ router.get('/guru/:id', requireGuru, async (req, res) => {
     }
 
     const [nilaiRes, absensiRes, materiRes, jadwalRes] = await Promise.all([
+      // Nilai dari tabel grades (app lama gurueob5), bukan nilai_akademik (kosong)
       pool.query(
-        'SELECT COUNT(*) AS total_nilai FROM nilai_akademik WHERE guru_id = $1',
+        'SELECT COUNT(*) AS total_nilai FROM grades WHERE guru_id = $1',
         [guruId]
       ),
       pool.query(
@@ -134,8 +135,13 @@ router.get('/guru/:id', requireGuru, async (req, res) => {
         'SELECT COUNT(*) AS total_materi FROM materi WHERE guru_id = $1',
         [guruId]
       ),
+      // Jadwal: UNION schedules (app lama, teacher_id) + jadwal (SMARTISA, guru_id)
       pool.query(
-        'SELECT COUNT(*) AS total_jadwal FROM jadwal WHERE guru_id = $1',
+        `SELECT (
+          SELECT COUNT(*) FROM schedules WHERE teacher_id = $1
+        ) + (
+          SELECT COUNT(*) FROM jadwal WHERE guru_id = $1
+        ) AS total_jadwal`,
         [guruId]
       ),
     ])
