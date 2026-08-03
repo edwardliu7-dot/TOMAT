@@ -7,9 +7,38 @@ const router = express.Router()
 
 // Check if a guru qualifies as an active subject teacher for TOMAT:
 // jabatan must include 'guru_mapel' AND they must have at least one subject entry.
+// Runs a profile-sync first so guru_mapel with mapel+kelas_diampu filled get
+// their subjects auto-created without needing to visit the EOB5 subjects page first.
 async function computeHasMateriTerdaftar(guruId, jabatan) {
   if (!Array.isArray(jabatan) || !jabatan.includes('guru_mapel')) return false
   try {
+    // Mirror syncSubjectFolders logic from server/eob5/subjects.js
+    const { rows: guruRows } = await pool.query(
+      'SELECT mapel, kelas_diampu FROM gurus WHERE id = $1',
+      [guruId]
+    )
+    if (guruRows.length) {
+      const { mapel = [], kelas_diampu = [] } = guruRows[0]
+      if (mapel?.length && kelas_diampu?.length) {
+        const { rows: existing } = await pool.query(
+          'SELECT name FROM subjects WHERE teacher_id = $1',
+          [guruId]
+        )
+        const existingNames = new Set(existing.map(s => s.name))
+        for (const m of mapel) {
+          for (const k of kelas_diampu) {
+            const name = `${m} - ${k}`
+            if (!existingNames.has(name)) {
+              await pool.query(
+                'INSERT INTO subjects (teacher_id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+                [guruId, name]
+              )
+            }
+          }
+        }
+      }
+    }
+
     const { rows } = await pool.query(
       `SELECT 1 FROM subjects WHERE teacher_id = $1 AND deleted_at IS NULL LIMIT 1`,
       [guruId]
