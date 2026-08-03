@@ -95,7 +95,7 @@ export default function Eob5AbsensiScreen({ navigate, goBack }) {
     if (!bulkKelas || !bulkTanggal) { setAlreadyFilledBy(null); return }
     let cancelled = false
     setLoadingSession(true)
-    fetch(`/api/eob5/attendance?kelas=${encodeURIComponent(bulkKelas)}&date=${bulkTanggal}`, { credentials: 'include' })
+    fetch(`/api/eob5/absensi?kelas=${encodeURIComponent(bulkKelas)}&tanggal=${bulkTanggal}`, { credentials: 'include' })
       .then(r => r.json()).then(records => {
         if (cancelled) return
         setLoadingSession(false)
@@ -149,7 +149,7 @@ export default function Eob5AbsensiScreen({ navigate, goBack }) {
     setSaving(true); setMsg({ type: '', text: '' })
     try {
       const entries = bulkStudents.map(s => ({ student_id: s.id, status: statusMap[s.id] || 'hadir' }))
-      const r = await fetch('/api/eob5/attendance/bulk-mixed', {
+      const r = await fetch('/api/eob5/absensi/bulk', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tanggal: bulkTanggal, kelas: bulkKelas, absensi: entries }),
@@ -171,7 +171,7 @@ export default function Eob5AbsensiScreen({ navigate, goBack }) {
   const handleLoadSession = ({ kelas, tanggal }) => {
     // Pre-fetch records then set kelas/tanggal (pendingSessionRef ensures correct apply)
     setLoadingSession(true)
-    fetch(`/api/eob5/attendance?kelas=${encodeURIComponent(kelas)}&date=${tanggal}`, { credentials: 'include' })
+    fetch(`/api/eob5/absensi?kelas=${encodeURIComponent(kelas)}&tanggal=${tanggal}`, { credentials: 'include' })
       .then(r => r.json()).then(records => {
         pendingSessionRef.current = Array.isArray(records) ? records : []
         setBulkTanggal(tanggal)
@@ -187,7 +187,7 @@ export default function Eob5AbsensiScreen({ navigate, goBack }) {
   const handleHapusSesi = async ({ kelas, tanggal }) => {
     if (!confirm(`Hapus absensi ${kelas} tanggal ${tanggal}?`)) return
     try {
-      const r = await fetch('/api/eob5/attendance/bulk-kelas', {
+      const r = await fetch('/api/eob5/absensi/bulk-kelas', {
         method: 'DELETE', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ kelas, tanggal }),
@@ -204,7 +204,7 @@ export default function Eob5AbsensiScreen({ navigate, goBack }) {
   // History
   const loadHistory = () => {
     setLoadingHist(true)
-    fetch(`/api/eob5/attendance?tahun=${histTahun}&bulan=${parseInt(histBulan)}`, { credentials: 'include' })
+    fetch(`/api/eob5/absensi?tahun=${histTahun}&bulan=${parseInt(histBulan)}`, { credentials: 'include' })
       .then(r => r.json()).then(data => {
         const arr = Array.isArray(data) ? data : []
         // Group by date + kelas

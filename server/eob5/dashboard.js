@@ -35,18 +35,15 @@ router.get('/', requireGuru, async (req, res) => {
          )`,
         [guruId]
       ),
-      // Absensi hari ini — dari attendance_records (sistem aktif), filter kelas diampu guru
+      // Absensi hari ini — dari tabel absensi, filter guru_id
       pool.query(
         `SELECT COUNT(*) AS total,
-                COUNT(*) FILTER (WHERE a.status = 'hadir') AS hadir,
-                COUNT(*) FILTER (WHERE a.status = 'sakit') AS sakit,
-                COUNT(*) FILTER (WHERE a.status = 'izin')  AS izin,
-                COUNT(*) FILTER (WHERE a.status = 'alpa')  AS alpa
-         FROM attendance_records a
-         JOIN students s ON s.id = a.student_id
-         WHERE s.kelas = ANY(
-           SELECT unnest(kelas_diampu) FROM gurus WHERE id = $1
-         ) AND a.tanggal = $2`,
+                COUNT(*) FILTER (WHERE status = 'hadir') AS hadir,
+                COUNT(*) FILTER (WHERE status = 'sakit') AS sakit,
+                COUNT(*) FILTER (WHERE status = 'izin')  AS izin,
+                COUNT(*) FILTER (WHERE status = 'alpha') AS alpha
+         FROM absensi
+         WHERE guru_id = $1 AND tanggal = $2`,
         [guruId, today]
       ),
       // Kelas yang diampu — ambil dari array kelas_diampu di tabel gurus
@@ -55,29 +52,24 @@ router.get('/', requireGuru, async (req, res) => {
         `SELECT unnest(kelas_diampu) AS kelas FROM gurus WHERE id = $1 ORDER BY 1`,
         [guruId]
       ),
-      // Rekap absensi 7 hari terakhir — dari attendance_records, filter kelas diampu
+      // Rekap absensi 7 hari terakhir — dari tabel absensi, filter guru_id
       pool.query(
-        `SELECT a.tanggal, COUNT(*) AS total,
-                COUNT(*) FILTER (WHERE a.status = 'hadir') AS hadir,
-                COUNT(*) FILTER (WHERE a.status != 'hadir') AS tidak_hadir
-         FROM attendance_records a
-         JOIN students s ON s.id = a.student_id
-         WHERE s.kelas = ANY(
-           SELECT unnest(kelas_diampu) FROM gurus WHERE id = $1
-         ) AND a.tanggal >= NOW() - INTERVAL '7 days'
-         GROUP BY a.tanggal ORDER BY a.tanggal DESC`,
+        `SELECT tanggal, COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE status = 'hadir') AS hadir,
+                COUNT(*) FILTER (WHERE status != 'hadir') AS tidak_hadir
+         FROM absensi
+         WHERE guru_id = $1 AND tanggal >= NOW() - INTERVAL '7 days'
+         GROUP BY tanggal ORDER BY tanggal DESC`,
         [guruId]
       ),
-      // 5 absensi terbaru — dari attendance_records
+      // 5 absensi terbaru — dari tabel absensi
       pool.query(
         `SELECT a.id, a.tanggal, a.status, a.keterangan,
                 s.name AS siswa_name, s.kelas
-         FROM attendance_records a
+         FROM absensi a
          JOIN students s ON s.id = a.student_id
-         WHERE s.kelas = ANY(
-           SELECT unnest(kelas_diampu) FROM gurus WHERE id = $1
-         )
-         ORDER BY a.tanggal DESC, a.student_id LIMIT 5`,
+         WHERE a.guru_id = $1
+         ORDER BY a.created_at DESC LIMIT 5`,
         [guruId]
       ),
     ])

@@ -16,6 +16,8 @@ import { requireGuru } from './middleware.js'
 const router = express.Router()
 
 const STATUS_VALID = ['hadir', 'sakit', 'izin', 'alpha']
+// Normalisasi alias: client baru kirim 'alpa', tabel lama simpan 'alpha'
+function normalizeStatus(s) { return s === 'alpa' ? 'alpha' : s }
 
 function getJakartaToday() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -154,7 +156,8 @@ router.post('/', requireGuru, async (req, res) => {
     if (!student_id || !tanggal || !status) {
       return res.status(400).json({ error: 'student_id, tanggal, dan status wajib diisi' })
     }
-    if (!STATUS_VALID.includes(status)) {
+    const normalizedStatus = normalizeStatus(status)
+    if (!STATUS_VALID.includes(normalizedStatus)) {
       return res.status(400).json({ error: `Status tidak valid. Gunakan: ${STATUS_VALID.join(', ')}` })
     }
 
@@ -171,7 +174,7 @@ router.post('/', requireGuru, async (req, res) => {
          keterangan  = EXCLUDED.keterangan,
          guru_id     = EXCLUDED.guru_id
        RETURNING *`,
-      [student_id, guruId, tanggal, status, keterangan || null]
+      [student_id, guruId, tanggal, normalizedStatus, keterangan || null]
     )
     res.json(rows[0])
   } catch (err) {
@@ -191,7 +194,7 @@ router.post('/bulk', requireGuru, async (req, res) => {
       return res.status(400).json({ error: 'tanggal dan array absensi wajib diisi' })
     }
 
-    const invalid = absensi.find(a => !STATUS_VALID.includes(a.status))
+    const invalid = absensi.find(a => !STATUS_VALID.includes(normalizeStatus(a.status)))
     if (invalid) {
       return res.status(400).json({ error: `Status tidak valid: ${invalid.status}` })
     }
@@ -211,7 +214,7 @@ router.post('/bulk', requireGuru, async (req, res) => {
              keterangan = EXCLUDED.keterangan,
              guru_id    = EXCLUDED.guru_id
            RETURNING id, student_id, tanggal, status`,
-          [item.student_id, guruId, tanggal, item.status, item.keterangan || null]
+          [item.student_id, guruId, tanggal, normalizeStatus(item.status), item.keterangan || null]
         )
         saved.push(rows[0])
       }
@@ -227,6 +230,29 @@ router.post('/bulk', requireGuru, async (req, res) => {
   } catch (err) {
     console.error('[eob5/absensi] bulk error:', err)
     res.status(500).json({ error: 'Gagal menyimpan absensi massal' })
+  }
+})
+
+// DELETE /bulk-kelas — hapus semua absensi kelas + tanggal tertentu
+router.delete('/bulk-kelas', requireGuru, async (req, res) => {
+  try {
+    const guruId = req.session.user.id
+    const { kelas, tanggal } = req.body || {}
+    if (!kelas || !tanggal) {
+      return res.status(400).json({ error: 'kelas dan tanggal wajib diisi' })
+    }
+    // Hanya hapus yang diinput oleh guru ini (via guru_id) atau milik siswa dari kelasnya
+    const { rowCount } = await pool.query(
+      `DELETE FROM absensi
+       WHERE tanggal = $1
+         AND student_id IN (SELECT id FROM students WHERE kelas = $2)
+         AND guru_id = $3`,
+      [tanggal, kelas, guruId]
+    )
+    res.json({ ok: true, count: rowCount })
+  } catch (err) {
+    console.error('[eob5/absensi] bulk-kelas delete error:', err)
+    res.status(500).json({ error: 'Gagal menghapus absensi kelas' })
   }
 })
 
