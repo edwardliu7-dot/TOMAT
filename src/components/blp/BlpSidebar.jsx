@@ -37,7 +37,6 @@ function NavItem({ item, isActive, onClick }) {
         transition: 'background 0.12s, color 0.12s',
       }}
     >
-      <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0 }}>{item.emoji}</span>
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
     </button>
   )
@@ -45,16 +44,16 @@ function NavItem({ item, isActive, onClick }) {
 
 function getSiswaNav() {
   return [
-    { key: 'blp-home',       emoji: '🏠', label: 'Beranda'    },
-    { key: 'blp-kalender',   emoji: '📅', label: 'Kalender'   },
-    { key: 'blp-pengaturan', emoji: '⚙️', label: 'Pengaturan' },
+    { key: 'blp-home',       label: 'Beranda'    },
+    { key: 'blp-kalender',   label: 'Kalender'   },
+    { key: 'blp-pengaturan', label: 'Pengaturan' },
   ]
 }
 
 const GURU_NAV = [
-  { key: 'blp-guru-daftar',       emoji: '👥', label: 'Daftar Siswa'  },
-  { key: 'blp-guru-rekap-nilai',  emoji: '📊', label: 'Rekap Nilai'   },
-  { key: 'blp-guru-haid',         emoji: '🌸', label: 'Haid Siswi'    },
+  { key: 'blp-guru-daftar',       label: 'Daftar Siswa'  },
+  { key: 'blp-guru-rekap-nilai',  label: 'Rekap Nilai'   },
+  { key: 'blp-guru-haid',         label: 'Haid Siswi'    },
 ]
 
 export default function BlpSidebar({ user, navigate, currentScreen, onLogout }) {
@@ -135,7 +134,6 @@ export default function BlpSidebar({ user, navigate, currentScreen, onLogout }) 
           onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
         >
-          <span style={{ fontSize: 15 }}>🚪</span>
           <span>Keluar</span>
         </button>
       </div>

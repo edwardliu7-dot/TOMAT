@@ -26,40 +26,40 @@ const MENU_GROUPS = [
   {
     label: 'Utama',
     items: [
-      { key: 'eob5-dashboard',    emoji: '🏫', label: 'Dashboard' },
-      { key: 'eob5-absensi',      emoji: '📋', label: 'Absensi' },
-      { key: 'eob5-nilai',        emoji: '📊', label: 'Nilai' },
-      { key: 'eob5-jurnal',       emoji: '📖', label: 'Jurnal Mengajar' },
-      { key: 'eob5-jadwal',       emoji: '📅', label: 'Jadwal' },
-      { key: 'eob5-prosem',       emoji: '📝', label: 'Prosem' },
-      { key: 'eob5-materi',       emoji: '📚', label: 'Modul Ajar' },
-      { key: 'eob5-soal-ai',      emoji: '🤖', label: 'Soal AI' },
-      { key: 'eob5-rekap',        emoji: '📈', label: 'Rekap' },
-      { key: 'eob5-inbox',        emoji: '💬', label: 'Pesan Siswa' },
+      { key: 'eob5-dashboard',    label: 'Dashboard' },
+      { key: 'eob5-absensi',      label: 'Absensi' },
+      { key: 'eob5-nilai',        label: 'Nilai' },
+      { key: 'eob5-jurnal',       label: 'Jurnal Mengajar' },
+      { key: 'eob5-jadwal',       label: 'Jadwal' },
+      { key: 'eob5-prosem',       label: 'Prosem' },
+      { key: 'eob5-materi',       label: 'Modul Ajar' },
+      { key: 'eob5-soal-ai',      label: 'Soal AI' },
+      { key: 'eob5-rekap',        label: 'Rekap' },
+      { key: 'eob5-inbox',        label: 'Pesan Siswa' },
     ],
   },
   {
     label: 'Jabatan',
     items: [
-      { key: 'eob5-kepsek',       emoji: '📊', label: 'Kinerja Guru' },
-      { key: 'eob5-kesiswaan',    emoji: '🏫', label: 'Kesiswaan' },
-      { key: 'eob5-walikelas',    emoji: '👨‍👩‍👧', label: 'Wali Kelas' },
-      { key: 'eob5-kurikulum',    emoji: '📐', label: 'Supervisi Kurikulum' },
+      { key: 'eob5-kepsek',       label: 'Kinerja Guru' },
+      { key: 'eob5-kesiswaan',    label: 'Kesiswaan' },
+      { key: 'eob5-walikelas',    label: 'Wali Kelas' },
+      { key: 'eob5-kurikulum',    label: 'Supervisi Kurikulum' },
     ],
   },
   {
     label: 'Admin',
     items: [
-      { key: 'eob5-siswa',            emoji: '👥', label: 'Manajemen Siswa' },
-      { key: 'eob5-poin',             emoji: '📌', label: 'Poin Siswa' },
-      { key: 'eob5-akun-siswa',       emoji: '🔑', label: 'Akun Siswa' },
-      { key: 'eob5-direktori-guru',   emoji: '👨‍🏫', label: 'Direktori Guru' },
-      { key: 'eob5-direktori-siswa',  emoji: '📚', label: 'Direktori Siswa' },
-      { key: 'eob5-kalender',         emoji: '🗓️', label: 'Kalender' },
-      { key: 'eob5-info-pekanan',     emoji: '📊', label: 'Info Pekan' },
-      { key: 'eob5-administrasi',     emoji: '🗂️', label: 'Administrasi' },
-      { key: 'eob5-feedback',         emoji: '📥', label: 'Feedback' },
-      { key: 'eob5-pengaturan',       emoji: '⚙️', label: 'Pengaturan' },
+      { key: 'eob5-siswa',            label: 'Manajemen Siswa' },
+      { key: 'eob5-poin',             label: 'Poin Siswa' },
+      { key: 'eob5-akun-siswa',       label: 'Akun Siswa' },
+      { key: 'eob5-direktori-guru',   label: 'Direktori Guru' },
+      { key: 'eob5-direktori-siswa',  label: 'Direktori Siswa' },
+      { key: 'eob5-kalender',         label: 'Kalender' },
+      { key: 'eob5-info-pekanan',     label: 'Info Pekan' },
+      { key: 'eob5-administrasi',     label: 'Administrasi' },
+      { key: 'eob5-feedback',         label: 'Feedback' },
+      { key: 'eob5-pengaturan',       label: 'Pengaturan' },
     ],
   },
 ]
@@ -83,7 +83,6 @@ function NavItem({ item, isActive, onClick }) {
         transition: 'background 0.12s, color 0.12s',
       }}
     >
-      <span style={{ fontSize: 14, lineHeight: 1, flexShrink: 0 }}>{item.emoji}</span>
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
     </button>
   )
@@ -190,7 +189,6 @@ export default function Eob5Sidebar({ navigate, currentScreen, onClose, user, on
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
-            <span style={{ fontSize: 14 }}>🚪</span>
             <span>Keluar</span>
           </button>
         </div>

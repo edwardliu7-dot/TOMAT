@@ -21,13 +21,13 @@ const TAB_COLORS = {
 
 const TABS = {
   guru: [
-    { key: 'tomat', label: 'TOMAT',   emoji: '🍅', homeScreen: 'guruDashboard' },
-    { key: 'blp',   label: 'BLP',     emoji: '📋', homeScreen: 'blp-guru-daftar' },
-    { key: 'eob5',  label: 'GURU',    emoji: '🏫', homeScreen: 'eob5-dashboard' },
+    { key: 'eob5',  label: 'GURU',  homeScreen: 'eob5-dashboard' },
+    { key: 'tomat', label: 'TOMAT', homeScreen: 'guruDashboard' },
+    { key: 'blp',   label: 'BLP',   homeScreen: 'blp-guru-daftar' },
   ],
   siswa: [
-    { key: 'tomat', label: 'TOMAT',   emoji: '🍅', homeScreen: 'home' },
-    { key: 'blp',   label: 'BLP',     emoji: '📋', homeScreen: 'blp-home' },
+    { key: 'tomat', label: 'TOMAT', homeScreen: 'home' },
+    { key: 'blp',   label: 'BLP',   homeScreen: 'blp-home' },
   ],
 }
 
@@ -63,7 +63,7 @@ export default function AppSwitcher({ activeModule, onSwitch }) {
               letterSpacing: 0.3,
             }}
           >
-            {tab.emoji} {tab.label}
+            {tab.label}
           </button>
         )
       })}

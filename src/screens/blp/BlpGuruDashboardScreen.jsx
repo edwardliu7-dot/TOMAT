@@ -792,9 +792,9 @@ export default function BlpGuruDashboardScreen({ navigate, goBack, activeTab = '
   }
 
   const TABS = [
-    { id: 'list',   label: 'Daftar Siswa', icon: '👥' },
-    { id: 'recap',  label: 'Rekap Nilai',  icon: '📊' },
-    { id: 'haid',   label: 'Haid Siswi',   icon: '🌸' },
+    { id: 'list',   label: 'Daftar Siswa' },
+    { id: 'recap',  label: 'Rekap Nilai'  },
+    { id: 'haid',   label: 'Haid Siswi'   },
   ]
 
   if (error) return (
@@ -864,7 +864,7 @@ export default function BlpGuruDashboardScreen({ navigate, goBack, activeTab = '
             {TABS.map(t => (
               <button key={t.id} onClick={() => { setView(t.id); setSearch('') }}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', fontSize: 13, fontWeight: 600, border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s', background: view === t.id ? '#fff' : 'transparent', color: view === t.id ? '#1a3028' : C.muted }}>
-                <span>{t.icon}</span><span>{t.label}</span>
+                <span>{t.label}</span>
               </button>
             ))}
           </div>
