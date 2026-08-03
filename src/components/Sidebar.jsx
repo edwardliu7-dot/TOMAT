@@ -40,7 +40,6 @@ const GURU_NAV_FULL = [
   { key: 'guruRaid',       emoji: '⚔️', label: 'Boss Raid' },
   { key: 'guruTurnamen',   emoji: '🏆', label: 'Turnamen' },
   { key: 'guruKunci',      emoji: '🔒', label: 'Kunci Bab' },
-  { key: 'guruKomunikasi', emoji: '💬', label: 'Komunikasi' },
   { key: 'guruMengajar',   emoji: '🖥️', label: 'Mode Mengajar' },
 ]
 
@@ -50,7 +49,6 @@ const GURU_NAV_READONLY = [
   { key: 'guruPantau',     emoji: '👥', label: 'Pantau Kelas' },
   { key: 'guruNilai',      emoji: '📊', label: 'Nilai Siswa' },
   { key: 'guruInsight',    emoji: '🎮', label: 'Insight Siswa' },
-  { key: 'guruKomunikasi', emoji: '💬', label: 'Komunikasi' },
   { key: 'guruMengajar',   emoji: '🖥️', label: 'Mode Mengajar' },
 ]
 

@@ -12,9 +12,8 @@ import { TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import ProfileScreen from './ProfileScreen'
 import PublicProfileScreen from './PublicProfileScreen'
-import CommunicationScreen from './CommunicationScreen'
 import {
-  MessageNotificationBell, AppNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile, fetchPublicProfile, normalizeProfileTarget,
+  AppNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile, fetchPublicProfile, normalizeProfileTarget,
 } from '../components/shared'
 import { guruCacheGet, guruCacheSet } from '../guruCache'
 
@@ -87,7 +86,6 @@ const TABS = [
   { id: 'tugas',   label: '📋', text: 'Tugas' },
   { id: 'hafalan', label: '🧮', text: 'Hafalan' },
   { id: 'nilai',   label: '📊', text: 'Nilai' },
-  { id: 'komunikasi', label: '💬', text: 'Chat' },
   { id: 'siswa',   label: '👥', text: 'Siswa' },
   { id: 'kunci',   label: '🔒', text: 'Kunci Bab' },
   { id: 'raid',      label: '⚔️', text: 'Boss Raid' },
@@ -2531,14 +2529,12 @@ const DESKTOP_TABS = [
   { id: 'turnamen',   icon: '🏆', text: 'Turnamen' },
   { id: 'hafalan',    icon: '📖', text: 'Hafalan' },
   { id: 'kunci',      icon: '🔒', text: 'Kunci Bab' },
-  { id: 'komunikasi', icon: '💬', text: 'Komunikasi' },
 ]
 
 export default function GuruDashboardScreen({ onPlayGames }) {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('home')
   const [view, setView] = useState('dashboard')
-  const [komunikasiTarget, setKomunikasiTarget] = useState(null)
   const [visitedProfile, setVisitedProfile] = useState(null)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const publicProfile = usePublicProfile()
@@ -2568,7 +2564,6 @@ export default function GuruDashboardScreen({ onPlayGames }) {
         guruRaid: 'raid',
         guruTurnamen: 'turnamen',
         guruKunci: 'kunci',
-        guruKomunikasi: 'komunikasi',
       }[key]
       if (nextTab) selectTab(nextTab)
     }
@@ -2620,7 +2615,6 @@ export default function GuruDashboardScreen({ onPlayGames }) {
       {tab === 'tugas'      && hasMateriTerdaftar && <TugasTab kelasDiampu={kelasDiampu} />}
       {tab === 'hafalan'    && hasMateriTerdaftar && <GuruHafalanScreen />}
       {tab === 'nilai'      && <NilaiTab onProfileClick={publicProfile.openProfile} />}
-      {tab === 'komunikasi' && <CommunicationScreen embedded initialTarget={komunikasiTarget} />}
       {tab === 'siswa'      && <SiswaTab onProfileClick={publicProfile.openProfile} />}
       {tab === 'kunci'      && hasMateriTerdaftar && <KunciTab grades={grades} />}
       {tab === 'raid'       && hasMateriTerdaftar && <RaidTab kelasDiampu={kelasDiampu} />}
@@ -2633,7 +2627,6 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   const PRIMARY_TABS_ALL = [
     { id: 'home',       icon: '🏠', label: 'Beranda' },
     { id: 'tugas',      icon: '📋', label: 'Tugas' },
-    { id: 'komunikasi', icon: '💬', label: 'Chat' },
     { id: 'siswa',      icon: '👥', label: 'Siswa' },
   ]
   const MORE_TABS_ALL = [
@@ -2749,8 +2742,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
                 {user?.name} · {kelasDiampu.join(', ') || 'Guru'}
               </div>
             </div>
-            <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} suppress={tab === 'komunikasi'} />
-            <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} />
+            <AppNotificationBell />
           </div>
 
           {/* Content */}

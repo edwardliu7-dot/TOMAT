@@ -1253,6 +1253,7 @@ export async function ensureSchema() {
 
   // 3. point_records: pastikan kolom guru_id ada (student_points punya, point_records tidak)
   await pool.query(`ALTER TABLE point_records ADD COLUMN IF NOT EXISTS guru_id text`)
+  await pool.query(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'tomat'`)
 
   // 4. Migrasi data guru_id dari student_points ke point_records (jika belum)
   //    Lalu drop student_points agar tidak membingungkan

@@ -217,10 +217,13 @@ router.get('/me', async (req, res) => {
       session.username = user.username || null
       needsSave = true
     }
-    // Backfill guru-specific session fields (older sessions lack these)
+    // Sync guru-specific session fields from DB on every /me call so that
+    // jabatan changes (e.g. adding guru_mapel) take effect without re-login.
     if (session.role === 'guru') {
-      if (!session.jabatan) {
-        session.jabatan = user.jabatan || []
+      const freshJabatan = user.jabatan || []
+      const jabatanChanged = JSON.stringify(session.jabatan) !== JSON.stringify(freshJabatan)
+      if (jabatanChanged) {
+        session.jabatan = freshJabatan
         needsSave = true
       }
       if (!session.kelas_diampu) {
@@ -231,7 +234,8 @@ router.get('/me', async (req, res) => {
         session.wali_kelas_kelas = user.wali_kelas_kelas || null
         needsSave = true
       }
-      if (session.hasMateriTerdaftar === undefined) {
+      // Recompute hasMateriTerdaftar whenever it is unknown or jabatan changed
+      if (session.hasMateriTerdaftar === undefined || jabatanChanged) {
         session.hasMateriTerdaftar = await computeHasMateriTerdaftar(session.id, session.jabatan || [])
         needsSave = true
       }
