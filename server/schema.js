@@ -1101,7 +1101,7 @@ export async function ensureSchema() {
   await pool.query(`
     DO $$ BEGIN
       ALTER TABLE student_accounts ADD CONSTRAINT student_accounts_student_id_unique UNIQUE (student_id);
-    EXCEPTION WHEN duplicate_object THEN NULL;
+    EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
     END $$
   `)
 
