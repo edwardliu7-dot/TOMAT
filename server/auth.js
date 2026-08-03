@@ -5,7 +5,22 @@ import { computeHunger, getHungerUntil } from './pet-state.js'
 
 const router = express.Router()
 
-function sanitizeUser(row, role) {
+// Check if a guru qualifies as an active subject teacher for TOMAT:
+// jabatan must include 'guru_mapel' AND they must have at least one subject entry.
+async function computeHasMateriTerdaftar(guruId, jabatan) {
+  if (!Array.isArray(jabatan) || !jabatan.includes('guru_mapel')) return false
+  try {
+    const { rows } = await pool.query(
+      `SELECT 1 FROM subjects WHERE teacher_id = $1 AND deleted_at IS NULL LIMIT 1`,
+      [guruId]
+    )
+    return rows.length > 0
+  } catch {
+    return false
+  }
+}
+
+function sanitizeUser(row, role, extra = {}) {
   const base = {
     id: row.id,
     username: row.username,
@@ -14,6 +29,7 @@ function sanitizeUser(row, role) {
     kelas: role === 'siswa' ? row.kelas : row.kelas_diampu,
     photoUrl: row.photo_url || null,
     bio: row.bio || null,
+    ...extra,
   }
   if (role !== 'siswa') return base
   // Gamifikasi fields are server-authoritative and only meaningful for students —
@@ -98,6 +114,9 @@ router.post('/login', async (req, res) => {
       kelas_diampu: role === 'guru' ? (user.kelas_diampu || []) : undefined,
       wali_kelas_kelas: role === 'guru' ? (user.wali_kelas_kelas || null) : undefined,
     }
+    if (role === 'guru') {
+      req.session.user.hasMateriTerdaftar = await computeHasMateriTerdaftar(user.id, user.jabatan || [])
+    }
 
     // Award daily login bonus on fresh login (siswa only) — same logic as /me
     let dailyBonus = null
@@ -129,7 +148,8 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    res.json({ user: sanitizeUser(user, role), dailyBonus })
+    const guruExtra = role === 'guru' ? { hasMateriTerdaftar: req.session.user.hasMateriTerdaftar ?? false } : {}
+    res.json({ user: sanitizeUser(user, role, guruExtra), dailyBonus })
   } catch (err) {
     console.error('login error', err)
     res.status(500).json({ error: 'Terjadi kesalahan server saat login.' })
@@ -182,6 +202,10 @@ router.get('/me', async (req, res) => {
         session.wali_kelas_kelas = user.wali_kelas_kelas || null
         needsSave = true
       }
+      if (session.hasMateriTerdaftar === undefined) {
+        session.hasMateriTerdaftar = await computeHasMateriTerdaftar(session.id, session.jabatan || [])
+        needsSave = true
+      }
     }
     if (needsSave) req.session.save(() => {})
 
@@ -216,7 +240,8 @@ router.get('/me', async (req, res) => {
       }
     }
 
-    res.json({ user: sanitizeUser(user, session.role), dailyBonus })
+    const guruExtra = session.role === 'guru' ? { hasMateriTerdaftar: session.hasMateriTerdaftar ?? false } : {}
+    res.json({ user: sanitizeUser(user, session.role, guruExtra), dailyBonus })
   } catch (err) {
     console.error('me error', err)
     res.status(500).json({ error: 'Terjadi kesalahan server.' })

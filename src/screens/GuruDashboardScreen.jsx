@@ -95,6 +95,9 @@ const TABS = [
   { id: 'insight',   label: '🎮', text: 'Insight' },
 ]
 
+// Tabs that only guru mapel terdaftar may access
+const MANAGEMENT_TAB_IDS = new Set(['tugas', 'hafalan', 'kunci', 'raid', 'turnamen'])
+
 function Section({ children, style = {} }) {
   return (
     <div style={{
@@ -2298,7 +2301,7 @@ function useIsDesktop() {
 }
 
 // ── Guru Home Overview Tab ────────────────────────────────────────────────────
-function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSelectTab, hideHeader = false }) {
+function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSelectTab, hideHeader = false, hasMateriTerdaftar = false }) {
   const [tugas, setTugas]             = useState(() => guruCacheGet('home_tugas') ?? [])
   const [homeStats, setHomeStats]     = useState(() => guruCacheGet('home_stats') ?? null)
   const hasCache                      = !!(guruCacheGet('home_tugas') && guruCacheGet('home_stats'))
@@ -2385,30 +2388,32 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
         ))}
       </div>
 
-      {/* ── Quick action pills ── */}
-      <div style={{ display: 'flex', gap: 10, padding: isDesktop ? '0 0 20px' : '0 16px 20px' }}>
-        <button onClick={() => onSelectTab('tugas')} style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          background: 'linear-gradient(135deg,rgba(159,227,189,0.18),rgba(159,227,189,0.08))',
-          border: '1px solid rgba(159,227,189,0.3)', color: '#9fe3bd',
-          borderRadius: 24, padding: '13px 16px', fontSize: 13, fontWeight: 700,
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}>📋 Tetapkan Tugas</button>
-        <button onClick={() => onSelectTab('raid')} style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          background: 'linear-gradient(135deg,rgba(239,68,68,0.18),rgba(239,68,68,0.08))',
-          border: '1px solid rgba(239,68,68,0.3)', color: '#F87171',
-          borderRadius: 24, padding: '13px 16px', fontSize: 13, fontWeight: 700,
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}>⚔️ Mulai Boss Raid</button>
-      </div>
+      {/* ── Quick action pills — only for registered subject teachers ── */}
+      {hasMateriTerdaftar && (
+        <div style={{ display: 'flex', gap: 10, padding: isDesktop ? '0 0 20px' : '0 16px 20px' }}>
+          <button onClick={() => onSelectTab('tugas')} style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            background: 'linear-gradient(135deg,rgba(159,227,189,0.18),rgba(159,227,189,0.08))',
+            border: '1px solid rgba(159,227,189,0.3)', color: '#9fe3bd',
+            borderRadius: 24, padding: '13px 16px', fontSize: 13, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>📋 Tetapkan Tugas</button>
+          <button onClick={() => onSelectTab('raid')} style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            background: 'linear-gradient(135deg,rgba(239,68,68,0.18),rgba(239,68,68,0.08))',
+            border: '1px solid rgba(239,68,68,0.3)', color: '#F87171',
+            borderRadius: 24, padding: '13px 16px', fontSize: 13, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>⚔️ Mulai Boss Raid</button>
+        </div>
+      )}
 
       {/* ── Task list ── */}
       <div style={{ padding: isDesktop ? '0 0 20px' : '0 16px 20px' }}>
         {/* Header + class filter */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Tugas Aktif</div>
-          <button onClick={() => onSelectTab('tugas')} style={{ fontSize: 11, color: '#9fe3bd', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Lihat semua →</button>
+          {hasMateriTerdaftar && <button onClick={() => onSelectTab('tugas')} style={{ fontSize: 11, color: '#9fe3bd', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Lihat semua →</button>}
         </div>
         {/* Class filter pills */}
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none', marginBottom: 8 }}>
@@ -2539,6 +2544,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   const publicProfile = usePublicProfile()
   const isDesktop = useIsDesktop()
   const kelasDiampu = user?.kelas || []
+  const hasMateriTerdaftar = user?.hasMateriTerdaftar ?? false
   const grades = [...new Set(kelasDiampu.map(kelasToGrade).filter(Boolean))].sort()
 
   const selectTab = useCallback((nextTab) => {
@@ -2569,6 +2575,13 @@ export default function GuruDashboardScreen({ onPlayGames }) {
     window.addEventListener('tomat:guru-nav', handler)
     return () => window.removeEventListener('tomat:guru-nav', handler)
   }, [selectTab])
+
+  // Redirect non-mapel guru away from management-only tabs
+  useEffect(() => {
+    if (!hasMateriTerdaftar && MANAGEMENT_TAB_IDS.has(tab)) {
+      selectTab('home')
+    }
+  }, [hasMateriTerdaftar, tab, selectTab])
 
   // "Lihat Profil" must not reuse the compact profile object from the modal.
   // Fetch the complete, access-checked profile before opening the full page.
@@ -2603,27 +2616,27 @@ export default function GuruDashboardScreen({ onPlayGames }) {
 
   const tabContent = (
     <>
-      {tab === 'home'       && <GuruHomeTab kelasDiampu={kelasDiampu} user={user} logout={logout} onPlayGames={onPlayGames} onGoProfile={() => setView('profile')} onSelectTab={selectTab} hideHeader={!isDesktop} />}
-      {tab === 'tugas'      && <TugasTab kelasDiampu={kelasDiampu} />}
-      {tab === 'hafalan'    && <GuruHafalanScreen />}
+      {tab === 'home'       && <GuruHomeTab kelasDiampu={kelasDiampu} user={user} logout={logout} onPlayGames={onPlayGames} onGoProfile={() => setView('profile')} onSelectTab={selectTab} hideHeader={!isDesktop} hasMateriTerdaftar={hasMateriTerdaftar} />}
+      {tab === 'tugas'      && hasMateriTerdaftar && <TugasTab kelasDiampu={kelasDiampu} />}
+      {tab === 'hafalan'    && hasMateriTerdaftar && <GuruHafalanScreen />}
       {tab === 'nilai'      && <NilaiTab onProfileClick={publicProfile.openProfile} />}
       {tab === 'komunikasi' && <CommunicationScreen embedded initialTarget={komunikasiTarget} />}
       {tab === 'siswa'      && <SiswaTab onProfileClick={publicProfile.openProfile} />}
-      {tab === 'kunci'      && <KunciTab grades={grades} />}
-      {tab === 'raid'       && <RaidTab kelasDiampu={kelasDiampu} />}
-      {tab === 'turnamen'   && <TurnamenTab kelasDiampu={kelasDiampu} />}
+      {tab === 'kunci'      && hasMateriTerdaftar && <KunciTab grades={grades} />}
+      {tab === 'raid'       && hasMateriTerdaftar && <RaidTab kelasDiampu={kelasDiampu} />}
+      {tab === 'turnamen'   && hasMateriTerdaftar && <TurnamenTab kelasDiampu={kelasDiampu} />}
       {tab === 'insight'    && <InsightTab onProfileClick={publicProfile.openProfile} />}
     </>
   )
 
   // ── shared bottom-nav data ──
-  const PRIMARY_TABS = [
+  const PRIMARY_TABS_ALL = [
     { id: 'home',       icon: '🏠', label: 'Beranda' },
     { id: 'tugas',      icon: '📋', label: 'Tugas' },
     { id: 'komunikasi', icon: '💬', label: 'Chat' },
     { id: 'siswa',      icon: '👥', label: 'Siswa' },
   ]
-  const MORE_TABS = [
+  const MORE_TABS_ALL = [
     { id: 'hafalan',  icon: '🧮', label: 'Hafalan' },
     { id: 'nilai',    icon: '📊', label: 'Nilai' },
     { id: 'kunci',    icon: '🔒', label: 'Kunci Bab' },
@@ -2631,6 +2644,9 @@ export default function GuruDashboardScreen({ onPlayGames }) {
     { id: 'turnamen', icon: '🏆', label: 'Turnamen' },
     { id: 'insight',  icon: '🎮', label: 'Insight' },
   ]
+  const PRIMARY_TABS = hasMateriTerdaftar ? PRIMARY_TABS_ALL : PRIMARY_TABS_ALL.filter(t => !MANAGEMENT_TAB_IDS.has(t.id))
+  const MORE_TABS = hasMateriTerdaftar ? MORE_TABS_ALL : MORE_TABS_ALL.filter(t => !MANAGEMENT_TAB_IDS.has(t.id))
+  const filteredDesktopTabs = hasMateriTerdaftar ? DESKTOP_TABS : DESKTOP_TABS.filter(t => !MANAGEMENT_TAB_IDS.has(t.id))
   const isMoreTab = MORE_TABS.some(t => t.id === tab)
 
   const currentTabInfo = TABS.find(t => t.id === tab)
@@ -2675,7 +2691,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
 
           {/* Tab list */}
           <nav style={{ flex: 1, padding: '10px 10px' }}>
-            {DESKTOP_TABS.map(({ id, icon, text }) => {
+            {filteredDesktopTabs.map(({ id, icon, text }) => {
               const active = tab === id
               return (
                 <button key={id} onClick={() => selectTab(id)} style={{

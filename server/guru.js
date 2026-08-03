@@ -11,6 +11,15 @@ import { startTournamentRound_all } from './tournament-engine.js'
 const router = express.Router()
 router.use(requireAuth, requireRole('guru'))
 
+// Only fully-registered subject teachers (jabatan=guru_mapel + has subjects entry)
+// may create or modify content. Read-only routes remain open to all guru.
+function requireGuruMapelTerdaftar(req, res, next) {
+  if (!req.session.user?.hasMateriTerdaftar) {
+    return res.status(403).json({ error: 'Akses ditolak. Hanya guru mapel Matematika yang terdaftar yang dapat melakukan tindakan ini.' })
+  }
+  next()
+}
+
 // ── Boss Raid endpoints ───────────────────────────────────────────────────────
 
 // GET /api/guru/boss-raid — list active raids for this guru's classes
@@ -26,7 +35,7 @@ router.get('/boss-raid', async (req, res) => {
 })
 
 // POST /api/guru/boss-raid — create / start a new raid for a class
-router.post('/boss-raid', async (req, res) => {
+router.post('/boss-raid', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const kelasDiampu = await getMyKelasDiampu(req)
     const {
@@ -55,7 +64,7 @@ router.post('/boss-raid', async (req, res) => {
 })
 
 // DELETE /api/guru/boss-raid/:kelas — end a raid early
-router.delete('/boss-raid/:kelas', async (req, res) => {
+router.delete('/boss-raid/:kelas', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const kelas = decodeURIComponent(req.params.kelas)
     const kelasDiampu = await getMyKelasDiampu(req)
@@ -143,7 +152,7 @@ router.get('/tugas', async (req, res) => {
 })
 
 // POST /api/guru/tugas — assign a new task to a class this teacher teaches
-router.post('/tugas', async (req, res) => {
+router.post('/tugas', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const { kelas, gameKey, gameName, gameEmoji, bab, type, totalQuestions, dueAt, difficulty } = req.body || {}
     if (!kelas || !gameKey || !gameName || !type || !totalQuestions) {
@@ -181,7 +190,7 @@ router.post('/tugas', async (req, res) => {
 })
 
 // PATCH /api/guru/tugas/:id — close/reopen or edit a task
-router.patch('/tugas/:id', async (req, res) => {
+router.patch('/tugas/:id', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const { status, type, totalQuestions, dueAt, difficulty } = req.body || {}
 
@@ -232,7 +241,7 @@ router.patch('/tugas/:id', async (req, res) => {
 })
 
 // DELETE /api/guru/tugas/:id — delete a task and its grades (cascade)
-router.delete('/tugas/:id', async (req, res) => {
+router.delete('/tugas/:id', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `delete from tugas where id = $1 and guru_id = $2 returning id`,
@@ -285,7 +294,7 @@ router.get('/bab-locks', async (req, res) => {
 })
 
 // POST /api/guru/bab-locks — lock/unlock a bab for a grade this teacher teaches
-router.post('/bab-locks', async (req, res) => {
+router.post('/bab-locks', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const { grade, bab, locked } = req.body || {}
     const gradeNum = parseInt(grade, 10)
@@ -337,7 +346,7 @@ router.get('/tournament', async (req, res) => {
 })
 
 // POST /api/guru/tournament — mulai turnamen baru
-router.post('/tournament', async (req, res) => {
+router.post('/tournament', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const kelasDiampu = await getMyKelasDiampu(req)
     const {
@@ -462,7 +471,7 @@ router.post('/tournament', async (req, res) => {
 })
 
 // DELETE /api/guru/tournament/:id — batalkan turnamen
-router.delete('/tournament/:id', async (req, res) => {
+router.delete('/tournament/:id', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const t = tournaments.get(req.params.id)
     if (!t) return res.status(404).json({ error: 'Turnamen tidak ditemukan.' })

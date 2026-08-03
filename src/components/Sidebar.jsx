@@ -29,7 +29,8 @@ const SISWA_NAV = (zoneKey) => [
   { key: 'komunikasi',    emoji: '💬', label: 'Chat' },
 ]
 
-const GURU_NAV = [
+// Full nav for guru mapel terdaftar (jabatan=guru_mapel + has subjects entry)
+const GURU_NAV_FULL = [
   { key: 'guruDashboard',  emoji: '🏠', label: 'Dashboard' },
   { key: 'guruTugas',      emoji: '📋', label: 'Tugas' },
   { key: 'guruPantau',     emoji: '👥', label: 'Pantau Kelas' },
@@ -39,6 +40,16 @@ const GURU_NAV = [
   { key: 'guruRaid',       emoji: '⚔️', label: 'Boss Raid' },
   { key: 'guruTurnamen',   emoji: '🏆', label: 'Turnamen' },
   { key: 'guruKunci',      emoji: '🔒', label: 'Kunci Bab' },
+  { key: 'guruKomunikasi', emoji: '💬', label: 'Komunikasi' },
+  { key: 'guruMengajar',   emoji: '🖥️', label: 'Mode Mengajar' },
+]
+
+// Read-only nav for guru without a registered Matematika subject
+const GURU_NAV_READONLY = [
+  { key: 'guruDashboard',  emoji: '🏠', label: 'Dashboard' },
+  { key: 'guruPantau',     emoji: '👥', label: 'Pantau Kelas' },
+  { key: 'guruNilai',      emoji: '📊', label: 'Nilai Siswa' },
+  { key: 'guruInsight',    emoji: '🎮', label: 'Insight Siswa' },
   { key: 'guruKomunikasi', emoji: '💬', label: 'Komunikasi' },
   { key: 'guruMengajar',   emoji: '🖥️', label: 'Mode Mengajar' },
 ]
@@ -108,7 +119,7 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
 
   const isGuru = user.role === 'guru'
   const zoneKey = getZoneKey(user)
-  const navItems = isGuru ? GURU_NAV : SISWA_NAV(zoneKey)
+  const navItems = isGuru ? (user.hasMateriTerdaftar ? GURU_NAV_FULL : GURU_NAV_READONLY) : SISWA_NAV(zoneKey)
 
   const handleNav = (key) => {
     // Guru tab items dispatch custom events; main screens use navigate
