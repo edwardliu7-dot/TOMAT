@@ -46,9 +46,10 @@ router.get('/', requireGuru, async (req, res) => {
          WHERE guru_id = $1 AND tanggal = $2`,
         [guruId, today]
       ),
-      // Kelas yang diampu
+      // Kelas yang diampu — ambil dari array kelas_diampu di tabel gurus
+      // (sumber data canonical; kelas_guru adalah tabel relasional terpisah yg belum tentu terisi)
       pool.query(
-        `SELECT DISTINCT kelas FROM kelas_guru WHERE guru_id = $1 ORDER BY kelas`,
+        `SELECT unnest(kelas_diampu) AS kelas FROM gurus WHERE id = $1 ORDER BY 1`,
         [guruId]
       ),
       // Rekap absensi 7 hari terakhir
