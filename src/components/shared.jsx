@@ -1023,6 +1023,11 @@ export function AppNotificationBell({ onCommunicationClick }) {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ flex: 1, color: notification.read_at ? '#CBD5E1' : '#C4B5FD', fontSize: 11, fontWeight: 800 }}>{notificationLabel(notification)}</span>
+                    {notification.source === 'blp' ? (
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(103,232,249,0.15)', color: '#67E8F9', letterSpacing: 0.3 }}>BLP</span>
+                    ) : (
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(159,227,189,0.15)', color: '#9fe3bd', letterSpacing: 0.3 }}>TOMAT</span>
+                    )}
                     {!notification.read_at && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#A78BFA' }} />}
                   </div>
                   <div style={{ color: '#E2E8F0', fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>{notification.title}</div>

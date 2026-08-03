@@ -47,17 +47,18 @@ async function sendPush(userId, role, payload) {
 }
 
 export async function notifyUser({
-  userId, role, type, title, body, url = '/', metadata = {},
+  userId, role, type, title, body, url = '/', metadata = {}, source = 'tomat',
 }) {
   if (!userId || !['guru', 'siswa'].includes(role) || !title || !body) return null
   try {
     const { rows } = await pool.query(
       `insert into notifications
-         (recipient_id, recipient_role, type, title, body, url, metadata)
-       values ($1,$2,$3,$4,$5,$6,$7)
-       returning id, recipient_id, recipient_role, type, title, body, url, metadata, created_at`,
+         (recipient_id, recipient_role, type, title, body, url, metadata, source)
+       values ($1,$2,$3,$4,$5,$6,$7,$8)
+       returning id, recipient_id, recipient_role, type, title, body, url, metadata, source, created_at`,
       [userId, role, String(type || 'general').slice(0, 40), String(title).slice(0, 160),
-        String(body).slice(0, 500), String(url).slice(0, 300), JSON.stringify(metadata || {})]
+        String(body).slice(0, 500), String(url).slice(0, 300), JSON.stringify(metadata || {}),
+        ['tomat', 'blp'].includes(source) ? source : 'tomat']
     )
     const notification = rows[0]
     await sendPush(userId, role, {

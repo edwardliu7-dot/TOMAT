@@ -9,10 +9,10 @@ import { pool } from '../db.js'
 import {
   requireBlpSiswa,
   requireBlpGuru,
-  loadGuru,
   normalizeKelas,
   getJakartaTodayDateString,
 } from './helpers.js'
+import { notifyUser } from '../notifications.js'
 
 const router = express.Router()
 
@@ -30,10 +30,11 @@ router.put('/students/:id/records/:date', requireBlpSiswa('id'), async (req, res
       })
     }
 
-    const studentRes = await pool.query('SELECT id FROM students WHERE id = $1', [id])
+    const studentRes = await pool.query('SELECT id, name, kelas FROM students WHERE id = $1', [id])
     if (studentRes.rowCount === 0) {
       return res.status(404).json({ error: 'Siswa tidak ditemukan' })
     }
+    const { name: studentName, kelas: studentKelas } = studentRes.rows[0]
 
     const submissionsJson = JSON.stringify(
       submissions && typeof submissions === 'object' ? submissions : {}
@@ -57,6 +58,22 @@ router.put('/students/:id/records/:date', requireBlpSiswa('id'), async (req, res
       ]
     )
 
+    // Notifikasi wali kelas bahwa siswa telah mengisi BLP hari ini
+    pool.query(
+      `SELECT id FROM gurus WHERE wali_kelas_kelas ILIKE $1 AND 'wali_kelas' = ANY(jabatan) LIMIT 1`,
+      [studentKelas]
+    ).then(({ rows }) => {
+      if (rows.length) {
+        notifyUser({
+          userId: rows[0].id, role: 'guru',
+          type: 'blp_submit', source: 'blp',
+          title: 'BLP Harian Diisi',
+          body: `${studentName} baru saja mengisi BLP Harian hari ini (${date}).`,
+          url: '/',
+        }).catch(() => {})
+      }
+    }).catch(() => {})
+
     res.json({
       date,
       completedActivities: Array.isArray(completedActivities) ? completedActivities : [],
@@ -78,17 +95,20 @@ router.put(
   async (req, res) => {
     try {
       const { id, date, activityId } = req.params
-      const guru = await loadGuru(req.session.user.id)
-      if (!guru) {
-        return res.status(404).json({ error: 'Akun guru tidak ditemukan atau bukan wali kelas' })
+      // Gunakan sesi yang sudah divalidasi saat login — tidak perlu DB call tambahan
+      const { jabatan = [], wali_kelas_kelas } = req.session.user
+      const jabatanArr = Array.isArray(jabatan) ? jabatan : [jabatan]
+      if (!jabatanArr.includes('wali_kelas') || !wali_kelas_kelas) {
+        return res.status(403).json({ error: 'Hanya wali kelas yang dapat melakukan review BLP' })
       }
 
-      const studentRes = await pool.query('SELECT kelas FROM students WHERE id = $1', [id])
+      const studentRes = await pool.query('SELECT kelas, name FROM students WHERE id = $1', [id])
       if (studentRes.rowCount === 0) {
         return res.status(404).json({ error: 'Siswa tidak ditemukan' })
       }
       const studentKelas = normalizeKelas(studentRes.rows[0].kelas)
-      if (!guru.kelasWali.includes(studentKelas)) {
+      const studentName = studentRes.rows[0].name
+      if (normalizeKelas(wali_kelas_kelas) !== studentKelas) {
         return res.status(403).json({ error: 'Anda tidak memiliki akses ke data siswa ini' })
       }
 
@@ -107,13 +127,22 @@ router.put(
       }
 
       // Hanya tandai sekali — tidak reset jika sudah direview
-      if (!submission.reviewedAt) {
+      const isFirstReview = !submission.reviewedAt
+      if (isFirstReview) {
         submission.reviewedAt = new Date().toISOString()
         submissions[activityId] = submission
         await pool.query(
           'UPDATE daily_records SET submissions = $3::jsonb WHERE student_id = $1 AND record_date = $2',
           [id, date, JSON.stringify(submissions)]
         )
+        // Notifikasi siswa bahwa wali kelas sudah meninjau BLP-nya
+        notifyUser({
+          userId: id, role: 'siswa',
+          type: 'blp_feedback', source: 'blp',
+          title: 'BLP Harian Ditinjau',
+          body: `Wali kelasmu telah meninjau pengisian BLP kamu tanggal ${date}.`,
+          url: '/',
+        }).catch(() => {})
       }
 
       res.json(submission)

@@ -95,7 +95,6 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
       tugas: 'guruTugas',
       hafalan: 'guruHafalan',
       nilai: 'guruNilai',
-      komunikasi: 'guruKomunikasi',
       siswa: 'guruPantau',
       kunci: 'guruKunci',
       raid: 'guruRaid',
