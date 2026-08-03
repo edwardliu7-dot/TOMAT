@@ -1163,6 +1163,12 @@ export async function ensureSchema() {
       ON daily_records (student_id, record_date)
   `)
 
+  // Index pada students(kelas) — dipakai oleh BLP dashboard (ILIKE filter per wali kelas)
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_students_kelas
+      ON students (kelas)
+  `)
+
   // ── Migrasi ID aktivitas BLP ke ID kanonik GitHub ─────────────────────────
   // Idempoten: hanya update baris yang masih mengandung ID lama.
   // completed_activities bertipe text[] bukan jsonb — gunakan unnest/ARRAY.

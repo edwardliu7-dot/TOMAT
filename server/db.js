@@ -14,8 +14,8 @@ export const pool = new Pool({
   ssl: wantsSsl ? { rejectUnauthorized: false } : false,
   // Database outages must fail requests and allow the UI to recover instead
   // of leaving session/auth requests pending indefinitely.
-  connectionTimeoutMillis: 10000,
-  query_timeout: 15000,
+  connectionTimeoutMillis: 25000, // Neon cold-start bisa 15-20 detik
+  query_timeout: 25000,
   idleTimeoutMillis: 30000,
 })
 

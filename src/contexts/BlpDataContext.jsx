@@ -21,7 +21,7 @@ export function BlpDataProvider({ children }) {
     fetchingRef.current = true
     setLoading(true)
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 15000) // 15s timeout
+    const timer = setTimeout(() => controller.abort(), 30000) // 30s — Neon cold-start bisa 15-20 detik
     try {
       const res = await fetch('/api/blp/dashboard', { credentials: 'include', signal: controller.signal })
       if (!res.ok) throw new Error('Gagal memuat data BLP')
