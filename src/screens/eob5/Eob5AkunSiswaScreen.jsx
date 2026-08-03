@@ -90,10 +90,10 @@ export default function Eob5AkunSiswaScreen({ navigate, goBack }) {
     ]).then(([accs, kelas]) => {
       const arr = Array.isArray(accs) ? accs : []
       setData(arr)
-      // Pre-populate known accounts
+      // Pre-populate known accounts (backend returns has_account, student_id, nama_lengkap)
       const map = {}
       for (const s of arr) {
-        if (s.hasAccount && s.username) map[s.studentId] = { username:s.username, password:s.password||'' }
+        if (s.has_account && s.username) map[s.student_id] = { username:s.username, password:s.password||'' }
       }
       setAccounts(prev=>({ ...map, ...prev }))
       setKelasList(Array.isArray(kelas) ? kelas.map(k=>k.kelas||k) : [])
@@ -107,7 +107,8 @@ export default function Eob5AkunSiswaScreen({ navigate, goBack }) {
     kelasFilter ? data.filter(s=>s.kelas===kelasFilter) : data,
   [data, kelasFilter])
 
-  const totalAkun = data.filter(s=>s.hasAccount||accounts[s.studentId]).length
+  // Backend returns: student_id, has_account, nama_lengkap
+  const totalAkun = data.filter(s=>s.has_account||accounts[s.student_id]).length
   const totalBelum = data.length - totalAkun
 
   const handleGenerate = async (studentId, regenerate=false) => {
@@ -120,7 +121,7 @@ export default function Eob5AkunSiswaScreen({ navigate, goBack }) {
       if (r.ok) {
         const acc = await r.json()
         setAccounts(prev=>({ ...prev, [studentId]:{ username:acc.username, password:acc.password } }))
-        setData(prev=>prev.map(s=>s.studentId===studentId?{...s,hasAccount:true,username:acc.username}:s))
+        setData(prev=>prev.map(s=>s.student_id===studentId?{...s,has_account:true,username:acc.username}:s))
         showMsg('ok', regenerate?'Akun berhasil diperbaharui.':'Akun berhasil dibuat.')
       } else { const d=await r.json(); showMsg('err',d.error||'Gagal generate akun') }
     } catch { showMsg('err','Gagal terhubung ke server') }
@@ -137,15 +138,23 @@ export default function Eob5AkunSiswaScreen({ navigate, goBack }) {
       if (r.ok) {
         const result = await r.json()
         const map = {}
-        for (const a of (result.accounts||[])) map[a.studentId]={ username:a.username, password:a.password }
+        for (const a of (result.results||[])) {
+          if (!a.skipped) map[a.student_id]={ username:a.username, password:a.password }
+        }
         setAccounts(prev=>({ ...prev, ...map }))
         loadData()
-        showMsg('ok', result.alreadyExisted>0
-          ? `${result.generated} akun baru dibuat, ${result.alreadyExisted} diperbarui.`
-          : `${result.generated} akun baru dibuat.`)
+        showMsg('ok', `${result.count} akun baru dibuat.`)
       } else { const d=await r.json(); showMsg('err',d.error||'Gagal generate akun') }
     } catch { showMsg('err','Gagal terhubung ke server') }
     setGeneratingAll(false)
+  }
+
+  const handleDownloadPdf = (studentId) => {
+    window.open(`/api/eob5/student-accounts/${studentId}/pdf`, '_blank')
+  }
+
+  const handleDownloadAllPdf = () => {
+    window.open('/api/eob5/student-accounts/pdf-all', '_blank')
   }
 
   const openConfirm = (action) => {
@@ -175,7 +184,7 @@ export default function Eob5AkunSiswaScreen({ navigate, goBack }) {
 
   const togglePassword = (id) => setShowPassword(p=>({ ...p, [id]:!p[id] }))
 
-  if (!loading && !error && data.length === 0 && !user?.waliKelasKelas) {
+  if (!loading && !error && data.length === 0 && error === '') {
     return (
       <div style={{ minHeight:'100vh', background:C.bg, fontFamily:'system-ui,sans-serif', color:C.text }}>
         <div style={{ background:'rgba(0,0,0,0.35)', borderBottom:`1px solid ${C.border}`, padding:'14px 16px',
@@ -219,12 +228,21 @@ export default function Eob5AkunSiswaScreen({ navigate, goBack }) {
           <div style={{ fontSize:10, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>GURU</div>
           <div style={{ fontSize:17, fontWeight:800, color:'#fff' }}>Akun Siswa</div>
         </div>
-        <button onClick={()=>openConfirm({ isAll:true })} disabled={generatingAll}
-          style={{ background:'linear-gradient(90deg,#f59e0b,#d97706)', border:'none',
-            borderRadius:10, padding:'8px 13px', color:'#1a0a00', fontWeight:800, fontSize:11,
-            cursor:generatingAll?'not-allowed':'pointer', fontFamily:'inherit', opacity:generatingAll?0.6:1 }}>
-          {generatingAll ? '⏳…' : '🔑 Generate Semua'}
-        </button>
+        <div style={{ display:'flex', gap:6 }}>
+          <button onClick={handleDownloadAllPdf} disabled={totalAkun===0}
+            title="Download kartu PDF semua siswa yang sudah punya akun"
+            style={{ background:'rgba(99,102,241,0.15)', border:'1px solid rgba(99,102,241,0.4)',
+              borderRadius:10, padding:'8px 11px', color:'#818cf8', fontWeight:800, fontSize:11,
+              cursor:totalAkun===0?'not-allowed':'pointer', fontFamily:'inherit', opacity:totalAkun===0?0.4:1 }}>
+            📄 Semua PDF
+          </button>
+          <button onClick={()=>openConfirm({ isAll:true })} disabled={generatingAll}
+            style={{ background:'linear-gradient(90deg,#f59e0b,#d97706)', border:'none',
+              borderRadius:10, padding:'8px 13px', color:'#1a0a00', fontWeight:800, fontSize:11,
+              cursor:generatingAll?'not-allowed':'pointer', fontFamily:'inherit', opacity:generatingAll?0.6:1 }}>
+            {generatingAll ? '⏳…' : '🔑 Generate Semua'}
+          </button>
+        </div>
       </div>
 
       <div style={{ padding:'14px 14px 0' }}>
@@ -290,23 +308,24 @@ export default function Eob5AkunSiswaScreen({ navigate, goBack }) {
             )}
 
             {filtered.map((s, idx) => {
-              const acc = accounts[s.studentId]
-              const hasAkun = !!(acc || s.hasAccount)
+              // Backend fields: student_id, has_account, nama_lengkap
+              const sid = s.student_id
+              const acc = accounts[sid]
+              const hasAkun = !!(acc || s.has_account)
               const displayUser = acc?.username || s.username || '—'
               const displayPass = acc?.password || ''
-              const passVisible = showPassword[s.studentId]
-              const isGenerating = generatingId === s.studentId
+              const passVisible = showPassword[sid]
+              const isGenerating = generatingId === sid
+              const nama = s.nama_lengkap || s.name || '—'
 
               return (
-                <div key={s.studentId} style={{ display:'grid', gridTemplateColumns:'36px 1fr 1fr 70px 1fr', gap:4,
+                <div key={sid} style={{ display:'grid', gridTemplateColumns:'36px 1fr 1fr 60px 1fr', gap:4,
                   padding:'10px 12px', borderTop:`1px solid ${C.border}`, alignItems:'center' }}>
                   <span style={{ fontSize:11, color:C.sub }}>{idx+1}</span>
                   <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
-                    <div style={avatarBg(idx)}>{initials(s.namaLengkap||s.name)}</div>
+                    <div style={avatarBg(idx)}>{initials(nama)}</div>
                     <span style={{ fontSize:12, fontWeight:600, color:'#fff', overflow:'hidden',
-                      textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                      {s.namaLengkap||s.name}
-                    </span>
+                      textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{nama}</span>
                   </div>
                   <div style={{ minWidth:0 }}>
                     {hasAkun ? (
@@ -316,9 +335,9 @@ export default function Eob5AkunSiswaScreen({ navigate, goBack }) {
                         {displayPass && (
                           <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:3 }}>
                             <span style={{ fontFamily:'monospace', fontSize:10, color:C.sub }}>
-                              {passVisible ? displayPass : '••••••••'}
+                              {passVisible ? displayPass : '••••••'}
                             </span>
-                            <button onClick={()=>togglePassword(s.studentId)} style={{ background:'none',
+                            <button onClick={()=>togglePassword(sid)} style={{ background:'none',
                               border:'none', color:C.sub, cursor:'pointer', fontSize:10, padding:0 }}>
                               {passVisible?'🙈':'👁'}
                             </button>
@@ -338,18 +357,25 @@ export default function Eob5AkunSiswaScreen({ navigate, goBack }) {
                         color:C.primary, borderRadius:6, padding:'2px 8px' }}>Belum</span>
                     )}
                   </div>
-                  <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
+                  <div style={{ display:'flex', gap:4, justifyContent:'flex-end', flexWrap:'wrap' }}>
                     {isGenerating ? (
                       <span style={{ fontSize:11, color:C.sub }}>Membuat…</span>
                     ) : hasAkun ? (
-                      <button onClick={()=>openConfirm({ studentId:s.studentId, name:s.namaLengkap||s.name, regenerate:true })}
-                        style={{ background:'rgba(245,158,11,0.1)', border:`1px solid ${C.border}`,
-                          borderRadius:8, padding:'5px 10px', color:C.primary, fontSize:10,
-                          fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>♻️ Reset</button>
+                      <>
+                        <button onClick={()=>handleDownloadPdf(sid)}
+                          title="Download kartu akun PDF"
+                          style={{ background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.35)',
+                            borderRadius:7, padding:'4px 8px', color:'#818cf8', fontSize:10,
+                            fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>📄</button>
+                        <button onClick={()=>openConfirm({ studentId:sid, name:nama, regenerate:true })}
+                          style={{ background:'rgba(245,158,11,0.1)', border:`1px solid ${C.border}`,
+                            borderRadius:7, padding:'4px 8px', color:C.primary, fontSize:10,
+                            fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>♻️</button>
+                      </>
                     ) : (
-                      <button onClick={()=>openConfirm({ studentId:s.studentId, name:s.namaLengkap||s.name, regenerate:false })}
+                      <button onClick={()=>openConfirm({ studentId:sid, name:nama, regenerate:false })}
                         style={{ background:'linear-gradient(90deg,#f59e0b,#d97706)', border:'none',
-                          borderRadius:8, padding:'5px 10px', color:'#1a0a00', fontSize:10,
+                          borderRadius:7, padding:'4px 10px', color:'#1a0a00', fontSize:10,
                           fontWeight:800, cursor:'pointer', fontFamily:'inherit' }}>🔑 Buat</button>
                     )}
                   </div>
