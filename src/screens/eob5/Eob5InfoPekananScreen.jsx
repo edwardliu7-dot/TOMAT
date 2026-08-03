@@ -15,15 +15,29 @@ const C = {
 }
 const inp = { background:'rgba(255,255,255,0.07)', border:`1px solid ${C.border}`, borderRadius:8, padding:'9px 11px', color:'#fff', fontFamily:'inherit', fontSize:13, width:'100%', boxSizing:'border-box', outline:'none' }
 
+function toDateStr(s) {
+  if (!s) return ''
+  return String(s).slice(0, 10)
+}
 function fmtDate(s) {
   if (!s) return '—'
-  try { return new Date(s+'T00:00:00').toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' }) }
-  catch { return s }
+  try {
+    const d = toDateStr(s)
+    const dt = new Date(d + 'T00:00:00')
+    if (isNaN(dt.getTime())) return d
+    return dt.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })
+  }
+  catch { return toDateStr(s) || String(s) }
 }
 function fmtShort(s) {
   if (!s) return '—'
-  try { return new Date(s+'T00:00:00').toLocaleDateString('id-ID', { day:'numeric', month:'short' }) }
-  catch { return s }
+  try {
+    const d = toDateStr(s)
+    const dt = new Date(d + 'T00:00:00')
+    if (isNaN(dt.getTime())) return d
+    return dt.toLocaleDateString('id-ID', { day:'numeric', month:'short' })
+  }
+  catch { return toDateStr(s) || String(s) }
 }
 
 function Label({ children }) {

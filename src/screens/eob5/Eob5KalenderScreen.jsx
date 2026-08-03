@@ -54,10 +54,19 @@ function Toast({ msg }) {
     </div>
   )
 }
+function toDateStr(s) {
+  if (!s) return ''
+  return String(s).slice(0, 10)
+}
 function fmtDate(s) {
   if (!s) return '—'
-  try { return new Date(s+'T00:00:00').toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) }
-  catch { return s }
+  try {
+    const d = toDateStr(s)
+    const dt = new Date(d + 'T00:00:00')
+    if (isNaN(dt.getTime())) return d
+    return dt.toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' })
+  }
+  catch { return toDateStr(s) || String(s) }
 }
 function todayStr() {
   return new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Jakarta' }).format(new Date())
@@ -119,7 +128,7 @@ function WeekFormModal({ open, editData, calendarId, nextPekan, onClose, onSaved
   useEffect(()=>{
     if (!open) return
     if (editData) {
-      setForm({ pekan_ke:String(editData.pekan_ke), tanggal_mulai:editData.tanggal_mulai||'', tanggal_selesai:editData.tanggal_selesai||'', jenis:editData.jenis||'efektif', keterangan:editData.keterangan||'' })
+      setForm({ pekan_ke:String(editData.pekan_ke), tanggal_mulai:toDateStr(editData.tanggal_mulai), tanggal_selesai:toDateStr(editData.tanggal_selesai), jenis:editData.jenis||'efektif', keterangan:editData.keterangan||'' })
     } else {
       setForm({ ...BLANK_WEEK, pekan_ke: String(nextPekan) })
     }
@@ -229,8 +238,8 @@ export default function Eob5KalenderScreen({ navigate, goBack }) {
 
   // Stats
   const totalPekan = weeks.length
-  const weeksPast = weeks.filter(w=>{ try { return w.tanggal_selesai < today } catch { return false } }).length
-  const currentWeek = weeks.find(w=>{ try { return w.tanggal_mulai <= today && today <= w.tanggal_selesai } catch { return false } })
+  const weeksPast = weeks.filter(w=>{ try { return toDateStr(w.tanggal_selesai) < today } catch { return false } }).length
+  const currentWeek = weeks.find(w=>{ try { return toDateStr(w.tanggal_mulai) <= today && today <= toDateStr(w.tanggal_selesai) } catch { return false } })
   const sisaPekan = Math.max(0, totalPekan - weeksPast - (currentWeek ? 1 : 0))
   const efektifCount = weeks.filter(w=>['efektif','kbm'].includes(w.jenis?.toLowerCase())).length
 
