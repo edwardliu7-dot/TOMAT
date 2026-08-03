@@ -1100,13 +1100,8 @@ export async function ensureSchema() {
   await pool.query(`ALTER TABLE student_accounts ADD COLUMN IF NOT EXISTS created_by text`)
   await pool.query(`
     DO $$ BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM information_schema.table_constraints
-        WHERE table_name='student_accounts' AND constraint_type='UNIQUE'
-        AND constraint_name='student_accounts_student_id_unique'
-      ) THEN
-        ALTER TABLE student_accounts ADD CONSTRAINT student_accounts_student_id_unique UNIQUE (student_id);
-      END IF;
+      ALTER TABLE student_accounts ADD CONSTRAINT student_accounts_student_id_unique UNIQUE (student_id);
+    EXCEPTION WHEN duplicate_object THEN NULL;
     END $$
   `)
 

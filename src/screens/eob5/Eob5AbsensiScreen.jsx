@@ -101,7 +101,8 @@ export default function Eob5AbsensiScreen({ navigate, goBack }) {
         setLoadingSession(false)
         const arr = Array.isArray(records) ? records : []
         if (arr.length > 0) {
-          setAlreadyFilledBy(arr[0]?.siswa_name ? 'Guru lain' : 'Guru')
+          const teacherName = arr[0]?.filled_by_teacher_name || null
+          setAlreadyFilledBy(teacherName || 'Guru')
           setStatusMap(prev => {
             const next = { ...prev }
             for (const r of arr) {
@@ -213,12 +214,13 @@ export default function Eob5AbsensiScreen({ navigate, goBack }) {
           if (!byDate.has(dateKey)) byDate.set(dateKey, new Map())
           const kelasMap = byDate.get(dateKey)
           const k = r.kelas || ''
-          if (!kelasMap.has(k)) kelasMap.set(k, { kelas: k, tanggal: dateKey, hadir: 0, sakit: 0, izin: 0, alpa: 0, total: 0, absentStudents: [] })
+          if (!kelasMap.has(k)) kelasMap.set(k, { kelas: k, tanggal: dateKey, hadir: 0, sakit: 0, izin: 0, alpa: 0, total: 0, absentStudents: [], filledBy: null })
           const g = kelasMap.get(k)
           const st = r.status === 'alpha' ? 'alpa' : (r.status || 'hadir')
           g[st] = (g[st] || 0) + 1
           g.total++
           if (st !== 'hadir') g.absentStudents.push({ name: r.siswa_name || r.student_id, status: st })
+          if (!g.filledBy && r.filled_by_teacher_name) g.filledBy = r.filled_by_teacher_name
         }
         const result = []
         for (const [tanggal, kelasMap] of [...byDate.entries()].sort((a, b) => b[0].localeCompare(a[0]))) {
@@ -294,7 +296,7 @@ export default function Eob5AbsensiScreen({ navigate, goBack }) {
             {/* Already filled banner */}
             {alreadyFilledBy && (
               <div style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#93c5fd' }}>
-                ℹ️ Absensi <strong>{bulkKelas}</strong> tanggal <strong>{bulkTanggal}</strong> sudah diisi. Anda bisa melihat & memperbarui.
+                ℹ️ Absensi <strong>{bulkKelas}</strong> tanggal <strong>{bulkTanggal}</strong> sudah diisi oleh <strong>{alreadyFilledBy}</strong>. Anda bisa melihat & memperbarui.
               </div>
             )}
 
@@ -440,10 +442,15 @@ export default function Eob5AbsensiScreen({ navigate, goBack }) {
                           borderLeft: `3px solid ${isActive ? C.primary : allHadir ? '#22c55e' : '#f97316'}`,
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Kelas {g.kelas}</div>
                           <div style={{ fontSize: 12, fontWeight: 700, color: allHadir ? '#22c55e' : C.sub }}>{g.hadir}/{g.total}</div>
                         </div>
+                        {g.filledBy && (
+                          <div style={{ fontSize: 10, color: C.sub, marginBottom: 6 }}>
+                            👤 Diisi oleh: <span style={{ color: '#93c5fd' }}>{g.filledBy}</span>
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
                           {allHadir ? (
                             <span style={{ fontSize: 10, fontWeight: 700, color: '#22c55e', background: 'rgba(34,197,94,0.1)', borderRadius: 5, padding: '2px 7px', border: '1px solid rgba(34,197,94,0.2)' }}>
