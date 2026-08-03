@@ -69,16 +69,23 @@ router.get('/', requireGuru, async (req, res) => {
     // Ambil subjects & jadwal guru ini
     const [subjectsRes, jadwalRes, prosemRes] = await Promise.all([
       pool.query('SELECT id, name FROM subjects WHERE teacher_id = $1 AND deleted_at IS NULL', [guruId]),
-      pool.query(
-        'SELECT subject_id, kelas, hari FROM jadwal WHERE guru_id = $1', [guruId]
-      ),
+      // Jadwal: UNION schedules (app lama, teacher_id) + jadwal (SMARTISA baru, guru_id)
+      pool.query(`
+        SELECT subject_id::text AS subject_id, kelas, hari FROM schedules WHERE teacher_id = $1
+        UNION ALL
+        SELECT NULL AS subject_id, kelas, hari FROM jadwal WHERE guru_id = $1
+      `, [guruId]),
       pool.query(
         `SELECT pi.id, pi.prosem_id, pi.subject_id, pi.materi, pi.kd, pi.jp, pi.kelas,
                 pi.urutan, p.teacher_id AS guru_id
          FROM prosem_items pi
          JOIN prosem p ON p.id = pi.prosem_id
          WHERE p.teacher_id = $1
-           AND (pi.week_id = $2 OR pi.week_id IS NULL)`,
+           AND (
+             pi.week_id = $2
+             OR pi.week_id IS NULL
+             OR NOT EXISTS (SELECT 1 FROM academic_weeks aw WHERE aw.id = pi.week_id)
+           )`,
         [guruId, week_id]
       ),
     ])

@@ -1,10 +1,9 @@
 /**
  * Eob5Sidebar.jsx — Navigasi sidebar modul GURU
- * Menampilkan semua 24 route eob5-* dalam 3 grup: Utama / Jabatan / Admin.
- * Props: { navigate, currentScreen, onClose? }
- * - navigate: fungsi navigasi dari App.jsx (guruNavigate)
- * - currentScreen: route key aktif untuk highlight
- * - onClose: dipanggil saat item diklik di mobile (untuk menutup drawer)
+ * Menampilkan route eob5-* dalam 3 grup: Utama / Jabatan / Admin.
+ * Item di grup Jabatan dan Admin disaring berdasarkan jabatan pengguna.
+ *
+ * Props: { navigate, currentScreen, onClose?, user, onLogout }
  */
 import { useState } from 'react'
 import logo from '../../assets/logo.png'
@@ -22,6 +21,9 @@ const C = {
   activeBorder: '#f59e0b',
 }
 
+// Roles yang diizinkan per item.
+// Jika `roles` tidak ada → semua guru dapat melihat.
+// Jika `roles` ada → hanya guru dengan salah satu jabatan tersebut.
 const MENU_GROUPS = [
   {
     label: 'Utama',
@@ -41,25 +43,25 @@ const MENU_GROUPS = [
   {
     label: 'Jabatan',
     items: [
-      { key: 'eob5-kepsek',       label: 'Kinerja Guru' },
-      { key: 'eob5-kesiswaan',    label: 'Kesiswaan' },
-      { key: 'eob5-walikelas',    label: 'Wali Kelas' },
-      { key: 'eob5-kurikulum',    label: 'Supervisi Kurikulum' },
+      { key: 'eob5-kepsek',    label: 'Kinerja Guru',         roles: ['kepala_sekolah', 'wakasek', 'admin'] },
+      { key: 'eob5-kesiswaan', label: 'Kesiswaan',            roles: ['kepala_sekolah', 'wakasek', 'wali_kelas', 'admin'] },
+      { key: 'eob5-walikelas', label: 'Wali Kelas',           roles: ['wali_kelas', 'kepala_sekolah', 'wakasek', 'admin'] },
+      { key: 'eob5-kurikulum', label: 'Supervisi Kurikulum',  roles: ['kepala_sekolah', 'wakasek', 'admin'] },
     ],
   },
   {
     label: 'Admin',
     items: [
-      { key: 'eob5-siswa',            label: 'Manajemen Siswa' },
-      { key: 'eob5-poin',             label: 'Poin Siswa' },
-      { key: 'eob5-akun-siswa',       label: 'Akun Siswa' },
-      { key: 'eob5-direktori-guru',   label: 'Direktori Guru' },
-      { key: 'eob5-direktori-siswa',  label: 'Direktori Siswa' },
-      { key: 'eob5-kalender',         label: 'Kalender' },
-      { key: 'eob5-info-pekanan',     label: 'Info Pekan' },
-      { key: 'eob5-administrasi',     label: 'Administrasi' },
-      { key: 'eob5-feedback',         label: 'Feedback' },
-      { key: 'eob5-pengaturan',       label: 'Pengaturan' },
+      { key: 'eob5-siswa',           label: 'Manajemen Siswa',  roles: ['kepala_sekolah', 'wakasek', 'wali_kelas', 'admin'] },
+      { key: 'eob5-poin',            label: 'Poin Siswa',       roles: ['kepala_sekolah', 'wakasek', 'wali_kelas', 'admin'] },
+      { key: 'eob5-akun-siswa',      label: 'Akun Siswa',       roles: ['kepala_sekolah', 'wakasek', 'wali_kelas', 'admin'] },
+      { key: 'eob5-direktori-guru',  label: 'Direktori Guru',   roles: ['kepala_sekolah', 'wakasek', 'admin'] },
+      { key: 'eob5-direktori-siswa', label: 'Direktori Siswa',  roles: ['kepala_sekolah', 'wakasek', 'wali_kelas', 'admin'] },
+      { key: 'eob5-kalender',        label: 'Kalender' },
+      { key: 'eob5-info-pekanan',    label: 'Info Pekan' },
+      { key: 'eob5-administrasi',    label: 'Administrasi',     roles: ['kepala_sekolah', 'admin'] },
+      { key: 'eob5-feedback',        label: 'Feedback' },
+      { key: 'eob5-pengaturan',      label: 'Pengaturan' },
     ],
   },
 ]
@@ -95,6 +97,14 @@ export default function Eob5Sidebar({ navigate, currentScreen, onClose, user, on
   }
 
   const kelasList = Array.isArray(user?.kelas) ? user.kelas.join(', ') : (user?.kelas || 'Guru')
+  const userJabatan = Array.isArray(user?.jabatan) ? user.jabatan : []
+
+  // Filter item berdasarkan jabatan: item tanpa roles → semua bisa akses
+  function filterItems(items) {
+    return items.filter(item =>
+      !item.roles || item.roles.some(r => userJabatan.includes(r))
+    )
+  }
 
   return (
     <div style={{
@@ -147,29 +157,33 @@ export default function Eob5Sidebar({ navigate, currentScreen, onClose, user, on
 
       {/* Menu groups */}
       <div style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
-        {MENU_GROUPS.map((group) => (
-          <div key={group.label} style={{ marginBottom: 14 }}>
-            {/* Group header */}
-            <div style={{
-              fontSize: 9, fontWeight: 800, color: C.sub,
-              letterSpacing: 1.5, textTransform: 'uppercase',
-              padding: '2px 10px 6px',
-            }}>
-              {group.label}
+        {MENU_GROUPS.map((group) => {
+          const visibleItems = filterItems(group.items)
+          if (visibleItems.length === 0) return null
+          return (
+            <div key={group.label} style={{ marginBottom: 14 }}>
+              {/* Group header */}
+              <div style={{
+                fontSize: 9, fontWeight: 800, color: C.sub,
+                letterSpacing: 1.5, textTransform: 'uppercase',
+                padding: '2px 10px 6px',
+              }}>
+                {group.label}
+              </div>
+              {/* Items */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {visibleItems.map(item => (
+                  <NavItem
+                    key={item.key}
+                    item={item}
+                    isActive={currentScreen === item.key}
+                    onClick={() => handleNav(item.key)}
+                  />
+                ))}
+              </div>
             </div>
-            {/* Items */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {group.items.map(item => (
-                <NavItem
-                  key={item.key}
-                  item={item}
-                  isActive={currentScreen === item.key}
-                  onClick={() => handleNav(item.key)}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Logout */}

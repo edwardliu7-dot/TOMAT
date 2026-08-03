@@ -8,12 +8,12 @@
 
 import { Router } from 'express'
 import { pool } from '../db.js'
-import { requireGuru } from './middleware.js'
+import { requireWaliKelasOrAbove } from './middleware.js'
 
 const router = Router()
 
 // GET /overview
-router.get('/overview', requireGuru, async (req, res) => {
+router.get('/overview', requireWaliKelasOrAbove, async (req, res) => {
   try {
     // Per kelas: absensi aggregate + poin
     const { rows: kelasRows } = await pool.query(`
@@ -88,7 +88,7 @@ router.get('/overview', requireGuru, async (req, res) => {
 })
 
 // GET /siswa-absensi — absensi + poin per siswa (semua kelas)
-router.get('/siswa-absensi', requireGuru, async (req, res) => {
+router.get('/siswa-absensi', requireWaliKelasOrAbove, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT

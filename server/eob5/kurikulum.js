@@ -8,12 +8,12 @@
 
 import { Router } from 'express'
 import { pool } from '../db.js'
-import { requireGuru } from './middleware.js'
+import { requireKepsekOrWakasek } from './middleware.js'
 
 const router = Router()
 
 // GET /overview
-router.get('/overview', requireGuru, async (req, res) => {
+router.get('/overview', requireKepsekOrWakasek, async (req, res) => {
   try {
     // Ambil semua guru
     const { rows: guruRows } = await pool.query(`
@@ -67,7 +67,7 @@ router.get('/overview', requireGuru, async (req, res) => {
 })
 
 // GET /jurnal — 50 entri jurnal terbaru semua guru
-router.get('/jurnal', requireGuru, async (req, res) => {
+router.get('/jurnal', requireKepsekOrWakasek, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT

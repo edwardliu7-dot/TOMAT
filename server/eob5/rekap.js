@@ -17,35 +17,27 @@ router.get('/kelas/:kelas', requireGuru, async (req, res) => {
     const { semester, tahun_ajaran } = req.query
 
     // Rekap nilai
-    const nilaiConditions = ['n.guru_id = $1', 's.kelas = $2']
+    // Nilai dari tabel grades (app lama gurueob5)
+    const nilaiConditions = ['g.guru_id = $1', 's.kelas = $2']
     const nilaiParams = [guruId, kelas]
-    let idx = 3
-
-    if (semester) {
-      nilaiConditions.push(`n.semester = $${idx++}`)
-      nilaiParams.push(semester)
-    }
-    if (tahun_ajaran) {
-      nilaiConditions.push(`n.tahun_ajaran = $${idx++}`)
-      nilaiParams.push(tahun_ajaran)
-    }
 
     const { rows: nilaiRows } = await pool.query(`
       SELECT
         s.id AS student_id,
         s.name AS nama_siswa,
-        n.mata_pelajaran,
-        n.jenis_nilai,
-        AVG(n.nilai) AS rata_rata,
+        COALESCE(sub.name, g.jenis) AS mata_pelajaran,
+        g.jenis AS jenis_nilai,
+        AVG(g.nilai) AS rata_rata,
         COUNT(*) AS jumlah_penilaian
-      FROM nilai_akademik n
-      JOIN students s ON s.id = n.student_id
+      FROM grades g
+      JOIN students s ON s.id = g.student_id
+      LEFT JOIN subjects sub ON sub.id = g.subject_id
       WHERE ${nilaiConditions.join(' AND ')}
-      GROUP BY s.id, s.name, n.mata_pelajaran, n.jenis_nilai
-      ORDER BY s.name, n.mata_pelajaran
+      GROUP BY s.id, s.name, sub.name, g.jenis
+      ORDER BY s.name, sub.name
     `, nilaiParams)
 
-    // Rekap absensi
+    // Absensi dari tabel absensi (app lama gurueob5); status 'alpha' = 'alpa'
     const { rows: absensiRows } = await pool.query(`
       SELECT
         s.id AS student_id,
@@ -53,10 +45,10 @@ router.get('/kelas/:kelas', requireGuru, async (req, res) => {
         COUNT(*) FILTER (WHERE a.status = 'hadir') AS hadir,
         COUNT(*) FILTER (WHERE a.status = 'sakit') AS sakit,
         COUNT(*) FILTER (WHERE a.status = 'izin')  AS izin,
-        COUNT(*) FILTER (WHERE a.status = 'alpa')  AS alpa,
+        COUNT(*) FILTER (WHERE a.status IN ('alpha','alpa')) AS alpa,
         COUNT(a.id) AS total_pertemuan
       FROM students s
-      LEFT JOIN attendance_records a ON a.student_id = s.id
+      LEFT JOIN absensi a ON a.student_id = s.id
       WHERE s.kelas = $1
       GROUP BY s.id, s.name
       ORDER BY s.name
@@ -84,23 +76,27 @@ router.get('/siswa/:id', requireGuru, async (req, res) => {
       return res.status(404).json({ error: 'Siswa tidak ditemukan' })
     }
 
-    // Nilai
+    // Nilai dari tabel grades (app lama gurueob5)
     const { rows: nilaiRows } = await pool.query(`
-      SELECT mata_pelajaran, jenis_nilai, nilai, semester, tahun_ajaran, keterangan, created_at
-      FROM nilai_akademik
-      WHERE student_id = $1 AND guru_id = $2
-      ORDER BY created_at DESC
+      SELECT
+        COALESCE(sub.name, g.jenis) AS mata_pelajaran,
+        g.jenis AS jenis_nilai,
+        g.nilai, g.keterangan, g.created_at
+      FROM grades g
+      LEFT JOIN subjects sub ON sub.id = g.subject_id
+      WHERE g.student_id = $1 AND g.guru_id = $2
+      ORDER BY g.created_at DESC
     `, [studentId, guruId])
 
-    // Absensi
+    // Absensi dari tabel absensi (app lama gurueob5)
     const { rows: absensiRows } = await pool.query(`
       SELECT
         COUNT(*) FILTER (WHERE status = 'hadir') AS hadir,
         COUNT(*) FILTER (WHERE status = 'sakit') AS sakit,
         COUNT(*) FILTER (WHERE status = 'izin')  AS izin,
-        COUNT(*) FILTER (WHERE status = 'alpa')  AS alpa,
+        COUNT(*) FILTER (WHERE status IN ('alpha','alpa')) AS alpa,
         COUNT(*) AS total
-      FROM attendance_records
+      FROM absensi
       WHERE student_id = $1
     `, [studentId])
 
@@ -131,7 +127,7 @@ router.get('/guru/:id', requireGuru, async (req, res) => {
         [guruId]
       ),
       pool.query(
-        'SELECT COUNT(*) AS total_sesi FROM attendance_records WHERE filled_by_teacher_id = $1',
+        'SELECT COUNT(*) AS total_sesi FROM absensi WHERE guru_id = $1',
         [guruId]
       ),
       pool.query(
@@ -207,9 +203,9 @@ router.get('/absensi-chart', requireGuru, async (req, res) => {
         COUNT(*) FILTER (WHERE a.status = 'hadir') AS hadir,
         COUNT(*) FILTER (WHERE a.status = 'izin')  AS izin,
         COUNT(*) FILTER (WHERE a.status = 'sakit') AS sakit,
-        COUNT(*) FILTER (WHERE a.status = 'alpa')  AS alpa,
+        COUNT(*) FILTER (WHERE a.status IN ('alpha','alpa')) AS alpa,
         COUNT(*)                                    AS total
-      FROM attendance_records a
+      FROM absensi a
       JOIN students s ON s.id = a.student_id
       GROUP BY bulan, s.kelas
       ORDER BY bulan, s.kelas
@@ -240,18 +236,18 @@ router.get('/nilai-chart', requireGuru, async (req, res) => {
     // Aggregate per subject + kelas
     const { rows } = await pool.query(`
       SELECT
-        n.mata_pelajaran   AS "subjectName",
+        COALESCE(sub.name, g.jenis) AS "subjectName",
         s.kelas,
-        ROUND(AVG(n.nilai)::numeric, 2)   AS "rataRata",
-        MIN(n.nilai)                       AS "nilaiMin",
-        MAX(n.nilai)                       AS "nilaiMax",
+        ROUND(AVG(g.nilai)::numeric, 2)   AS "rataRata",
+        MIN(g.nilai)                       AS "nilaiMin",
+        MAX(g.nilai)                       AS "nilaiMax",
         COUNT(*)                           AS "jumlahNilai",
-        -- simplified distribusi: bucket by 10s
-        JSON_AGG(JSON_BUILD_OBJECT('range', CONCAT(FLOOR(n.nilai/10)*10,'-',FLOOR(n.nilai/10)*10+9), 'jumlah', 1) ORDER BY n.nilai) AS raw
-      FROM nilai_akademik n
-      JOIN students s ON s.id = n.student_id
-      GROUP BY n.mata_pelajaran, s.kelas
-      ORDER BY s.kelas, n.mata_pelajaran
+        JSON_AGG(JSON_BUILD_OBJECT('range', CONCAT(FLOOR(g.nilai/10)*10,'-',FLOOR(g.nilai/10)*10+9), 'jumlah', 1) ORDER BY g.nilai) AS raw
+      FROM grades g
+      JOIN students s ON s.id = g.student_id
+      LEFT JOIN subjects sub ON sub.id = g.subject_id
+      GROUP BY COALESCE(sub.name, g.jenis), s.kelas
+      ORDER BY s.kelas, COALESCE(sub.name, g.jenis)
     `)
 
     const subjects = rows.map((r, idx) => {

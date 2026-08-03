@@ -43,12 +43,12 @@ router.get('/rekap', requireGuru, async (req, res) => {
         COUNT(a.id) FILTER (WHERE a.status = 'izin')                 AS izin,
         COUNT(a.id) FILTER (WHERE a.status = 'sakit')                AS sakit,
         COUNT(a.id) FILTER (WHERE a.status = 'alpha')                AS alpa,
-        AVG(n.nilai)                                                  AS "rataNilai",
+        AVG(g.nilai)                                                   AS "rataNilai",
         COALESCE(SUM(p.poin) FILTER (WHERE p.jenis = 'positif'), 0)
           - COALESCE(SUM(p.poin) FILTER (WHERE p.jenis = 'negatif'), 0) AS "totalPoin"
       FROM students st
       LEFT JOIN absensi        a ON a.student_id = st.id
-      LEFT JOIN nilai_akademik n ON n.student_id = st.id
+      LEFT JOIN grades         g ON g.student_id = st.id
       LEFT JOIN point_records  p ON p.student_id = st.id
       WHERE st.kelas = ANY($1::text[])
       GROUP BY st.id, st.name, st.kelas, st.nisn

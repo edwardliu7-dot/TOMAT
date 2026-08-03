@@ -32,3 +32,23 @@ export function requireAdmin(req, res, next) {
   }
   next()
 }
+
+// Kepala Sekolah, Wakasek, atau Admin — untuk fitur supervisi (kepsek, kurikulum)
+export function requireKepsekOrWakasek(req, res, next) {
+  if (!req.session?.user) return res.status(401).json({ error: 'Belum login' })
+  if (req.session.user.role !== 'guru') return res.status(403).json({ error: 'Akses hanya untuk guru' })
+  const jabatan = req.session.user.jabatan || []
+  const allowed = jabatan.some(j => ['kepala_sekolah', 'wakasek', 'admin'].includes(j))
+  if (!allowed) return res.status(403).json({ error: 'Akses hanya untuk Kepala Sekolah atau Wakasek' })
+  next()
+}
+
+// Wali Kelas ke atas — untuk fitur kesiswaan, manajemen siswa
+export function requireWaliKelasOrAbove(req, res, next) {
+  if (!req.session?.user) return res.status(401).json({ error: 'Belum login' })
+  if (req.session.user.role !== 'guru') return res.status(403).json({ error: 'Akses hanya untuk guru' })
+  const jabatan = req.session.user.jabatan || []
+  const allowed = jabatan.some(j => ['kepala_sekolah', 'wakasek', 'wali_kelas', 'admin'].includes(j))
+  if (!allowed) return res.status(403).json({ error: 'Akses hanya untuk Wali Kelas, Wakasek, atau Kepala Sekolah' })
+  next()
+}

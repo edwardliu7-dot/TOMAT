@@ -93,6 +93,7 @@
 - **JANGAN** edit skema database secara manual. Semua DDL ada di `server/schema.js` dalam fungsi `ensureSchema()`.
 - Tambahkan kolom baru dengan pola `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...` di dalam `ensureSchema()`.
 - `ensureSchema()` dijalankan otomatis saat server startup — tidak butuh migration script manual.
+- **⛔ DILARANG KERAS: Migrasi / copy data dari tabel lama ke tabel baru.** Data yang diinput di app lama (GuruEOB5 standalone) harus **tetap di tabel asalnya**. SMARTISA harus membaca langsung dari tabel lama — bukan menduplikatnya. Pelanggaran ini menyebabkan dua sumber kebenaran dan risiko kehilangan data.
 
 ### Tabel Utama
 | Tabel | Deskripsi |
@@ -459,6 +460,66 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 - Schema: tabel modul GURU **tidak menggunakan prefix `eob5_`**. Nama tabel mengikuti skema lama standalone GuruEOB5 yang sudah berisi data (contoh: `grades`, `journal_entries`, `subjects`, `tujuan_pembelajaran`). Tabel baru yang tidak ada padanannya dibuat TANPA prefix (contoh: `absensi`, `kelas_guru`, `student_points`).
 - Layout: semua screen `eob5-*` dibungkus `Eob5Layout` di App.jsx → menampilkan `Eob5Sidebar` (desktop inline, mobile drawer via tombol ☰)
 
+### ⚠️ Dua Aplikasi Berjalan Berdampingan — Wajib Dibaca
+
+SMARTISA modul GURU adalah **interface mobile tambahan** untuk app standalone GuruEOB5 yang sudah ada. Keduanya berbagi satu Neon database. App lama adalah **aplikasi utama** — jangan ubah strukturnya.
+
+**Aturan keras:**
+1. **Jangan pernah migrasi / copy data dari tabel lama ke tabel baru.** Baca langsung dari tabel asal.
+2. **Jangan DROP atau RENAME tabel/kolom lama** tanpa konfirmasi eksplisit.
+3. **Selalu cek nama kolom aktual di DB** — app lama kadang berbeda dari yang tertulis di schema.js (contoh: `teacher_id` bukan `guru_id` di beberapa tabel; `schedules` bukan `jadwal`).
+
+### Pemetaan Tabel: App Lama vs SMARTISA
+
+| Data | Tabel app lama (baca dari sini) | Tabel SMARTISA (jangan pakai untuk data lama) | Catatan |
+|------|------|------|------|
+| Jadwal pelajaran | **`schedules`** (kolom: `teacher_id`, `subject_id` UUID, `kelas`, `hari`, `jam_mulai`, `jam_selesai`) | `jadwal` (kosong — hanya entri baru SMARTISA) | GET `/api/eob5/jadwal` UNION kedua tabel |
+| Absensi harian | **`absensi`** (kolom: `student_id`, `guru_id`, `tanggal`, `status`, `keterangan`) | `attendance_records` (sebagian copy lama + entri baru) | Status `'alpha'` = absen (ejaan lama); `'alpa'` = ejaan baru |
+| Nilai akademik | **`grades`** (kolom: `student_id`, `guru_id`, `subject_id` UUID, `jenis`, `nilai`) | `nilai_akademik` (kosong) | Gunakan JOIN ke `subjects` untuk nama mapel |
+| Nilai TOMAT | `nilai` | — | Tabel terpisah milik TOMAT — jangan campur |
+| Prosem & items | `prosem` + `prosem_items` | — | Semua pakai `teacher_id`; `prosem_items.week_id` lama = UUID orphan |
+| Jurnal | `journal_entries` | — | Kolom: `teacher_id` |
+| Mata pelajaran | `subjects` | — | Kolom: `teacher_id`; soft-delete via `deleted_at` |
+| Tujuan Pembelajaran | `tujuan_pembelajaran` | — | Kolom: `teacher_id`, `description` (bukan `deskripsi`) |
+| Kalender akademik | `academic_calendars` | — | Kolom: `created_by` (bukan `guru_id`) |
+| Poin perilaku | `point_records` | — | Dahulu `student_points` (sudah di-rename via schema.js) |
+
+### Kolom Kunci yang Berbeda dari Default
+
+Tabel-tabel berikut menggunakan kolom **`teacher_id`** (bukan `guru_id`):
+`subjects`, `journal_entries`, `tujuan_pembelajaran`, `prosem`, `academic_calendars` (pakai `created_by`)
+
+Tabel `schedules` (jadwal app lama) menggunakan `teacher_id`, bukan `guru_id`.
+
+### Akses Kontrol per Jabatan
+
+Nilai `jabatan` yang valid di tabel `gurus` (array): `guru`, `wali_kelas`, `wakasek`, `kepala_sekolah`, `admin`.
+
+| Middleware | Jabatan yang diizinkan | Dipakai di |
+|---|---|---|
+| `requireGuru` | semua guru (role='guru') | semua route umum |
+| `requireAdmin` | `kepala_sekolah`, `admin` | tambah/hapus guru |
+| `requireKepsekOrWakasek` | `kepala_sekolah`, `wakasek`, `admin` | kepsek.js, kurikulum.js |
+| `requireWaliKelasOrAbove` | `wali_kelas`, `kepala_sekolah`, `wakasek`, `admin` | kesiswaan.js |
+
+**Sidebar `Eob5Sidebar.jsx`** menyaring item menu berdasarkan `user.jabatan` (prop dari `AuthContext`):
+- Grup **Jabatan**: `kepsek` hanya untuk `kepala_sekolah`/`wakasek`; `kesiswaan`/`walikelas` hanya untuk `wali_kelas` ke atas; `kurikulum` hanya untuk `kepala_sekolah`/`wakasek`.
+- Grup **Admin**: Manajemen Siswa, Poin, Akun Siswa, Direktori hanya untuk `wali_kelas` ke atas; Administrasi hanya untuk `kepala_sekolah`/`admin`.
+- Item tanpa properti `roles` → tampil untuk semua guru.
+
+### Status Absensi — Normalisasi
+
+App lama menyimpan status absen sebagai `'alpha'`. SMARTISA (`attendance.js`) menggunakan `'alpa'`. Saat query absensi dari tabel `absensi`:
+- Filter/count gunakan `status IN ('alpha', 'alpa')` untuk menghitung keduanya.
+- Saat INSERT baru via `absensi.js` → normalize via `normalizeStatus()` → simpan sebagai `'alpha'`.
+
+### Info Pekanan
+
+`GET /api/eob5/info-pekanan` → `server/eob5/info-pekanan.js` menghitung ringkasan pekan dari:
+- `prosem_items` (data ada tapi `week_id` lama = UUID orphan → query sertakan `OR NOT EXISTS (SELECT 1 FROM academic_weeks WHERE id = pi.week_id)`)
+- `journal_entries` (data lengkap)
+- `schedules` UNION `jadwal` untuk slot jadwal guru
+
 ### Daftar Lengkap Screen & Route
 
 #### Grup Utama
@@ -546,4 +607,4 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
-*Terakhir diperbarui: 3 Agustus 2026 — Auth overhaul: `hasMateriTerdaftar` kenali jabatan `'guru'`; sesi guru selalu sync dari DB; `jabatan`/`kelas_diampu`/`wali_kelas_kelas` disertakan di response login & `/me`. BLP auth berbasis sesi (tanpa `loadGuru()` DB call). Notifikasi lintas modul BLP↔TOMAT dengan field `source`. Chat guru dihapus dari TOMAT (pindah ke GuruEOB5). Update file ini setiap kali ada perubahan arsitektur signifikan.*
+*Terakhir diperbarui: 3 Agustus 2026 — Ditambahkan §18 pemetaan tabel app lama GuruEOB5 vs SMARTISA; aturan DILARANG migrasi data; normalisasi status absensi `alpha`/`alpa`; pemetaan jadwal dari `schedules` (UNION `jadwal`); nilai dari `grades` (bukan `nilai_akademik`); akses kontrol per jabatan (`requireKepsekOrWakasek`, `requireWaliKelasOrAbove`); filter sidebar `Eob5Sidebar` berdasarkan jabatan. Auth overhaul: `hasMateriTerdaftar` kenali jabatan `'guru'`; sesi guru selalu sync dari DB. Update file ini setiap kali ada perubahan arsitektur signifikan.*

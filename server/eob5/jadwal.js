@@ -9,28 +9,58 @@ import { requireGuru } from './middleware.js'
 
 const router = Router()
 
-// GET /api/eob5/jadwal — jadwal pelajaran (filter: kelas, guru)
+// GET /api/eob5/jadwal — jadwal pelajaran
+// Membaca dari dua sumber:
+//   1. schedules  — tabel app lama gurueob5 (teacher_id, subject_id UUID)
+//   2. jadwal     — tabel SMARTISA untuk entri baru (guru_id, mata_pelajaran text)
 router.get('/', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
-    const { kelas, tahun_ajaran } = req.query
+    const { kelas } = req.query
 
-    const conditions = ['guru_id = $1']
+    let kelasFilter = ''
     const params = [guruId]
-    let idx = 2
-
     if (kelas) {
-      conditions.push(`kelas = $${idx++}`)
       params.push(kelas)
-    }
-    if (tahun_ajaran) {
-      conditions.push(`tahun_ajaran = $${idx++}`)
-      params.push(tahun_ajaran)
+      kelasFilter = `AND kelas = $${params.length}`
     }
 
     const { rows } = await pool.query(`
-      SELECT * FROM jadwal
-      WHERE ${conditions.join(' AND ')}
+      -- Data lama dari schedules (app gurueob5)
+      SELECT
+        sc.id::text            AS id,
+        sc.teacher_id          AS guru_id,
+        sc.kelas,
+        COALESCE(sub.name, '') AS mata_pelajaran,
+        sc.hari,
+        sc.jam_mulai::text     AS jam_mulai,
+        sc.jam_selesai::text   AS jam_selesai,
+        NULL                   AS ruangan,
+        NULL                   AS tahun_ajaran,
+        sc.subject_id::text    AS subject_id,
+        'schedules'            AS source_table
+      FROM schedules sc
+      LEFT JOIN subjects sub ON sub.id = sc.subject_id
+      WHERE sc.teacher_id = $1 ${kelasFilter}
+
+      UNION ALL
+
+      -- Entri baru dari SMARTISA
+      SELECT
+        id::text,
+        guru_id,
+        kelas,
+        mata_pelajaran,
+        hari,
+        jam_mulai::text,
+        jam_selesai::text,
+        ruangan,
+        tahun_ajaran,
+        NULL AS subject_id,
+        'jadwal' AS source_table
+      FROM jadwal
+      WHERE guru_id = $1 ${kelasFilter}
+
       ORDER BY hari, jam_mulai
     `, params)
 
