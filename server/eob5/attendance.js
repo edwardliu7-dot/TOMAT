@@ -1,6 +1,7 @@
 /**
  * server/eob5/attendance.js
- * Manajemen absensi harian — menggunakan tabel attendance_records (bukan absensi lama).
+ * Manajemen absensi harian — membaca dan menulis ke tabel `absensi` (tabel lama app GuruEOB5).
+ * JANGAN pakai attendance_records — tabel itu sudah di-DROP karena duplikat data.
  *
  * GET  /api/eob5/attendance              — daftar (filter: kelas, date, bulan, tahun)
  * POST /api/eob5/attendance              — upsert satu siswa
@@ -12,11 +13,17 @@
  */
 
 import { Router } from 'express'
-import { pool } from '../db.js'
+import { guardedPool as pool } from './lib/db-guard.js'
 import { requireGuru } from './middleware.js'
 
 const router = Router()
-const STATUS_VALID = ['hadir', 'sakit', 'izin', 'alpa']
+const STATUS_VALID = ['hadir', 'sakit', 'izin', 'alpa', 'alpha']
+
+// Normalize status: simpan 'alpha' sebagai ejaan lama (backward compat)
+function normalizeStatus(s) {
+  if (s === 'alpa') return 'alpha'
+  return s
+}
 
 function getJakartaToday() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -24,7 +31,6 @@ function getJakartaToday() {
   }).format(new Date())
 }
 
-// Ambil kelas_diampu guru + optionally filter satu kelas
 async function getKelasDiampu(guruId, kelas) {
   const { rows } = await pool.query('SELECT kelas_diampu FROM gurus WHERE id = $1', [guruId])
   if (!rows.length) return []
@@ -33,7 +39,6 @@ async function getKelasDiampu(guruId, kelas) {
   return diampu.includes(kelas) ? [kelas] : []
 }
 
-// Ambil IDs siswa dari kelas yang diampu guru ini
 async function getStudentIds(guruId, kelas) {
   const kelasList = await getKelasDiampu(guruId, kelas)
   if (!kelasList.length) return []
@@ -43,19 +48,12 @@ async function getStudentIds(guruId, kelas) {
   return rows.map(r => r.id)
 }
 
-// Ambil nama guru dari DB
-async function getGuruName(guruId) {
-  const { rows } = await pool.query('SELECT name FROM gurus WHERE id = $1', [guruId])
-  return rows[0]?.name || ''
-}
-
-// GET /rekap — harus sebelum GET /:id
+// GET /rekap
 router.get('/rekap', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
     const { kelas, bulan, tahun } = req.query
 
-    // Filter siswa berdasarkan kelas_diampu guru
     const kelasList = await getKelasDiampu(guruId, kelas)
     if (!kelasList.length) return res.json([])
 
@@ -74,10 +72,10 @@ router.get('/rekap', requireGuru, async (req, res) => {
               COUNT(*) FILTER (WHERE a.status = 'hadir') AS hadir,
               COUNT(*) FILTER (WHERE a.status = 'sakit') AS sakit,
               COUNT(*) FILTER (WHERE a.status = 'izin')  AS izin,
-              COUNT(*) FILTER (WHERE a.status = 'alpa')  AS alpa,
+              COUNT(*) FILTER (WHERE a.status IN ('alpha','alpa')) AS alpa,
               COUNT(a.id) AS total_tercatat
        FROM students s
-       LEFT JOIN attendance_records a ON a.student_id = s.id ${extraWhere}
+       LEFT JOIN absensi a ON a.student_id = s.id ${extraWhere}
        WHERE s.kelas = ANY($1::text[])
        GROUP BY s.id, s.name, s.kelas, s.username
        ORDER BY s.kelas, s.name`,
@@ -90,7 +88,7 @@ router.get('/rekap', requireGuru, async (req, res) => {
   }
 })
 
-// GET / — daftar absensi
+// GET /
 router.get('/', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
@@ -103,28 +101,40 @@ router.get('/', requireGuru, async (req, res) => {
     const params = [kelasList]
     const conditions = ['s.kelas = ANY($1::text[])']
 
-    if (actualDate) { params.push(actualDate); conditions.push(`a.tanggal = $${params.length}`) }
-    if (tahun && bulan) {
-      params.push(parseInt(tahun)); params.push(parseInt(bulan))
-      conditions.push(`EXTRACT(YEAR FROM a.tanggal) = $${params.length - 1}`)
-      conditions.push(`EXTRACT(MONTH FROM a.tanggal) = $${params.length}`)
+    if (actualDate) {
+      params.push(actualDate)
+      conditions.push(`a.tanggal = $${params.length}`)
+    } else {
+      if (tahun) {
+        params.push(parseInt(tahun))
+        conditions.push(`EXTRACT(YEAR FROM a.tanggal) = $${params.length}`)
+      }
+      if (bulan) {
+        params.push(parseInt(bulan))
+        conditions.push(`EXTRACT(MONTH FROM a.tanggal) = $${params.length}`)
+      }
     }
-    if (student_id) { params.push(student_id); conditions.push(`a.student_id = $${params.length}`) }
+    if (student_id) {
+      params.push(student_id)
+      conditions.push(`s.id = $${params.length}`)
+    }
 
     const { rows } = await pool.query(
-      `SELECT a.id, a.student_id, a.tanggal, a.status, a.keterangan,
-              a.filled_by_teacher_id, a.filled_by_teacher_name,
-              s.name AS siswa_name, s.kelas, s.username
-       FROM attendance_records a
+      `SELECT a.id, a.student_id, a.tanggal, a.status, a.keterangan, a.created_at,
+              a.guru_id AS filled_by_teacher_id,
+              g.name    AS filled_by_teacher_name,
+              s.name AS nama_siswa, s.kelas, s.username
+       FROM absensi a
        JOIN students s ON s.id = a.student_id
+       LEFT JOIN gurus g ON g.id = a.guru_id
        WHERE ${conditions.join(' AND ')}
-       ORDER BY a.tanggal DESC, s.kelas, s.name`,
+       ORDER BY a.tanggal DESC, s.name`,
       params
     )
     res.json(rows)
   } catch (err) {
-    console.error('[eob5/attendance] list error:', err)
-    res.status(500).json({ error: 'Gagal memuat absensi' })
+    console.error('[eob5/attendance] get error:', err)
+    res.status(500).json({ error: 'Gagal memuat data absensi' })
   }
 })
 
@@ -132,156 +142,143 @@ router.get('/', requireGuru, async (req, res) => {
 router.post('/', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
-    const { student_id, tanggal, status, keterangan } = req.body || {}
+    const { student_id, tanggal, status, keterangan } = req.body
 
-    if (!student_id || !tanggal || !status) {
-      return res.status(400).json({ error: 'student_id, tanggal, dan status wajib diisi' })
+    if (!student_id || !status) {
+      return res.status(400).json({ error: 'student_id dan status wajib diisi' })
     }
-    if (!STATUS_VALID.includes(status)) {
-      return res.status(400).json({ error: `Status tidak valid: ${status}` })
+    const statusNorm = normalizeStatus(status)
+    if (!STATUS_VALID.includes(statusNorm)) {
+      return res.status(400).json({ error: 'Status tidak valid' })
     }
 
-    const guruName = await getGuruName(guruId)
+    const tanggalFinal = tanggal || getJakartaToday()
+    const kelasList = await getKelasDiampu(guruId)
+    const { rows: siswaRows } = await pool.query(
+      'SELECT id FROM students WHERE id = $1 AND kelas = ANY($2::text[])',
+      [student_id, kelasList]
+    )
+    if (!siswaRows.length) return res.status(403).json({ error: 'Siswa tidak dalam kelas Anda' })
+
     const { rows } = await pool.query(
-      `INSERT INTO attendance_records
-         (student_id, tanggal, status, keterangan, filled_by_teacher_id, filled_by_teacher_name)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (student_id, tanggal) DO UPDATE
-         SET status = EXCLUDED.status,
-             keterangan = EXCLUDED.keterangan,
-             filled_by_teacher_id = EXCLUDED.filled_by_teacher_id,
-             filled_by_teacher_name = EXCLUDED.filled_by_teacher_name
-       RETURNING id, student_id, tanggal, status, keterangan, filled_by_teacher_name`,
-      [student_id, tanggal, status, keterangan || null, guruId, guruName]
+      `INSERT INTO absensi (student_id, guru_id, tanggal, status, keterangan)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (student_id, tanggal)
+       DO UPDATE SET status = EXCLUDED.status, keterangan = EXCLUDED.keterangan, guru_id = EXCLUDED.guru_id
+       RETURNING id, student_id, tanggal, status, keterangan, created_at, guru_id AS filled_by_teacher_id`,
+      [student_id, guruId, tanggalFinal, statusNorm, keterangan || null]
     )
     res.status(201).json(rows[0])
   } catch (err) {
-    console.error('[eob5/attendance] upsert error:', err)
+    console.error('[eob5/attendance] post error:', err)
     res.status(500).json({ error: 'Gagal menyimpan absensi' })
   }
 })
 
-// POST /bulk — satu status, banyak siswa
+// POST /bulk — satu status untuk banyak siswa
 router.post('/bulk', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
-    const { tanggal, student_ids, status, keterangan } = req.body || {}
+    const { student_ids, tanggal, status, keterangan } = req.body
 
-    if (!tanggal || !Array.isArray(student_ids) || !student_ids.length || !status) {
-      return res.status(400).json({ error: 'tanggal, student_ids[], dan status wajib diisi' })
+    if (!Array.isArray(student_ids) || !student_ids.length || !status) {
+      return res.status(400).json({ error: 'student_ids (array) dan status wajib diisi' })
     }
-    if (!STATUS_VALID.includes(status)) {
-      return res.status(400).json({ error: `Status tidak valid: ${status}` })
+    const statusNorm = normalizeStatus(status)
+    if (!STATUS_VALID.includes(statusNorm)) {
+      return res.status(400).json({ error: 'Status tidak valid' })
     }
 
-    const guruName = await getGuruName(guruId)
-    const client = await pool.connect()
-    const saved = []
-    try {
-      await client.query('BEGIN')
-      for (const sid of student_ids) {
-        const { rows } = await client.query(
-          `INSERT INTO attendance_records
-             (student_id, tanggal, status, keterangan, filled_by_teacher_id, filled_by_teacher_name)
-           VALUES ($1,$2,$3,$4,$5,$6)
-           ON CONFLICT (student_id, tanggal) DO UPDATE
-             SET status = EXCLUDED.status,
-                 keterangan = EXCLUDED.keterangan,
-                 filled_by_teacher_id = EXCLUDED.filled_by_teacher_id,
-                 filled_by_teacher_name = EXCLUDED.filled_by_teacher_name
-           RETURNING id, student_id, tanggal, status`,
-          [sid, tanggal, status, keterangan || null, guruId, guruName]
-        )
-        saved.push(rows[0])
-      }
-      await client.query('COMMIT')
-    } catch (e) {
-      await client.query('ROLLBACK')
-      throw e
-    } finally {
-      client.release()
+    const tanggalFinal = tanggal || getJakartaToday()
+    const kelasList = await getKelasDiampu(guruId)
+    const { rows: valid } = await pool.query(
+      'SELECT id FROM students WHERE id = ANY($1::text[]) AND kelas = ANY($2::text[])',
+      [student_ids, kelasList]
+    )
+    const validIds = valid.map(r => r.id)
+    if (!validIds.length) return res.status(403).json({ error: 'Tidak ada siswa valid' })
+
+    let inserted = 0
+    for (const sid of validIds) {
+      await pool.query(
+        `INSERT INTO absensi (student_id, guru_id, tanggal, status, keterangan)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (student_id, tanggal)
+         DO UPDATE SET status = EXCLUDED.status, keterangan = EXCLUDED.keterangan, guru_id = EXCLUDED.guru_id`,
+        [sid, guruId, tanggalFinal, statusNorm, keterangan || null]
+      )
+      inserted++
     }
-    res.json({ ok: true, jumlah: saved.length, absensi: saved })
+    res.status(201).json({ count: inserted })
   } catch (err) {
     console.error('[eob5/attendance] bulk error:', err)
-    res.status(500).json({ error: 'Gagal menyimpan absensi massal' })
+    res.status(500).json({ error: 'Gagal menyimpan absensi bulk' })
   }
 })
 
-// POST /bulk-mixed — satu kelas, status berbeda per siswa
+// POST /bulk-mixed — status berbeda per siswa
 router.post('/bulk-mixed', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
-    const { tanggal, kelas, absensi } = req.body || {}
+    const { tanggal, records } = req.body // records: [{student_id, status, keterangan}]
 
-    if (!tanggal || !Array.isArray(absensi) || !absensi.length) {
-      return res.status(400).json({ error: 'tanggal dan array absensi wajib diisi' })
-    }
-    const invalid = absensi.find(a => !STATUS_VALID.includes(a.status))
-    if (invalid) {
-      return res.status(400).json({ error: `Status tidak valid: ${invalid.status}` })
+    if (!Array.isArray(records) || !records.length) {
+      return res.status(400).json({ error: 'records (array) wajib diisi' })
     }
 
-    const guruName = await getGuruName(guruId)
-    const client = await pool.connect()
-    const saved = []
-    try {
-      await client.query('BEGIN')
-      for (const item of absensi) {
-        const { rows } = await client.query(
-          `INSERT INTO attendance_records
-             (student_id, tanggal, status, keterangan, filled_by_teacher_id, filled_by_teacher_name)
-           VALUES ($1,$2,$3,$4,$5,$6)
-           ON CONFLICT (student_id, tanggal) DO UPDATE
-             SET status = EXCLUDED.status,
-                 keterangan = EXCLUDED.keterangan,
-                 filled_by_teacher_id = EXCLUDED.filled_by_teacher_id,
-                 filled_by_teacher_name = EXCLUDED.filled_by_teacher_name
-           RETURNING id, student_id, tanggal, status`,
-          [item.student_id, tanggal, item.status, item.keterangan || null, guruId, guruName]
-        )
-        saved.push(rows[0])
-      }
-      await client.query('COMMIT')
-    } catch (e) {
-      await client.query('ROLLBACK')
-      throw e
-    } finally {
-      client.release()
+    const tanggalFinal = tanggal || getJakartaToday()
+    const kelasList = await getKelasDiampu(guruId)
+    const studentIds = records.map(r => r.student_id)
+    const { rows: valid } = await pool.query(
+      'SELECT id FROM students WHERE id = ANY($1::text[]) AND kelas = ANY($2::text[])',
+      [studentIds, kelasList]
+    )
+    const validSet = new Set(valid.map(r => r.id))
+
+    let inserted = 0
+    for (const rec of records) {
+      if (!validSet.has(rec.student_id)) continue
+      const statusNorm = normalizeStatus(rec.status)
+      if (!STATUS_VALID.includes(statusNorm)) continue
+      await pool.query(
+        `INSERT INTO absensi (student_id, guru_id, tanggal, status, keterangan)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (student_id, tanggal)
+         DO UPDATE SET status = EXCLUDED.status, keterangan = EXCLUDED.keterangan, guru_id = EXCLUDED.guru_id`,
+        [rec.student_id, guruId, tanggalFinal, statusNorm, rec.keterangan || null]
+      )
+      inserted++
     }
-    res.json({ ok: true, tanggal, kelas: kelas || null, jumlah: saved.length, absensi: saved })
+    res.status(201).json({ count: inserted })
   } catch (err) {
     console.error('[eob5/attendance] bulk-mixed error:', err)
-    res.status(500).json({ error: 'Gagal menyimpan absensi' })
+    res.status(500).json({ error: 'Gagal menyimpan absensi bulk-mixed' })
   }
 })
 
-// PATCH /:id — update satu record
+// PATCH /:id
 router.patch('/:id', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
     const { id } = req.params
-    const { status, keterangan } = req.body || {}
+    const { status, keterangan } = req.body
 
-    if (status && !STATUS_VALID.includes(status)) {
-      return res.status(400).json({ error: `Status tidak valid: ${status}` })
-    }
-
-    // Pastikan record milik siswa dari kelas yang diampu guru ini
     const kelasList = await getKelasDiampu(guruId)
     if (!kelasList.length) return res.status(404).json({ error: 'Record absensi tidak ditemukan' })
 
+    const statusNorm = status ? normalizeStatus(status) : null
+
     const { rows } = await pool.query(
-      `UPDATE attendance_records ar
-       SET status     = COALESCE($1, ar.status),
-           keterangan = COALESCE($2, ar.keterangan),
-           filled_by_teacher_id = $3
+      `UPDATE absensi a
+       SET status     = COALESCE($1, a.status),
+           keterangan = COALESCE($2, a.keterangan),
+           guru_id    = $3
        FROM students s
-       WHERE ar.id = $4
-         AND ar.student_id = s.id
+       WHERE a.id = $4
+         AND a.student_id = s.id
          AND s.kelas = ANY($5::text[])
-       RETURNING ar.id, ar.student_id, ar.tanggal, ar.status, ar.keterangan`,
-      [status || null, keterangan !== undefined ? keterangan : null, guruId, id, kelasList]
+       RETURNING a.id, a.student_id, a.tanggal, a.status, a.keterangan`,
+      [statusNorm, keterangan !== undefined ? keterangan : null, guruId, id, kelasList]
     )
     if (!rows.length) return res.status(404).json({ error: 'Record absensi tidak ditemukan' })
     res.json(rows[0])
@@ -291,7 +288,7 @@ router.patch('/:id', requireGuru, async (req, res) => {
   }
 })
 
-// DELETE /bulk-kelas — hapus semua absensi kelas + tanggal
+// DELETE /bulk-kelas
 router.delete('/bulk-kelas', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
@@ -305,7 +302,7 @@ router.delete('/bulk-kelas', requireGuru, async (req, res) => {
     if (!studentIds.length) return res.json({ count: 0 })
 
     const { rowCount } = await pool.query(
-      `DELETE FROM attendance_records
+      `DELETE FROM absensi
        WHERE student_id = ANY($1::text[]) AND tanggal = $2`,
       [studentIds, tanggal]
     )

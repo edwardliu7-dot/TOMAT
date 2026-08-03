@@ -9,7 +9,7 @@
  */
 
 import express from 'express'
-import { pool } from '../db.js'
+import { guardedPool as pool } from './lib/db-guard.js'
 import { requireGuru } from './middleware.js'
 
 const router = express.Router()
@@ -203,13 +203,18 @@ router.get('/:id/rekap', requireGuru, async (req, res) => {
          WHERE student_id = $1 ${dateFilter} ORDER BY tanggal DESC`,
         filterParams
       ),
+      // Nilai dari grades (tabel lama) — JOIN subjects untuk nama mapel
       pool.query(
-        `SELECT id, jenis, nilai, keterangan, tanggal, mata_pelajaran FROM nilai_guru
-         WHERE student_id = $1 ${dateFilter} ORDER BY tanggal DESC`,
-        filterParams
-      ).catch(() => ({ rows: [] })),  // graceful fallback jika tabel belum ada
+        `SELECT g.id, g.jenis, g.nilai, g.keterangan, g.created_at AS tanggal,
+                COALESCE(sub.name, '') AS mata_pelajaran
+         FROM grades g
+         LEFT JOIN subjects sub ON sub.id = g.subject_id
+         WHERE g.student_id::text = $1 ORDER BY g.created_at DESC`,
+        [filterParams[0]]
+      ).catch(() => ({ rows: [] })),
+      // Poin dari point_records (tabel lama — dahulu student_points)
       pool.query(
-        `SELECT id, jenis, poin, keterangan, tanggal FROM poin
+        `SELECT id, jenis, poin, keterangan, tanggal FROM point_records
          WHERE student_id = $1 ${dateFilter} ORDER BY tanggal DESC`,
         filterParams
       ).catch(() => ({ rows: [] })),

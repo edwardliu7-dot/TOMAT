@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express'
-import { pool } from '../db.js'
+import { guardedPool as pool } from './lib/db-guard.js'
 import { requireGuru } from './middleware.js'
 
 const router = Router()

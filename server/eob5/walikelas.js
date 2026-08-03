@@ -7,7 +7,7 @@
  */
 
 import { Router } from 'express'
-import { pool } from '../db.js'
+import { guardedPool as pool } from './lib/db-guard.js'
 import { requireGuru } from './middleware.js'
 
 const router = Router()
@@ -48,8 +48,8 @@ router.get('/rekap', requireGuru, async (req, res) => {
           - COALESCE(SUM(p.poin) FILTER (WHERE p.jenis = 'negatif'), 0) AS "totalPoin"
       FROM students st
       LEFT JOIN absensi        a ON a.student_id = st.id
-      LEFT JOIN grades         g ON g.student_id = st.id
-      LEFT JOIN point_records  p ON p.student_id = st.id
+      LEFT JOIN grades         g ON g.student_id::text = st.id
+      LEFT JOIN point_records  p ON p.student_id::text = st.id
       WHERE st.kelas = ANY($1::text[])
       GROUP BY st.id, st.name, st.kelas, st.nisn
       ORDER BY st.kelas, st.name

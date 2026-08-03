@@ -1,22 +1,30 @@
 /**
  * server/eob5/nilai.js
- * CRUD nilai akademik mata pelajaran (nilai_akademik).
- * Terpisah dari tabel `nilai` TOMAT yang hanya untuk skor game.
+ * CRUD nilai akademik — menggunakan tabel `grades` (tabel lama app GuruEOB5).
+ * Tabel nilai_akademik sudah di-DROP karena duplikat.
+ * Gunakan server/eob5/grades.js untuk operasi yang lebih detail.
+ *
+ * GET  /api/eob5/nilai               — daftar nilai (filter: kelas, mapel, semester)
+ * GET  /api/eob5/nilai/rekap         — rekap rata-rata per siswa/mapel
+ * GET  /api/eob5/nilai/siswa/:id     — semua nilai satu siswa
+ * POST /api/eob5/nilai               — input nilai baru
+ * PUT  /api/eob5/nilai/:id           — update nilai
+ * DELETE /api/eob5/nilai/:id         — hapus nilai
  */
 
 import { Router } from 'express'
-import { pool } from '../db.js'
+import { guardedPool as pool } from './lib/db-guard.js'
 import { requireGuru } from './middleware.js'
 
 const router = Router()
 
-// GET /api/eob5/nilai — daftar nilai (filter: kelas, mapel, periode)
+// GET / — daftar nilai dengan JOIN ke subjects untuk nama mapel
 router.get('/', requireGuru, async (req, res) => {
   try {
     const { kelas, mata_pelajaran, semester, tahun_ajaran } = req.query
     const guruId = req.session.user.id
 
-    const conditions = ['n.guru_id = $1']
+    const conditions = ['g.guru_id = $1']
     const params = [guruId]
     let idx = 2
 
@@ -25,24 +33,20 @@ router.get('/', requireGuru, async (req, res) => {
       params.push(kelas)
     }
     if (mata_pelajaran) {
-      conditions.push(`n.mata_pelajaran = $${idx++}`)
-      params.push(mata_pelajaran)
-    }
-    if (semester) {
-      conditions.push(`n.semester = $${idx++}`)
-      params.push(semester)
-    }
-    if (tahun_ajaran) {
-      conditions.push(`n.tahun_ajaran = $${idx++}`)
-      params.push(tahun_ajaran)
+      conditions.push(`sub.name ILIKE $${idx++}`)
+      params.push(`%${mata_pelajaran}%`)
     }
 
     const { rows } = await pool.query(`
-      SELECT n.*, s.name AS nama_siswa, s.kelas
-      FROM nilai_akademik n
-      JOIN students s ON s.id = n.student_id
+      SELECT g.id, g.student_id, g.guru_id, g.subject_id, g.jenis, g.nilai,
+             g.keterangan, g.created_at,
+             sub.name AS mata_pelajaran,
+             s.name   AS nama_siswa, s.kelas
+      FROM grades g
+      JOIN students s ON s.id = g.student_id::text
+      LEFT JOIN subjects sub ON sub.id = g.subject_id
       WHERE ${conditions.join(' AND ')}
-      ORDER BY s.name, n.created_at DESC
+      ORDER BY s.name, g.created_at DESC
     `, params)
 
     res.json(rows)
@@ -52,13 +56,13 @@ router.get('/', requireGuru, async (req, res) => {
   }
 })
 
-// GET /api/eob5/nilai/rekap — rekap nilai per siswa/kelas
+// GET /rekap
 router.get('/rekap', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
-    const { kelas, mata_pelajaran, tahun_ajaran } = req.query
+    const { kelas, mata_pelajaran } = req.query
 
-    const conditions = ['n.guru_id = $1']
+    const conditions = ['g.guru_id = $1']
     const params = [guruId]
     let idx = 2
 
@@ -67,28 +71,20 @@ router.get('/rekap', requireGuru, async (req, res) => {
       params.push(kelas)
     }
     if (mata_pelajaran) {
-      conditions.push(`n.mata_pelajaran = $${idx++}`)
-      params.push(mata_pelajaran)
-    }
-    if (tahun_ajaran) {
-      conditions.push(`n.tahun_ajaran = $${idx++}`)
-      params.push(tahun_ajaran)
+      conditions.push(`sub.name ILIKE $${idx++}`)
+      params.push(`%${mata_pelajaran}%`)
     }
 
     const { rows } = await pool.query(`
-      SELECT
-        s.id AS student_id,
-        s.name AS nama_siswa,
-        s.kelas,
-        n.mata_pelajaran,
-        n.jenis_nilai,
-        AVG(n.nilai) AS rata_rata,
-        COUNT(*) AS jumlah_nilai
-      FROM nilai_akademik n
-      JOIN students s ON s.id = n.student_id
+      SELECT s.id AS student_id, s.name AS nama_siswa, s.kelas,
+             sub.name AS mata_pelajaran, g.jenis,
+             AVG(g.nilai) AS rata_rata, COUNT(*) AS jumlah_nilai
+      FROM grades g
+      JOIN students s ON s.id = g.student_id::text
+      LEFT JOIN subjects sub ON sub.id = g.subject_id
       WHERE ${conditions.join(' AND ')}
-      GROUP BY s.id, s.name, s.kelas, n.mata_pelajaran, n.jenis_nilai
-      ORDER BY s.name, n.mata_pelajaran, n.jenis_nilai
+      GROUP BY s.id, s.name, s.kelas, sub.name, g.jenis
+      ORDER BY s.name, sub.name, g.jenis
     `, params)
 
     res.json(rows)
@@ -98,18 +94,22 @@ router.get('/rekap', requireGuru, async (req, res) => {
   }
 })
 
-// GET /api/eob5/nilai/siswa/:studentId — semua nilai satu siswa
+// GET /siswa/:studentId
 router.get('/siswa/:studentId', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
     const { studentId } = req.params
 
     const { rows } = await pool.query(`
-      SELECT n.*, s.name AS nama_siswa, s.kelas
-      FROM nilai_akademik n
-      JOIN students s ON s.id = n.student_id
-      WHERE n.guru_id = $1 AND n.student_id = $2
-      ORDER BY n.created_at DESC
+      SELECT g.id, g.student_id, g.guru_id, g.subject_id, g.jenis, g.nilai,
+             g.keterangan, g.created_at,
+             sub.name AS mata_pelajaran,
+             s.name   AS nama_siswa, s.kelas
+      FROM grades g
+      JOIN students s ON s.id = g.student_id::text
+      LEFT JOIN subjects sub ON sub.id = g.subject_id
+      WHERE g.guru_id = $1 AND g.student_id::text = $2
+      ORDER BY g.created_at DESC
     `, [guruId, studentId])
 
     res.json(rows)
@@ -119,21 +119,34 @@ router.get('/siswa/:studentId', requireGuru, async (req, res) => {
   }
 })
 
-// POST /api/eob5/nilai — input nilai
+// POST / — input nilai ke grades (lookup subject_id dari nama mapel)
 router.post('/', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
-    const { student_id, mata_pelajaran, jenis_nilai, nilai, semester, tahun_ajaran, keterangan } = req.body
+    const { student_id, mata_pelajaran, jenis_nilai, nilai, keterangan } = req.body
 
-    if (!student_id || !mata_pelajaran || !jenis_nilai || nilai == null) {
-      return res.status(400).json({ error: 'Data tidak lengkap: student_id, mata_pelajaran, jenis_nilai, nilai wajib diisi' })
+    if (!student_id || !jenis_nilai || nilai == null) {
+      return res.status(400).json({ error: 'student_id, jenis_nilai, dan nilai wajib diisi' })
     }
 
+    // Cari subject_id dari nama mata_pelajaran
+    let subjectId = null
+    if (mata_pelajaran) {
+      const subRes = await pool.query(
+        `SELECT id FROM subjects WHERE teacher_id = $1 AND name ILIKE $2 AND deleted_at IS NULL LIMIT 1`,
+        [guruId, mata_pelajaran]
+      )
+      subjectId = subRes.rows[0]?.id || null
+    }
+
+    const jenisValid = ['formatif', 'sumatif_lm', 'sumatif_tengah', 'sumatif_akhir']
+    const jenis = jenisValid.includes(jenis_nilai) ? jenis_nilai : 'formatif'
+
     const { rows } = await pool.query(`
-      INSERT INTO nilai_akademik (student_id, guru_id, mata_pelajaran, jenis_nilai, nilai, semester, tahun_ajaran, keterangan)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO grades (student_id, guru_id, subject_id, jenis, nilai, keterangan)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
-    `, [student_id, guruId, mata_pelajaran, jenis_nilai, nilai, semester, tahun_ajaran, keterangan])
+    `, [student_id, guruId, subjectId, jenis, nilai, keterangan || null])
 
     res.status(201).json(rows[0])
   } catch (err) {
@@ -142,28 +155,26 @@ router.post('/', requireGuru, async (req, res) => {
   }
 })
 
-// PUT /api/eob5/nilai/:id — update nilai
+// PUT /:id
 router.put('/:id', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
     const { id } = req.params
-    const { mata_pelajaran, jenis_nilai, nilai, semester, tahun_ajaran, keterangan } = req.body
+    const { jenis_nilai, nilai, keterangan } = req.body
+
+    const jenisValid = ['formatif', 'sumatif_lm', 'sumatif_tengah', 'sumatif_akhir']
+    const jenis = jenis_nilai && jenisValid.includes(jenis_nilai) ? jenis_nilai : null
 
     const { rows } = await pool.query(`
-      UPDATE nilai_akademik
-      SET mata_pelajaran = COALESCE($1, mata_pelajaran),
-          jenis_nilai    = COALESCE($2, jenis_nilai),
-          nilai          = COALESCE($3, nilai),
-          semester       = COALESCE($4, semester),
-          tahun_ajaran   = COALESCE($5, tahun_ajaran),
-          keterangan     = COALESCE($6, keterangan)
-      WHERE id = $7 AND guru_id = $8
+      UPDATE grades
+      SET jenis      = COALESCE($1, jenis),
+          nilai      = COALESCE($2, nilai),
+          keterangan = COALESCE($3, keterangan)
+      WHERE id = $4 AND guru_id = $5
       RETURNING *
-    `, [mata_pelajaran, jenis_nilai, nilai, semester, tahun_ajaran, keterangan, id, guruId])
+    `, [jenis, nilai ?? null, keterangan ?? null, id, guruId])
 
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Data nilai tidak ditemukan' })
-    }
+    if (!rows.length) return res.status(404).json({ error: 'Data nilai tidak ditemukan' })
     res.json(rows[0])
   } catch (err) {
     console.error(err)
@@ -171,20 +182,15 @@ router.put('/:id', requireGuru, async (req, res) => {
   }
 })
 
-// DELETE /api/eob5/nilai/:id — hapus nilai
+// DELETE /:id
 router.delete('/:id', requireGuru, async (req, res) => {
   try {
     const guruId = req.session.user.id
-    const { id } = req.params
-
     const { rowCount } = await pool.query(
-      'DELETE FROM nilai_akademik WHERE id = $1 AND guru_id = $2',
-      [id, guruId]
+      'DELETE FROM grades WHERE id = $1 AND guru_id = $2',
+      [req.params.id, guruId]
     )
-
-    if (rowCount === 0) {
-      return res.status(404).json({ error: 'Data nilai tidak ditemukan' })
-    }
+    if (!rowCount) return res.status(404).json({ error: 'Data nilai tidak ditemukan' })
     res.json({ sukses: true })
   } catch (err) {
     console.error(err)

@@ -1,35 +1,29 @@
 /**
  * server/eob5/kelas.js
  * Manajemen kelas dan pengajar.
+ * Menggunakan gurus.kelas_diampu sebagai sumber data — tabel kelas_guru sudah di-DROP.
  *
- * GET /api/eob5/kelas/list        — daftar semua kelas (dari data siswa + kelas_guru)
+ * GET /api/eob5/kelas/list        — daftar semua kelas (dari data siswa)
  * GET /api/eob5/kelas/:id/siswa   — siswa di kelas tertentu
- * GET /api/eob5/kelas/:id/guru    — guru yang mengajar kelas ini
- * POST /api/eob5/kelas/assign     — assign guru ke kelas + mapel
- * DELETE /api/eob5/kelas/assign/:id — hapus assignment
+ * GET /api/eob5/kelas/:id/guru    — guru yang mengajar kelas ini (dari kelas_diampu)
+ * POST /api/eob5/kelas/assign     — assign guru ke kelas (update kelas_diampu)
+ * DELETE /api/eob5/kelas/assign   — hapus assignment (body: {guru_id, kelas})
  */
 
 import express from 'express'
-import { pool } from '../db.js'
+import { guardedPool as pool } from './lib/db-guard.js'
 import { requireGuru } from './middleware.js'
 
 const router = express.Router()
 
-// GET /list — daftar semua kelas yang ada (dari students + kelas_guru)
+// GET /list — daftar semua kelas dari data siswa
 router.get('/list', requireGuru, async (req, res) => {
   try {
-    const [kelasStudentsRes, kelasGuruRes] = await Promise.all([
-      pool.query('SELECT DISTINCT kelas FROM students WHERE kelas IS NOT NULL ORDER BY kelas'),
-      pool.query('SELECT DISTINCT kelas FROM kelas_guru ORDER BY kelas'),
-    ])
+    const { rows: kelasRows } = await pool.query(
+      'SELECT DISTINCT kelas FROM students WHERE kelas IS NOT NULL ORDER BY kelas'
+    )
+    const kelasList = kelasRows.map(r => r.kelas)
 
-    const kelasSet = new Set()
-    for (const r of kelasStudentsRes.rows) kelasSet.add(r.kelas)
-    for (const r of kelasGuruRes.rows) kelasSet.add(r.kelas)
-
-    const kelasList = [...kelasSet].sort()
-
-    // Hitung jumlah siswa per kelas
     const countRes = await pool.query(
       `SELECT kelas, COUNT(*) AS jumlah_siswa FROM students WHERE kelas IS NOT NULL GROUP BY kelas`
     )
@@ -45,8 +39,7 @@ router.get('/list', requireGuru, async (req, res) => {
   }
 })
 
-// GET /:id/siswa — siswa di kelas tertentu
-// :id adalah nama kelas (URL-encoded), mis. "VIII%20Ibnu%20Sina"
+// GET /:id/siswa
 router.get('/:id/siswa', requireGuru, async (req, res) => {
   try {
     const kelas = decodeURIComponent(req.params.id)
@@ -62,17 +55,16 @@ router.get('/:id/siswa', requireGuru, async (req, res) => {
   }
 })
 
-// GET /:id/guru — guru yang mengajar kelas ini
+// GET /:id/guru — guru yang kelas_diampu-nya mencakup kelas ini
 router.get('/:id/guru', requireGuru, async (req, res) => {
   try {
     const kelas = decodeURIComponent(req.params.id)
     const { rows } = await pool.query(
-      `SELECT kg.id, kg.guru_id, kg.kelas, kg.mata_pelajaran, kg.tahun_ajaran,
-              g.name AS guru_name, g.username AS guru_username, g.jabatan
-       FROM kelas_guru kg
-       JOIN gurus g ON g.id = kg.guru_id
-       WHERE kg.kelas = $1
-       ORDER BY kg.mata_pelajaran`,
+      `SELECT id AS guru_id, name AS guru_name, username AS guru_username,
+              jabatan, kelas_diampu
+       FROM gurus
+       WHERE $1 = ANY(kelas_diampu)
+       ORDER BY name`,
       [kelas]
     )
     res.json({ kelas, guru: rows })
@@ -82,49 +74,42 @@ router.get('/:id/guru', requireGuru, async (req, res) => {
   }
 })
 
-// POST /assign — assign guru ke kelas + mata pelajaran
+// POST /assign — tambahkan kelas ke kelas_diampu guru
 router.post('/assign', requireGuru, async (req, res) => {
   try {
-    const { guru_id, kelas, mata_pelajaran, tahun_ajaran } = req.body || {}
+    const { guru_id, kelas } = req.body || {}
     if (!guru_id || !kelas) {
       return res.status(400).json({ error: 'guru_id dan kelas wajib diisi' })
     }
 
-    // Validasi guru ada
     const guruRes = await pool.query('SELECT id FROM gurus WHERE id = $1', [guru_id])
     if (guruRes.rowCount === 0) return res.status(404).json({ error: 'Guru tidak ditemukan' })
 
-    const { rows } = await pool.query(
-      `INSERT INTO kelas_guru (guru_id, kelas, mata_pelajaran, tahun_ajaran)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (guru_id, kelas, mata_pelajaran)
-       DO UPDATE SET tahun_ajaran = EXCLUDED.tahun_ajaran
-       RETURNING *`,
-      [guru_id, kelas, mata_pelajaran || null, tahun_ajaran || null]
-    )
-
-    // Sync: tambahkan kelas ke kelas_diampu guru jika belum ada
     await pool.query(
       `UPDATE gurus SET kelas_diampu = array_append(kelas_diampu, $2)
        WHERE id = $1 AND NOT ($2 = ANY(kelas_diampu))`,
       [guru_id, kelas]
     )
 
-    res.status(201).json(rows[0])
+    res.status(201).json({ ok: true, guru_id, kelas })
   } catch (err) {
     console.error('[eob5/kelas] assign error:', err)
     res.status(500).json({ error: 'Gagal menetapkan guru ke kelas' })
   }
 })
 
-// DELETE /assign/:id — hapus assignment guru-kelas
-router.delete('/assign/:id', requireGuru, async (req, res) => {
+// DELETE /assign — hapus kelas dari kelas_diampu guru (body: {guru_id, kelas})
+router.delete('/assign', requireGuru, async (req, res) => {
   try {
-    const result = await pool.query(
-      'DELETE FROM kelas_guru WHERE id = $1 RETURNING *',
-      [req.params.id]
+    const { guru_id, kelas } = req.body || {}
+    if (!guru_id || !kelas) {
+      return res.status(400).json({ error: 'guru_id dan kelas wajib diisi' })
+    }
+
+    await pool.query(
+      `UPDATE gurus SET kelas_diampu = array_remove(kelas_diampu, $2) WHERE id = $1`,
+      [guru_id, kelas]
     )
-    if (result.rowCount === 0) return res.status(404).json({ error: 'Assignment tidak ditemukan' })
     res.json({ ok: true })
   } catch (err) {
     console.error('[eob5/kelas] hapus assign error:', err)

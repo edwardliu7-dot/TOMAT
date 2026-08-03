@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express'
-import { pool } from '../db.js'
+import { guardedPool as pool } from './lib/db-guard.js'
 import { requireGuru } from './middleware.js'
 
 const router = Router()
@@ -30,7 +30,7 @@ router.get('/kelas/:kelas', requireGuru, async (req, res) => {
         AVG(g.nilai) AS rata_rata,
         COUNT(*) AS jumlah_penilaian
       FROM grades g
-      JOIN students s ON s.id = g.student_id
+      JOIN students s ON s.id = g.student_id::text
       LEFT JOIN subjects sub ON sub.id = g.subject_id
       WHERE ${nilaiConditions.join(' AND ')}
       GROUP BY s.id, s.name, sub.name, g.jenis
@@ -84,7 +84,7 @@ router.get('/siswa/:id', requireGuru, async (req, res) => {
         g.nilai, g.keterangan, g.created_at
       FROM grades g
       LEFT JOIN subjects sub ON sub.id = g.subject_id
-      WHERE g.student_id = $1 AND g.guru_id = $2
+      WHERE g.student_id::text = $1 AND g.guru_id = $2
       ORDER BY g.created_at DESC
     `, [studentId, guruId])
 
@@ -131,17 +131,14 @@ router.get('/guru/:id', requireGuru, async (req, res) => {
         'SELECT COUNT(*) AS total_sesi FROM absensi WHERE guru_id = $1',
         [guruId]
       ),
+      // Materi: gunakan bahan_ajar (tabel yang ada) — materi sudah di-DROP
       pool.query(
-        'SELECT COUNT(*) AS total_materi FROM materi WHERE guru_id = $1',
+        'SELECT COUNT(*) AS total_materi FROM bahan_ajar WHERE created_by = $1',
         [guruId]
       ),
-      // Jadwal: UNION schedules (app lama, teacher_id) + jadwal (SMARTISA, guru_id)
+      // Jadwal: hanya dari schedules (tabel lama, teacher_id) — jadwal sudah di-DROP
       pool.query(
-        `SELECT (
-          SELECT COUNT(*) FROM schedules WHERE teacher_id = $1
-        ) + (
-          SELECT COUNT(*) FROM jadwal WHERE guru_id = $1
-        ) AS total_jadwal`,
+        'SELECT COUNT(*) AS total_jadwal FROM schedules WHERE teacher_id = $1',
         [guruId]
       ),
     ])
@@ -178,18 +175,21 @@ router.get('/periode', requireGuru, async (req, res) => {
       params.push(tahun_ajaran)
     }
 
+    // Gunakan grades (tabel lama app GuruEOB5) — JOIN subjects untuk nama mapel
+    // nilai_akademik sudah di-DROP (duplikat tabel lama)
     const { rows } = await pool.query(`
       SELECT
-        semester,
-        tahun_ajaran,
-        mata_pelajaran,
-        COUNT(DISTINCT student_id) AS jumlah_siswa,
-        COUNT(*) AS jumlah_penilaian,
-        AVG(nilai) AS rata_rata_kelas
-      FROM nilai_akademik
+        NULL::text             AS semester,
+        NULL::text             AS tahun_ajaran,
+        COALESCE(sub.name, '') AS mata_pelajaran,
+        COUNT(DISTINCT g.student_id) AS jumlah_siswa,
+        COUNT(*)               AS jumlah_penilaian,
+        AVG(g.nilai)           AS rata_rata_kelas
+      FROM grades g
+      LEFT JOIN subjects sub ON sub.id = g.subject_id
       WHERE ${conditions.join(' AND ')}
-      GROUP BY semester, tahun_ajaran, mata_pelajaran
-      ORDER BY tahun_ajaran DESC, semester, mata_pelajaran
+      GROUP BY sub.name
+      ORDER BY sub.name
     `, params)
 
     res.json(rows)
@@ -250,7 +250,7 @@ router.get('/nilai-chart', requireGuru, async (req, res) => {
         COUNT(*)                           AS "jumlahNilai",
         JSON_AGG(JSON_BUILD_OBJECT('range', CONCAT(FLOOR(g.nilai/10)*10,'-',FLOOR(g.nilai/10)*10+9), 'jumlah', 1) ORDER BY g.nilai) AS raw
       FROM grades g
-      JOIN students s ON s.id = g.student_id
+      JOIN students s ON s.id = g.student_id::text
       LEFT JOIN subjects sub ON sub.id = g.subject_id
       GROUP BY COALESCE(sub.name, g.jenis), s.kelas
       ORDER BY s.kelas, COALESCE(sub.name, g.jenis)

@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express'
-import { pool } from '../db.js'
+import { guardedPool as pool } from './lib/db-guard.js'
 import { requireGuru } from './middleware.js'
 
 const router = Router()
@@ -42,18 +42,18 @@ router.get('/', requireGuru, async (req, res) => {
     const conditions = []
 
     if (student_id) {
-      params.push(student_id); conditions.push(`g.student_id = $${params.length}`)
+      params.push(student_id); conditions.push(`g.student_id::text = $${params.length}`)
     } else {
-      params.push([...allowed]); conditions.push(`g.student_id = ANY($${params.length}::text[])`)
+      params.push([...allowed]); conditions.push(`g.student_id::text = ANY($${params.length}::text[])`)
     }
-    if (subject_id) { params.push(subject_id); conditions.push(`g.subject_id = $${params.length}`) }
+    if (subject_id) { params.push(subject_id); conditions.push(`g.subject_id = $${params.length}::uuid`) }
     if (calendar_id) { params.push(calendar_id); conditions.push(`g.calendar_id = $${params.length}`) }
     if (jenis) { params.push(jenis); conditions.push(`g.jenis = $${params.length}`) }
 
     const { rows } = await pool.query(
       `SELECT g.*, s.name AS siswa_name, s.kelas, sub.name AS subject_name
        FROM grades g
-       JOIN students s ON s.id = g.student_id
+       JOIN students s ON s.id = g.student_id::text
        LEFT JOIN subjects sub ON sub.id = g.subject_id
        WHERE ${conditions.join(' AND ')}
        ORDER BY g.created_at DESC`,
@@ -102,7 +102,7 @@ router.post('/', requireGuru, async (req, res) => {
     if (jenis === 'sumatif_tengah' || jenis === 'sumatif_akhir') {
       const { rows: ex } = await pool.query(
         `SELECT id FROM grades
-         WHERE student_id=$1 AND subject_id IS NOT DISTINCT FROM $2
+         WHERE student_id::text=$1 AND subject_id IS NOT DISTINCT FROM $2
            AND calendar_id IS NOT DISTINCT FROM $3 AND jenis=$4`,
         [student_id, subject_id, calendar_id, jenis]
       )
@@ -110,7 +110,7 @@ router.post('/', requireGuru, async (req, res) => {
     } else if (jenis === 'sumatif_lm') {
       const { rows: ex } = await pool.query(
         `SELECT id FROM grades
-         WHERE student_id=$1 AND subject_id IS NOT DISTINCT FROM $2
+         WHERE student_id::text=$1 AND subject_id IS NOT DISTINCT FROM $2
            AND calendar_id IS NOT DISTINCT FROM $3 AND jenis=$4
            AND lingkup_materi IS NOT DISTINCT FROM $5`,
         [student_id, subject_id, calendar_id, jenis, lingkup_materi]
@@ -120,7 +120,7 @@ router.post('/', requireGuru, async (req, res) => {
       // formatif: unique per student+subject+calendar+lm+tp
       const { rows: ex } = await pool.query(
         `SELECT id FROM grades
-         WHERE student_id=$1 AND subject_id IS NOT DISTINCT FROM $2
+         WHERE student_id::text=$1 AND subject_id IS NOT DISTINCT FROM $2
            AND calendar_id IS NOT DISTINCT FROM $3 AND jenis=$4
            AND lingkup_materi IS NOT DISTINCT FROM $5
            AND tp_number IS NOT DISTINCT FROM $6`,
@@ -162,7 +162,7 @@ router.patch('/:id', requireGuru, async (req, res) => {
 
     const allowed = await getStudentIds(guruId)
     const { rows: existing } = await pool.query(
-      'SELECT student_id FROM grades WHERE id = $1', [id]
+      'SELECT student_id::text AS student_id FROM grades WHERE id = $1', [id]
     )
     if (!existing.length || !allowed.has(existing[0].student_id)) {
       return res.status(404).json({ error: 'Nilai tidak ditemukan' })
@@ -194,7 +194,7 @@ router.delete('/:id', requireGuru, async (req, res) => {
 
     const allowed = await getStudentIds(guruId)
     const { rows: existing } = await pool.query(
-      'SELECT student_id FROM grades WHERE id = $1', [id]
+      'SELECT student_id::text AS student_id FROM grades WHERE id = $1', [id]
     )
     if (!existing.length || !allowed.has(existing[0].student_id)) {
       return res.status(404).json({ error: 'Nilai tidak ditemukan' })

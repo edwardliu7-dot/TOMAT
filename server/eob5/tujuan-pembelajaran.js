@@ -10,7 +10,7 @@ import { Router } from 'express'
 import multer from 'multer'
 import mammoth from 'mammoth'
 import Groq from 'groq-sdk'
-import { pool } from '../db.js'
+import { guardedPool as pool } from './lib/db-guard.js'
 import { requireGuru } from './middleware.js'
 
 const require = createRequire(import.meta.url)

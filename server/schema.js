@@ -1,6 +1,28 @@
-import { pool } from './db.js'
+import { pool, MIGRATION_FORBIDDEN_TABLES, assertNoForbiddenTables } from './db.js'
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ⛔  MIGRATION PREVENTION — LAPISAN 2 (schema-level early-check)
+//
+// ensureSchema() berjalan saat server startup. Blok di ATAS akan mendeteksi
+// dan men-DROP tabel-tabel terlarang; blok assertNoForbiddenCreateTable() di
+// BAWAH ini memvalidasi bahwa TIDAK ADA CREATE TABLE yang menargetkan tabel
+// terlarang SEBELUM query benar-benar dikirim.
+//
+// Jika Anda menambahkan CREATE TABLE baru, pastikan namanya TIDAK ada dalam
+// MIGRATION_FORBIDDEN_TABLES (daftar ada di server/db.js).
+// ══════════════════════════════════════════════════════════════════════════════
 
 export async function ensureSchema() {
+  // ── Early guard: tolak CREATE TABLE untuk tabel terlarang ─────────────────
+  // Fungsi ini di-patch ke pool.query selama ensureSchema() berjalan saja,
+  // sehingga setiap CREATE TABLE yang secara tidak sengaja menargetkan tabel
+  // terlarang akan melempar error yang jelas sebelum menyentuh database.
+  const originalQuery = pool.query.bind(pool)
+  pool.query = function guardedSchemaQuery(text, values) {
+    assertNoForbiddenTables(text)
+    return originalQuery(text, values)
+  }
+  try {
   // Core identity tables (normally owned/shared by BLP Harian). Created here
   // as a fresh baseline since this database is a new standalone instance.
   await pool.query(`
@@ -586,132 +608,17 @@ export async function ensureSchema() {
     )
   `)
 
-  // Tabel absensi baru — mendukung filled_by_teacher_id/name untuk audit trail
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS attendance_records (
-      id                      SERIAL PRIMARY KEY,
-      student_id              text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      tanggal                 DATE NOT NULL,
-      status                  varchar(20) NOT NULL DEFAULT 'hadir',
-      keterangan              text,
-      filled_by_teacher_id    text REFERENCES gurus(id),
-      filled_by_teacher_name  text,
-      created_at              TIMESTAMPTZ DEFAULT NOW(),
-      UNIQUE (student_id, tanggal)
-    )
-  `)
-
-  // Tabel mapping guru ke kelas + mata pelajaran
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS kelas_guru (
-      id             SERIAL PRIMARY KEY,
-      guru_id        text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
-      kelas          varchar(50) NOT NULL,
-      mata_pelajaran varchar(100),
-      tahun_ajaran   varchar(20),
-      UNIQUE (guru_id, kelas, mata_pelajaran)
-    )
-  `)
-
-  // Tabel nilai siswa EOB5 (Kurikulum Merdeka: formatif, sumatif_lm, sumatif_akhir)
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS nilai_guru (
-      id             SERIAL PRIMARY KEY,
-      student_id     text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      guru_id        text REFERENCES gurus(id),
-      mata_pelajaran varchar(100),
-      jenis          varchar(30) NOT NULL DEFAULT 'formatif',
-      nilai          numeric(5,2),
-      keterangan     text,
-      tanggal        DATE NOT NULL DEFAULT CURRENT_DATE,
-      created_at     TIMESTAMPTZ DEFAULT NOW()
-    )
-  `)
-
-  // Tabel poin perilaku siswa (positif/negatif)
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS poin (
-      id          SERIAL PRIMARY KEY,
-      student_id  text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      guru_id     text REFERENCES gurus(id),
-      jenis       varchar(10) NOT NULL DEFAULT 'positif',
-      poin        integer NOT NULL DEFAULT 1,
-      keterangan  text,
-      tanggal     DATE NOT NULL DEFAULT CURRENT_DATE,
-      created_at  TIMESTAMPTZ DEFAULT NOW()
-    )
-  `)
-
   // ── GuruEOB5 Tables (Bagian 2) ───────────────────────────────────────────────
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS nilai_akademik (
-      id             SERIAL PRIMARY KEY,
-      student_id     text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      guru_id        text REFERENCES gurus(id),
-      mata_pelajaran VARCHAR(100) NOT NULL,
-      jenis_nilai    VARCHAR(50) NOT NULL,
-      nilai          NUMERIC(5,2),
-      semester       VARCHAR(10),
-      tahun_ajaran   VARCHAR(20),
-      keterangan     TEXT,
-      created_at     TIMESTAMPTZ DEFAULT NOW()
-    )
-  `)
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS materi (
-      id             SERIAL PRIMARY KEY,
-      guru_id        text REFERENCES gurus(id),
-      judul          VARCHAR(255) NOT NULL,
-      deskripsi      TEXT,
-      kelas          VARCHAR(50),
-      mata_pelajaran VARCHAR(100),
-      url_file       TEXT,
-      tipe           VARCHAR(50),
-      created_at     TIMESTAMPTZ DEFAULT NOW()
-    )
-  `)
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS jadwal (
-      id             SERIAL PRIMARY KEY,
-      guru_id        text REFERENCES gurus(id),
-      kelas          VARCHAR(50) NOT NULL,
-      mata_pelajaran VARCHAR(100) NOT NULL,
-      hari           VARCHAR(20) NOT NULL,
-      jam_mulai      TIME NOT NULL,
-      jam_selesai    TIME NOT NULL,
-      ruangan        VARCHAR(50),
-      tahun_ajaran   VARCHAR(20)
-    )
-  `)
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS kalender_akademik (
-      id              SERIAL PRIMARY KEY,
-      guru_id         text REFERENCES gurus(id),
-      judul           VARCHAR(255) NOT NULL,
-      deskripsi       TEXT,
-      tanggal_mulai   DATE NOT NULL,
-      tanggal_selesai DATE,
-      tipe            VARCHAR(50),
-      tahun_ajaran    VARCHAR(20),
-      created_at      TIMESTAMPTZ DEFAULT NOW()
-    )
-  `)
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS info_pekanan (
-      id             SERIAL PRIMARY KEY,
-      guru_id        text REFERENCES gurus(id),
-      kelas          VARCHAR(50),
-      minggu_ke      INTEGER NOT NULL,
-      judul          VARCHAR(255),
-      isi            TEXT,
-      created_at     TIMESTAMPTZ DEFAULT NOW()
-    )
-  `)
+  // Tabel-tabel berikut sudah di-DROP karena menduplikat tabel lama dari app GuruEOB5:
+  //   attendance_records → gunakan absensi
+  //   kelas_guru         → gunakan gurus.kelas_diampu
+  //   nilai_guru         → gunakan grades (JOIN subjects)
+  //   poin               → gunakan point_records
+  //   nilai_akademik     → gunakan grades (JOIN subjects)
+  //   materi             → gunakan bahan_ajar
+  //   jadwal             → gunakan schedules (app lama)
+  //   kalender_akademik  → gunakan academic_calendars
+  //   info_pekanan       → dihitung dari prosem_items + journal_entries + schedules
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS prosem (
@@ -736,17 +643,7 @@ export async function ensureSchema() {
     )
   `)
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS inbox (
-      id          SERIAL PRIMARY KEY,
-      pengirim_id text REFERENCES gurus(id),
-      judul       VARCHAR(255) NOT NULL,
-      isi         TEXT NOT NULL,
-      target_role VARCHAR(20) DEFAULT 'guru',
-      dibaca_oleh JSONB DEFAULT '[]',
-      created_at  TIMESTAMPTZ DEFAULT NOW()
-    )
-  `)
+  // inbox — dihapus (tabel baru SMARTISA, 0 data lama)
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tujuan_pembelajaran (
@@ -760,17 +657,7 @@ export async function ensureSchema() {
     )
   `)
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS feedback_siswa (
-      id               SERIAL PRIMARY KEY,
-      student_id       text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-      guru_id          text REFERENCES gurus(id),
-      isi              TEXT NOT NULL,
-      sudah_ditanggapi BOOLEAN DEFAULT FALSE,
-      tanggapan        TEXT,
-      created_at       TIMESTAMPTZ DEFAULT NOW()
-    )
-  `)
+  // feedback_siswa — dihapus (tabel baru SMARTISA, 0 data lama)
 
   // ── GuruEOB5 Tables (Bagian 3 — router baru) ─────────────────────────────────
 
@@ -1255,33 +1142,36 @@ export async function ensureSchema() {
   await pool.query(`ALTER TABLE point_records ADD COLUMN IF NOT EXISTS guru_id text`)
   await pool.query(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'tomat'`)
 
-  // 4. Migrasi data guru_id dari student_points ke point_records (jika belum)
-  //    Lalu drop student_points agar tidak membingungkan
-  const { rows: spExists } = await pool.query(`
-    SELECT 1 FROM information_schema.tables
-    WHERE table_schema='public' AND table_name='student_points'
-  `)
-  if (spExists.length) {
-    // Salin guru_id dari student_points ke point_records berdasarkan id yang sama
-    await pool.query(`
-      UPDATE point_records pr
-      SET guru_id = sp.guru_id
-      FROM student_points sp
-      WHERE pr.id = sp.id AND pr.guru_id IS NULL
-    `).catch(() => {})
-    // Drop tabel lama
-    await pool.query(`DROP TABLE IF EXISTS student_points`).catch(() => {})
-  }
-
-  // 5. attendance_records: migrasi data dari absensi lama (idempoten)
-  await pool.query(`
-    INSERT INTO attendance_records (student_id, tanggal, status, keterangan,
-                                    filled_by_teacher_id, created_at)
-    SELECT a.student_id, a.tanggal, a.status, a.keterangan,
-           a.guru_id, a.created_at
-    FROM absensi a
-    ON CONFLICT (student_id, tanggal) DO NOTHING
-  `).catch(() => {})
+  // Hapus student_points jika masih ada (sudah di-rename ke point_records di skema lama)
+  await pool.query(`DROP TABLE IF EXISTS student_points CASCADE`).catch(() => {})
 
   console.log('[schema] EOB5 migrations complete')
+
+  // ── MIGRATION PREVENTION GUARD (runtime DROP) ────────────────────────────
+  // Tabel-tabel berikut TERLARANG ada di database ini karena menduplikat
+  // data lama app GuruEOB5 yang masih aktif. Jika karena suatu alasan tabel-tabel
+  // ini terbuat ulang (misalnya agent lain menambahkan CREATE TABLE), blok ini
+  // akan MENDETEKSI dan MEN-DROP-nya saat server startup — dengan log peringatan.
+  // Daftar MIGRATION_FORBIDDEN_TABLES dikelola secara sentral di server/db.js.
+  for (const tbl of MIGRATION_FORBIDDEN_TABLES) {
+    // Bypass patch di atas — kita memang perlu query information_schema untuk cek
+    const { rows } = await originalQuery(
+      `SELECT 1 FROM information_schema.tables
+       WHERE table_schema = 'public' AND table_name = $1`,
+      [tbl]
+    )
+    if (rows.length) {
+      console.error(
+        `[schema] ⛔ TABEL TERLARANG "${tbl}" terdeteksi! ` +
+        `Tabel ini duplikat data lama app GuruEOB5 dan akan di-DROP sekarang.`
+      )
+      await originalQuery(`DROP TABLE IF EXISTS "${tbl}" CASCADE`)
+      console.error(`[schema] ⛔ "${tbl}" berhasil di-DROP otomatis.`)
+    }
+  }
+  console.log('[schema] Migration prevention guard: OK')
+  } finally {
+    // Selalu kembalikan pool.query ke versi asli setelah ensureSchema() selesai
+    pool.query = originalQuery
+  }
 }

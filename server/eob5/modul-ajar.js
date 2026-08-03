@@ -7,7 +7,7 @@
 
 import { Router } from 'express'
 import Groq from 'groq-sdk'
-import { pool } from '../db.js'
+import { guardedPool as pool } from './lib/db-guard.js'
 import { requireGuru } from './middleware.js'
 import { buildModulDocx } from './lib/docx-modul.js'
 

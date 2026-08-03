@@ -6,7 +6,7 @@
  */
 
 import { Router } from 'express'
-import { pool } from '../db.js'
+import { guardedPool as pool } from './lib/db-guard.js'
 import { requireGuru } from './middleware.js'
 
 const router = Router()
@@ -69,12 +69,11 @@ router.get('/', requireGuru, async (req, res) => {
     // Ambil subjects & jadwal guru ini
     const [subjectsRes, jadwalRes, prosemRes] = await Promise.all([
       pool.query('SELECT id, name FROM subjects WHERE teacher_id = $1 AND deleted_at IS NULL', [guruId]),
-      // Jadwal: UNION schedules (app lama, teacher_id) + jadwal (SMARTISA baru, guru_id)
-      pool.query(`
-        SELECT subject_id::text AS subject_id, kelas, hari FROM schedules WHERE teacher_id = $1
-        UNION ALL
-        SELECT NULL AS subject_id, kelas, hari FROM jadwal WHERE guru_id = $1
-      `, [guruId]),
+      // Jadwal: hanya dari schedules (tabel lama, teacher_id) — jadwal sudah di-DROP
+      pool.query(
+        `SELECT subject_id::text AS subject_id, kelas, hari FROM schedules WHERE teacher_id = $1`,
+        [guruId]
+      ),
       pool.query(
         `SELECT pi.id, pi.prosem_id, pi.subject_id, pi.materi, pi.kd, pi.jp, pi.kelas,
                 pi.urutan, p.teacher_id AS guru_id
