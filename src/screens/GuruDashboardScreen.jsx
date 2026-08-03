@@ -2836,7 +2836,8 @@ export default function GuruDashboardScreen({ onPlayGames }) {
             position: 'fixed', bottom: 'calc(56px + max(18px, env(safe-area-inset-bottom)))', left: 8, right: 8, zIndex: 12,
             background: '#12131f', borderRadius: 20,
             border: '1px solid rgba(255,255,255,0.09)',
-            overflow: 'hidden',
+            overflowY: 'auto',
+            maxHeight: 'calc(100dvh - 200px)',
             boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
           }}>
             <div style={{ fontSize: 10, color: '#4B5563', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '14px 16px 8px' }}>Menu Lainnya</div>

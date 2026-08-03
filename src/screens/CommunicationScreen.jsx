@@ -554,7 +554,19 @@ export default function CommunicationScreen({ goBack, embedded = false, initialT
     )
 
     const content = (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 10, display: 'flex', flexDirection: 'column', background: '#071321', paddingTop: embedded ? 0 : 'env(safe-area-inset-top)' }}>
+      <div style={{
+        position: 'fixed',
+        // When embedded inside GuruDashboardScreen, the AppShell header occupies
+        // the top 64 px and the guru bottom nav occupies the bottom ~74 px.
+        // Use exact insets so the chat list fills only the available space and
+        // the tab-switcher (Chat Pribadi / Forum Kelas) is visible below the header.
+        top: embedded ? 64 : 0,
+        left: 0, right: 0,
+        bottom: embedded ? 'calc(56px + max(18px, env(safe-area-inset-bottom)))' : 0,
+        zIndex: 10,
+        display: 'flex', flexDirection: 'column', background: '#071321',
+        paddingTop: embedded ? 0 : 'env(safe-area-inset-top)',
+      }}>
         {!embedded && (
           <div style={{ background: '#071321', borderBottom: '1px solid rgba(99,102,241,0.10)', flexShrink: 0 }}>
             <PlayerHeader />

@@ -75,11 +75,14 @@ export default function BlpLayout({ user, navigate, currentScreen, onLogout, chi
         }
       `}</style>
 
-      {/* Root flex container — fills the viewport */}
+      {/* Root flex container — fills the viewport below the AppShell header.
+          On mobile the AppShell injects padding-top: 64px on the wrapper div,
+          so we subtract that from our height so the container stays inside the
+          viewport and overflowY: auto on the content area can actually scroll. */}
       <div style={{
         display: 'flex',
         width: '100%',
-        height: '100dvh',
+        height: isDesktop ? '100dvh' : 'calc(100dvh - 64px)',
         overflow: 'hidden',
         position: 'relative',
       }}>
