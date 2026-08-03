@@ -74,20 +74,26 @@ export default function Eob5PoinScreen({ navigate, goBack }) {
   const [points, setPoints] = useState([])
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('riwayat') // 'riwayat' | 'rekap'
+  const [tab, setTab] = useState('riwayat') // 'riwayat' | 'rekap' | 'massal'
   const [rekapKelas, setRekapKelas] = useState('')
   const [inputOpen, setInputOpen] = useState(false)
   const [editPoint, setEditPoint] = useState(null)
   const [msg, setMsg] = useState({ type:'', text:'' })
 
-  // Input form
-  const [form, setForm] = useState({ studentIds:[], jenis:'negatif', poin:5, keterangan:'', tanggal:todayStr() })
+  // Input form (bulk — satu jenis/poin untuk banyak siswa)
+  const [form, setForm] = useState({ student_ids:[], jenis:'negatif', poin:5, keterangan:'', tanggal:todayStr() })
   const [kelasDialogFilter, setKelasDialogFilter] = useState('')
   const [saving, setSaving] = useState(false)
   const [formErr, setFormErr] = useState('')
 
   // Edit form
   const [editForm, setEditForm] = useState({ jenis:'positif', poin:5, keterangan:'', tanggal:todayStr() })
+
+  // Bulk-mixed state
+  const [massalKelas, setMassalKelas] = useState('')
+  const [massalTanggal, setMassalTanggal] = useState(todayStr())
+  const [massalRows, setMassalRows] = useState({}) // { [studentId]: { jenis, poin, keterangan } }
+  const [massalSaving, setMassalSaving] = useState(false)
 
   if (user?.role !== 'guru') return (
     <div style={{ padding:60, textAlign:'center', color:'#ef4444', fontFamily:'system-ui' }}>Akses hanya untuk guru.</div>
@@ -153,16 +159,58 @@ export default function Eob5PoinScreen({ navigate, goBack }) {
   [students, kelasDialogFilter])
 
   const toggleStudent = (id) => {
-    setForm(p=>({ ...p, studentIds: p.studentIds.includes(id)
-      ? p.studentIds.filter(x=>x!==id)
-      : [...p.studentIds, id] }))
+    setForm(p=>({ ...p, student_ids: p.student_ids.includes(id)
+      ? p.student_ids.filter(x=>x!==id)
+      : [...p.student_ids, id] }))
   }
   const toggleAll = () => {
     const ids = visibleStudents.map(s=>s.id)
-    const allSel = ids.every(id=>form.studentIds.includes(id))
-    setForm(p=>({ ...p, studentIds: allSel
-      ? p.studentIds.filter(id=>!ids.includes(id))
-      : [...new Set([...p.studentIds, ...ids])] }))
+    const allSel = ids.every(id=>form.student_ids.includes(id))
+    setForm(p=>({ ...p, student_ids: allSel
+      ? p.student_ids.filter(id=>!ids.includes(id))
+      : [...new Set([...p.student_ids, ...ids])] }))
+  }
+
+  // Bulk-mixed helpers
+  const massalStudents = useMemo(()=>
+    massalKelas ? students.filter(s=>s.kelas===massalKelas) : students,
+  [students, massalKelas])
+
+  const setMassalRow = (studentId, field, value) => {
+    setMassalRows(prev => ({
+      ...prev,
+      [studentId]: { jenis:'negatif', poin:'', keterangan:'', ...(prev[studentId]||{}), [field]: value }
+    }))
+  }
+
+  const handleSaveMassal = async () => {
+    const entries = massalStudents
+      .filter(s => {
+        const r = massalRows[s.id]
+        return r && r.poin !== '' && parseInt(r.poin) > 0
+      })
+      .map(s => {
+        const r = massalRows[s.id]
+        return { student_id: s.id, jenis: r.jenis||'negatif', poin: parseInt(r.poin), keterangan: r.keterangan||'' }
+      })
+    if (!entries.length) { showMsg('err','Tidak ada poin yang diisi'); return }
+    setMassalSaving(true)
+    try {
+      const r = await fetch('/api/eob5/points/bulk-mixed', {
+        method:'POST', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ tanggal: massalTanggal, entries })
+      })
+      const d = await r.json()
+      if (r.ok) {
+        showMsg('ok', `${d.count} catatan poin berhasil disimpan`)
+        setMassalRows({})
+        loadData()
+      } else {
+        showMsg('err', d.error || 'Gagal menyimpan')
+      }
+    } catch { showMsg('err','Gagal terhubung ke server') }
+    setMassalSaving(false)
   }
 
   const applyPreset = (preset, jenis) => {
@@ -170,21 +218,21 @@ export default function Eob5PoinScreen({ navigate, goBack }) {
   }
 
   const handleSubmitInput = async () => {
-    if (form.studentIds.length === 0) { setFormErr('Pilih minimal satu siswa'); return }
+    if (form.student_ids.length === 0) { setFormErr('Pilih minimal satu siswa'); return }
     if (!form.keterangan.trim()) { setFormErr('Keterangan wajib diisi'); return }
     if (!form.poin || form.poin < 1) { setFormErr('Poin harus minimal 1'); return }
     setSaving(true); setFormErr('')
     try {
       const r = await fetch('/api/eob5/points/bulk', { method:'POST', credentials:'include',
         headers:{'Content-Type':'application/json'}, body:JSON.stringify({
-          studentIds: form.studentIds, jenis:form.jenis,
+          student_ids: form.student_ids, jenis:form.jenis,
           poin: parseInt(form.poin), keterangan:form.keterangan, tanggal:form.tanggal
         })})
       if (r.ok) {
         const d = await r.json()
-        showMsg('ok',`Poin dicatat untuk ${d.count||form.studentIds.length} siswa`)
+        showMsg('ok',`Poin dicatat untuk ${d.count||form.student_ids.length} siswa`)
         setInputOpen(false)
-        setForm({ studentIds:[], jenis:'negatif', poin:5, keterangan:'', tanggal:todayStr() })
+        setForm({ student_ids:[], jenis:'negatif', poin:5, keterangan:'', tanggal:todayStr() })
         setKelasDialogFilter('')
         loadData()
       } else { const d=await r.json(); setFormErr(d.error||'Gagal menyimpan') }
@@ -228,7 +276,7 @@ export default function Eob5PoinScreen({ navigate, goBack }) {
           <div style={{ fontSize:10, color:C.sub, fontWeight:700, letterSpacing:1.5 }}>GURU</div>
           <div style={{ fontSize:17, fontWeight:800, color:'#fff' }}>Poin Siswa</div>
         </div>
-        <button onClick={()=>{ setInputOpen(true); setForm({ studentIds:[], jenis:'negatif', poin:5, keterangan:'', tanggal:todayStr() }); setFormErr('') }}
+        <button onClick={()=>{ setInputOpen(true); setForm({ student_ids:[], jenis:'negatif', poin:5, keterangan:'', tanggal:todayStr() }); setFormErr('') }}
           style={{ background:'linear-gradient(90deg,#f59e0b,#d97706)', border:'none',
             borderRadius:10, padding:'8px 14px', color:'#1a0a00', fontWeight:800, fontSize:12,
             cursor:'pointer', fontFamily:'inherit' }}>+ Input Poin</button>
@@ -256,8 +304,8 @@ export default function Eob5PoinScreen({ navigate, goBack }) {
         </div>
 
         {/* Tab Bar */}
-        <div style={{ display:'flex', gap:6, marginBottom:14 }}>
-          {[['riwayat','📋 Riwayat'],['rekap','👥 Rekap Siswa']].map(([k,l])=>(
+        <div style={{ display:'flex', gap:6, marginBottom:14, flexWrap:'wrap' }}>
+          {[['riwayat','📋 Riwayat'],['rekap','👥 Rekap Siswa'],['massal','📝 Input Massal']].map(([k,l])=>(
             <button key={k} onClick={()=>setTab(k)} style={{
               background: tab===k ? C.dim : C.card, border:`1px solid ${tab===k?C.primary:C.border}`,
               borderRadius:10, padding:'8px 16px', cursor:'pointer', fontFamily:'inherit',
@@ -402,6 +450,92 @@ export default function Eob5PoinScreen({ navigate, goBack }) {
             </div>
           </div>
         )}
+        {/* MASSAL TAB */}
+        {tab === 'massal' && (
+          <div>
+            {/* Filter bar */}
+            <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:12,
+              padding:'12px 14px', marginBottom:14, display:'flex', flexWrap:'wrap', gap:10, alignItems:'flex-end' }}>
+              <div>
+                <div style={{ fontSize:10, color:C.sub, fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Kelas</div>
+                <select value={massalKelas} onChange={e=>{ setMassalKelas(e.target.value); setMassalRows({}) }}
+                  style={{ ...inp, width:'auto', minWidth:160 }}>
+                  <option value="">Semua Kelas</option>
+                  {kelasList.map(k=><option key={k} value={k}>{k}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize:10, color:C.sub, fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Tanggal</div>
+                <input type="date" value={massalTanggal} onChange={e=>setMassalTanggal(e.target.value)} style={{ ...inp, width:'auto' }} />
+              </div>
+              <div style={{ marginLeft:'auto', alignSelf:'flex-end' }}>
+                <button onClick={handleSaveMassal} disabled={massalSaving}
+                  style={{ background:'linear-gradient(90deg,#f59e0b,#d97706)', border:'none', borderRadius:10,
+                    padding:'9px 20px', color:'#1a0a00', fontWeight:800, fontSize:13,
+                    cursor:massalSaving?'not-allowed':'pointer', fontFamily:'inherit' }}>
+                  {massalSaving ? 'Menyimpan…' : '💾 Simpan Semua'}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ fontSize:10, color:C.sub, fontWeight:700, textTransform:'uppercase',
+              letterSpacing:1, marginBottom:8 }}>
+              {massalStudents.length} Siswa · Kosongkan poin = siswa tidak dicatat
+            </div>
+
+            {massalStudents.length === 0 ? (
+              <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12,
+                padding:32, textAlign:'center', color:C.sub }}>Pilih kelas untuk menampilkan siswa.</div>
+            ) : (
+              <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:14, overflow:'hidden' }}>
+                {/* Header */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 110px 80px 1fr', gap:8, padding:'8px 12px',
+                  background:'rgba(0,0,0,0.25)', fontSize:10, color:C.sub, fontWeight:700, textTransform:'uppercase' }}>
+                  <span>Siswa</span><span>Jenis</span><span>Poin</span><span>Keterangan</span>
+                </div>
+                {massalStudents.map(s => {
+                  const row = massalRows[s.id] || {}
+                  const filled = row.poin !== '' && row.poin !== undefined && parseInt(row.poin) > 0
+                  return (
+                    <div key={s.id} style={{ display:'grid', gridTemplateColumns:'1fr 110px 80px 1fr', gap:8,
+                      padding:'8px 12px', borderTop:`1px solid ${C.border}`, alignItems:'center',
+                      background: filled ? C.dim : 'transparent' }}>
+                      {/* Nama */}
+                      <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
+                        <div style={{ width:26, height:26, borderRadius:'50%', background:`${avatarColor(s.name)}25`,
+                          color:avatarColor(s.name), display:'flex', alignItems:'center', justifyContent:'center',
+                          fontWeight:800, fontSize:10, flexShrink:0 }}>{initials(s.name)}</div>
+                        <div style={{ minWidth:0 }}>
+                          <div style={{ fontSize:12, fontWeight:600, color:'#fff', overflow:'hidden',
+                            textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name}</div>
+                          <div style={{ fontSize:9, color:C.sub }}>{s.kelas}</div>
+                        </div>
+                      </div>
+                      {/* Jenis */}
+                      <select value={row.jenis||'negatif'} onChange={e=>setMassalRow(s.id,'jenis',e.target.value)}
+                        style={{ ...inp, padding:'6px 8px', fontSize:11 }}>
+                        <option value="negatif">Negatif</option>
+                        <option value="positif">Positif</option>
+                      </select>
+                      {/* Poin */}
+                      <input type="number" min="1" placeholder="—"
+                        value={row.poin !== undefined ? row.poin : ''}
+                        onChange={e=>setMassalRow(s.id,'poin',e.target.value)}
+                        style={{ ...inp, padding:'6px 8px', fontSize:12, textAlign:'center',
+                          color: filled ? (row.jenis==='positif'?'#4ade80':'#f87171') : C.sub }} />
+                      {/* Keterangan */}
+                      <input placeholder="Keterangan (opsional)"
+                        value={row.keterangan||''}
+                        onChange={e=>setMassalRow(s.id,'keterangan',e.target.value)}
+                        style={{ ...inp, padding:'6px 8px', fontSize:11 }} />
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
 
       {/* Input Poin Dialog */}
@@ -465,7 +599,7 @@ export default function Eob5PoinScreen({ navigate, goBack }) {
           <div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
               <div style={{ fontSize:10, color:C.sub, fontWeight:700, textTransform:'uppercase' }}>
-                Siswa ({form.studentIds.length} dipilih)
+                Siswa ({form.student_ids.length} dipilih)
               </div>
               <select value={kelasDialogFilter} onChange={e=>setKelasDialogFilter(e.target.value)}
                 style={{ ...inp, width:'auto', padding:'4px 8px', fontSize:11 }}>
@@ -478,7 +612,7 @@ export default function Eob5PoinScreen({ navigate, goBack }) {
               <label style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px',
                 borderBottom:`1px solid ${C.border}`, background:'rgba(0,0,0,0.2)', cursor:'pointer' }}>
                 <input type="checkbox"
-                  checked={visibleStudents.length>0 && visibleStudents.every(s=>form.studentIds.includes(s.id))}
+                  checked={visibleStudents.length>0 && visibleStudents.every(s=>form.student_ids.includes(s.id))}
                   onChange={toggleAll} />
                 <span style={{ fontSize:12, fontWeight:700, color:C.primary }}>
                   Pilih Semua {kelasDialogFilter?`(${kelasDialogFilter})`:''}
@@ -489,9 +623,9 @@ export default function Eob5PoinScreen({ navigate, goBack }) {
               ) : visibleStudents.map(s=>(
                 <label key={s.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px',
                   borderBottom:`1px solid ${C.border}`, cursor:'pointer',
-                  background:form.studentIds.includes(s.id)?C.dim:'transparent' }}>
-                  <input type="checkbox" checked={form.studentIds.includes(s.id)} onChange={()=>toggleStudent(s.id)} />
-                  <span style={{ fontSize:12, color:'#fff', fontWeight:form.studentIds.includes(s.id)?700:400 }}>
+                  background:form.student_ids.includes(s.id)?C.dim:'transparent' }}>
+                  <input type="checkbox" checked={form.student_ids.includes(s.id)} onChange={()=>toggleStudent(s.id)} />
+                  <span style={{ fontSize:12, color:'#fff', fontWeight:form.student_ids.includes(s.id)?700:400 }}>
                     {s.name}
                   </span>
                   <span style={{ fontSize:10, color:C.sub, marginLeft:'auto' }}>{s.kelas}</span>
