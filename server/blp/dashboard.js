@@ -9,7 +9,6 @@ import { pool } from '../db.js'
 import {
   requireBlpAuth,
   loadStudent,
-  loadGuru,
   normalizeKelas,
   blpPeriodKey,
   isWaliKelas,
@@ -42,13 +41,15 @@ router.get('/dashboard', requireBlpAuth, async (req, res) => {
       return res.json({ students: { [student.id]: student }, gurus: {}, blpPeriods })
     }
 
-    // Guru — hanya wali kelas yang bisa akses BLP
-    const guru = await loadGuru(id)
-    if (!guru) {
+    // Guru — pakai data sesi yang sudah divalidasi saat login, tidak perlu DB lagi
+    const { jabatan = [], wali_kelas_kelas, name, username } = req.session.user
+    const jabatanArr = Array.isArray(jabatan) ? jabatan : [jabatan]
+    if (!jabatanArr.includes('wali_kelas') || !wali_kelas_kelas) {
       return res.status(403).json({ error: 'Hanya wali kelas yang dapat mengakses BLP' })
     }
 
-    const kelasWali = guru.kelasWali[0]
+    const kelasWali = normalizeKelas(wali_kelas_kelas)
+    const guru = { id, username, name, kelasWali: [kelasWali], photoUrl: null, bio: null }
 
     // Fetch siswa kelas ini saja — filter di SQL, bukan JavaScript
     const studentRes = await pool.query(
