@@ -234,9 +234,11 @@ router.get('/me', async (req, res) => {
         session.wali_kelas_kelas = user.wali_kelas_kelas || null
         needsSave = true
       }
-      // Recompute hasMateriTerdaftar whenever it is unknown or jabatan changed
-      if (session.hasMateriTerdaftar === undefined || jabatanChanged) {
-        session.hasMateriTerdaftar = await computeHasMateriTerdaftar(session.id, session.jabatan || [])
+      // Always recompute hasMateriTerdaftar from DB so subjects changes
+      // take effect without requiring logout/login.
+      const freshHas = await computeHasMateriTerdaftar(session.id, session.jabatan || [])
+      if (session.hasMateriTerdaftar !== freshHas) {
+        session.hasMateriTerdaftar = freshHas
         needsSave = true
       }
     }
