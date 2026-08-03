@@ -20,8 +20,10 @@ export function BlpDataProvider({ children }) {
     if (fetchingRef.current) return
     fetchingRef.current = true
     setLoading(true)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15000) // 15s timeout
     try {
-      const res = await fetch('/api/blp/dashboard', { credentials: 'include' })
+      const res = await fetch('/api/blp/dashboard', { credentials: 'include', signal: controller.signal })
       if (!res.ok) throw new Error('Gagal memuat data BLP')
       const json = await res.json()
       dataRef.current = json
@@ -29,8 +31,10 @@ export function BlpDataProvider({ children }) {
       setError(null)
       return json
     } catch (e) {
-      setError(e.message)
+      const msg = e.name === 'AbortError' ? 'Koneksi timeout — coba lagi' : e.message
+      setError(msg)
     } finally {
+      clearTimeout(timer)
       setLoading(false)
       fetchingRef.current = false
     }

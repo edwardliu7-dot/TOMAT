@@ -61,14 +61,19 @@ router.get('/dashboard', requireBlpAuth, async (req, res) => {
     const classStudentIds = studentRes.rows.map(r => r.id)
     const classStudentRows = studentRes.rows
 
+    // Batasi ke 6 bulan terakhir — cukup untuk satu semester penuh
+    const sixMonthsAgo = new Date()
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+    const cutoffDate = sixMonthsAgo.toISOString().slice(0, 10)
+
     const noRows = { rows: [] }
     const [recordsRes, periodsRes, haidRes] = await Promise.all([
       classStudentIds.length > 0
         ? pool.query(
             `SELECT student_id, record_date, completed_activities, score, submissions
              FROM daily_records
-             WHERE student_id = ANY($1)`,
-            [classStudentIds]
+             WHERE student_id = ANY($1) AND record_date >= $2`,
+            [classStudentIds, cutoffDate]
           )
         : Promise.resolve(noRows),
       pool.query(
