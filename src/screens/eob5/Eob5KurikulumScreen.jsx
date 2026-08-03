@@ -1,9 +1,8 @@
 /**
  * Eob5KurikulumScreen.jsx
- * Supervisi Kurikulum: dokumen administrasi + jurnal per guru.
- * API: GET /api/eob5/kurikulum/overview, GET /api/eob5/kurikulum/jurnal
+ * Supervisi Kurikulum + Tujuan Pembelajaran per guru.
  */
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useAuth } from '../../AuthContext'
 
 const C = {
@@ -16,17 +15,21 @@ const C = {
 const AVATAR_COLORS = ['#3b82f6','#ef4444','#f59e0b','#8b5cf6','#22c55e','#14b8a6','#f97316','#06b6d4']
 function avatarColor(idx) { return AVATAR_COLORS[idx % AVATAR_COLORS.length] }
 function initials(name) { return (name||'').split(' ').map(p=>p[0]).filter(Boolean).slice(0,2).join('').toUpperCase()||'?' }
-
 function getProgressColor(pct) {
   if (pct >= 100) return '#22c55e'
   if (pct >= 60)  return '#3b82f6'
   return '#f59e0b'
 }
-
 function fmtDate(s) {
   if (!s) return '—'
   try { return new Date(s).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) }
   catch { return s }
+}
+
+const inp = {
+  background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`,
+  borderRadius: 8, padding: '8px 10px', color: '#fff',
+  fontFamily: 'inherit', fontSize: 13, boxSizing: 'border-box',
 }
 
 function StatCard({ label, value, icon, color, loading }) {
@@ -45,6 +48,262 @@ function StatCard({ label, value, icon, color, loading }) {
   )
 }
 
+// ─── Tab: Tujuan Pembelajaran ──────────────────────────────────────────────
+function TpTab() {
+  const [subjects, setSubjects]   = useState([])
+  const [calendars, setCalendars] = useState([])
+  const [tpList, setTpList]       = useState([])
+  const [subjectId, setSubjectId] = useState('')
+  const [calendarId, setCalendarId] = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [loadingTp, setLoadingTp] = useState(false)
+
+  // Import state
+  const [importItems, setImportItems]   = useState(null) // array dari AI atau null
+  const [checkedItems, setCheckedItems] = useState(new Set())
+  const [analyzing, setAnalyzing]       = useState(false)
+  const [saving, setSaving]             = useState(false)
+  const [msg, setMsg]                   = useState({ type: '', text: '' })
+  const fileRef = useRef(null)
+
+  useEffect(() => {
+    setLoading(true)
+    Promise.all([
+      fetch('/api/eob5/subjects',           { credentials: 'include' }).then(r => r.ok ? r.json() : []),
+      fetch('/api/eob5/academic-calendars', { credentials: 'include' }).then(r => r.ok ? r.json() : []),
+    ]).then(([subj, cal]) => {
+      const subjArr = Array.isArray(subj) ? subj : []
+      const calArr  = Array.isArray(cal)  ? cal  : []
+      setSubjects(subjArr)
+      setCalendars(calArr)
+      if (subjArr.length) setSubjectId(String(subjArr[0].id))
+      if (calArr.length)  setCalendarId(String(calArr[0].id))
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  const loadTp = (sid, cid) => {
+    if (!sid || !cid) return
+    setLoadingTp(true)
+    fetch(`/api/eob5/tujuan-pembelajaran?subject_id=${sid}&calendar_id=${cid}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { setTpList(Array.isArray(d) ? d : []); setLoadingTp(false) })
+      .catch(() => setLoadingTp(false))
+  }
+
+  useEffect(() => { loadTp(subjectId, calendarId) }, [subjectId, calendarId])
+
+  const flash = (type, text) => {
+    setMsg({ type, text })
+    setTimeout(() => setMsg({ type: '', text: '' }), 4000)
+  }
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!subjectId || !calendarId) { flash('error', 'Pilih mata pelajaran dan semester terlebih dahulu'); return }
+
+    setAnalyzing(true)
+    setImportItems(null)
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const r = await fetch('/api/eob5/tujuan-pembelajaran/import-analyze', {
+        method: 'POST', credentials: 'include', body: formData,
+      })
+      const d = await r.json()
+      if (!r.ok) { flash('error', d.error || 'Gagal menganalisis file'); setAnalyzing(false); return }
+      setImportItems(d.items)
+      setCheckedItems(new Set(d.items.map((_, i) => i)))
+    } catch {
+      flash('error', 'Gagal mengunggah file')
+    } finally {
+      setAnalyzing(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const handleSave = async () => {
+    if (!importItems || !checkedItems.size) return
+    const selected = importItems
+      .filter((_, i) => checkedItems.has(i))
+      .map(item => ({
+        lingkup_materi: item.lingkupMateri ?? item.lingkup_materi ?? 1,
+        tp_number: item.tpNumber ?? item.tp_number ?? null,
+        description: item.description,
+      }))
+    setSaving(true)
+    try {
+      const r = await fetch('/api/eob5/tujuan-pembelajaran/bulk', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject_id: subjectId, calendar_id: calendarId, items: selected }),
+      })
+      const d = await r.json()
+      if (!r.ok) { flash('error', d.error || 'Gagal menyimpan TP'); setSaving(false); return }
+      flash('ok', `${d.count} Tujuan Pembelajaran berhasil disimpan`)
+      setImportItems(null)
+      loadTp(subjectId, calendarId)
+    } catch {
+      flash('error', 'Gagal menyimpan TP')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteTp = async (id) => {
+    if (!confirm('Hapus TP ini?')) return
+    await fetch(`/api/eob5/tujuan-pembelajaran/${id}`, { method: 'DELETE', credentials: 'include' })
+    setTpList(prev => prev.filter(tp => tp.id !== id))
+  }
+
+  // Group TP by lingkup_materi
+  const tpByLM = useMemo(() => {
+    const map = new Map()
+    for (const tp of tpList) {
+      const lm = tp.lingkup_materi ?? 0
+      const arr = map.get(lm) ?? []
+      arr.push(tp)
+      map.set(lm, arr)
+    }
+    return map
+  }, [tpList])
+
+  const selectedSubject  = subjects.find(s => String(s.id) === subjectId)
+  const selectedCalendar = calendars.find(c => String(c.id) === calendarId)
+
+  return (
+    <div>
+      {/* Filters */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, marginBottom: 16,
+        display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
+        <div>
+          <div style={{ fontSize: 11, color: C.sub, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Mata Pelajaran</div>
+          <select value={subjectId} onChange={e => setSubjectId(e.target.value)} style={{ ...inp, minWidth: 180 }} disabled={loading}>
+            <option value="">Pilih Mapel</option>
+            {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: C.sub, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>Semester</div>
+          <select value={calendarId} onChange={e => setCalendarId(e.target.value)} style={inp} disabled={loading}>
+            <option value="">Pilih Semester</option>
+            {calendars.map(c => <option key={c.id} value={c.id}>{c.nama || `${c.tahun_ajaran || c.tahunAjaran} Sem.${c.semester}`}</option>)}
+          </select>
+        </div>
+        <div style={{ marginLeft: 'auto' }}>
+          <input ref={fileRef} type="file" accept=".pdf,.docx" style={{ display: 'none' }} onChange={handleFileUpload} />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={analyzing || !subjectId || !calendarId}
+            style={{ padding: '9px 18px', background: analyzing ? 'rgba(245,158,11,0.2)' : C.dim,
+              border: `1px solid ${C.border}`, borderRadius: 10, color: analyzing ? C.sub : C.primary,
+              fontSize: 13, fontWeight: 700, cursor: analyzing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            {analyzing ? '⏳ Menganalisis...' : '📂 Import dari File'}
+          </button>
+        </div>
+      </div>
+
+      {/* Message */}
+      {msg.text && (
+        <div style={{ background: msg.type === 'ok' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+          border: `1px solid ${msg.type === 'ok' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+          borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 13,
+          color: msg.type === 'ok' ? '#86efac' : '#fca5a5' }}>
+          {msg.text}
+        </div>
+      )}
+
+      {/* Import preview */}
+      {importItems && (
+        <div style={{ background: 'rgba(245,158,11,0.06)', border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>✨ Hasil Analisis AI</div>
+              <div style={{ fontSize: 11, color: C.sub, marginTop: 2 }}>{importItems.length} TP ditemukan · {checkedItems.size} dipilih</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setImportItems(null)} style={{ padding: '6px 12px', background: 'transparent',
+                border: `1px solid ${C.border}`, borderRadius: 8, color: C.sub, fontSize: 12, cursor: 'pointer' }}>Batalkan</button>
+              <button onClick={handleSave} disabled={saving || !checkedItems.size}
+                style={{ padding: '6px 18px', background: saving ? 'rgba(245,158,11,0.2)' : C.primary,
+                  border: 'none', borderRadius: 8, color: '#1a1200', fontWeight: 800, fontSize: 13,
+                  cursor: saving || !checkedItems.size ? 'not-allowed' : 'pointer' }}>
+                {saving ? 'Menyimpan...' : `Simpan ${checkedItems.size} TP`}
+              </button>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+            {importItems.map((item, i) => {
+              const checked = checkedItems.has(i)
+              return (
+                <label key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 10px',
+                  background: checked ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${checked ? C.border : 'transparent'}`,
+                  borderRadius: 8, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={checked} onChange={() => {
+                    setCheckedItems(prev => {
+                      const next = new Set(prev)
+                      if (next.has(i)) next.delete(i); else next.add(i)
+                      return next
+                    })
+                  }} style={{ marginTop: 2, accentColor: C.primary }} />
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: 10, color: C.sub, fontWeight: 700, marginRight: 6 }}>
+                      LM {item.lingkupMateri ?? item.lingkup_materi ?? 1} · TP {item.tpNumber ?? item.tp_number ?? (i+1)}
+                    </span>
+                    <span style={{ fontSize: 13, color: '#fff' }}>{item.description}</span>
+                  </div>
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* TP List */}
+      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: C.sub, marginBottom: 10 }}>
+        {selectedSubject?.name || '—'} &nbsp;·&nbsp; {selectedCalendar ? `${selectedCalendar.tahun_ajaran || selectedCalendar.tahunAjaran} Sem.${selectedCalendar.semester}` : '—'}
+        &nbsp;<span style={{ opacity: 0.5 }}>({tpList.length} TP)</span>
+      </div>
+      {loadingTp ? (
+        <div style={{ textAlign: 'center', color: C.sub, padding: 30 }}>⏳ Memuat TP…</div>
+      ) : tpList.length === 0 ? (
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '32px', textAlign: 'center', color: C.sub }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>📋</div>
+          <div style={{ fontSize: 13 }}>Belum ada Tujuan Pembelajaran. Klik "Import dari File" untuk mulai.</div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[...tpByLM.entries()].sort((a, b) => (a[0] ?? 0) - (b[0] ?? 0)).map(([lm, items]) => (
+            <div key={lm} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ background: 'rgba(245,158,11,0.08)', padding: '8px 14px', fontSize: 11, fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: 1, color: C.primary }}>
+                Lingkup Materi {lm || '—'} <span style={{ color: C.sub, fontWeight: 400 }}>· {items.length} TP</span>
+              </div>
+              {items.map(tp => (
+                <div key={tp.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px',
+                  borderTop: `1px solid rgba(245,158,11,0.08)` }}>
+                  <span style={{ background: C.dim, border: `1px solid ${C.border}`, borderRadius: 6,
+                    padding: '2px 8px', fontSize: 11, fontWeight: 700, color: C.sub, flexShrink: 0, marginTop: 2 }}>
+                    TP {tp.tp_number ?? '—'}
+                  </span>
+                  <div style={{ flex: 1, fontSize: 13, color: C.text, lineHeight: 1.5 }}>{tp.deskripsi || tp.description}</div>
+                  <button onClick={() => handleDeleteTp(tp.id)}
+                    style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: 16, cursor: 'pointer',
+                      opacity: 0.6, padding: '0 4px', flexShrink: 0, lineHeight: 1 }}>✕</button>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Main Screen ───────────────────────────────────────────────────────────
 export default function Eob5KurikulumScreen({ navigate, goBack }) {
   const { user } = useAuth()
   const [tab, setTab]       = useState('dokumen')
@@ -82,6 +341,8 @@ export default function Eob5KurikulumScreen({ navigate, goBack }) {
     background: 'rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }
   const tdStyle = { padding: '10px 14px', fontSize: 13, color: C.text, borderBottom: `1px solid rgba(245,158,11,0.08)` }
 
+  const TABS = [['dokumen','📄 Dokumen'],['jurnal','📖 Jurnal'],['tp','📋 Tujuan Pembelajaran']]
+
   return (
     <div style={{ minHeight: '100vh', background: C.bg, fontFamily: 'system-ui,sans-serif', color: C.text, paddingBottom: 40 }}>
       {/* Header */}
@@ -95,10 +356,10 @@ export default function Eob5KurikulumScreen({ navigate, goBack }) {
       </div>
 
       <div style={{ padding: '20px 16px' }}>
-        {/* Tabs + Export */}
+        {/* Tabs */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
           <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,0.2)', padding: 4, borderRadius: 20 }}>
-            {[['dokumen','📄 Dokumen'],['jurnal','📖 Jurnal']].map(([k,l]) => (
+            {TABS.map(([k,l]) => (
               <button key={k} onClick={() => setTab(k)} style={{
                 padding: '7px 18px', borderRadius: 16, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all .2s',
                 background: tab === k ? C.white : 'transparent', color: tab === k ? '#fff' : C.sub,
@@ -107,16 +368,18 @@ export default function Eob5KurikulumScreen({ navigate, goBack }) {
           </div>
         </div>
 
-        {/* Stat Cards */}
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
-          <StatCard label="Total Guru"      value={totalGuru}                   icon="👨‍🏫" color="#3b82f6" loading={loading} />
-          <StatCard label="Dokumen Lengkap" value={`${dokumenLengkap}/${totalGuru}`} icon="✅" color="#22c55e" loading={loading} />
-          <StatCard label="Total Dokumen"   value={totalDocs}                   icon="📄"  color="#8b5cf6" loading={loading} />
-        </div>
+        {/* Stat Cards — show only on dokumen/jurnal */}
+        {tab !== 'tp' && (
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
+            <StatCard label="Total Guru"      value={totalGuru}                   icon="👨‍🏫" color="#3b82f6" loading={loading} />
+            <StatCard label="Dokumen Lengkap" value={`${dokumenLengkap}/${totalGuru}`} icon="✅" color="#22c55e" loading={loading} />
+            <StatCard label="Total Dokumen"   value={totalDocs}                   icon="📄"  color="#8b5cf6" loading={loading} />
+          </div>
+        )}
 
+        {/* ─── Tab: Dokumen ─── */}
         {tab === 'dokumen' && (
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-            {/* Guru cards */}
             <div style={{ flex: 1, minWidth: 280 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: C.sub }}>Status Dokumen Guru</div>
@@ -139,10 +402,8 @@ export default function Eob5KurikulumScreen({ navigate, goBack }) {
                 return (
                   <div key={teacher.username} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12,
                     overflow: 'hidden', marginBottom: 10 }}>
-                    {/* Guru row */}
                     <div onClick={() => setExpandedId(isExpanded ? null : teacher.username)}
-                      style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer',
-                        transition: 'background .15s' }}
+                      style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       <div style={{ width: 38, height: 38, borderRadius: '50%', background: avatarColor(idx),
@@ -173,7 +434,6 @@ export default function Eob5KurikulumScreen({ navigate, goBack }) {
                       </div>
                     </div>
 
-                    {/* Expanded: subjects + docs */}
                     {isExpanded && (
                       <div style={{ borderTop: `1px solid ${C.border}`, background: 'rgba(0,0,0,0.15)', padding: 14 }}>
                         {teacher.subjects.length === 0 ? (
@@ -262,6 +522,7 @@ export default function Eob5KurikulumScreen({ navigate, goBack }) {
           </div>
         )}
 
+        {/* ─── Tab: Jurnal ─── */}
         {tab === 'jurnal' && (
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: C.sub, marginBottom: 10 }}>Jurnal Mengajar Semua Guru</div>
@@ -304,6 +565,9 @@ export default function Eob5KurikulumScreen({ navigate, goBack }) {
             </div>
           </div>
         )}
+
+        {/* ─── Tab: Tujuan Pembelajaran ─── */}
+        {tab === 'tp' && <TpTab />}
       </div>
     </div>
   )
