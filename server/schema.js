@@ -572,7 +572,7 @@ export async function ensureSchema() {
   await pool.query(`ALTER TABLE gurus ADD COLUMN IF NOT EXISTS jabatan text[] NOT NULL DEFAULT '{}'`)
   await pool.query(`ALTER TABLE gurus ADD COLUMN IF NOT EXISTS wali_kelas_kelas text`)
 
-  // Tabel absensi harian siswa
+  // Tabel absensi harian siswa (lama — dipertahankan untuk backward-compat, data lama ada di sini)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS absensi (
       id          SERIAL PRIMARY KEY,
@@ -582,6 +582,21 @@ export async function ensureSchema() {
       status      varchar(20) NOT NULL DEFAULT 'hadir',
       keterangan  text,
       created_at  TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE (student_id, tanggal)
+    )
+  `)
+
+  // Tabel absensi baru — mendukung filled_by_teacher_id/name untuk audit trail
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS attendance_records (
+      id                      SERIAL PRIMARY KEY,
+      student_id              text NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+      tanggal                 DATE NOT NULL,
+      status                  varchar(20) NOT NULL DEFAULT 'hadir',
+      keterangan              text,
+      filled_by_teacher_id    text REFERENCES gurus(id),
+      filled_by_teacher_name  text,
+      created_at              TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE (student_id, tanggal)
     )
   `)
@@ -1233,6 +1248,16 @@ export async function ensureSchema() {
     // Drop tabel lama
     await pool.query(`DROP TABLE IF EXISTS student_points`).catch(() => {})
   }
+
+  // 5. attendance_records: migrasi data dari absensi lama (idempoten)
+  await pool.query(`
+    INSERT INTO attendance_records (student_id, tanggal, status, keterangan,
+                                    filled_by_teacher_id, created_at)
+    SELECT a.student_id, a.tanggal, a.status, a.keterangan,
+           a.guru_id, a.created_at
+    FROM absensi a
+    ON CONFLICT (student_id, tanggal) DO NOTHING
+  `).catch(() => {})
 
   console.log('[schema] EOB5 migrations complete')
 }

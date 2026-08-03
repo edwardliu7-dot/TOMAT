@@ -46,24 +46,21 @@ router.get('/kelas/:kelas', requireGuru, async (req, res) => {
     `, nilaiParams)
 
     // Rekap absensi
-    const absensiConditions = ['a.guru_id = $1', 'a.kelas = $2']
-    const absensiParams = [guruId, kelas]
-
     const { rows: absensiRows } = await pool.query(`
       SELECT
-        a.student_id,
+        s.id AS student_id,
         s.name AS nama_siswa,
         COUNT(*) FILTER (WHERE a.status = 'hadir') AS hadir,
         COUNT(*) FILTER (WHERE a.status = 'sakit') AS sakit,
-        COUNT(*) FILTER (WHERE a.status = 'izin') AS izin,
-        COUNT(*) FILTER (WHERE a.status = 'alpha') AS alpha,
-        COUNT(*) AS total_pertemuan
-      FROM absensi a
-      JOIN students s ON s.id = a.student_id
-      WHERE ${absensiConditions.join(' AND ')}
-      GROUP BY a.student_id, s.name
+        COUNT(*) FILTER (WHERE a.status = 'izin')  AS izin,
+        COUNT(*) FILTER (WHERE a.status = 'alpa')  AS alpa,
+        COUNT(a.id) AS total_pertemuan
+      FROM students s
+      LEFT JOIN attendance_records a ON a.student_id = s.id
+      WHERE s.kelas = $1
+      GROUP BY s.id, s.name
       ORDER BY s.name
-    `, absensiParams)
+    `, [kelas])
 
     res.json({ kelas, nilai: nilaiRows, absensi: absensiRows })
   } catch (err) {
@@ -100,12 +97,12 @@ router.get('/siswa/:id', requireGuru, async (req, res) => {
       SELECT
         COUNT(*) FILTER (WHERE status = 'hadir') AS hadir,
         COUNT(*) FILTER (WHERE status = 'sakit') AS sakit,
-        COUNT(*) FILTER (WHERE status = 'izin') AS izin,
-        COUNT(*) FILTER (WHERE status = 'alpha') AS alpha,
+        COUNT(*) FILTER (WHERE status = 'izin')  AS izin,
+        COUNT(*) FILTER (WHERE status = 'alpa')  AS alpa,
         COUNT(*) AS total
-      FROM absensi
-      WHERE student_id = $1 AND guru_id = $2
-    `, [studentId, guruId])
+      FROM attendance_records
+      WHERE student_id = $1
+    `, [studentId])
 
     res.json({
       siswa: siswaRows[0],
@@ -134,7 +131,7 @@ router.get('/guru/:id', requireGuru, async (req, res) => {
         [guruId]
       ),
       pool.query(
-        'SELECT COUNT(*) AS total_sesi FROM absensi WHERE guru_id = $1',
+        'SELECT COUNT(*) AS total_sesi FROM attendance_records WHERE filled_by_teacher_id = $1',
         [guruId]
       ),
       pool.query(
@@ -210,9 +207,9 @@ router.get('/absensi-chart', requireGuru, async (req, res) => {
         COUNT(*) FILTER (WHERE a.status = 'hadir') AS hadir,
         COUNT(*) FILTER (WHERE a.status = 'izin')  AS izin,
         COUNT(*) FILTER (WHERE a.status = 'sakit') AS sakit,
-        COUNT(*) FILTER (WHERE a.status = 'alpha') AS alpa,
+        COUNT(*) FILTER (WHERE a.status = 'alpa')  AS alpa,
         COUNT(*)                                    AS total
-      FROM absensi a
+      FROM attendance_records a
       JOIN students s ON s.id = a.student_id
       GROUP BY bulan, s.kelas
       ORDER BY bulan, s.kelas
