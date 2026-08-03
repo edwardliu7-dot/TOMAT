@@ -73,12 +73,13 @@ router.get('/', requireGuru, async (req, res) => {
         'SELECT subject_id, kelas, hari FROM jadwal WHERE guru_id = $1', [guruId]
       ),
       pool.query(
-        `SELECT pi.id, pi.prosem_id, pi.materi, pi.kd, pi.jp, pi.kelas,
+        `SELECT pi.id, pi.prosem_id, pi.subject_id, pi.materi, pi.kd, pi.jp, pi.kelas,
                 pi.urutan, p.teacher_id AS guru_id
          FROM prosem_items pi
          JOIN prosem p ON p.id = pi.prosem_id
-         WHERE p.teacher_id = $1`,
-        [guruId]
+         WHERE p.teacher_id = $1
+           AND (pi.week_id = $2 OR pi.week_id IS NULL)`,
+        [guruId, week_id]
       ),
     ])
 
