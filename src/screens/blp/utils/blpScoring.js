@@ -9,9 +9,16 @@ export const SCHOOL_ONLY_ACTIVITY_IDS = ['r1']
 // (boleh disiapkan malam Minggu untuk Senin)
 export const SATURDAY_ONLY_BLOCK_IDS = ['rp1']
 
-// Saat haid: d1 (shalat 5 waktu) dan d5 (baca quran) di-auto-credit
-// agar siswi tidak dihukum karena pengecualian syariat
-export const HAID_AUTO_CREDIT_IDS = ['d1', 'd5']
+// Saat haid: semua aktivitas sholat DIKECUALIKAN dari total maupun hitungan
+// (tidak dihitung, bukan di-auto-credit) — sama seperti r1 di hari libur
+export const HAID_EXCLUDED_IDS = BLP_CATEGORIES
+  .flatMap(cat => cat.activities)
+  .filter(a => a.sholat)
+  .map(a => a.id)
+// = ['d1','d2','d4','d6','r3','rf1']
+
+// Alias untuk backward-compat (tidak lagi dipakai dalam scoring)
+export const HAID_AUTO_CREDIT_IDS = HAID_EXCLUDED_IDS
 
 export function isSchoolDay(date) {
   const dow = date.getDay() // 0=Minggu, 6=Sabtu
@@ -27,16 +34,18 @@ export function isSunday(date) {
 }
 
 // ID aktivitas yang berlaku untuk tanggal tertentu
-export function getEffectiveActivityIds(date) {
+// isHaid=true → aktivitas sholat dikeluarkan dari daftar (sama seperti r1 di hari libur)
+export function getEffectiveActivityIds(date, isHaid = false) {
   return ALL_ACTIVITY_IDS.filter(id => {
     if (SCHOOL_ONLY_ACTIVITY_IDS.includes(id) && !isSchoolDay(date)) return false
     if (SATURDAY_ONLY_BLOCK_IDS.includes(id) && isSaturday(date)) return false
+    if (isHaid && HAID_EXCLUDED_IDS.includes(id)) return false
     return true
   })
 }
 
-export function getEffectiveTotalActivities(date) {
-  return getEffectiveActivityIds(date).length
+export function getEffectiveTotalActivities(date, haidPeriods = []) {
+  return getEffectiveActivityIds(date, isHaidDay(date, haidPeriods)).length
 }
 
 export function dateToKey(date) {
@@ -52,19 +61,11 @@ export function isHaidDay(date, haidPeriods = []) {
   return haidPeriods.some(p => p.startDate <= key && (p.endDate === null || p.endDate >= key))
 }
 
-// Hitung berapa aktivitas yang benar-benar dihitung untuk satu hari
-// (termasuk auto-credit saat haid)
+// Hitung berapa aktivitas yang benar-benar selesai untuk satu hari
+// Aktivitas sholat saat haid otomatis tidak ada dalam daftar efektif (dikecualikan)
 export function getEffectiveCompletedCount(date, completedActivities, haidPeriods = []) {
-  const effective = new Set(getEffectiveActivityIds(date))
-  const completed = new Set(completedActivities.filter(id => effective.has(id)))
-
-  if (isHaidDay(date, haidPeriods)) {
-    for (const id of HAID_AUTO_CREDIT_IDS) {
-      if (effective.has(id)) completed.add(id)
-    }
-  }
-
-  return completed.size
+  const effective = new Set(getEffectiveActivityIds(date, isHaidDay(date, haidPeriods)))
+  return (completedActivities || []).filter(id => effective.has(id)).length
 }
 
 export function getBlpPeriodKey(kelas, year, month) {

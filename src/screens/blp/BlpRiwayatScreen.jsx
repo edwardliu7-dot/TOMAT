@@ -11,7 +11,7 @@ import {
 
 function getSkorForRecord(record, dateStr, haidPeriods = []) {
   const dateObj = new Date(dateStr + 'T00:00:00')
-  const total = getEffectiveTotalActivities(dateObj)
+  const total = getEffectiveTotalActivities(dateObj, haidPeriods)
   const done  = getEffectiveCompletedCount(dateObj, record.completedActivities || [], haidPeriods)
   return { skor: total > 0 ? Math.round((done / total) * 100) : 0, done, total }
 }

@@ -158,7 +158,7 @@ function TabHarian({ student, today }) {
   }, [existingRec])
 
   // Scoring dengan metode baru
-  const totalActs  = getEffectiveTotalActivities(todayDate)
+  const totalActs  = getEffectiveTotalActivities(todayDate, haidPeriods)
   const doneCount  = getEffectiveCompletedCount(todayDate, checked, haidPeriods)
   const pct        = totalActs > 0 ? Math.round((doneCount / totalActs) * 100) : 0
   const stars      = starCount(pct)
@@ -601,7 +601,7 @@ function TabKalender({ student }) {
               const isFuture = key > today
               // Scoring per-hari: gunakan haidPeriods + tanggal spesifik
               const dayDate  = new Date(key + 'T00:00:00')
-              const effectiveTotal = getEffectiveTotalActivities(dayDate)
+              const effectiveTotal = getEffectiveTotalActivities(dayDate, haidPeriods)
               const effectiveDone  = rec
                 ? getEffectiveCompletedCount(dayDate, rec.completedActivities || [], haidPeriods)
                 : null

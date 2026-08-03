@@ -7,7 +7,7 @@ import { useBlpData } from '../../contexts/BlpDataContext.jsx'
 
 function getSkorForRecord(record, dateStr, haidPeriods = []) {
   const dateObj = new Date(dateStr + 'T00:00:00')
-  const total = getEffectiveTotalActivities(dateObj)
+  const total = getEffectiveTotalActivities(dateObj, haidPeriods)
   const done  = getEffectiveCompletedCount(dateObj, record.completedActivities || [], haidPeriods)
   return total > 0 ? Math.round((done / total) * 100) : 0
 }
@@ -53,7 +53,7 @@ function SiswaHome({ navigate, student, blpPeriods }) {
   const recentDays = Object.keys(student.records || {}).sort((a, b) => b.localeCompare(a)).slice(0, 5)
 
   const todayDate = new Date(today + 'T00:00:00')
-  const totalActivities = getEffectiveTotalActivities(todayDate)
+  const totalActivities = getEffectiveTotalActivities(todayDate, student.haidPeriods || [])
   const activitiesDone = todayRecord
     ? getEffectiveCompletedCount(todayDate, todayRecord.completedActivities || [], student.haidPeriods || [])
     : 0

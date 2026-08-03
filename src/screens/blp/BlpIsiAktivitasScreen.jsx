@@ -42,7 +42,7 @@ export default function BlpIsiAktivitasScreen({ goBack }) {
   const sedangHaid = student ? isSedangHaid(student.haidPeriods) : false
   const todayDate = new Date(today + 'T00:00:00')
   const allActivities = BLP_CATEGORIES.flatMap(c => c.activities)
-  const effectiveTotal = getEffectiveTotalActivities(todayDate)
+  const effectiveTotal = getEffectiveTotalActivities(todayDate, student?.haidPeriods || [])
   const effectiveDone  = checked.length > 0
     ? getEffectiveCompletedCount(todayDate, checked, student?.haidPeriods || [])
     : 0

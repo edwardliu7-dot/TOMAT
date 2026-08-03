@@ -101,7 +101,7 @@ function getDaySkor(student, dateStr, blpPeriods) {
   if (!isDateCountedForRecap(dateObj, student.kelas, blpPeriods)) return null
   const record = student.records?.[dateStr]
   if (!record) return 0
-  const total = getEffectiveTotalActivities(dateObj)
+  const total = getEffectiveTotalActivities(dateObj, student.haidPeriods || [])
   const done  = getEffectiveCompletedCount(dateObj, record.completedActivities || [], student.haidPeriods || [])
   return total > 0 ? Math.round((done / total) * 100) : 0
 }
@@ -179,7 +179,7 @@ function ViewList({ students, selectedDate, onDateChange, onViewDetail, blpPerio
       .map(s => {
         const dateObj = new Date(selectedDate + 'T00:00:00')
         const rec     = s.records?.[selectedDate]
-        const total   = getEffectiveTotalActivities(dateObj)
+        const total   = getEffectiveTotalActivities(dateObj, s.haidPeriods || [])
         const done    = rec ? getEffectiveCompletedCount(dateObj, rec.completedActivities || [], s.haidPeriods || []) : 0
         const score   = total > 0 ? Math.round((done / total) * 100) : 0
         const status  = rec ? (score >= 80 ? 'Selesai' : 'Proses') : 'Belum'
@@ -624,7 +624,7 @@ function ViewDetail({ student, blpPeriods, onBack, onDeleteRequest, onReviewActi
           {Object.keys(records).sort((a, b) => b.localeCompare(a)).map(dateStr => {
             const rec         = records[dateStr]
             const dateObj     = new Date(dateStr + 'T00:00:00')
-            const total       = getEffectiveTotalActivities(dateObj)
+            const total       = getEffectiveTotalActivities(dateObj, haidPeriods)
             const done        = getEffectiveCompletedCount(dateObj, rec.completedActivities || [], haidPeriods)
             const skor        = total > 0 ? Math.round((done / total) * 100) : 0
             const isExpanded  = expandedDate === dateStr
