@@ -130,11 +130,15 @@ router.get('/', requireGuru, async (req, res) => {
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
 
     const { rows } = await pool.query(
-      `SELECT a.id, a.student_id, a.tanggal, a.status, a.keterangan,
+      `SELECT a.id, a.student_id,
+              TO_CHAR(a.tanggal, 'YYYY-MM-DD') AS tanggal,
+              a.status, a.keterangan,
               a.guru_id, a.created_at,
-              s.name AS siswa_name, s.kelas
+              s.name AS siswa_name, s.kelas,
+              g.name AS filled_by_teacher_name
        FROM absensi a
        JOIN students s ON s.id = a.student_id
+       LEFT JOIN gurus g ON g.id = a.guru_id
        ${where}
        ORDER BY a.tanggal DESC, s.name
        LIMIT 500`,
