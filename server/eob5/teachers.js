@@ -90,8 +90,8 @@ router.get('/progress', requireAdmin, async (req, res) => {
   }
 })
 
-// GET / — daftar semua guru (admin only)
-router.get('/', requireAdmin, async (req, res) => {
+// GET / — daftar semua guru (semua guru bisa lihat direktori)
+router.get('/', requireGuru, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT id, username, name, email, whatsapp, kelas_diampu,

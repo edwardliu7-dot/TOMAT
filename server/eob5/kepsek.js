@@ -23,7 +23,7 @@ router.get('/overview', requireGuru, async (req, res) => {
       SELECT
         g.id              AS username,
         g.name,
-        COALESCE(g.mata_pelajaran, ARRAY[]::text[]) AS mapel,
+        COALESCE(g.mapel, ARRAY[]::text[]) AS mapel,
         COUNT(DISTINCT j.id) FILTER (
           WHERE TO_CHAR(j.tanggal, 'YYYY-MM') = $1
         ) AS jurnal_bulan_ini,
@@ -33,7 +33,7 @@ router.get('/overview', requireGuru, async (req, res) => {
       LEFT JOIN journal_entries j  ON j.teacher_id = g.id
       LEFT JOIN subjects        s  ON s.teacher_id = g.id
       LEFT JOIN documents       d  ON d.subject_id = s.id
-      GROUP BY g.id, g.name, g.mata_pelajaran
+      GROUP BY g.id, g.name, g.mapel
       ORDER BY g.name
     `, [bulanIni])
 

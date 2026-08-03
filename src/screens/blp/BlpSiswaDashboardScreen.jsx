@@ -51,6 +51,20 @@ function formatTanggal(dateStr) {
   } catch { return dateStr }
 }
 
+function formatNavDate(dateStr) {
+  try {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('id-ID', {
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+    })
+  } catch { return dateStr }
+}
+
+function shiftDate(dateStr, days) {
+  const d = new Date(dateStr + 'T00:00:00')
+  d.setDate(d.getDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
 function starCount(pct) {
   if (pct >= 100) return 5
   if (pct >= 80)  return 4
@@ -137,9 +151,10 @@ function SubmissionBadge({ type }) {
 }
 
 // ─── Tab Harian ───────────────────────────────────────────────────────────────
-function TabHarian({ student, today }) {
-  const existingRec = student.records?.[today] || {}
-  const todayDate   = new Date(today + 'T00:00:00')
+function TabHarian({ student, today, selectedDate, onDateChange }) {
+  const isEditable  = selectedDate === today
+  const existingRec = student.records?.[selectedDate] || {}
+  const todayDate   = new Date(selectedDate + 'T00:00:00')
   const haidPeriods = student.haidPeriods || []
   const sedangHaid  = isHaidDay(todayDate, haidPeriods)
 
@@ -171,7 +186,7 @@ function TabHarian({ student, today }) {
       ? Math.round((getEffectiveCompletedCount(todayDate, ids, haidPeriods) / totalActs) * 100)
       : 0
     try {
-      const res = await fetch(`/api/blp/students/${student.id}/records/${today}`, {
+      const res = await fetch(`/api/blp/students/${student.id}/records/${selectedDate}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -188,9 +203,10 @@ function TabHarian({ student, today }) {
       setSaveErr('Koneksi gagal, coba lagi')
     }
     setSaving(false)
-  }, [student?.id, today, totalActs, haidPeriods]) // eslint-disable-line
+  }, [student?.id, selectedDate, totalActs, haidPeriods]) // eslint-disable-line
 
   function toggleActivity(activityId) {
+    if (!isEditable) return
     if (SCHOOL_ONLY_ACTIVITY_IDS.includes(activityId) && !isSchoolDay(todayDate)) {
       setSaveErr('Kegiatan ini hanya berlaku pada hari sekolah (Senin–Jumat).')
       setTimeout(() => setSaveErr(''), 3000)
@@ -212,6 +228,7 @@ function TabHarian({ student, today }) {
   }
 
   function handleActivityClick(activityId) {
+    if (!isEditable) return
     const isDone = checked.includes(activityId)
     // Kalau sudah dicentang → toggle off langsung (tidak perlu modal ulang)
     if (isDone) { toggleActivity(activityId); return }
@@ -236,36 +253,65 @@ function TabHarian({ student, today }) {
     doSave(nextChecked, nextSubs)
   }
 
-  const todayLabel = formatTanggal(today)
-  const allActs    = BLP_CATEGORIES.flatMap(c => c.activities)
+  const allActs = BLP_CATEGORIES.flatMap(c => c.activities)
 
   return (
     <div style={{ paddingBottom: 60 }}>
-      {/* Kartu tanggal */}
+      {/* Navigator tanggal */}
       <div style={{
         background: C.cardBg, border: `1px solid ${C.border}`,
-        borderRadius: 16, padding: '12px 16px',
-        textAlign: 'center', marginBottom: 12,
+        borderRadius: 16, padding: '6px 8px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 12, gap: 4,
       }}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>{todayLabel}</div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', marginTop: 3, letterSpacing: 1 }}>HARI INI</div>
+        <button
+          onClick={() => onDateChange(shiftDate(selectedDate, -1))}
+          style={{
+            background: 'none', border: 'none', color: C.muted,
+            cursor: 'pointer', fontSize: 22, padding: '4px 10px',
+            lineHeight: 1, fontFamily: 'inherit', flexShrink: 0,
+          }}
+        >‹</button>
+        <div style={{ textAlign: 'center', flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>{formatNavDate(selectedDate)}</div>
+          {isEditable && (
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', marginTop: 2, letterSpacing: 1 }}>HARI INI</div>
+          )}
+          {!isEditable && selectedDate < today && (
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', marginTop: 2, letterSpacing: 0.5 }}>🔒 BACA SAJA</div>
+          )}
+        </div>
+        <button
+          onClick={() => onDateChange(shiftDate(selectedDate, 1))}
+          disabled={selectedDate >= today}
+          style={{
+            background: 'none', border: 'none', fontSize: 22, padding: '4px 10px',
+            lineHeight: 1, fontFamily: 'inherit', flexShrink: 0,
+            color: selectedDate >= today ? C.dimText : C.muted,
+            cursor: selectedDate >= today ? 'default' : 'pointer',
+          }}
+        >›</button>
       </div>
 
       {/* Kartu skor */}
       <div style={{
-        background: 'linear-gradient(135deg, #059669 0%, #10b981 55%, #34d399 100%)',
+        background: isEditable
+          ? 'linear-gradient(135deg, #059669 0%, #10b981 55%, #34d399 100%)'
+          : 'linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 55%, #3b7dd8 100%)',
         borderRadius: 20, padding: '18px 20px', marginBottom: 16,
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
       }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.8, letterSpacing: 1, marginBottom: 6 }}>
-            NILAI BLP HARI INI
+            NILAI BLP {isEditable ? 'HARI INI' : formatNavDate(selectedDate).toUpperCase()}
           </div>
           <div style={{ fontSize: 44, fontWeight: 900, lineHeight: 1 }}>{pct}</div>
-          <div style={{ fontSize: 13, opacity: 0.8, marginTop: 4 }}>Nilai BLP Hari Ini</div>
+          <div style={{ fontSize: 13, opacity: 0.8, marginTop: 4 }}>Nilai BLP</div>
           <div style={{ marginTop: 8 }}><Stars filled={stars} size={15} /></div>
           <div style={{ fontSize: 11, opacity: 0.75, marginTop: 4 }}>
-            {pct < 100 ? 'Ayo selesaikan amaliyahmu!' : 'Luar biasa! Semua selesai 🎉'}
+            {isEditable
+              ? (pct < 100 ? 'Ayo selesaikan amaliyahmu!' : 'Luar biasa! Semua selesai 🎉')
+              : (pct === 0 ? 'Tidak ada data untuk hari ini.' : `${doneCount} dari ${totalActs} aktivitas tercatat`)}
           </div>
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 5 }}>
@@ -366,18 +412,19 @@ function TabHarian({ student, today }) {
                                 : null
                 const hasBorder = (act.note || taskLabel) && !disabled
 
+                const isLocked = !isEditable || disabled || notSchoolDay
                 return (
                   <button
                     key={act.id}
-                    onClick={() => !disabled && !notSchoolDay && handleActivityClick(act.id)}
-                    disabled={disabled || notSchoolDay}
+                    onClick={() => !isLocked && handleActivityClick(act.id)}
+                    disabled={isLocked}
                     style={{
                       display: 'flex', alignItems: 'flex-start', gap: 12,
-                      background: disabled || notSchoolDay ? 'rgba(255,255,255,0.02)' : C.itemBg,
-                      border: `1px solid ${hasBorder ? `${cat.accentColor}40` : C.border}`,
+                      background: isLocked ? 'rgba(255,255,255,0.02)' : C.itemBg,
+                      border: `1px solid ${hasBorder && !isLocked ? `${cat.accentColor}40` : C.border}`,
                       borderRadius: 12, padding: '12px 14px',
-                      cursor: (disabled || notSchoolDay) ? 'default' : 'pointer',
-                      opacity: (disabled || notSchoolDay) ? 0.4 : 1,
+                      cursor: isLocked ? 'default' : 'pointer',
+                      opacity: (disabled || notSchoolDay) ? 0.4 : (!isEditable ? 0.75 : 1),
                       textAlign: 'left', fontFamily: 'inherit', transition: 'background 0.15s',
                     }}
                   >
@@ -526,10 +573,12 @@ function TabHarian({ student, today }) {
 }
 
 // ─── Tab Kalender ─────────────────────────────────────────────────────────────
-function TabKalender({ student }) {
+function TabKalender({ student, selectedDate, onDaySelect }) {
   const today     = getJakartaToday()
   const thisMonth = today.slice(0, 7)
-  const [viewMonth, setViewMonth] = useState(thisMonth)
+  // When a past date is already selected (e.g. navigated from TabHarian), open that month first
+  const initMonth = selectedDate && selectedDate < today ? selectedDate.slice(0, 7) : thisMonth
+  const [viewMonth, setViewMonth] = useState(initMonth)
   const records     = student.records || {}
   const haidPeriods = student.haidPeriods || []
 
@@ -616,14 +665,29 @@ function TabKalender({ student }) {
               else if (skor !== null && skor >= 50) bg = 'rgba(245,158,11,0.2)'
               else if (skor !== null) bg = 'rgba(239,68,68,0.15)'
 
+              const isSelected = key === selectedDate
+              if (isSelected && !isFuture) {
+                // Highlight selected date with a ring
+              }
+
               return (
-                <div key={di} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 2px' }}>
+                <div
+                  key={di}
+                  onClick={() => !isFuture && onDaySelect(key)}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 2px',
+                    cursor: isFuture ? 'default' : 'pointer',
+                  }}
+                >
                   <div style={{
                     width: 32, height: 32, borderRadius: 8,
                     background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: isToday ? '1.5px solid #4ade80' : '1px solid transparent',
+                    border: isSelected ? '2px solid #fbbf24'
+                          : isToday    ? '1.5px solid #4ade80'
+                          : '1px solid transparent',
+                    transition: 'border 0.15s',
                   }}>
-                    <span style={{ fontSize: 12, fontWeight: isToday ? 800 : 500, color: textColor }}>{d}</span>
+                    <span style={{ fontSize: 12, fontWeight: (isToday || isSelected) ? 800 : 500, color: textColor }}>{d}</span>
                   </div>
                   {skor !== null && (
                     <span style={{ fontSize: 9, color: skor >= 80 ? '#4ade80' : skor >= 50 ? '#fbbf24' : '#f87171', marginTop: 1 }}>
@@ -857,6 +921,7 @@ export default function BlpSiswaDashboardScreen({ navigate, goBack, view = 'hari
   const { user }                         = useAuth()
   const { data, loading, error, loadDashboard } = useBlpData()
   const [showProfileModal, setShowProfileModal] = useState(false)
+  const [selectedDate, setSelectedDate]  = useState(() => getJakartaToday())
 
   useEffect(() => { loadDashboard() }, [])
 
@@ -869,6 +934,9 @@ export default function BlpSiswaDashboardScreen({ navigate, goBack, view = 'hari
 
   const today = getJakartaToday()
   const selectedMonth = today.slice(0, 7) // YYYY-MM
+
+  // Clamp selectedDate to today if it somehow drifts past today
+  const clampedDate = selectedDate > today ? today : selectedDate
 
   const student = useMemo(() =>
     data ? Object.values(data.students || {})[0] : null,
@@ -982,10 +1050,22 @@ export default function BlpSiswaDashboardScreen({ navigate, goBack, view = 'hari
       {/* ── Konten ── */}
       <div style={{ padding: '16px 16px 0' }}>
         {view === 'harian' && (
-          <TabHarian student={student} today={today} />
+          <TabHarian
+            student={student}
+            today={today}
+            selectedDate={clampedDate}
+            onDateChange={d => setSelectedDate(d > today ? today : d)}
+          />
         )}
         {view === 'kalender' && (
-          <TabKalender student={student} />
+          <TabKalender
+            student={student}
+            selectedDate={clampedDate}
+            onDaySelect={d => {
+              setSelectedDate(d > today ? today : d)
+              navigate('blp-home')
+            }}
+          />
         )}
         {view === 'pengaturan' && (
           <TabPengaturan

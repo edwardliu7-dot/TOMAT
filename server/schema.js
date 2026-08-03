@@ -843,7 +843,7 @@ export async function ensureSchema() {
     )
   `)
 
-  // Poin perilaku siswa (original bernama point_records; rename jika masih student_points)
+  // Poin perilaku siswa: rename student_points → point_records (idempotent)
   await pool.query(`ALTER TABLE IF EXISTS student_points RENAME TO point_records`).catch(() => {})
   await pool.query(`
     CREATE TABLE IF NOT EXISTS point_records (

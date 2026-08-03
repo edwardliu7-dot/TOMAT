@@ -88,11 +88,15 @@ router.post('/login', async (req, res) => {
     }
     
     req.session.user = {
-      id:       user.id,
+      id:           user.id,
       role,
-      name:     user.name || user.username || null,
-      username: user.username || null,
-      kelas:    role === 'siswa' ? (user.kelas || null) : null,
+      name:         user.name || user.username || null,
+      username:     user.username || null,
+      kelas:        role === 'siswa' ? (user.kelas || null) : null,
+      // Guru-specific — needed by requireAdmin middleware and feature checks
+      jabatan:      role === 'guru' ? (user.jabatan || []) : undefined,
+      kelas_diampu: role === 'guru' ? (user.kelas_diampu || []) : undefined,
+      wali_kelas_kelas: role === 'guru' ? (user.wali_kelas_kelas || null) : undefined,
     }
 
     // Award daily login bonus on fresh login (siswa only) — same logic as /me
@@ -163,6 +167,21 @@ router.get('/me', async (req, res) => {
     if (!session.username) {
       session.username = user.username || null
       needsSave = true
+    }
+    // Backfill guru-specific session fields (older sessions lack these)
+    if (session.role === 'guru') {
+      if (!session.jabatan) {
+        session.jabatan = user.jabatan || []
+        needsSave = true
+      }
+      if (!session.kelas_diampu) {
+        session.kelas_diampu = user.kelas_diampu || []
+        needsSave = true
+      }
+      if (session.wali_kelas_kelas === undefined) {
+        session.wali_kelas_kelas = user.wali_kelas_kelas || null
+        needsSave = true
+      }
     }
     if (needsSave) req.session.save(() => {})
 

@@ -69,16 +69,20 @@ router.post('/', requireGuru, async (req, res) => {
   }
 })
 
-// GET / — daftar feedback (admin only)
+// GET / — daftar feedback (admin: semua; guru biasa: milik sendiri)
 router.get('/', requireGuru, async (req, res) => {
   try {
-    if (!isAdmin(req.session.user)) {
-      return res.status(403).json({ error: 'Hanya admin yang dapat melihat feedback.' })
-    }
+    const guruId = req.session.user.id
+    const admin  = isAdmin(req.session.user)
     const { rows } = await pool.query(
-      `SELECT id, teacher_id AS guru_id, teacher_name AS guru_name,
-              kategori, pesan, page_url, is_read, created_at
-       FROM feedback ORDER BY created_at DESC`
+      admin
+        ? `SELECT id, teacher_id AS guru_id, teacher_name AS guru_name,
+                  kategori, pesan, page_url, is_read, created_at
+           FROM feedback ORDER BY created_at DESC`
+        : `SELECT id, teacher_id AS guru_id, teacher_name AS guru_name,
+                  kategori, pesan, page_url, is_read, created_at
+           FROM feedback WHERE teacher_id = $1 ORDER BY created_at DESC`,
+      admin ? [] : [guruId]
     )
     res.json(rows)
   } catch (err) {

@@ -17,7 +17,7 @@ router.get('/overview', requireGuru, async (req, res) => {
   try {
     // Ambil semua guru
     const { rows: guruRows } = await pool.query(`
-      SELECT id, name, COALESCE(mata_pelajaran, ARRAY[]::text[]) AS mapel
+      SELECT id, name, COALESCE(mapel, ARRAY[]::text[]) AS mapel
       FROM gurus
       ORDER BY name
     `)
