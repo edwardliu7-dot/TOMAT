@@ -6,11 +6,12 @@ import { computeHunger, getHungerUntil } from './pet-state.js'
 const router = express.Router()
 
 // Check if a guru qualifies as an active subject teacher for TOMAT:
-// jabatan must include 'guru_mapel' AND they must have at least one subject entry.
-// Runs a profile-sync first so guru_mapel with mapel+kelas_diampu filled get
+// jabatan must include 'guru' or 'guru_mapel' AND they must have at least one subject entry.
+// Runs a profile-sync first so gurus with mapel+kelas_diampu filled get
 // their subjects auto-created without needing to visit the EOB5 subjects page first.
 async function computeHasMateriTerdaftar(guruId, jabatan) {
-  if (!Array.isArray(jabatan) || !jabatan.includes('guru_mapel')) return false
+  const jabatanArr = Array.isArray(jabatan) ? jabatan : []
+  if (!jabatanArr.includes('guru') && !jabatanArr.includes('guru_mapel')) return false
   try {
     // Mirror syncSubjectFolders logic from server/eob5/subjects.js
     const { rows: guruRows } = await pool.query(
@@ -177,7 +178,12 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    const guruExtra = role === 'guru' ? { hasMateriTerdaftar: req.session.user.hasMateriTerdaftar ?? false } : {}
+    const guruExtra = role === 'guru' ? {
+      hasMateriTerdaftar: req.session.user.hasMateriTerdaftar ?? false,
+      jabatan:            user.jabatan        || [],
+      kelas_diampu:       user.kelas_diampu   || [],
+      wali_kelas_kelas:   user.wali_kelas_kelas || null,
+    } : {}
     res.json({ user: sanitizeUser(user, role, guruExtra), dailyBonus })
   } catch (err) {
     console.error('login error', err)
@@ -217,29 +223,18 @@ router.get('/me', async (req, res) => {
       session.username = user.username || null
       needsSave = true
     }
-    // Sync guru-specific session fields from DB on every /me call so that
-    // jabatan changes (e.g. adding guru_mapel) take effect without re-login.
+    // Always sync all guru-specific session fields from DB on every /me call
+    // so jabatan/kelas_diampu changes take effect without re-login, and old
+    // sessions that were created before these fields existed get backfilled.
     if (session.role === 'guru') {
-      const freshJabatan = user.jabatan || []
-      const jabatanChanged = JSON.stringify(session.jabatan) !== JSON.stringify(freshJabatan)
-      if (jabatanChanged) {
-        session.jabatan = freshJabatan
-        needsSave = true
-      }
-      if (!session.kelas_diampu) {
-        session.kelas_diampu = user.kelas_diampu || []
-        needsSave = true
-      }
-      if (session.wali_kelas_kelas === undefined) {
-        session.wali_kelas_kelas = user.wali_kelas_kelas || null
-        needsSave = true
-      }
-      // Always recompute hasMateriTerdaftar from DB so subjects changes
-      // take effect without requiring logout/login.
-      const freshHas = await computeHasMateriTerdaftar(session.id, session.jabatan || [])
+      session.jabatan        = user.jabatan        || []
+      session.kelas_diampu   = user.kelas_diampu   || []
+      session.wali_kelas_kelas = user.wali_kelas_kelas || null
+      needsSave = true
+      // Always recompute hasMateriTerdaftar from live DB state
+      const freshHas = await computeHasMateriTerdaftar(session.id, session.jabatan)
       if (session.hasMateriTerdaftar !== freshHas) {
         session.hasMateriTerdaftar = freshHas
-        needsSave = true
       }
     }
     if (needsSave) req.session.save(() => {})
@@ -275,7 +270,12 @@ router.get('/me', async (req, res) => {
       }
     }
 
-    const guruExtra = session.role === 'guru' ? { hasMateriTerdaftar: session.hasMateriTerdaftar ?? false } : {}
+    const guruExtra = session.role === 'guru' ? {
+      hasMateriTerdaftar: session.hasMateriTerdaftar ?? false,
+      jabatan:            session.jabatan        || [],
+      kelas_diampu:       session.kelas_diampu   || [],
+      wali_kelas_kelas:   session.wali_kelas_kelas || null,
+    } : {}
     res.json({ user: sanitizeUser(user, session.role, guruExtra), dailyBonus })
   } catch (err) {
     console.error('me error', err)
