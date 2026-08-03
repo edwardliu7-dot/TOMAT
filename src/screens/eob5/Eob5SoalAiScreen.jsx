@@ -150,6 +150,11 @@ export default function Eob5SoalAiScreen({ navigate, goBack }) {
   useEffect(() => { loadHistory() }, [])
   useEffect(() => { if (selectedId) { setGeneratedSoal(null); setSaved(false); loadDetail(selectedId) } }, [selectedId])
 
+  const handleDownloadDocx = (id, e) => {
+    e?.stopPropagation()
+    window.open(`/api/eob5/soal-otomatis/${id}/docx`, '_blank')
+  }
+
   const handleGenerate = async () => {
     if (!form.topik.trim()) { showMsg('error', 'Topik wajib diisi'); return }
     setGenerating(true); setMsg({ type: '', text: '' }); setGeneratedSoal(null); setSaved(false); setSelectedId(null); setSelectedSoal(null)
@@ -157,7 +162,12 @@ export default function Eob5SoalAiScreen({ navigate, goBack }) {
       const r = await fetch('/api/eob5/soal-otomatis/generate', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topik: form.topik, tingkat: form.tingkat, jumlah: form.jumlah, jenis: form.jenis }),
+        // Use new param names (jenisSoal, jumlahSoal, tingkatKesulitan)
+        body: JSON.stringify({
+          materi: form.topik, topik: form.topik, tingkat: form.tingkat,
+          jumlahSoal: form.jumlah, jenisSoal: form.jenis === 'pilihan-ganda' ? 'pilihan_ganda' : form.jenis,
+          tingkatKesulitan: form.kesulitan,
+        }),
       })
       const d = await r.json()
       if (!r.ok) { showMsg('error', d.error || 'Gagal generate soal'); setGenerating(false); return }
@@ -175,7 +185,11 @@ export default function Eob5SoalAiScreen({ navigate, goBack }) {
       const r = await fetch('/api/eob5/soal-otomatis/generate', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topik: form.topik, tingkat: form.tingkat, jumlah: form.jumlah, jenis: form.jenis, simpan: true }),
+        body: JSON.stringify({
+          materi: form.topik, topik: form.topik, tingkat: form.tingkat,
+          jumlahSoal: form.jumlah, jenisSoal: form.jenis === 'pilihan-ganda' ? 'pilihan_ganda' : form.jenis,
+          tingkatKesulitan: form.kesulitan, simpan: true,
+        }),
       })
       if (r.ok) { setSaved(true); loadHistory(); showMsg('ok', 'Soal berhasil disimpan ke riwayat!') }
       else { const d = await r.json(); showMsg('error', d.error || 'Gagal menyimpan') }
@@ -366,14 +380,24 @@ export default function Eob5SoalAiScreen({ navigate, goBack }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.topik}</div>
                       <div style={{ fontSize: 10, color: C.sub, marginTop: 3 }}>🕐 {safeDate(h.created_at)}</div>
-                      <button
-                        type="button"
-                        onClick={(e) => handleDelete(h.id, e)}
-                        disabled={deleting === h.id}
-                        style={{ marginTop: 4, background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 4, padding: '2px 6px', color: C.red, fontSize: 10, cursor: 'pointer', fontFamily: 'inherit' }}
-                      >
-                        🗑 Hapus
-                      </button>
+                      <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDownloadDocx(h.id, e)}
+                          style={{ background: 'transparent', border: '1px solid rgba(99,102,241,0.35)', borderRadius: 4, padding: '2px 6px', color: '#818cf8', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit' }}
+                          title="Download DOCX"
+                        >
+                          📄 DOCX
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDelete(h.id, e)}
+                          disabled={deleting === h.id}
+                          style={{ background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 4, padding: '2px 6px', color: C.red, fontSize: 10, cursor: 'pointer', fontFamily: 'inherit' }}
+                        >
+                          🗑 Hapus
+                        </button>
+                      </div>
                     </div>
                   </button>
                 )

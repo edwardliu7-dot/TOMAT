@@ -9,6 +9,7 @@ import { Router } from 'express'
 import Groq from 'groq-sdk'
 import { pool } from '../db.js'
 import { requireGuru } from './middleware.js'
+import { buildModulDocx } from './lib/docx-modul.js'
 
 const router = Router()
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
@@ -129,7 +130,7 @@ Format JSON yang harus dihasilkan:
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.1-70b-versatile',
+      model: 'llama-3.3-70b-versatile',
       response_format: { type: 'json_object' },
       temperature: 0.7,
     })
@@ -170,6 +171,36 @@ Format JSON yang harus dihasilkan:
   } catch (err) {
     console.error('[eob5/modul-ajar] generate error:', err)
     res.status(500).json({ error: 'Gagal generate modul ajar: ' + err.message })
+  }
+})
+
+// GET /:id/docx — download modul ajar sebagai DOCX (harus SEBELUM /:id)
+router.get('/:id/docx', requireGuru, async (req, res) => {
+  try {
+    const guruId = req.session.user.id
+    const { rows } = await pool.query(
+      'SELECT * FROM ai_modul_ajar WHERE id = $1 AND teacher_id = $2',
+      [req.params.id, guruId]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'Modul ajar tidak ditemukan' })
+
+    const row = rows[0]
+    const content = typeof row.content === 'string' ? JSON.parse(row.content) : row.content
+    const buf = await buildModulDocx(content, {
+      materi: row.materi,
+      kelas: row.kelas,
+      alokasi_waktu: row.alokasi_waktu,
+    })
+
+    const filename = `modul-${(row.materi || 'ajar').slice(0, 30).replace(/[^a-z0-9]/gi, '-')}.docx`
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    })
+    res.send(buf)
+  } catch (err) {
+    console.error('[eob5/modul-ajar] docx error:', err)
+    res.status(500).json({ error: 'Gagal membuat file DOCX' })
   }
 })
 
