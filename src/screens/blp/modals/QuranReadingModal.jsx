@@ -163,10 +163,9 @@ export default function QuranReadingModal({ activityName, bookmark, onClose, onS
   }
 
   const handleFinish = () => {
-    if (!audioDataUrl) return
     if (!validateRange()) return
     if (mode === 'halaman') {
-      onSubmit(audioDataUrl, {
+      onSubmit(audioDataUrl || null, {
         surahNo,
         surahName: selectedSurah?.nameLatin || '',
         ayatFrom,
@@ -174,7 +173,7 @@ export default function QuranReadingModal({ activityName, bookmark, onClose, onS
         halaman,
       })
     } else if (selectedSurah) {
-      onSubmit(audioDataUrl, {
+      onSubmit(audioDataUrl || null, {
         surahNo,
         surahName: selectedSurah.nameLatin,
         ayatFrom,
@@ -419,6 +418,9 @@ export default function QuranReadingModal({ activityName, bookmark, onClose, onS
               background: '#f8fafc', borderRadius: 16, padding: 20,
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
             }}>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4, textAlign: 'center' }}>
+                🎤 Rekam bacaan <span style={{ color: '#d1d5db' }}>— opsional</span>
+              </div>
               {recordState === 'idle' && (
                 <>
                   <button

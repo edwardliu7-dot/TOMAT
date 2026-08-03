@@ -209,7 +209,7 @@ export default function QuranReadingModal({ activityName, bookmark, onClose, onS
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+        className="fixed inset-0 bg-black/50 z-[600] flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div
@@ -217,7 +217,7 @@ export default function QuranReadingModal({ activityName, bookmark, onClose, onS
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 40 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-slate-900 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto"
+          className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto"
         >
           <div className="p-6 space-y-4">
             <div className="flex items-start justify-between">

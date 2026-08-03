@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { TopBar } from '../../components/shared.jsx'
 import { useAuth } from '../../AuthContext.jsx'
+import { useBlpData } from '../../contexts/BlpDataContext.jsx'
 import { isSedangHaid } from './blpAktivitasData.js'
 
 export default function BlpHaidScreen({ goBack }) {
   const { user } = useAuth()
+  const { invalidate } = useBlpData()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -41,6 +43,7 @@ export default function BlpHaidScreen({ goBack }) {
       const json = await res.json()
       if (!res.ok) { setError(json.error || 'Gagal mencatat'); setSaving(false); return }
       setSuccess('Periode haid berhasil dicatat. Aktivitas sholat akan dikecualikan otomatis.')
+      invalidate()
       loadData()
     } catch { setError('Gagal mencatat, coba lagi') }
     setSaving(false)
@@ -56,6 +59,7 @@ export default function BlpHaidScreen({ goBack }) {
       const json = await res.json()
       if (!res.ok) { setError(json.error || 'Gagal mengakhiri'); setSaving(false); return }
       setSuccess('Periode haid selesai. Aktivitas sholat kembali aktif.')
+      invalidate()
       loadData()
     } catch { setError('Gagal mengakhiri, coba lagi') }
     setSaving(false)

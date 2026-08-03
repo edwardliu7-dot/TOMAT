@@ -118,7 +118,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
         }
         @media (max-width: 900px) {
           .with-sidebar.with-nav { padding-bottom: 84px; }
-          .with-sidebar.with-module-header { padding-top: 64px; }
+          .with-sidebar.with-module-header { padding-top: calc(100px + env(safe-area-inset-top, 0px)); }
         }
       `}</style>
       <Sidebar
@@ -137,84 +137,113 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
         {children}
       </div>
 
-      {/* Mobile: unified top header — profile info + AppSwitcher + notifications */}
+      {/* Mobile: unified top header — SMARTISA banner + profile info + AppSwitcher + notifications */}
       {!isDesktop && user && onSwitchModule && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0,
           zIndex: 300,
-          height: 64,
-          display: 'flex', alignItems: 'center',
-          gap: 6,
+          display: 'flex', flexDirection: 'column',
           background: 'rgba(7,19,33,0.97)',
           borderBottom: `2px solid ${moduleAccent}44`,
           backdropFilter: 'blur(16px)',
           boxShadow: '0 1px 12px rgba(0,0,0,0.35)',
-          paddingLeft: 'calc(10px + env(safe-area-inset-left, 0px))',
-          paddingRight: 'calc(10px + env(safe-area-inset-right, 0px))',
         }}>
 
-          {/* Left: avatar + user info — tappable → profile */}
-          <button
-            onClick={goToProfile}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              flex: 1, minWidth: 0,
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '4px 0', textAlign: 'left',
-            }}
-          >
-            <UserAvatar user={user} size={36} />
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{
-                fontSize: 12, fontWeight: 800, color: '#fff',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                lineHeight: 1.2,
-              }}>
-                {user.name?.split(' ')[0]}
-              </div>
-              {isGuru ? (
-                <div style={{
-                  fontSize: 9, color: '#A78BFA', fontWeight: 600,
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  marginTop: 2, lineHeight: 1.2,
-                }}>
-                  {guruKelas || 'Guru'}
-                </div>
-              ) : (
-                <>
-                  <div style={{ fontSize: 9, color: '#67E8F9', fontWeight: 600, lineHeight: 1.2, marginTop: 2 }}>
-                    {user.kelas}
-                  </div>
-                  <SiswaPlayerInfo />
-                </>
-              )}
-            </div>
-          </button>
-
-          {/* Center: App Switcher */}
-          <div style={{ flexShrink: 0 }}>
-            <AppSwitcher activeModule={activeModule} onSwitch={handleSwitch} />
+          {/* Yellow SMARTISA banner — fills the safe-area notch zone */}
+          <div style={{
+            background: 'linear-gradient(90deg, #F59E0B 0%, #FCD34D 50%, #F59E0B 100%)',
+            paddingTop: 'env(safe-area-inset-top, 0px)',
+            paddingLeft: 'calc(12px + env(safe-area-inset-left, 0px))',
+            paddingRight: 'calc(12px + env(safe-area-inset-right, 0px))',
+            paddingBottom: 6,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            minHeight: 'calc(30px + env(safe-area-inset-top, 0px))',
+          }}>
+            <span style={{
+              fontWeight: 900, fontSize: 13, letterSpacing: '0.18em',
+              color: '#1C1917', textTransform: 'uppercase',
+              fontFamily: 'system-ui, sans-serif',
+              textShadow: '0 1px 0 rgba(255,255,255,0.4)',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span style={{ fontSize: 16 }}>⭐</span>
+              SMARTISA
+              <span style={{ fontSize: 16 }}>⭐</span>
+            </span>
           </div>
 
-          {/* Right: notification bells + Mode Mengajar for guru */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <MessageNotificationBell onClick={goToKomunikasi} />
-            <AppNotificationBell onCommunicationClick={goToKomunikasi} />
-            {isGuru && (
-              <button
-                onClick={() => navigate('guruMengajar')}
-                title="Mode Mengajar"
-                style={{
-                  background: 'rgba(52,211,153,0.15)',
-                  border: '1px solid rgba(52,211,153,0.3)',
-                  color: '#34D399', borderRadius: 10,
-                  width: 36, height: 36,
-                  cursor: 'pointer', fontSize: 15,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >🎮</button>
-            )}
+          {/* Action row — profile info + switcher + notifications */}
+          <div style={{
+            height: 56,
+            display: 'flex', alignItems: 'center',
+            gap: 6,
+            paddingLeft: 'calc(10px + env(safe-area-inset-left, 0px))',
+            paddingRight: 'calc(10px + env(safe-area-inset-right, 0px))',
+          }}>
+
+            {/* Left: avatar + user info — tappable → profile */}
+            <button
+              onClick={goToProfile}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                flex: 1, minWidth: 0,
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '4px 0', textAlign: 'left',
+              }}
+            >
+              <UserAvatar user={user} size={34} />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{
+                  fontSize: 12, fontWeight: 800, color: '#fff',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  lineHeight: 1.2,
+                }}>
+                  {user.name?.split(' ')[0]}
+                </div>
+                {isGuru ? (
+                  <div style={{
+                    fontSize: 9, color: '#A78BFA', fontWeight: 600,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    marginTop: 2, lineHeight: 1.2,
+                  }}>
+                    {guruKelas || 'Guru'}
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 9, color: '#67E8F9', fontWeight: 600, lineHeight: 1.2, marginTop: 2 }}>
+                      {user.kelas}
+                    </div>
+                    <SiswaPlayerInfo />
+                  </>
+                )}
+              </div>
+            </button>
+
+            {/* Center: App Switcher */}
+            <div style={{ flexShrink: 0 }}>
+              <AppSwitcher activeModule={activeModule} onSwitch={handleSwitch} />
+            </div>
+
+            {/* Right: notification bells + Mode Mengajar for guru */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              <MessageNotificationBell onClick={goToKomunikasi} />
+              <AppNotificationBell onCommunicationClick={goToKomunikasi} />
+              {isGuru && (
+                <button
+                  onClick={() => navigate('guruMengajar')}
+                  title="Mode Mengajar"
+                  style={{
+                    background: 'rgba(52,211,153,0.15)',
+                    border: '1px solid rgba(52,211,153,0.3)',
+                    color: '#34D399', borderRadius: 10,
+                    width: 36, height: 36,
+                    cursor: 'pointer', fontSize: 15,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >🎮</button>
+              )}
+            </div>
           </div>
         </div>
       )}

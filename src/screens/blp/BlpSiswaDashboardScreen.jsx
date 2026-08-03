@@ -67,11 +67,11 @@ function initials(name = '') {
 // ─── Submission config helpers ────────────────────────────────────────────────
 function getSubmissionConfig(activityId) {
   if (activityId === BELAJAR_ACTIVITY_ID) {
-    return { minChars: 100, title: 'Rangkuman Belajar Hari Ini',
+    return { minChars: 30, title: 'Rangkuman Belajar Hari Ini',
              placeholder: 'Tuliskan rangkuman materi yang kamu pelajari hari ini...' }
   }
   if (activityId === EVALUASI_ACTIVITY_ID) {
-    return { minChars: 100, title: 'Evaluasi Diri Sebelum Tidur',
+    return { minChars: 30, title: 'Evaluasi Diri Sebelum Tidur',
              placeholder: 'Tuliskan evaluasi dirimu hari ini...' }
   }
   if (RECIPROCITY_ACTIVITY_IDS.includes(activityId)) {
