@@ -48,7 +48,11 @@ export function normalizeKelas(kelas) {
 
 // ── Guru helpers ──────────────────────────────────────────────────────────────
 export function isWaliKelas(row) {
-  return !!(row.jabatan || []).includes('wali_kelas') && !!row.wali_kelas_kelas
+  // Guru adalah wali kelas jika punya wali_kelas_kelas (kolom utama),
+  // ATAU jabatan array berisi 'wali_kelas' (fallback untuk kompatibilitas)
+  const hasKelasWali = !!row.wali_kelas_kelas
+  const jabatanArr = Array.isArray(row.jabatan) ? row.jabatan : (row.jabatan ? [row.jabatan] : [])
+  return hasKelasWali || jabatanArr.includes('wali_kelas')
 }
 
 export async function loadGuru(id) {

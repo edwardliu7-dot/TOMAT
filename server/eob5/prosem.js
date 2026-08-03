@@ -85,7 +85,66 @@ router.get('/:id', requireGuru, async (req, res) => {
     )
 
     if (rows.length === 0) return res.status(404).json({ error: 'Prosem tidak ditemukan' })
-    res.json(rows[0])
+
+    const prosem = rows[0]
+
+    // Jika konten.items sudah terisi (data baru), langsung kembalikan
+    const kontentItems = Array.isArray(prosem.konten?.items) ? prosem.konten.items : []
+
+    // Selalu ambil juga data dari prosem_items (data lama / relasional)
+    // Schema lama pakai week_id FK ke academic_weeks; schema baru pakai urutan
+    let tableItems = []
+    try {
+      const { rows: tRows } = await pool.query(`
+        SELECT pi.id,
+               pi.materi,
+               pi.kd,
+               pi.jp,
+               COALESCE(aw.pekan_ke, pi.urutan, 0)  AS pekan_ke,
+               COALESCE(pi.catatan, '')              AS catatan
+        FROM prosem_items pi
+        LEFT JOIN academic_weeks aw ON aw.id = pi.week_id
+        WHERE pi.prosem_id = $1
+        ORDER BY pekan_ke, pi.id
+      `, [id])
+      tableItems = tRows
+    } catch {
+      // Fallback jika week_id atau catatan tidak ada di schema ini
+      try {
+        const { rows: tRows } = await pool.query(`
+          SELECT id, materi, kd, jp,
+                 COALESCE(urutan, 0) AS pekan_ke,
+                 '' AS catatan
+          FROM prosem_items
+          WHERE prosem_id = $1
+          ORDER BY urutan, id
+        `, [id])
+        tableItems = tRows
+      } catch {}
+    }
+
+    // Gabungkan: konten.items (baru) + prosem_items (lama) tanpa duplikasi
+    // Konten items pakai id string prefixed 'item-'; table items pakai id integer
+    const tableItemsMapped = tableItems.map(ti => ({
+      id: `tbl-${ti.id}`,
+      pekan_ke: Number(ti.pekan_ke) || 0,
+      materi: ti.materi || '',
+      kd: ti.kd || '',
+      jp: parseFloat(ti.jp) || 2,
+      catatan: ti.catatan || '',
+      _fromTable: true,
+    }))
+
+    // Jika konten.items ada data → pakai itu (sudah di-migrate ke JSONB)
+    // Jika tidak ada → tampilkan dari prosem_items (data lama)
+    const mergedItems = kontentItems.length > 0
+      ? kontentItems
+      : tableItemsMapped
+
+    prosem.konten = { ...(prosem.konten || {}), items: mergedItems }
+    prosem._hasTableItems = tableItemsMapped.length > 0
+
+    res.json(prosem)
   } catch (err) {
     console.error('[eob5/prosem] detail error:', err)
     res.status(500).json({ error: 'Gagal mengambil detail prosem' })

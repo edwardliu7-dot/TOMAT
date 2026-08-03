@@ -797,20 +797,21 @@ export default function BlpGuruDashboardScreen({ navigate, goBack, activeTab = '
     { id: 'haid',   label: 'Haid Siswi',   icon: '🌸' },
   ]
 
+  if (error) return (
+    <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 }}>
+      <div style={{ fontSize: 32 }}>⚠️</div>
+      <div style={{ color: '#ef4444', fontSize: 14, textAlign: 'center' }}>{error}</div>
+      <button onClick={() => loadDashboard({ force: true })} style={{ background: '#10b981', border: 'none', borderRadius: 12, padding: '10px 24px', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8 }}>Coba Lagi</button>
+      <button onClick={goBack} style={{ background: 'transparent', border: '1px solid #2a4535', borderRadius: 12, padding: '8px 20px', color: '#6aaa82', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Kembali</button>
+    </div>
+  )
+
   if (loading || !data) return (
     <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
         <div style={{ color: '#10b981', fontSize: 14 }}>Memuat data BLP...</div>
       </div>
-    </div>
-  )
-
-  if (error) return (
-    <div style={{ minHeight: '100vh', background: C.pageBg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 }}>
-      <div style={{ fontSize: 32 }}>⚠️</div>
-      <div style={{ color: '#ef4444', fontSize: 14, textAlign: 'center' }}>{error}</div>
-      <button onClick={goBack} style={{ background: '#10b981', border: 'none', borderRadius: 12, padding: '10px 24px', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Kembali</button>
     </div>
   )
 

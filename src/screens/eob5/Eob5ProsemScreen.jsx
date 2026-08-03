@@ -651,8 +651,11 @@ function ProsemDetail({ prosemId, onBack }) {
 
 function fmtDate(s) {
   if (!s) return ''
-  try { return new Date(s+'T00:00:00').toLocaleDateString('id-ID', { day:'numeric', month:'short' }) }
-  catch { return s }
+  try {
+    // Ambil hanya bagian tanggal (YYYY-MM-DD) — menghindari double-T dari ISO timestamp PostgreSQL
+    const datePart = String(s).slice(0, 10)
+    return new Date(datePart + 'T00:00:00').toLocaleDateString('id-ID', { day:'numeric', month:'short' })
+  } catch { return s }
 }
 
 // ── Main Screen ──────────────────────────────────────────────────────────────
