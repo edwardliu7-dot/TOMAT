@@ -94,12 +94,21 @@ function EpicFrameSparkles({ size, photoSize, color }) {
   )
 }
 
+// Default bingkai untuk semua akun guru — ditampilkan jika guru tidak pasang bingkai lain.
+const GURU_DEFAULT_BINGKAI = { image: '/guru.png', spread: 0.28, mixBlend: 'normal' }
+
+function resolveUserBingkai(user, bingkaiId) {
+  if (bingkaiId) return BINGKAI_VISUALS[bingkaiId] ?? null
+  if (user?.role === 'guru') return GURU_DEFAULT_BINGKAI
+  return null
+}
+
 // WhatsApp-style public user identity: photo/initial inside the equipped frame.
 // Accepts both API snake_case fields and the AuthContext camelCase fields.
 export function UserAvatar({ user, size = 40, onClick, title }) {
   const photoUrl = user?.photoUrl ?? user?.photo_url
   const bingkaiId = user?.equippedBingkai ?? user?.equipped_bingkai
-  const bingkai = bingkaiId ? BINGKAI_VISUALS[bingkaiId] : null
+  const bingkai = resolveUserBingkai(user, bingkaiId)
   const initial = (user?.name || '?')[0]?.toUpperCase()
   const [imageFailed, setImageFailed] = React.useState(false)
   React.useEffect(() => { setImageFailed(false) }, [photoUrl])
@@ -513,7 +522,7 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
   const spandukId = profile?.equippedSpanduk ?? profile?.equipped_spanduk
   const spanduk    = spandukId ? SPANDUK_VISUALS[spandukId] : null
   const bingkaiId  = profile?.equippedBingkai ?? profile?.equipped_bingkai
-  const bingkai    = bingkaiId ? BINGKAI_VISUALS[bingkaiId] : null
+  const bingkai    = resolveUserBingkai(profile, bingkaiId)
   const isCelestia = spanduk?.luxury === 'celestia'
   const isRoyal    = spanduk?.luxury === 'royal'
   const isLuxuryFrame = bingkai?.luxury === 'aurum' || bingkai?.luxury === 'void'
@@ -1053,7 +1062,7 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
   const appNotifications = useAppNotifications(true)
   const push = usePushNotifications(true)
   const expPct = Math.min(100, Math.round((player.exp / player.maxExp) * 100))
-  const bingkai = user?.equippedBingkai ? BINGKAI_VISUALS[user.equippedBingkai] : null
+  const bingkai = resolveUserBingkai(user, user?.equippedBingkai)
   const isLuxuryFrame = bingkai?.luxury === 'aurum' || bingkai?.luxury === 'void'
   const avatar = isLuxuryFrame
     ? <LuxuryAvatarFrame user={user} size={48} bingkai={bingkai} bingkaiId={user.equippedBingkai} />

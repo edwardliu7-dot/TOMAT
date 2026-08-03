@@ -18,6 +18,8 @@ const ALL_ASSETS = [
   '/kelinsay-sprite.png',
   '/kelinsay-malam.png',
   '/kelinsay-senja.png',
+  // ── guru default frame ──
+  '/guru.png',
   // ── bingkai / frames ──
   '/bingkai-neon.png',
   '/bingkai-api.png',
