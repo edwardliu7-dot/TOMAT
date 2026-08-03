@@ -298,28 +298,43 @@ Setelah membuat file game, daftarkan di:
 - Akses komunikasi (chat/forum): dicek server-side berdasarkan relasi guru-kelas-siswa yang eksak.
 - Profil publik: hanya terlihat dalam lingkaran kelas yang diizinkan.
 
+### `hasMateriTerdaftar` — Akses Penuh Guru TOMAT
+- Guru mendapat akses penuh TOMAT (raid, tugas, kunci bab, turnamen) jika `hasMateriTerdaftar = true`.
+- Flag ini `true` jika: jabatan berisi **`'guru'` atau `'guru_mapel'`** DAN guru memiliki minimal satu baris aktif di tabel `subjects`.
+- **Jangan gunakan `'guru_mapel'` sebagai satu-satunya syarat** — jabatan `'guru'` (generik) sudah cukup.
+- Middleware yang menggunakannya: `requireGuruMapelTerdaftar` di `server/guru.js`.
+
+### Sesi Guru — Sync Otomatis dari DB
+- Setiap request `GET /api/auth/me` **selalu** meng-overwrite `jabatan`, `kelas_diampu`, dan `wali_kelas_kelas` di sesi dari DB.
+- Ini memastikan perubahan jabatan/kelas berlaku tanpa re-login, dan sesi lama yang tidak punya field ini otomatis ter-backfill.
+- Response login dan `/me` menyertakan `jabatan`, `kelas_diampu`, `wali_kelas_kelas` sehingga klien (termasuk GuruEOB5) bisa membacanya langsung dari `user` di `AuthContext`.
+
+### BLP — Auth Berbasis Sesi
+- Route BLP guru (`/api/blp/dashboard`, review submission) **tidak memanggil `loadGuru()` dari DB** untuk cek akses — cukup baca `req.session.user.jabatan` dan `req.session.user.wali_kelas_kelas` yang sudah divalidasi saat login.
+- Pattern: `jabatan.includes('wali_kelas') && wali_kelas_kelas` → izinkan akses.
+
 ---
 
 ## 12. Fitur Khusus — Daftar Modul
 
 ### Modul yang Ada — Cek Sebelum Membuat Ulang
-| Fitur | File Utama |
-|-------|-----------|
-| Tugas / Assignment | `server/guru.js`, `server/siswa.js`, `TaskContext.jsx` |
-| Nilai / Scoring | `server/player.js`, `TaskResultScreen.jsx` |
-| Toko | `server/toko.js`, `ShopScreen.jsx` |
-| Pet | `server/pet.js`, `PetContext.jsx`, `FloatingPet.jsx` |
-| Duel | `server/multiplayer.js`, `DuelKatakScreen.jsx`, `LobbyScreen.jsx` |
-| Boss Raid | `server/boss-state.js`, `BossRaidScreen.jsx` |
-| Turnamen | `server/tournament-*.js`, `TournamentMatchScreen.jsx` |
-| Leaderboard | `server/papan-peringkat.js`, `LeaderboardScreen.jsx` |
-| Chat/Forum | `server/komunikasi.js`, `CommunicationScreen.jsx` |
-| Notifikasi | `server/notifikasi.js` |
-| Hafalan | `server/hafalan-*.js`, `HafalanScreen.jsx` |
-| Event Misi | `server/event-missions*.js` |
-| Badges | `server/lencana.js`, `BadgesScreen.jsx` |
-| Profil | `server/auth.js`, `ProfileScreen.jsx` |
-| What's New Modal | `WhatsNewModal.jsx`, `src/version.js` |
+| Fitur | File Utama | Catatan |
+|-------|-----------|---------|
+| Tugas / Assignment | `server/guru.js`, `server/siswa.js`, `TaskContext.jsx` | |
+| Nilai / Scoring | `server/player.js`, `TaskResultScreen.jsx` | |
+| Toko | `server/toko.js`, `ShopScreen.jsx` | |
+| Pet | `server/pet.js`, `PetContext.jsx`, `FloatingPet.jsx` | |
+| Duel | `server/multiplayer.js`, `DuelKatakScreen.jsx`, `LobbyScreen.jsx` | |
+| Boss Raid | `server/boss-state.js`, `BossRaidScreen.jsx` | |
+| Turnamen | `server/tournament-*.js`, `TournamentMatchScreen.jsx` | |
+| Leaderboard | `server/papan-peringkat.js`, `LeaderboardScreen.jsx` | |
+| Chat/Forum (siswa) | `server/komunikasi.js`, `CommunicationScreen.jsx` | **Hanya siswa & sisi siswa.** Guru tidak punya tab Chat di TOMAT — guru balas dari GuruEOB5 |
+| Notifikasi | `server/notifications.js`, `AppNotificationBell` di `shared.jsx` | Mendukung field `source`: `'tomat'` atau `'blp'` — tampil sebagai pill badge di bell |
+| Hafalan | `server/hafalan-*.js`, `HafalanScreen.jsx` | |
+| Event Misi | `server/event-missions*.js` | |
+| Badges | `server/lencana.js`, `BadgesScreen.jsx` | |
+| Profil | `server/auth.js`, `ProfileScreen.jsx` | |
+| What's New Modal | `WhatsNewModal.jsx`, `src/version.js` | |
 
 ---
 
@@ -415,11 +430,22 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 - Backend routes: `server/blp/*.js` — prefix `/api/blp/*`
 - Frontend screens: `src/screens/blp/`
 - Komponen UI: `src/components/blp/`
+- Data context: `src/contexts/BlpDataContext.jsx` — menyimpan cache dashboard, `loadDashboard()`, `invalidate()`, `patchSubmission()`
 - Entry point layar: `BlpHomeScreen.jsx`
 - Auth: pakai session TOMAT yang ada — tidak ada login terpisah
 - Teks: semua Bahasa Indonesia
 - Styling: inline styles (BUKAN Tailwind)
 - Schema: tabel BLP **tidak menggunakan prefix `blp_`** untuk tabel baru. Tabel lama (`blp_periods`, `daily_records`, `haid_periods`) dipertahankan apa adanya karena merupakan nama asli dari standalone BLP app.
+
+### Akses Guru BLP
+- Hanya guru dengan `jabatan.includes('wali_kelas')` dan `wali_kelas_kelas` terisi yang bisa akses BLP guru.
+- **Jangan panggil `loadGuru()` dari DB untuk cek akses** — gunakan `req.session.user` langsung (sudah divalidasi saat login, selalu di-sync di `/me`).
+- Siswa di luar kelas wali tidak bisa diakses guru tersebut.
+
+### Notifikasi BLP (Lintas Modul)
+- Siswa submit checklist harian → `notifyUser()` dikirim ke guru wali kelas kelas siswa (`source: 'blp'`, `type: 'blp_submit'`). **Non-blocking** — tidak menunda response HTTP.
+- Guru review submission pertama kali (`reviewedAt` baru diset) → `notifyUser()` dikirim ke siswa (`source: 'blp'`, `type: 'blp_feedback'`).
+- Di `AppNotificationBell`: notif BLP tampil dengan pill biru **BLP**, notif TOMAT dengan pill hijau **TOMAT**.
 
 ## 18. Modul GuruEOB5
 
@@ -520,4 +546,4 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
-*Terakhir diperbarui: 1 Agustus 2026 — Rebrand platform dari TOMAT → SMARTISA; integrasi akhir modul GuruEOB5 (25 screen, Eob5Sidebar, Eob5Layout). Update file ini setiap kali ada perubahan arsitektur signifikan.*
+*Terakhir diperbarui: 3 Agustus 2026 — Auth overhaul: `hasMateriTerdaftar` kenali jabatan `'guru'`; sesi guru selalu sync dari DB; `jabatan`/`kelas_diampu`/`wali_kelas_kelas` disertakan di response login & `/me`. BLP auth berbasis sesi (tanpa `loadGuru()` DB call). Notifikasi lintas modul BLP↔TOMAT dengan field `source`. Chat guru dihapus dari TOMAT (pindah ke GuruEOB5). Update file ini setiap kali ada perubahan arsitektur signifikan.*
