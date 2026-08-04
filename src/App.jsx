@@ -41,39 +41,6 @@ import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 import OtaUpdateBanner from './components/OtaUpdateBanner'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
-import BlpHomeScreen from './screens/blp/BlpHomeScreen'
-import BlpSiswaDashboardScreen from './screens/blp/BlpSiswaDashboardScreen'
-import BlpQuranScreen from './screens/blp/BlpQuranScreen'
-import BlpHaidScreen from './screens/blp/BlpHaidScreen'
-import BlpGuruDashboardScreen from './screens/blp/BlpGuruDashboardScreen'
-import { BlpDataProvider } from './contexts/BlpDataContext'
-import Eob5DashboardScreen from './screens/eob5/Eob5DashboardScreen'
-import Eob5AbsensiScreen from './screens/eob5/Eob5AbsensiScreen'
-import Eob5ManajemenSiswaScreen from './screens/eob5/Eob5ManajemenSiswaScreen'
-import Eob5DetailSiswaScreen from './screens/eob5/Eob5DetailSiswaScreen'
-import Eob5NilaiScreen from './screens/eob5/Eob5NilaiScreen'
-import Eob5JadwalScreen from './screens/eob5/Eob5JadwalScreen'
-import Eob5ProsemScreen from './screens/eob5/Eob5ProsemScreen'
-import Eob5MateriScreen from './screens/eob5/Eob5MateriScreen'
-import Eob5SoalAiScreen from './screens/eob5/Eob5SoalAiScreen'
-import Eob5RekapScreen from './screens/eob5/Eob5RekapScreen'
-import Eob5InboxScreen from './screens/eob5/Eob5InboxScreen'
-import Eob5JurnalScreen from './screens/eob5/Eob5JurnalScreen'
-import Eob5KalenderScreen from './screens/eob5/Eob5KalenderScreen'
-import Eob5InfoPekananScreen from './screens/eob5/Eob5InfoPekananScreen'
-import Eob5PoinScreen from './screens/eob5/Eob5PoinScreen'
-import Eob5AkunSiswaScreen from './screens/eob5/Eob5AkunSiswaScreen'
-import Eob5DirektoriGuruScreen from './screens/eob5/Eob5DirektoriGuruScreen'
-import Eob5DirektoriSiswaScreen from './screens/eob5/Eob5DirektoriSiswaScreen'
-import Eob5KepsekScreen from './screens/eob5/Eob5KepsekScreen'
-import Eob5KesiswaanScreen from './screens/eob5/Eob5KesiswaanScreen'
-import Eob5WaliKelasScreen from './screens/eob5/Eob5WaliKelasScreen'
-import Eob5KurikulumScreen from './screens/eob5/Eob5KurikulumScreen'
-import Eob5AdministrasiScreen from './screens/eob5/Eob5AdministrasiScreen'
-import Eob5FeedbackScreen from './screens/eob5/Eob5FeedbackScreen'
-import Eob5PengaturanScreen from './screens/eob5/Eob5PengaturanScreen'
-import Eob5Layout from './components/eob5/Eob5Layout'
-import BlpLayout from './components/blp/BlpLayout'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
@@ -572,39 +539,6 @@ const SCREEN_TITLES = {
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
   'tournament-wait': 'Turnamen',
-  'blp-home':       'BLP Harian',
-  'blp-kalender':   'Kalender BLP',
-  'blp-pengaturan': 'Pengaturan BLP',
-  'blp-quran':      'Quran Tracker',
-  'blp-haid':       'Periode Haid',
-  'blp-guru-daftar': 'BLP — Daftar Siswa',
-  'blp-guru-rekap-nilai': 'BLP — Rekap Nilai',
-  'blp-guru-haid': 'BLP — Haid Siswi',
-  'eob5-dashboard': 'GURU — Dashboard',
-  'eob5-absensi': 'GURU — Absensi',
-  'eob5-siswa': 'GURU — Manajemen Siswa',
-  'eob5-detail-siswa': 'GURU — Detail Siswa',
-  'eob5-nilai': 'GURU — Nilai',
-  'eob5-jadwal': 'GURU — Jadwal',
-  'eob5-prosem': 'GURU — Prosem',
-  'eob5-materi': 'GURU — Materi',
-  'eob5-soal-ai': 'GURU — Soal AI',
-  'eob5-rekap': 'GURU — Rekap',
-  'eob5-inbox': 'GURU — Pesan Siswa',
-  'eob5-jurnal': 'GURU — Jurnal Mengajar',
-  'eob5-kalender': 'GURU — Kalender Akademik',
-  'eob5-info-pekanan': 'GURU — Info Pekanan',
-  'eob5-poin': 'GURU — Poin Siswa',
-  'eob5-akun-siswa': 'GURU — Akun Siswa',
-  'eob5-direktori-guru': 'GURU — Direktori Guru',
-  'eob5-direktori-siswa': 'GURU — Direktori Siswa',
-  'eob5-kepsek': 'GURU — Progres Kinerja Guru',
-  'eob5-kesiswaan': 'GURU — Rekap Kesiswaan',
-  'eob5-walikelas': 'GURU — Rekap Wali Kelas',
-  'eob5-kurikulum': 'GURU — Supervisi Kurikulum',
-  'eob5-administrasi': 'GURU — Administrasi',
-  'eob5-feedback': 'GURU — Feedback',
-  'eob5-pengaturan': 'GURU — Pengaturan Profil',
 }
 
 // Rendered inside PlayerProvider — safe to call usePlayer().
@@ -1058,22 +992,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       )
     }
 
-    // ── BLP siswa screens — wrapped with sidebar + mobile footer nav ──
-    if (current === 'blp-home' || current === 'blp-kalender' ||
-        current === 'blp-pengaturan' || current === 'blp-quran' || current === 'blp-haid') {
-      let blpScreen = null
-      if (current === 'blp-home')       blpScreen = <BlpSiswaDashboardScreen navigate={navigate} goBack={goBack} view="harian" />
-      if (current === 'blp-kalender')   blpScreen = <BlpSiswaDashboardScreen navigate={navigate} goBack={goBack} view="kalender" />
-      if (current === 'blp-pengaturan') blpScreen = <BlpSiswaDashboardScreen navigate={navigate} goBack={goBack} view="pengaturan" />
-      if (current === 'blp-quran')      blpScreen = <BlpQuranScreen navigate={navigate} goBack={goBack} />
-      if (current === 'blp-haid')       blpScreen = <BlpHaidScreen navigate={navigate} goBack={goBack} />
-      return (
-        <BlpLayout user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
-          {blpScreen}
-        </BlpLayout>
-      )
-    }
-
     if (current === 'home') {
       return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} openPetShop={() => { setTokoInitialTab('pet_skin'); navigate('toko') }} openEventShop={() => { setTokoInitialTab('event'); navigate('toko') }} />
     }
@@ -1087,7 +1005,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       <PetProvider>
         <TaskProvider onTaskComplete={handleTaskComplete}>
           <BabLockProvider>
-            <BlpDataProvider>
             <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout} onSwitchModule={handleSwitchModule}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
               {/* Inject CSS that filters ONLY structural nav/chrome elements.
@@ -1179,7 +1096,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               )}
             </div>
             </AppShell>
-            </BlpDataProvider>
           </BabLockProvider>
         </TaskProvider>
       </PetProvider>
@@ -1190,8 +1106,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 export default function App() {
   const { user, logout, checking } = useAuth()
   const [guruPracticeMode, setGuruPracticeMode] = useState(false)
-  const [guruHistory, setGuruHistory] = useState(['guru-dashboard'])
-  const [eob5SiswaId, setEob5SiswaId] = useState(null)
   const {
     checking: checkingUpdate,
     updateRequired, downloadUrl,
@@ -1204,16 +1118,6 @@ export default function App() {
       window.__hideSplash?.()
     }
   }, [checking, checkingUpdate])
-
-  // EOB5: lihat detail siswa — dispatched by Eob5ManajemenSiswaScreen
-  useEffect(() => {
-    const handler = (e) => {
-      setEob5SiswaId(e.detail?.id || null)
-      setGuruHistory(h => [...h, 'eob5-detail-siswa'])
-    }
-    window.addEventListener('eob5:lihat-siswa', handler)
-    return () => window.removeEventListener('eob5:lihat-siswa', handler)
-  }, [])
 
   // Update tab title for guru dashboard and login screen
   useEffect(() => {
@@ -1249,151 +1153,19 @@ export default function App() {
       )
     }
 
-    const currentGuruScreen = guruHistory[guruHistory.length - 1]
-    const guruGoBack = () => {
-      if (guruHistory.length > 1) {
-        setGuruHistory(h => h.slice(0, -1))
-      }
-    }
     const guruNavigate = (key) => {
       if (key === 'guruMengajar') { setGuruPracticeMode(true); return }
-      if (key.startsWith('eob5-') || key.startsWith('blp-')) {
-        setGuruHistory(h => [...h, key])
-        return
-      }
-      // If currently on an eob5/blp sub-module screen, navigate back to the guru
-      // dashboard first so GuruDashboardScreen can mount and handle the tab event.
-      const isOnSubModule = currentGuruScreen?.startsWith('eob5-') || currentGuruScreen?.startsWith('blp-')
-      if (isOnSubModule) {
-        setGuruHistory(['guru-dashboard'])
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
-        }, 80)
-        return
-      }
       window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
     }
 
-    const handleSwitchGuruModule = (homeScreen) => {
-      setGuruHistory([homeScreen])
-    }
-
-    const renderGuruScreen = () => {
-      if (currentGuruScreen === 'eob5-dashboard') {
-        return <Eob5DashboardScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-absensi') {
-        return <Eob5AbsensiScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-siswa') {
-        return <Eob5ManajemenSiswaScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-detail-siswa') {
-        return <Eob5DetailSiswaScreen navigate={guruNavigate} goBack={guruGoBack} siswaId={eob5SiswaId} />
-      }
-      if (currentGuruScreen === 'eob5-nilai') {
-        return <Eob5NilaiScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-jadwal') {
-        return <Eob5JadwalScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-prosem') {
-        return <Eob5ProsemScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-materi') {
-        return <Eob5MateriScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-soal-ai') {
-        return <Eob5SoalAiScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-rekap') {
-        return <Eob5RekapScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-inbox') {
-        return <Eob5InboxScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-jurnal') {
-        return <Eob5JurnalScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-kalender') {
-        return <Eob5KalenderScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-info-pekanan') {
-        return <Eob5InfoPekananScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-poin') {
-        return <Eob5PoinScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-akun-siswa') {
-        return <Eob5AkunSiswaScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-direktori-guru') {
-        return <Eob5DirektoriGuruScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-direktori-siswa') {
-        return <Eob5DirektoriSiswaScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-kepsek') {
-        return <Eob5KepsekScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-kesiswaan') {
-        return <Eob5KesiswaanScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-walikelas') {
-        return <Eob5WaliKelasScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-kurikulum') {
-        return <Eob5KurikulumScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-administrasi') {
-        return <Eob5AdministrasiScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-feedback') {
-        return <Eob5FeedbackScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'eob5-pengaturan') {
-        return <Eob5PengaturanScreen navigate={guruNavigate} goBack={guruGoBack} />
-      }
-      if (currentGuruScreen === 'blp-guru-daftar' || currentGuruScreen === 'blp-guru-rekap') {
-        return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} activeTab="daftar" />
-      }
-      if (currentGuruScreen === 'blp-guru-rekap-nilai') {
-        return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} activeTab="rekap" />
-      }
-      if (currentGuruScreen === 'blp-guru-haid') {
-        return <BlpGuruDashboardScreen navigate={guruNavigate} goBack={guruGoBack} activeTab="haid" />
-      }
-      // Default: main guru dashboard
-      return <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
-    }
-
-    const isEob5Screen = currentGuruScreen?.startsWith('eob5-')
-    const isBlpGuruScreen = currentGuruScreen?.startsWith('blp-')
-
     return (
-      <BlpDataProvider>
-        <AppShell user={user} navigate={guruNavigate} currentScreen={currentGuruScreen} onLogout={logout} onSwitchModule={handleSwitchGuruModule}>
-          {isEob5Screen ? (
-            <Eob5Layout navigate={guruNavigate} currentScreen={currentGuruScreen} user={user} onLogout={logout}>
-              <ErrorBoundary onReset={guruGoBack}>
-                {renderGuruScreen()}
-              </ErrorBoundary>
-            </Eob5Layout>
-          ) : isBlpGuruScreen ? (
-            <BlpLayout user={user} navigate={guruNavigate} currentScreen={currentGuruScreen} onLogout={logout}>
-              <ErrorBoundary onReset={guruGoBack}>
-                {renderGuruScreen()}
-              </ErrorBoundary>
-            </BlpLayout>
-          ) : (
-            <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
-              <ErrorBoundary onReset={guruGoBack}>
-                {renderGuruScreen()}
-              </ErrorBoundary>
-            </div>
-          )}
-        </AppShell>
-      </BlpDataProvider>
+      <AppShell user={user} navigate={guruNavigate} currentScreen="guru-dashboard" onLogout={logout} onSwitchModule={() => {}}>
+        <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+          <ErrorBoundary onReset={() => {}}>
+            <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
+          </ErrorBoundary>
+        </div>
+      </AppShell>
     )
   }
 

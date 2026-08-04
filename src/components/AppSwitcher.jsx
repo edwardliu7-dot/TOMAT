@@ -1,5 +1,8 @@
 import { useAuth } from '../AuthContext'
 
+const GURU_URL = 'https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io'
+const BLP_URL  = 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io'
+
 // Active highlight colors per module tab
 const TAB_COLORS = {
   tomat: {
@@ -21,13 +24,13 @@ const TAB_COLORS = {
 
 const TABS = {
   guru: [
-    { key: 'eob5',  label: 'GURU',  homeScreen: 'eob5-dashboard' },
+    { key: 'eob5',  label: 'GURU',  externalUrl: GURU_URL },
     { key: 'tomat', label: 'TOMAT', homeScreen: 'guruDashboard' },
-    { key: 'blp',   label: 'BLP',   homeScreen: 'blp-guru-daftar' },
+    { key: 'blp',   label: 'BLP',   externalUrl: BLP_URL },
   ],
   siswa: [
     { key: 'tomat', label: 'TOMAT', homeScreen: 'home' },
-    { key: 'blp',   label: 'BLP',   homeScreen: 'blp-home' },
+    { key: 'blp',   label: 'BLP',   externalUrl: BLP_URL },
   ],
 }
 
@@ -48,7 +51,11 @@ export default function AppSwitcher({ activeModule, onSwitch }) {
         return (
           <button
             key={tab.key}
-            onClick={() => tab.externalUrl ? window.open(tab.externalUrl, '_blank', 'noopener') : onSwitch(tab)}
+            onClick={() => tab.externalUrl
+              ? window.open(tab.externalUrl, '_blank', 'noopener,noreferrer')
+              : onSwitch(tab)
+            }
+            title={tab.externalUrl ? `Buka ${tab.label} (tab baru)` : undefined}
             style={{
               background: isActive ? colors.bg : 'transparent',
               border: isActive ? `1px solid ${colors.border}` : '1px solid transparent',
@@ -61,9 +68,13 @@ export default function AppSwitcher({ activeModule, onSwitch }) {
               fontFamily: 'inherit',
               transition: 'all 0.15s',
               letterSpacing: 0.3,
+              display: 'flex', alignItems: 'center', gap: 4,
             }}
           >
             {tab.label}
+            {tab.externalUrl && (
+              <span style={{ fontSize: 9, opacity: 0.6 }}>↗</span>
+            )}
           </button>
         )
       })}
