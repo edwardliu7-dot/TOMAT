@@ -161,6 +161,35 @@ router.post('/bulk', requireGuru, async (req, res) => {
   }
 })
 
+// PATCH /:id — alias untuk PUT /:id (konsistensi dengan APP_LOGIC.md)
+router.patch('/:id', requireGuru, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { name, kelas, email, whatsapp, jenis_kelamin, bio } = req.body || {}
+
+    const existing = await pool.query('SELECT id FROM students WHERE id = $1', [id])
+    if (existing.rowCount === 0) return res.status(404).json({ error: 'Siswa tidak ditemukan' })
+
+    const { rows } = await pool.query(
+      `UPDATE students SET
+        name          = COALESCE($2, name),
+        kelas         = COALESCE($3, kelas),
+        email         = COALESCE($4, email),
+        whatsapp      = COALESCE($5, whatsapp),
+        jenis_kelamin = COALESCE($6, jenis_kelamin),
+        bio           = COALESCE($7, bio)
+       WHERE id = $1
+       RETURNING id, username, name, kelas, email, whatsapp, jenis_kelamin, bio`,
+      [id, name || null, kelas || null, email || null, whatsapp || null,
+       jenis_kelamin || null, bio || null]
+    )
+    res.json(rows[0])
+  } catch (err) {
+    console.error('[eob5/siswa] patch error:', err)
+    res.status(500).json({ error: 'Gagal memperbarui data siswa' })
+  }
+})
+
 // DELETE /:id — hapus siswa
 router.delete('/:id', requireGuru, async (req, res) => {
   try {

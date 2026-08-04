@@ -264,6 +264,46 @@ router.post('/import-analyze', requireGuru, upload.single('file'), async (req, r
   }
 })
 
+// POST /reorder — ubah urutan tp_number secara batch
+// Body: { items: [{ id: "uuid", tp_number: 1 }, ...] }
+router.post('/reorder', requireGuru, async (req, res) => {
+  try {
+    const guruId = req.session.user.id
+    const { items } = req.body || {}
+
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ error: 'items (array { id, tp_number }) wajib diisi' })
+    }
+    for (const item of items) {
+      if (!item.id || item.tp_number === undefined) {
+        return res.status(400).json({ error: 'Setiap item harus punya id dan tp_number' })
+      }
+    }
+
+    // Update dalam satu transaksi
+    await pool.query('BEGIN')
+    try {
+      for (const item of items) {
+        await pool.query(
+          `UPDATE tujuan_pembelajaran
+           SET tp_number = $1
+           WHERE id = $2 AND teacher_id = $3`,
+          [item.tp_number, item.id, guruId]
+        )
+      }
+      await pool.query('COMMIT')
+    } catch (innerErr) {
+      await pool.query('ROLLBACK')
+      throw innerErr
+    }
+
+    res.json({ success: true, updated: items.length })
+  } catch (err) {
+    console.error('[eob5/tp] reorder error:', err)
+    res.status(500).json({ error: 'Gagal mengurutkan ulang tujuan pembelajaran' })
+  }
+})
+
 // PATCH /:id — update TP
 router.patch('/:id', requireGuru, async (req, res) => {
   try {

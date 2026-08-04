@@ -103,24 +103,21 @@ router.post('/bulk', requireGuru, async (req, res) => {
       return res.status(400).json({ error: 'Tidak ada siswa valid yang dipilih' })
     }
 
-    const client = await pool.connect()
     let count = 0
+    await pool.query('BEGIN')
     try {
-      await client.query('BEGIN')
       for (const sid of targets) {
-        await client.query(
+        await pool.query(
           `INSERT INTO point_records (student_id, guru_id, jenis, poin, keterangan, tanggal)
            VALUES ($1,$2,$3,$4,$5,$6)`,
           [sid, guruId, jenis, poin, keterangan || null, tanggal || null]
         )
         count++
       }
-      await client.query('COMMIT')
+      await pool.query('COMMIT')
     } catch (e) {
-      await client.query('ROLLBACK')
+      await pool.query('ROLLBACK')
       throw e
-    } finally {
-      client.release()
     }
     res.json({ count })
   } catch (err) {
@@ -143,24 +140,21 @@ router.post('/bulk-mixed', requireGuru, async (req, res) => {
     const targets = entries.filter(e => allowed.has(e.student_id))
     if (!targets.length) return res.json({ count: 0 })
 
-    const client = await pool.connect()
     let count = 0
+    await pool.query('BEGIN')
     try {
-      await client.query('BEGIN')
       for (const e of targets) {
-        await client.query(
+        await pool.query(
           `INSERT INTO point_records (student_id, guru_id, jenis, poin, keterangan, tanggal)
            VALUES ($1,$2,$3,$4,$5,$6)`,
           [e.student_id, guruId, e.jenis, e.poin, e.keterangan || null, tanggal]
         )
         count++
       }
-      await client.query('COMMIT')
+      await pool.query('COMMIT')
     } catch (e) {
-      await client.query('ROLLBACK')
+      await pool.query('ROLLBACK')
       throw e
-    } finally {
-      client.release()
     }
     res.json({ count })
   } catch (err) {

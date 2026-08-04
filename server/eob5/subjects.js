@@ -55,7 +55,7 @@ router.get('/', requireGuru, async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `SELECT id, teacher_id AS guru_id, name, created_at
+      `SELECT id, teacher_id AS guru_id, teacher_id AS "teacherId", name, created_at AS "createdAt"
        FROM subjects
        WHERE teacher_id = $1 AND deleted_at IS NULL
        ORDER BY name`,

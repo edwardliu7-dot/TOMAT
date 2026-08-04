@@ -288,6 +288,30 @@ router.patch('/:id', requireGuru, async (req, res) => {
   }
 })
 
+// DELETE /:id — hapus satu record absensi (hanya milik kelas yang diampu guru)
+router.delete('/:id', requireGuru, async (req, res) => {
+  try {
+    const guruId = req.session.user.id
+    const { id } = req.params
+    const kelasList = await getKelasDiampu(guruId)
+    if (!kelasList.length) return res.status(404).json({ error: 'Record absensi tidak ditemukan' })
+
+    const { rowCount } = await pool.query(
+      `DELETE FROM absensi a
+       USING students s
+       WHERE a.id = $1
+         AND a.student_id = s.id
+         AND s.kelas = ANY($2::text[])`,
+      [id, kelasList]
+    )
+    if (!rowCount) return res.status(404).json({ error: 'Record absensi tidak ditemukan' })
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[eob5/attendance] delete error:', err)
+    res.status(500).json({ error: 'Gagal menghapus record absensi' })
+  }
+})
+
 // DELETE /bulk-kelas
 router.delete('/bulk-kelas', requireGuru, async (req, res) => {
   try {

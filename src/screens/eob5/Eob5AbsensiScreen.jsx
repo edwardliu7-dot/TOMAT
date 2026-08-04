@@ -47,10 +47,6 @@ export default function Eob5AbsensiScreen({ navigate, goBack }) {
   const [histTahun, setHistTahun]   = useState(String(new Date().getFullYear()))
   const [loadingHist, setLoadingHist] = useState(false)
 
-  if (user?.role !== 'guru') {
-    return <div style={{ padding: 60, textAlign: 'center', color: '#ef4444' }}>Akses hanya untuk guru.</div>
-  }
-
   // Load students
   useEffect(() => {
     fetch('/api/eob5/siswa/list', { credentials: 'include' })
@@ -241,6 +237,11 @@ export default function Eob5AbsensiScreen({ navigate, goBack }) {
       borderRadius: 8, color: tab === t ? C.primary : C.sub, cursor: 'pointer',
     }}>{label}</button>
   )
+
+  // Guard SETELAH semua hooks — mencegah React hooks violation
+  if (!user || user.role !== 'guru') {
+    return <div style={{ padding: 60, textAlign: 'center', color: '#ef4444' }}>Akses hanya untuk guru.</div>
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, fontFamily: 'system-ui,sans-serif', color: C.text, paddingBottom: 40 }}>

@@ -103,6 +103,44 @@ router.post('/', requireGuru, async (req, res) => {
   }
 })
 
+// PATCH /:id — update metadata (judul, deskripsi, mata_pelajaran, kelas, link_url)
+router.patch('/:id', requireGuru, async (req, res) => {
+  try {
+    const guruId = req.session.user.id
+    const { rows: existing } = await pool.query(
+      'SELECT id, created_by FROM bahan_ajar WHERE id = $1', [req.params.id]
+    )
+    if (!existing.length) return res.status(404).json({ error: 'Bahan ajar tidak ditemukan' })
+
+    const isOwner = existing[0].created_by === guruId
+    if (!isOwner && !isAdmin(req.session.user)) {
+      return res.status(403).json({ error: 'Hanya pembuat atau admin yang dapat mengubah bahan ajar ini' })
+    }
+
+    const { judul, mata_pelajaran, kelas, deskripsi, link_url } = req.body || {}
+
+    const { rows } = await pool.query(
+      `UPDATE bahan_ajar
+       SET judul          = COALESCE($1, judul),
+           mata_pelajaran = COALESCE($2, mata_pelajaran),
+           kelas          = COALESCE($3, kelas),
+           deskripsi      = COALESCE($4, deskripsi),
+           link_url       = COALESCE($5, link_url)
+       WHERE id = $6
+       RETURNING id, judul, mata_pelajaran, kelas, deskripsi,
+                 file_name, file_type, file_size, link_url,
+                 created_by, created_by_name, created_at`,
+      [judul || null, mata_pelajaran !== undefined ? mata_pelajaran : null,
+       kelas !== undefined ? kelas : null, deskripsi !== undefined ? deskripsi : null,
+       link_url !== undefined ? link_url : null, req.params.id]
+    )
+    res.json(rows[0])
+  } catch (err) {
+    console.error('[eob5/bahan-ajar] patch error:', err)
+    res.status(500).json({ error: 'Gagal mengupdate bahan ajar' })
+  }
+})
+
 // DELETE /:id — pemilik atau admin
 router.delete('/:id', requireGuru, async (req, res) => {
   try {

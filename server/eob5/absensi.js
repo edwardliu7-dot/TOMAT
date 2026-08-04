@@ -204,12 +204,11 @@ router.post('/bulk', requireGuru, async (req, res) => {
     }
 
     // Upsert semua sekaligus dalam satu transaksi
-    const client = await pool.connect()
     const saved = []
+    await pool.query('BEGIN')
     try {
-      await client.query('BEGIN')
       for (const item of absensi) {
-        const { rows } = await client.query(
+        const { rows } = await pool.query(
           `INSERT INTO absensi (student_id, guru_id, tanggal, status, keterangan)
            VALUES ($1, $2, $3, $4, $5)
            ON CONFLICT (student_id, tanggal)
@@ -222,18 +221,88 @@ router.post('/bulk', requireGuru, async (req, res) => {
         )
         saved.push(rows[0])
       }
-      await client.query('COMMIT')
+      await pool.query('COMMIT')
     } catch (innerErr) {
-      await client.query('ROLLBACK')
+      await pool.query('ROLLBACK')
       throw innerErr
-    } finally {
-      client.release()
     }
 
     res.json({ ok: true, tanggal, kelas: kelas || null, jumlah: saved.length, absensi: saved })
   } catch (err) {
     console.error('[eob5/absensi] bulk error:', err)
     res.status(500).json({ error: 'Gagal menyimpan absensi massal' })
+  }
+})
+
+// POST /bulk-mixed — upsert satu kelas dengan status berbeda per siswa
+// Body: { tanggal, records: [{ student_id, status, keterangan }] }
+router.post('/bulk-mixed', requireGuru, async (req, res) => {
+  try {
+    const guruId = req.session.user.id
+    const { tanggal, records } = req.body || {}
+
+    if (!Array.isArray(records) || !records.length) {
+      return res.status(400).json({ error: 'records (array) wajib diisi' })
+    }
+
+    const tanggalFinal = tanggal || getJakartaToday()
+    let inserted = 0
+    for (const rec of records) {
+      const statusNorm = normalizeStatus(rec.status)
+      if (!STATUS_VALID.includes(statusNorm)) continue
+      await pool.query(
+        `INSERT INTO absensi (student_id, guru_id, tanggal, status, keterangan)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (student_id, tanggal)
+         DO UPDATE SET status = EXCLUDED.status, keterangan = EXCLUDED.keterangan, guru_id = EXCLUDED.guru_id`,
+        [rec.student_id, guruId, tanggalFinal, statusNorm, rec.keterangan || null]
+      )
+      inserted++
+    }
+    res.status(201).json({ count: inserted })
+  } catch (err) {
+    console.error('[eob5/absensi] bulk-mixed error:', err)
+    res.status(500).json({ error: 'Gagal menyimpan absensi bulk-mixed' })
+  }
+})
+
+// PATCH /:id — update satu record absensi
+router.patch('/:id', requireGuru, async (req, res) => {
+  try {
+    const guruId = req.session.user.id
+    const { id } = req.params
+    const { status, keterangan } = req.body || {}
+    const statusNorm = status ? normalizeStatus(status) : null
+
+    const { rows } = await pool.query(
+      `UPDATE absensi
+       SET status     = COALESCE($1, status),
+           keterangan = COALESCE($2, keterangan),
+           guru_id    = $3
+       WHERE id = $4
+       RETURNING id, student_id, tanggal, status, keterangan`,
+      [statusNorm, keterangan !== undefined ? keterangan : null, guruId, id]
+    )
+    if (!rows.length) return res.status(404).json({ error: 'Record absensi tidak ditemukan' })
+    res.json(rows[0])
+  } catch (err) {
+    console.error('[eob5/absensi] patch error:', err)
+    res.status(500).json({ error: 'Gagal mengupdate absensi' })
+  }
+})
+
+// DELETE /:id — hapus satu record absensi
+router.delete('/:id', requireGuru, async (req, res) => {
+  try {
+    const { rowCount } = await pool.query(
+      `DELETE FROM absensi WHERE id = $1`,
+      [req.params.id]
+    )
+    if (!rowCount) return res.status(404).json({ error: 'Record absensi tidak ditemukan' })
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[eob5/absensi] delete error:', err)
+    res.status(500).json({ error: 'Gagal menghapus absensi' })
   }
 })
 

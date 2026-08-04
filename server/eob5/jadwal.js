@@ -85,6 +85,58 @@ router.post('/', requireGuru, async (req, res) => {
   }
 })
 
+// PATCH /api/eob5/jadwal/:id — update jadwal di schedules
+router.patch('/:id', requireGuru, async (req, res) => {
+  try {
+    const guruId = req.session.user.id
+    const { id } = req.params
+    const { kelas, mata_pelajaran, hari, jam_mulai, jam_selesai } = req.body || {}
+
+    // Pastikan jadwal milik guru ini
+    const { rows: existing } = await pool.query(
+      `SELECT id, subject_id FROM schedules WHERE id = $1::uuid AND teacher_id = $2`,
+      [id, guruId]
+    )
+    if (!existing.length) return res.status(404).json({ error: 'Jadwal tidak ditemukan' })
+
+    // Jika mata_pelajaran diubah, cari subject_id baru
+    let subjectId = existing[0].subject_id
+    if (mata_pelajaran) {
+      const subRes = await pool.query(
+        `SELECT id FROM subjects WHERE teacher_id = $1 AND name ILIKE $2 AND deleted_at IS NULL LIMIT 1`,
+        [guruId, mata_pelajaran]
+      )
+      if (!subRes.rows.length) {
+        return res.status(400).json({ error: `Mata pelajaran "${mata_pelajaran}" tidak ditemukan di daftar subjects Anda.` })
+      }
+      subjectId = subRes.rows[0].id
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE schedules
+       SET subject_id = $1,
+           kelas      = COALESCE($2, kelas),
+           hari       = COALESCE($3, hari),
+           jam_mulai  = COALESCE($4::time, jam_mulai),
+           jam_selesai= COALESCE($5::time, jam_selesai)
+       WHERE id = $6::uuid AND teacher_id = $7
+       RETURNING id::text, teacher_id AS guru_id, kelas, hari,
+                 jam_mulai::text, jam_selesai::text, subject_id::text`,
+      [subjectId, kelas || null, hari || null, jam_mulai || null, jam_selesai || null, id, guruId]
+    )
+
+    // Ambil nama mapel untuk respons
+    const subName = mata_pelajaran || (await pool.query(
+      'SELECT name FROM subjects WHERE id = $1', [subjectId]
+    )).rows[0]?.name || ''
+
+    res.json({ ...rows[0], mata_pelajaran: subName, source_table: 'schedules' })
+  } catch (err) {
+    console.error('[eob5/jadwal] patch error:', err)
+    res.status(500).json({ error: 'Gagal mengupdate jadwal' })
+  }
+})
+
 // DELETE /api/eob5/jadwal/:id — hapus dari schedules
 router.delete('/:id', requireGuru, async (req, res) => {
   try {
