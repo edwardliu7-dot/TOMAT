@@ -34,7 +34,7 @@ const TABS = {
   ],
 }
 
-export default function AppSwitcher({ activeModule, onSwitch }) {
+export default function AppSwitcher({ activeModule, onSwitch, onOpenApp }) {
   const { user } = useAuth()
   if (!user) return null
   const tabs = TABS[user?.role] || TABS.siswa
@@ -52,10 +52,9 @@ export default function AppSwitcher({ activeModule, onSwitch }) {
           <button
             key={tab.key}
             onClick={() => tab.externalUrl
-              ? window.open(tab.externalUrl, '_blank', 'noopener,noreferrer')
+              ? onOpenApp?.({ src: tab.externalUrl, title: tab.label })
               : onSwitch(tab)
             }
-            title={tab.externalUrl ? `Buka ${tab.label} (tab baru)` : undefined}
             style={{
               background: isActive ? colors.bg : 'transparent',
               border: isActive ? `1px solid ${colors.border}` : '1px solid transparent',
@@ -73,7 +72,7 @@ export default function AppSwitcher({ activeModule, onSwitch }) {
           >
             {tab.label}
             {tab.externalUrl && (
-              <span style={{ fontSize: 9, opacity: 0.6 }}>↗</span>
+              <span style={{ fontSize: 9, opacity: 0.6 }}>⤢</span>
             )}
           </button>
         )

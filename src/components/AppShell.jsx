@@ -46,7 +46,7 @@ function SiswaPlayerInfo() {
  * Di mobile juga menampilkan unified top header dan bottom navigation bar.
  * Props: { user, navigate, currentScreen, onLogout, onSwitchModule, children }
  */
-export default function AppShell({ user, navigate, currentScreen, onLogout, onSwitchModule, children }) {
+export default function AppShell({ user, navigate, currentScreen, onLogout, onSwitchModule, onOpenApp, children }) {
   const isDesktop = useIsDesktop()
   const gradeNum = getGradeNumber(user?.kelas)
   const zoneId = gradeNum ? `grade${gradeNum}` : 'grade7'
@@ -221,7 +221,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
 
             {/* Center: App Switcher */}
             <div style={{ flexShrink: 0 }}>
-              <AppSwitcher activeModule={activeModule} onSwitch={handleSwitch} />
+              <AppSwitcher activeModule={activeModule} onSwitch={handleSwitch} onOpenApp={onOpenApp} />
             </div>
 
             {/* Right: notification bells + Mode Mengajar for guru */}
@@ -305,7 +305,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
           backdropFilter: 'blur(12px)',
           boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
         }}>
-          <AppSwitcher activeModule={activeModule} onSwitch={handleSwitch} />
+          <AppSwitcher activeModule={activeModule} onSwitch={handleSwitch} onOpenApp={onOpenApp} />
         </div>
       )}
     </>

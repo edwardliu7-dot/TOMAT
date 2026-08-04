@@ -143,7 +143,7 @@ function ZoneCard({ zone, locked, selected, onClick }) {
   )
 }
 
-export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop, openEventShop }) {
+export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop, openEventShop, onOpenApp }) {
   const { player } = usePlayer()
   const { tasks, grades } = useTask()
   const { user } = useAuth()
@@ -357,7 +357,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
               APLIKASI LAIN
             </div>
             <button
-              onClick={() => window.open('https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io', '_blank', 'noopener,noreferrer')}
+              onClick={() => onOpenApp?.({ src: 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io', title: 'BLP Harian' })}
               style={{
                 width: '100%', background: 'rgba(16,185,129,0.1)',
                 border: '1px solid rgba(16,185,129,0.3)', borderRadius: 12,
@@ -368,9 +368,9 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
               <span style={{ fontSize: 24 }}>📋</span>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14 }}>BLP Harian</div>
-                <div style={{ fontSize: 12, color: '#34d399', marginTop: 2 }}>Isi aktivitas BLP hari ini ↗</div>
+                <div style={{ fontSize: 12, color: '#34d399', marginTop: 2 }}>Isi aktivitas BLP hari ini →</div>
               </div>
-              <span style={{ marginLeft: 'auto', color: '#34d399' }}>↗</span>
+              <span style={{ marginLeft: 'auto', color: '#34d399' }}>→</span>
             </button>
           </div>
         )}
@@ -381,7 +381,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
               APLIKASI LAIN
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button onClick={() => window.open('https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io', '_blank', 'noopener,noreferrer')} style={{
+              <button onClick={() => onOpenApp?.({ src: 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io', title: 'BLP Harian' })} style={{
                 background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
                 borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
                 cursor: 'pointer', color: '#fff', fontFamily: 'inherit', textAlign: 'left',
@@ -389,11 +389,11 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
                 <span style={{ fontSize: 24 }}>📋</span>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>BLP Harian</div>
-                  <div style={{ fontSize: 12, color: '#34d399', marginTop: 2 }}>Rekap aktivitas siswa ↗</div>
+                  <div style={{ fontSize: 12, color: '#34d399', marginTop: 2 }}>Rekap aktivitas siswa →</div>
                 </div>
-                <span style={{ marginLeft: 'auto', color: '#34d399' }}>↗</span>
+                <span style={{ marginLeft: 'auto', color: '#34d399' }}>→</span>
               </button>
-              <button onClick={() => window.open('https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io', '_blank', 'noopener,noreferrer')} style={{
+              <button onClick={() => onOpenApp?.({ src: 'https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io', title: 'GURU (EOB5)' })} style={{
                 background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)',
                 borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
                 cursor: 'pointer', color: '#fff', fontFamily: 'inherit', textAlign: 'left',
@@ -401,9 +401,9 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
                 <span style={{ fontSize: 24 }}>🏫</span>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>GURU (EOB5)</div>
-                  <div style={{ fontSize: 12, color: '#fbbf24', marginTop: 2 }}>Absensi, nilai, jadwal, soal AI ↗</div>
+                  <div style={{ fontSize: 12, color: '#fbbf24', marginTop: 2 }}>Absensi, nilai, jadwal, soal AI →</div>
                 </div>
-                <span style={{ marginLeft: 'auto', color: '#fbbf24' }}>↗</span>
+                <span style={{ marginLeft: 'auto', color: '#fbbf24' }}>→</span>
               </button>
             </div>
           </div>

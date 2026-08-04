@@ -293,6 +293,7 @@ function DailyBonusModal({ bonus, onDismiss }) {
   )
 }
 
+import IframeAppShell from './components/IframeAppShell'
 import GameDesktopWrapper from './components/GameDesktopWrapper'
 import { fetchPublicProfile, normalizeProfileTarget } from './components/shared'
 import { getGameTheme, GameThemeOverlay, GameThemeStyles } from './gameTheme'
@@ -682,6 +683,9 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
   const { open: whatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew()
 
+  const [iframeApp, setIframeApp] = useState(null)
+  const openIframeApp = useCallback(({ src, title }) => setIframeApp({ src, title }), [])
+
   // Update browser tab title whenever the active screen changes
   useEffect(() => {
     const gameRoute = GAME_ROUTES[current]
@@ -993,7 +997,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'home') {
-      return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} openPetShop={() => { setTokoInitialTab('pet_skin'); navigate('toko') }} openEventShop={() => { setTokoInitialTab('event'); navigate('toko') }} />
+      return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} openPetShop={() => { setTokoInitialTab('pet_skin'); navigate('toko') }} openEventShop={() => { setTokoInitialTab('event'); navigate('toko') }} onOpenApp={openIframeApp} />
     }
 
     const StaticScreen = STATIC_ROUTES[current] || HomeScreen
@@ -1001,11 +1005,12 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   }
 
   return (
+    <>
     <PlayerProvider>
       <PetProvider>
         <TaskProvider onTaskComplete={handleTaskComplete}>
           <BabLockProvider>
-            <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout} onSwitchModule={handleSwitchModule}>
+            <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout} onSwitchModule={handleSwitchModule} onOpenApp={openIframeApp}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
               {/* Inject CSS that filters ONLY structural nav/chrome elements.
                   Seasonal override (tema_merahputih during Jul 15–Aug 31) takes
@@ -1100,12 +1105,22 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
         </TaskProvider>
       </PetProvider>
     </PlayerProvider>
+    {iframeApp && (
+      <IframeAppShell
+        src={iframeApp.src}
+        title={iframeApp.title}
+        onBack={() => setIframeApp(null)}
+      />
+    )}
+    </>
   )
 }
 
 export default function App() {
   const { user, logout, checking } = useAuth()
   const [guruPracticeMode, setGuruPracticeMode] = useState(false)
+  const [guruIframeApp, setGuruIframeApp] = useState(null)
+  const openGuruIframeApp = useCallback(({ src, title }) => setGuruIframeApp({ src, title }), [])
   const {
     checking: checkingUpdate,
     updateRequired, downloadUrl,
@@ -1159,13 +1174,22 @@ export default function App() {
     }
 
     return (
-      <AppShell user={user} navigate={guruNavigate} currentScreen="guru-dashboard" onLogout={logout} onSwitchModule={() => {}}>
-        <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
-          <ErrorBoundary onReset={() => {}}>
-            <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
-          </ErrorBoundary>
-        </div>
-      </AppShell>
+      <>
+        <AppShell user={user} navigate={guruNavigate} currentScreen="guru-dashboard" onLogout={logout} onSwitchModule={() => {}} onOpenApp={openGuruIframeApp}>
+          <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+            <ErrorBoundary onReset={() => {}}>
+              <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
+            </ErrorBoundary>
+          </div>
+        </AppShell>
+        {guruIframeApp && (
+          <IframeAppShell
+            src={guruIframeApp.src}
+            title={guruIframeApp.title}
+            onBack={() => setGuruIframeApp(null)}
+          />
+        )}
+      </>
     )
   }
 
