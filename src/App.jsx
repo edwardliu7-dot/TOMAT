@@ -500,23 +500,23 @@ const GAME_ROUTES = {
   ipa8b3t6: { name: 'Medical Case Analyzer',        emoji: '🩺', Component: React.lazy(() => import('./minigames/Ipa8B3T6Game')) },
   ipa8b3t7: { name: 'Healthy Habit Choice',         emoji: '🏃', Component: React.lazy(() => import('./minigames/Ipa8B3T7Game')) },
   // IPA Kelas 9 — BAB 1
-  ipa9b1t1: { name: 'Body Command Center',           emoji: '🧠', Component: IpaGamePlaceholder },
-  ipa9b1t2: { name: 'Neuron Network Relay',          emoji: '⚡', Component: IpaGamePlaceholder },
-  ipa9b1t3: { name: 'Hormone Gland Factory',         emoji: '🏭', Component: IpaGamePlaceholder },
-  ipa9b1t4: { name: 'Homeostasis Stabilizer',        emoji: '⚖️', Component: IpaGamePlaceholder },
-  ipa9b1t5: { name: 'Daily Stress Survival',         emoji: '🧘', Component: IpaGamePlaceholder },
+  ipa9b1t1: { name: 'Body Command Center',           emoji: '🧠', Component: React.lazy(() => import('./minigames/Ipa9B1T1Game')) },
+  ipa9b1t2: { name: 'Neuron Network Relay',          emoji: '⚡', Component: React.lazy(() => import('./minigames/Ipa9B1T2Game')) },
+  ipa9b1t3: { name: 'Hormone Gland Factory',         emoji: '🏭', Component: React.lazy(() => import('./minigames/Ipa9B1T3Game')) },
+  ipa9b1t4: { name: 'Homeostasis Stabilizer',        emoji: '⚖️', Component: React.lazy(() => import('./minigames/Ipa9B1T4Game')) },
+  ipa9b1t5: { name: 'Daily Stress Survival',         emoji: '🧘', Component: React.lazy(() => import('./minigames/Ipa9B1T5Game')) },
   // IPA Kelas 9 — BAB 2
-  ipa9b2t1: { name: 'Addictive Substance Quiz',      emoji: '⚠️', Component: IpaGamePlaceholder },
-  ipa9b2t2: { name: 'Substance Categorizer',         emoji: '🗂️', Component: IpaGamePlaceholder },
-  ipa9b2t3: { name: 'Impact Simulator',              emoji: '💔', Component: IpaGamePlaceholder },
-  ipa9b2t4: { name: 'Substance Flashcards',          emoji: '🃏', Component: IpaGamePlaceholder },
-  ipa9b2t5: { name: 'Consequence Analyzer',          emoji: '📊', Component: IpaGamePlaceholder },
-  ipa9b2t6: { name: 'Say No Challenge',              emoji: '🛡️', Component: IpaGamePlaceholder },
+  ipa9b2t1: { name: 'Addictive Substance Quiz',      emoji: '⚠️', Component: React.lazy(() => import('./minigames/Ipa9B2T1Game')) },
+  ipa9b2t2: { name: 'Substance Categorizer',         emoji: '🗂️', Component: React.lazy(() => import('./minigames/Ipa9B2T2Game')) },
+  ipa9b2t3: { name: 'Impact Simulator',              emoji: '💔', Component: React.lazy(() => import('./minigames/Ipa9B2T3Game')) },
+  ipa9b2t4: { name: 'Substance Flashcards',          emoji: '🃏', Component: React.lazy(() => import('./minigames/Ipa9B2T4Game')) },
+  ipa9b2t5: { name: 'Consequence Analyzer',          emoji: '📊', Component: React.lazy(() => import('./minigames/Ipa9B2T5Game')) },
+  ipa9b2t6: { name: 'Say No Challenge',              emoji: '🛡️', Component: React.lazy(() => import('./minigames/Ipa9B2T6Game')) },
   // IPA Kelas 9 — BAB 3
-  ipa9b3t1: { name: 'Reproductive Anatomy Puzzle',   emoji: '🧬', Component: IpaGamePlaceholder },
-  ipa9b3t2: { name: 'Human Life Stages Timeline',    emoji: '👶', Component: IpaGamePlaceholder },
-  ipa9b3t3: { name: 'Reproductive Health Guardian',  emoji: '🏥', Component: IpaGamePlaceholder },
-  ipa9b3t4: { name: 'Flora & Fauna Breeder',         emoji: '🌱', Component: IpaGamePlaceholder },
+  ipa9b3t1: { name: 'Reproductive Anatomy Puzzle',   emoji: '🧬', Component: React.lazy(() => import('./minigames/Ipa9B3T1Game')) },
+  ipa9b3t2: { name: 'Human Life Stages Timeline',    emoji: '👶', Component: React.lazy(() => import('./minigames/Ipa9B3T2Game')) },
+  ipa9b3t3: { name: 'Reproductive Health Guardian',  emoji: '🏥', Component: React.lazy(() => import('./minigames/Ipa9B3T3Game')) },
+  ipa9b3t4: { name: 'Flora & Fauna Breeder',         emoji: '🌱', Component: React.lazy(() => import('./minigames/Ipa9B3T4Game')) },
 }
 
 const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen, ipa7: Ipa7ZoneScreen, ipa8: Ipa8ZoneScreen, ipa9: Ipa9ZoneScreen, komunikasi: CommunicationScreen }
