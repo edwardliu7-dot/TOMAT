@@ -160,8 +160,17 @@ function CapacitorInAppBrowser({ src, title, onBack }) {
     let unlisten = null
 
     async function open() {
+      if (!window.Capacitor) {
+        // Di web: buka langsung di tab baru dan kembali
+        window.open(src, '_blank', 'noopener,noreferrer')
+        setStatus('done')
+        onBack()
+        return
+      }
       try {
-        const { Browser } = await import(/* @vite-ignore */ '@capacitor/browser')
+        // Gunakan variabel agar Vite tidak gagal resolve di build web
+        const cap = '@capacitor' + '/browser'
+        const { Browser } = await import(/* @vite-ignore */ cap)
 
         // Dengarkan event tutup agar bisa kembali ke TOMAT otomatis
         unlisten = await Browser.addListener('browserFinished', () => {

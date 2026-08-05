@@ -1260,16 +1260,41 @@ function TurnamenTab({ kelasDiampu }) {
   const [history,      setHistory]      = useState([])
   const [historyLoading, setHistoryLoading] = useState(true)
   const socketJoined   = useRef(false)
+  const prevKelasRef   = useRef(kelasDiampu.slice(0, 1))
 
-  // Load siswa when kelasArr changes
+  // Load siswa when kelasArr changes — smart merge:
+  //   first load  → select all
+  //   kelas added → auto-add students from that kelas
+  //   kelas removed → auto-remove students from that kelas
   useEffect(() => {
-    if (!form.kelasArr.length) { setStudents([]); return }
+    if (!form.kelasArr.length) { setStudents([]); setForm(f => ({ ...f, selectedStudentIds: [] })); return }
     setStudentsLoading(true)
+    const prevKelas = prevKelasRef.current
+    const addedKelas   = form.kelasArr.filter(k => !prevKelas.includes(k))
+    const removedKelas = prevKelas.filter(k => !form.kelasArr.includes(k))
+    prevKelasRef.current = form.kelasArr
     apiCall('/api/guru/students')
       .then(({ students: all }) => {
         const filtered = (all || []).filter(s => form.kelasArr.includes(s.kelas))
+        const filteredSet = new Set(filtered.map(s => String(s.userId)))
         setStudents(filtered)
-        setForm(f => ({ ...f, selectedStudentIds: filtered.map(s => String(s.userId)) }))
+        setForm(f => {
+          // First load: nothing selected yet → select all
+          if (f.selectedStudentIds.length === 0) {
+            return { ...f, selectedStudentIds: filtered.map(s => String(s.userId)) }
+          }
+          // Kelas removed → drop those students
+          const removedIds = new Set(
+            (all || []).filter(s => removedKelas.includes(s.kelas)).map(s => String(s.userId))
+          )
+          // Kelas added → auto-add new students from that kelas
+          const addedIds = (all || [])
+            .filter(s => addedKelas.includes(s.kelas))
+            .map(s => String(s.userId))
+          const kept    = f.selectedStudentIds.filter(id => filteredSet.has(id) && !removedIds.has(id))
+          const newOnes = addedIds.filter(id => !kept.includes(id))
+          return { ...f, selectedStudentIds: [...kept, ...newOnes] }
+        })
       })
       .catch(() => {})
       .finally(() => setStudentsLoading(false))
@@ -2675,8 +2700,10 @@ export default function GuruDashboardScreen({ onPlayGames }) {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#d7c7ff', color: '#3d286c', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                {(user?.name || 'G').charAt(0).toUpperCase()}
+              <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#d7c7ff', color: '#3d286c', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                {user?.photoUrl
+                  ? <img src={user.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                  : (user?.name || 'G').charAt(0).toUpperCase()}
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || 'Guru'}</div>
