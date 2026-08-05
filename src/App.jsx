@@ -39,6 +39,7 @@ import { connectSocket } from './socket'
 import { DUEL_GAME_KEYS } from './gamesCatalog'
 import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
+import TentangScreen from './screens/TentangScreen'
 import OtaUpdateBanner from './components/OtaUpdateBanner'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
 import MissionProgressToast from './components/MissionProgressToast'
@@ -495,9 +496,9 @@ const GAME_ROUTES = {
   ipa8b3t2: { name: 'Organ Function Cards',         emoji: '🃏', Component: React.lazy(() => import('./minigames/Ipa8B3T2Game')) },
   ipa8b3t3: { name: 'Breathing Mechanism Pump',     emoji: '🫁', Component: React.lazy(() => import('./minigames/Ipa8B3T3Game')) },
   ipa8b3t4: { name: 'Alveoli Gas Exchange',         emoji: '💨', Component: React.lazy(() => import('./minigames/Ipa8B3T4Game')) },
-  ipa8b3t5: { name: 'Nephron Urine Factory',        emoji: '🧫', Component: IpaGamePlaceholder },
-  ipa8b3t6: { name: 'Medical Case Analyzer',        emoji: '🩺', Component: IpaGamePlaceholder },
-  ipa8b3t7: { name: 'Healthy Habit Choice',         emoji: '🏃', Component: IpaGamePlaceholder },
+  ipa8b3t5: { name: 'Nephron Urine Factory',        emoji: '🧫', Component: React.lazy(() => import('./minigames/Ipa8B3T5Game')) },
+  ipa8b3t6: { name: 'Medical Case Analyzer',        emoji: '🩺', Component: React.lazy(() => import('./minigames/Ipa8B3T6Game')) },
+  ipa8b3t7: { name: 'Healthy Habit Choice',         emoji: '🏃', Component: React.lazy(() => import('./minigames/Ipa8B3T7Game')) },
   // IPA Kelas 9 — BAB 1
   ipa9b1t1: { name: 'Body Command Center',           emoji: '🧠', Component: IpaGamePlaceholder },
   ipa9b1t2: { name: 'Neuron Network Relay',          emoji: '⚡', Component: IpaGamePlaceholder },
@@ -905,7 +906,11 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'profile') {
-      return <ProfileScreen goBack={goBack} />
+      return <ProfileScreen goBack={goBack} navigate={navigate} />
+    }
+
+    if (current === 'tentang') {
+      return <TentangScreen goBack={goBack} />
     }
 
     if (current === 'toko') {
