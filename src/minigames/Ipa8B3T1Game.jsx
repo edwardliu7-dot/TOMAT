@@ -5,7 +5,7 @@ import { useSurvival } from '../difficulty'
 
 const ACCENT = '#2563eb'
 const BG = 'linear-gradient(180deg, #020d1a 0%, #041828 100%)'
-const TITLE = '🫀 Organ Anatomy Builder'
+const TITLE = '🫁 Organ Anatomy Builder'
 
 const SOAL = [
   { teks: 'Organ pertama yang dilalui udara saat bernapas adalah...', benar: 'Hidung (rongga hidung)', salah: ['Mulut', 'Tenggorokan', 'Paru-paru'] },
@@ -102,7 +102,7 @@ export default function Ipa8B3T1Game({ onBack }) {
           {q.choices.map((c, i) => {
             let bg = `${ACCENT}12`, border = `1px solid ${ACCENT}30`, color = '#cbd5e1'
             if (selected !== null) {
-              if (c === q.benar) { bg = '#22c55e20'; border = '1.5px solid #22c55e'; color = '#4ade80' }
+              if (c === q.benar) { bg = '#2563eb20'; border = '1.5px solid #2563eb'; color = '#93c5fd' }
               else if (c === selected) { bg = '#ef444420'; border = '1.5px solid #ef4444'; color = '#f87171' }
             }
             return (

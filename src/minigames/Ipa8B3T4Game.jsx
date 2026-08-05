@@ -102,7 +102,7 @@ export default function Ipa8B3T4Game({ onBack }) {
           {q.choices.map((c, i) => {
             let bg = `${ACCENT}12`, border = `1px solid ${ACCENT}30`, color = '#cbd5e1'
             if (selected !== null) {
-              if (c === q.benar) { bg = '#22c55e20'; border = '1.5px solid #22c55e'; color = '#4ade80' }
+              if (c === q.benar) { bg = '#0d948820'; border = '1.5px solid #0d9488'; color = '#5eead4' }
               else if (c === selected) { bg = '#ef444420'; border = '1.5px solid #ef4444'; color = '#f87171' }
             }
             return (
