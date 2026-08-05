@@ -161,7 +161,7 @@ function CapacitorInAppBrowser({ src, title, onBack }) {
 
     async function open() {
       try {
-        const { Browser } = await import('@capacitor/browser')
+        const { Browser } = await import(/* @vite-ignore */ '@capacitor/browser')
 
         // Dengarkan event tutup agar bisa kembali ke TOMAT otomatis
         unlisten = await Browser.addListener('browserFinished', () => {

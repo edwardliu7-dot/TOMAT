@@ -1247,7 +1247,7 @@ function TurnamenTab({ kelasDiampu }) {
   const [form,         setForm]         = useState({
     kelasArr:           kelasDiampu.slice(0, 1),
     gameKey:            'katak',
-    selectedStudentIds: null,
+    selectedStudentIds: [],
     mode:               'individual',
     teamCount:          2,
     teamAssignment:     'auto',   // 'auto' | 'manual'

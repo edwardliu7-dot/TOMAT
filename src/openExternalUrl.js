@@ -11,7 +11,7 @@
 export async function openExternalUrl(url) {
   if (window.Capacitor) {
     try {
-      const { Browser } = await import('@capacitor/browser')
+      const { Browser } = await import(/* @vite-ignore */ '@capacitor/browser')
       await Browser.open({ url, presentationStyle: 'popover' })
     } catch (err) {
       // Fallback kalau plugin browser gagal
