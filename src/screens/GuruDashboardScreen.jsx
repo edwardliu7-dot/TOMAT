@@ -527,8 +527,9 @@ function NilaiTab({ onProfileClick }) {
     const cached = guruCacheGet('nilai')
     if (!cached) setLoading(true)
     apiCall('/api/guru/nilai').then(({ nilai }) => {
-      setNilaiList(nilai)
-      guruCacheSet('nilai', nilai)
+      const safe = nilai || []
+      setNilaiList(safe)
+      guruCacheSet('nilai', safe)
     }).finally(() => setLoading(false))
   }, [])
 
@@ -713,8 +714,9 @@ function SiswaTab({ onProfileClick }) {
     const cached = guruCacheGet('students')
     if (!cached) setLoading(true)
     apiCall('/api/guru/students').then(({ students }) => {
-      setStudents(students)
-      guruCacheSet('students', students)
+      const safe = students || []
+      setStudents(safe)
+      guruCacheSet('students', safe)
     }).finally(() => setLoading(false))
   }, [])
   if (loading) return <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
@@ -855,8 +857,9 @@ function InsightTab({ onProfileClick }) {
     const cached = guruCacheGet('insight')
     if (!cached) setLoading(true)
     apiCall('/api/guru/insight').then(({ students }) => {
-      setStudents(students)
-      guruCacheSet('insight', students)
+      const safe = students || []
+      setStudents(safe)
+      guruCacheSet('insight', safe)
     }).catch(err => setError(err.message)).finally(() => setLoading(false))
   }, [])
   if (loading) return <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
