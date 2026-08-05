@@ -124,7 +124,7 @@ function ErrorState({ src, onBack }) {
           cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
         }}
       >
-        Coba Buka di Browser ↗
+        Coba Buka Langsung ↗
       </button>
       <button
         onClick={onBack}
@@ -140,38 +140,62 @@ function ErrorState({ src, onBack }) {
 }
 
 /**
- * CapacitorDirectOpen — di Capacitor (APK), iframe lintas-asal tidak bisa
- * digunakan karena X-Frame-Options memblokir embedding dari capacitor://localhost.
- * Tampilkan layar konfirmasi lalu buka via @capacitor/browser (browser sistem).
+ * CapacitorInAppBrowser — di Capacitor (APK Android), iframe lintas-asal
+ * diblokir oleh X-Frame-Options dari capacitor://localhost.
+ *
+ * Solusi: gunakan @capacitor/browser dengan presentationStyle:'fullscreen'.
+ * Di Android ini membuka Chrome Custom Tab yang tampil DALAM aplikasi
+ * (bukan keluar ke browser sistem) — ada tombol kembali native, task stack
+ * sama, user tidak pernah meninggalkan TOMAT.
+ *
+ * Komponen ini langsung memanggil Browser.open() saat mount, lalu kembali
+ * ke TOMAT ketika Chrome Custom Tab ditutup (event browserFinished).
  */
-function CapacitorDirectOpen({ src, title, onBack }) {
+function CapacitorInAppBrowser({ src, title, onBack }) {
+  const [status, setStatus] = useState('opening') // 'opening' | 'open' | 'done'
   const isGuru = src === GURU_URL
   const accent = isGuru ? '#f59e0b' : '#10b981'
-  const accentSoft = isGuru ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.12)'
-  const accentBorder = isGuru ? 'rgba(245,158,11,0.3)' : 'rgba(16,185,129,0.3)'
-  const emoji = isGuru ? '🏫' : '📋'
-  const [opening, setOpening] = useState(false)
 
-  const handleOpen = async () => {
-    setOpening(true)
-    await openExternalUrl(src)
-    // Setelah browser terbuka, kembali ke layar TOMAT
-    setTimeout(() => {
-      setOpening(false)
-      onBack()
-    }, 800)
-  }
+  useEffect(() => {
+    let unlisten = null
 
+    async function open() {
+      try {
+        const { Browser } = await import('@capacitor/browser')
+
+        // Dengarkan event tutup agar bisa kembali ke TOMAT otomatis
+        unlisten = await Browser.addListener('browserFinished', () => {
+          setStatus('done')
+          onBack()
+        })
+
+        await Browser.open({ url: src, presentationStyle: 'fullscreen' })
+        setStatus('open')
+      } catch (err) {
+        console.warn('[CapacitorInAppBrowser] Browser.open failed:', err)
+        setStatus('done')
+        onBack()
+      }
+    }
+
+    open()
+
+    return () => {
+      unlisten?.remove?.()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src])
+
+  // Tampilkan layar loading sebentar sebelum Chrome Custom Tab terbuka
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9000,
+      background: 'linear-gradient(135deg, #071321, #0d1f3c)',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      padding: '24px 32px',
-      background: 'linear-gradient(135deg, #071321, #0d1f3c)',
       fontFamily: 'system-ui, sans-serif',
     }}>
-      {/* Back button */}
+      {/* Back button tetap tersedia */}
       <div style={{
         position: 'absolute',
         top: 'env(safe-area-inset-top, 0px)',
@@ -194,60 +218,19 @@ function CapacitorDirectOpen({ src, title, onBack }) {
         </button>
       </div>
 
-      <div style={{
-        width: '100%', maxWidth: 400,
-        background: 'rgba(255,255,255,0.04)',
-        border: `1.5px solid ${accentBorder}`,
-        borderRadius: 24, padding: '32px 28px',
-        textAlign: 'center',
-        boxShadow: `0 0 60px ${accentSoft}`,
-      }}>
-        <div style={{ fontSize: 52, marginBottom: 16 }}>{emoji}</div>
-        <div style={{ fontSize: 11, color: accent, fontWeight: 800, letterSpacing: 2, marginBottom: 8 }}>
-          APLIKASI TERPISAH
+      {/* Loading indicator */}
+      <LoadingBar />
+
+      <div style={{ textAlign: 'center', padding: '0 32px' }}>
+        <div style={{ fontSize: 42, marginBottom: 16 }}>
+          {isGuru ? '🏫' : '📋'}
         </div>
-        <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 12 }}>
+        <div style={{ fontSize: 14, color: accent, fontWeight: 800, letterSpacing: 1.5, marginBottom: 8 }}>
           {title}
         </div>
-        <div style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 28 }}>
-          {isGuru
-            ? 'Aplikasi GURU (EOB5) mengelola absensi, nilai, jadwal, dan soal AI untuk guru.'
-            : 'BLP Harian digunakan untuk mengisi dan merekap aktivitas belajar harian siswa.'
-          }
-          <br /><br />
-          Akan dibuka di browser agar bisa terhubung ke server dengan benar.
+        <div style={{ fontSize: 13, color: '#64748b' }}>
+          Memuat aplikasi…
         </div>
-        <button
-          onClick={handleOpen}
-          disabled={opening}
-          style={{
-            width: '100%', border: 'none', borderRadius: 14,
-            padding: '14px 20px',
-            background: opening
-              ? 'rgba(255,255,255,0.08)'
-              : `linear-gradient(135deg, ${accent}, ${accent}cc)`,
-            color: opening ? '#64748b' : (isGuru ? '#1c1917' : '#022c22'),
-            fontSize: 15, fontWeight: 900, cursor: opening ? 'default' : 'pointer',
-            fontFamily: 'inherit', letterSpacing: 0.3,
-            boxShadow: opening ? 'none' : `0 4px 20px ${accentSoft}`,
-            marginBottom: 12,
-            transition: 'all 0.2s',
-          }}
-        >
-          {opening ? 'Membuka...' : 'Buka di Browser ↗'}
-        </button>
-        <button
-          onClick={onBack}
-          style={{
-            width: '100%', border: 'none', borderRadius: 14,
-            padding: '12px 20px',
-            background: 'rgba(255,255,255,0.06)',
-            color: '#64748b', fontSize: 13, fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >
-          ← Kembali ke TOMAT
-        </button>
       </div>
     </div>
   )
@@ -257,14 +240,14 @@ function CapacitorDirectOpen({ src, title, onBack }) {
  * IframeAppShell — fullscreen overlay untuk BLP Harian dan GURU (EOB5).
  * Props: { src, title, onBack }
  *
- * - Di Capacitor (APK): langsung tampilkan CapacitorDirectOpen karena iframe
- *   lintas-asal diblokir oleh X-Frame-Options dari capacitor://localhost.
- * - Di browser web: coba iframe; jika timeout/error tampilkan BlockedState/ErrorState.
+ * - Di Capacitor (APK): gunakan Chrome Custom Tab (in-app, bukan browser eksternal)
+ *   karena iframe diblokir X-Frame-Options dari capacitor://localhost.
+ * - Di browser web: coba iframe biasa; timeout/error → BlockedState/ErrorState.
  */
 export default function IframeAppShell({ src, title, onBack }) {
-  // Di APK Capacitor — skip iframe, langsung buka di browser sistem
+  // Di APK Capacitor — pakai Chrome Custom Tab (tetap dalam app, bukan browser terpisah)
   if (window.Capacitor) {
-    return <CapacitorDirectOpen src={src} title={title} onBack={onBack} />
+    return <CapacitorInAppBrowser src={src} title={title} onBack={onBack} />
   }
 
   return <WebIframeShell src={src} title={title} onBack={onBack} />
