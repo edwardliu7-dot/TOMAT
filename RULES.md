@@ -77,6 +77,7 @@
 │   │   ├── KelinsaySprite.jsx # Sprite pet Kelinsay
 │   │   ├── MonyangSprite.jsx  # Sprite pet Monyang
 │   │   ├── NananagaSprite.jsx # Sprite pet Nananaga (sheet khusus)
+│   │   ├── KomodihSprite.jsx  # Sprite pet KomoDIH (sheet khusus)
 │   │   └── WhatsNewModal.jsx  # Modal "What's New" (ditampilkan sekali per versi)
 │   ├── screens/               # Layar-layar utama aplikasi
 │   └── minigames/             # Semua file game (lihat §7)
@@ -276,14 +277,17 @@ Setelah membuat file game, daftarkan di:
 | Tomi | Base + skin umum/langka/epic |
 | Kelinsay | Base + skin umum/langka/epic |
 | Monyang | Base + skin umum/langka/epic |
+| KomoDIH | Pet dasar langka (sheet sprite khusus) |
 | Nananaga | Skin khusus (sheet sprite terpisah, immunitas + koin & EXP booster) |
 
 ### Aturan Pet
-- `hunger_map` menggunakan key **tipe pet** (tomi/kelinsay/monyang/nananaga), bukan skinId.
+- `hunger_map` menggunakan key **tipe pet** (tomi/kelinsay/monyang/komodih/nananaga), bukan skinId.
 - Skin hewan memerlukan kepemilikan **base pet** sebelum bisa dibeli/diequip.
 - Pet mati (`isDead=true`): siswa harus `POST /api/siswa/pet/revive` (300 koin) — tidak bisa diberi makan.
 - Sprite sheet: 768×768, grid 6×6 (128×128/cell).
-- Bonus per skin didefinisikan di `server/pet-bonuses.js` dan di-mirror ke `src/petBonuses.js`.
+- Bonus per skin/pet didefinisikan di `server/pet-bonuses.js` dan di-mirror ke `src/petBonuses.js`.
+- **KomoDIH:** pet dasar mandiri kategori langka dengan ID `pet_komodih`; memakai hunger key `komodih`, memberi `+15% EXP` dan `+10% durasi makanan`, tanpa bonus koin atau immunity.
+- Kemampuan pet hanya boleh memengaruhi reward yang sudah ditentukan sistem (misalnya multiplier EXP atau durasi makanan); pet tidak boleh memberi jawaban atau mengubah skor akademik secara langsung.
 - **Nananaga immunity:** Tidak diimplementasikan di file game — ditangani oleh `useSurvival` via CustomEvent `'nananaga-shield'`.
 - `FloatingPet` tidak boleh dirender selama route `duel-katak` atau `tournament-match`; pet tidak boleh menangkap pointer event di area jawaban siswa.
 
