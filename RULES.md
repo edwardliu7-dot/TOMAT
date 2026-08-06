@@ -258,6 +258,8 @@ Setelah membuat file game, daftarkan di:
 - State lobby/room disimpan **in-memory** (Map) — tidak persisten antar restart server.
 - Soal turnamen di-generate oleh `tournament-questions.js` (server-authoritative).
 - Hindari stale closure di komponen lobby — gunakan refs.
+- Saat arena duel atau turnamen aktif, komponen pet mengambang harus disembunyikan agar tidak menutupi slider, tombol jawaban, atau area interaksi pertandingan.
+- Event/listener arena harus dipasang sebelum mengirim event `player-ready`/join; soal aktif harus dapat dikirim ulang saat reconnect atau re-entry karena event Socket.io tidak persisten.
 
 ---
 
@@ -278,6 +280,7 @@ Setelah membuat file game, daftarkan di:
 - Sprite sheet: 768×768, grid 6×6 (128×128/cell).
 - Bonus per skin didefinisikan di `server/pet-bonuses.js` dan di-mirror ke `src/petBonuses.js`.
 - **Nananaga immunity:** Tidak diimplementasikan di file game — ditangani oleh `useSurvival` via CustomEvent `'nananaga-shield'`.
+- `FloatingPet` tidak boleh dirender selama route `duel-katak` atau `tournament-match`; pet tidak boleh menangkap pointer event di area jawaban siswa.
 
 ---
 
