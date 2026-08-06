@@ -381,18 +381,28 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
     socket.on('duel:answer-result', ({ correct, yourScore, correctAnswer: ans }) => {
       // Nananaga immunity: intercept wrong answers when tokens remain and no task session active
       if (!correct && immunityLeft.current > 0 && !activeSession) {
-        immunityLeft.current -= 1
-        window.dispatchEvent(new CustomEvent('nananaga-shield', {
-          detail: { tokensLeft: immunityLeft.current },
-        }))
         // Request a bonus question from server without advancing the round
-        getSocket()?.emit('duel:use-immunity', { code })
-        // Update score display but stay in 'playing' phase (server will send duel:question)
-        setMyAnswered(false)
-        setScores(prev => {
-          const updated = [...prev]
-          updated[myIndex] = { ...updated[myIndex], score: yourScore }
-          return updated
+        getSocket()?.emit('duel:use-immunity', { code }, ({ ok, tokensLeft } = {}) => {
+          if (!ok) {
+            // Server rejected the claim (for example, token state changed).
+            // Keep the local token untouched and show the normal result.
+            setMyAnswered(true)
+            setMyCorrect(false)
+            setCorrectAnswer(ans)
+            setPhase('result')
+            return
+          }
+          immunityLeft.current = tokensLeft
+          window.dispatchEvent(new CustomEvent('nananaga-shield', {
+            detail: { tokensLeft },
+          }))
+          // Stay in 'playing' phase; server sends the bonus question.
+          setMyAnswered(false)
+          setScores(prev => {
+            const updated = [...prev]
+            updated[myIndex] = { ...updated[myIndex], score: yourScore }
+            return updated
+          })
         })
         return
       }

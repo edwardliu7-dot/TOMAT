@@ -149,6 +149,13 @@ function startPlayerTournamentRound(io, tournament, match, userId) {
   match._playerRounds   = match._playerRounds   || {}
   match._playerCurrentQ = match._playerCurrentQ || {}
   match._playerQuestionStartedAt = match._playerQuestionStartedAt || {}
+  match._playerLastAnswerCorrect = match._playerLastAnswerCorrect || {}
+  match._playerNextQuestionTimers = match._playerNextQuestionTimers || {}
+
+  if (match._playerNextQuestionTimers[userId]) {
+    clearTimeout(match._playerNextQuestionTimers[userId])
+    match._playerNextQuestionTimers[userId] = null
+  }
 
   match._playerRounds[userId] = (match._playerRounds[userId] || 0) + 1
 
@@ -200,6 +207,10 @@ export function startTournamentMatch(io, tournament, match) {
     match._playerRounds   = {}
     match._playerFinished = {}
     match._playerCurrentQ = {}
+    match._playerLastAnswerCorrect = {}
+    match._playerImmunityLeft = {}
+    match._playerImmunityInFlight = {}
+    match._playerNextQuestionTimers = {}
     match._playerAnswerTimeMs = {}
     match._playerQuestionStartedAt = {}
     match._playerFinishedAt = {}
@@ -302,6 +313,7 @@ async function handleIndividualAnswer(io, tournament, match, userId, value, sock
   }
 
   match._playerCurrentQ[userId] = null
+  match._playerLastAnswerCorrect[userId] = correct
 
   socket.emit('tournament:answer-result', {
     correct,
@@ -347,8 +359,15 @@ async function handleIndividualAnswer(io, tournament, match, userId, value, sock
       socket.emit('tournament:self-finished', { scores: match.scores })
     }
   } else {
-    setTimeout(() => {
-      if (match.status === 'in-progress' && !match._playerCurrentQ?.[userId] && !match._playerFinished?.[userId]) {
+    match._playerNextQuestionTimers = match._playerNextQuestionTimers || {}
+    match._playerNextQuestionTimers[userId] = setTimeout(() => {
+      match._playerNextQuestionTimers[userId] = null
+      if (
+        match.status === 'in-progress' &&
+        !match._playerCurrentQ?.[userId] &&
+        !match._playerFinished?.[userId] &&
+        !match._playerImmunityInFlight?.[userId]
+      ) {
         startPlayerTournamentRound(io, tournament, match, userId)
       }
     }, NEXT_Q_DELAY_MS)
@@ -551,6 +570,9 @@ function checkRoundComplete(io, tournament) {
     tiedMatch.scores = {}
     tiedMatch._playerRounds = {}
     tiedMatch._playerCurrentQ = {}
+    tiedMatch._playerLastAnswerCorrect = {}
+    tiedMatch._playerImmunityLeft = {}
+    tiedMatch._playerImmunityInFlight = {}
     tiedMatch._playerFinished = {}
     tiedMatch._playerAnswerTimeMs = {}
     tiedMatch._playerQuestionStartedAt = {}

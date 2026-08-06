@@ -258,6 +258,10 @@ Setelah membuat file game, daftarkan di:
 ### Aturan Multiplayer
 - State lobby/room disimpan **in-memory** (Map) — tidak persisten antar restart server.
 - Soal turnamen di-generate oleh `tournament-questions.js` (server-authoritative).
+- **Immunity Nananaga wajib server-authoritative:** server harus memverifikasi pemain sudah menjawab soal aktif dan jawaban terakhir salah, memastikan pemain adalah anggota room/match yang diminta, mengonsumsi token di state server, dan menolak klaim token paralel. Client tidak boleh mengurangi token sebelum ACK sukses.
+- **Timer soal normal harus dibatalkan setelah klaim immunity sukses** agar tidak menimpa soal bonus; jika server menolak klaim, alur soal normal harus tetap berjalan.
+- Handler `tournament:player-ready` wajib memvalidasi kepemilikan match sebelum `socket.join()`. Pada mode kelompok, klaim juru jawab hanya boleh dilakukan oleh anggota yang sudah tercatat join pada match tersebut.
+- Jawaban Boss Raid harus dinormalisasi numerik di server (`Number(value) === Number(answer)`) agar string dari input UI dan nilai numerik memiliki perilaku yang sama.
 - Hindari stale closure di komponen lobby — gunakan refs.
 - Saat arena duel atau turnamen aktif, komponen pet mengambang harus disembunyikan agar tidak menutupi slider, tombol jawaban, atau area interaksi pertandingan.
 - Event/listener arena harus dipasang sebelum mengirim event `player-ready`/join; soal aktif harus dapat dikirim ulang saat reconnect atau re-entry karena event Socket.io tidak persisten.

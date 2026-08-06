@@ -55,3 +55,11 @@ description: Architecture and key decisions for the real-time Katak Duel multipl
 
 **How to apply:**
 - Any new real-time match mode should keep active question state server-side, update connection-scoped socket IDs on reconnect, and use explicit event handlers for cleanup rather than broad `off(event)` calls.
+
+## Immunity security
+
+- Nananaga immunity is a server-authorized bonus-question action: validate the player’s last answer was wrong, validate room/match ownership, serialize token consumption, and acknowledge success before the client decrements its local display.
+- Normal next-question timers must be cancelled only after a successful immunity claim; a rejected claim must leave the normal answer flow intact.
+
+**Why:**
+- Client-side token checks alone allowed repeated bonus-question emits and could desynchronize the round when a network response was lost or two emits arrived together.

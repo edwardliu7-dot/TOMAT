@@ -7,7 +7,7 @@
 
 ## 🔴 HIGH — Bug Kritis (Potensi Eksploitasi / Data Loss)
 
-### BUG-01 — Immunity duel tidak divalidasi di server
+### BUG-01 — Immunity duel tidak divalidasi di server ✅ (6 Agustus 2026)
 - **File:** `server/multiplayer.js` — handler `duel:use-immunity`
 - **Masalah:** Server tidak memverifikasi bahwa jawaban terakhir siswa memang salah, tidak mengecek sisa token immunity, dan tidak mengonsumsi token di server. Client bisa emit event ini berulang kali dan mendapatkan soal tambahan tanpa batas tanpa round maju.
 - **Dampak:** Siswa bisa cheat di duel — dapat unlimited soal tambahan.
@@ -15,7 +15,7 @@
 
 ---
 
-### BUG-02 — Immunity turnamen tidak divalidasi di server
+### BUG-02 — Immunity turnamen tidak divalidasi di server ✅ (6 Agustus 2026)
 - **File:** `server/multiplayer.js` — handler `tournament:use-immunity`
 - **Masalah:** Masalah sama dengan BUG-01. Tidak ada ownership check, tidak ada cek answered/wrong, tidak ada konsumsi token. Bisa overwrite soal aktif player lain di room yang sama.
 - **Dampak:** Siswa bisa cheat di turnamen.
@@ -23,7 +23,7 @@
 
 ---
 
-### BUG-03 — Boss Raid: jawaban numeric selalu salah
+### BUG-03 — Boss Raid: jawaban numeric selalu salah ✅ (6 Agustus 2026)
 - **File:** `server/multiplayer.js` — handler `boss:answer` (sekitar baris 573–594)
 - **Masalah:** Boss menggunakan `value === pending.answer` (strict string comparison). Duel dan turnamen menggunakan `Number(...)` untuk normalisasi. Client yang mengirim jawaban berupa angka (number) selalu dianggap salah di boss mode.
 - **Dampak:** Boss Raid tidak bisa dimenangkan dengan benar jika client mengirim angka.
@@ -31,7 +31,7 @@
 
 ---
 
-### BUG-04 — Tournament room join tanpa validasi kepemilikan match
+### BUG-04 — Tournament room join tanpa validasi kepemilikan match ✅ (6 Agustus 2026)
 - **File:** `server/multiplayer.js` — handler `tournament:player-ready` (sekitar baris 823–845)
 - **Masalah:** Socket di-join ke `match.roomCode` sebelum validasi bahwa user benar-benar bagian dari match tersebut. Di kelompok mode, `_teamMemberSockets` ditulis tanpa cek tim. Participant dari match lain bisa masuk room dan memengaruhi readiness atau seleksi juru jawab.
 - **Dampak:** Race condition / eksploitasi di bracket turnamen kelompok.
@@ -39,7 +39,7 @@
 
 ---
 
-### BUG-05 — Kelompok: klaim juru jawab tidak aman
+### BUG-05 — Kelompok: klaim juru jawab tidak aman ✅ (6 Agustus 2026)
 - **File:** `server/tournament-engine.js` (sekitar baris 239–265) + `server/multiplayer.js` (sekitar baris 899–925)
 - **Masalah:** Klaim juru jawab hanya cek tournament membership (`getTeamIdForUser()`), bukan apakah user sudah join match ini (`_teamMemberSockets[user.id]`). Auto-selection timer dan klaim manual bisa race karena state in-memory tanpa mutex.
 - **Dampak:** Siswa dari tim/match lain bisa klaim juru jawab.
@@ -188,7 +188,7 @@
 
 | Kategori | Jumlah |
 |----------|--------|
-| 🔴 HIGH (eksploitasi / data loss) | 5 |
+| 🔴 HIGH (eksploitasi / data loss) | 0 terbuka / 5 selesai |
 | 🟡 MEDIUM (logika salah) | 7 |
 | 🟠 DATA / SCHEMA | 3 |
 | 🔵 LOW / UX | 6 |

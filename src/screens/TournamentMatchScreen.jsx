@@ -330,11 +330,26 @@ export default function TournamentMatchScreen({
     // Hasil jawaban individual
     socket.on('tournament:answer-result', ({ correct, correctAnswer: ans, yourValue, scores: s }) => {
       if (!correct && immunityLeft.current > 0 && !activeSession) {
-        immunityLeft.current -= 1
-        window.dispatchEvent(new CustomEvent('nananaga-shield', { detail: { tokensLeft: immunityLeft.current } }))
-        getSocket()?.emit('tournament:use-immunity', { tournamentId: tournIdRef.current, matchId: matchIdRef.current })
-        setScores(s || {})
-        setMyAnswered(false)
+        getSocket()?.emit(
+          'tournament:use-immunity',
+          { tournamentId: tournIdRef.current, matchId: matchIdRef.current },
+          ({ ok, tokensLeft } = {}) => {
+            if (!ok) {
+              setMyAnswered(true)
+              setMyCorrect(false)
+              setCorrectAnswer(ans)
+              setScores(s || {})
+              setPhase('result')
+              return
+            }
+            immunityLeft.current = tokensLeft
+            window.dispatchEvent(new CustomEvent('nananaga-shield', {
+              detail: { tokensLeft },
+            }))
+            setScores(s || {})
+            setMyAnswered(false)
+          },
+        )
         return
       }
       setMyAnswered(true)

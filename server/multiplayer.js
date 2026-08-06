@@ -12,6 +12,7 @@ import { startTournamentMatch, handleTournamentAnswer, autoSelectJuruJawab, chec
 import { genTournamentQ } from './tournament-questions.js'
 import { notifyUser } from './notifications.js'
 import { isStudentPetDead } from './pet-state.js'
+import { getPetBonus } from './pet-bonuses.js'
 
 // ─── Question generation (server-authoritative) ───────────────────────────────
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
@@ -47,6 +48,7 @@ function safePlayer(p) {
 
 // Send one question to a single player (async flow — each player progresses independently)
 function startPlayerRound(io, room, player) {
+  player.nextRoundTimer = null
   player.myRound++
   player.answered = false
   player.lastAnswer = null
@@ -251,6 +253,11 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       myRound:    0,       // soal ke-N yang sedang dikerjakan player ini
       finished:   false,   // apakah sudah selesai semua soal
       currentQ:   null,    // soal aktif player ini (server-authoritative)
+      // BUG-01 fix: immunity token tracking
+      lastAnswerCorrect:  null,  // bool: apakah jawaban terakhir benar?
+      immunityTokensLeft: null,  // null = belum di-fetch dari DB; number = sisa token
+      immunityInFlight: false,   // mencegah dua klaim token bersamaan
+      nextRoundTimer: null,      // timer soal normal, dibatalkan jika immunity dipakai
     })
 
     // ── CREATE ROOM ──────────────────────────────────────────────────────────
@@ -349,6 +356,7 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       )
       const correct = (Number(value) === Number(player.currentQ.answer))
       if (correct) player.score++
+      player.lastAnswerCorrect = correct  // BUG-01 fix: catat hasil untuk immunity check
 
       // onCorrectAnswerWithResult returns Array<MissionDelta> already formatted —
       // no need to import EVENT_MISSIONS here (RULES.md §16).
@@ -393,38 +401,89 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
         }
       } else {
         // Langsung kirim soal berikutnya ke player ini setelah jeda singkat
-        setTimeout(() => {
-          if (room.status === 'in-progress') startPlayerRound(io, room, player)
+        player.nextRoundTimer = setTimeout(() => {
+          player.nextRoundTimer = null
+          // Immunity dapat mengganti soal normal selama jeda. Jangan menimpa
+          // soal bonus atau memajukan round untuk kedua kalinya.
+          if (room.status === 'in-progress' && player.answered) {
+            startPlayerRound(io, room, player)
+          }
         }, NEXT_Q_DELAY_MS)
       }
     })
 
     // ── NANANAGA IMMUNITY — kirim soal bonus tanpa menambah round ────────────
-    // Dipanggil client saat menerima duel:answer-result dengan correct:false
-    // dan masih ada immunity token tersisa. Server mengirim soal baru ke player ini
-    // tanpa mengubah myRound, sehingga player mendapat kesempatan menjawab lagi.
-    socket.on('duel:use-immunity', async ({ code } = {}) => {
-      if (!(await canPlayStudentMode(socket, 'duel:error'))) return
+    // BUG-01 FIX: tambahkan validasi server-side sebelum memberikan soal bonus:
+    //   1. Player harus sudah menjawab soal aktif
+    //   2. Jawaban terakhir harus salah
+    //   3. Sisa token immunity > 0 (di-fetch lazy dari DB berdasarkan skin equipped)
+    socket.on('duel:use-immunity', async ({ code } = {}, ack) => {
+      const reject = () => {
+        if (typeof ack === 'function') ack({ ok: false })
+      }
+      if (!(await canPlayStudentMode(socket, 'duel:error'))) return reject()
       const room = rooms.get(code)
-      if (!room || room.status !== 'in-progress') return
+      if (!room || room.status !== 'in-progress') return reject()
       const player = room.players.find(p => p.userId === user.id)
-      if (!player) return
+      if (!player) return reject()
 
-      // Generate fresh bonus question (round counter NOT incremented)
-      player.answered = false
-      player.lastAnswer = null
-      const q = genTournamentQ(room.gameKey || 'katak')
-      player.currentQ = q
-      const { answer, ...qForClient } = q
-      const playerSocket = io.sockets.sockets.get(player.socketId)
-      playerSocket?.emit('duel:question', {
-        question:   qForClient,
-        round:      player.myRound,      // same round — immunity bonus round
-        maxRounds:  MAX_ROUNDS,
-        scores:     room.players.map(safePlayer),
-        gameKey:    room.gameKey || 'katak',
-        isImmunityBonus: true,
-      })
+      // Validasi 1: player harus sudah menjawab soal saat ini
+      if (!player.answered) return reject()
+
+      // Validasi 2: jawaban terakhir harus salah
+      if (player.lastAnswerCorrect !== false) return reject()
+
+      // Validasi 3: serialisasi klaim sebelum query DB agar dua emit simultan
+      // tidak sama-sama melihat token yang sama.
+      if (player.immunityInFlight) return reject()
+      player.immunityInFlight = true
+
+      try {
+        // Cek sisa token dari DB (lazy fetch sekali per sesi)
+        if (player.immunityTokensLeft === null) {
+          const { rows } = await pool.query(
+            'SELECT equipped_pet_skin FROM students WHERE id = $1',
+            [user.id]
+          )
+          const skinId = rows[0]?.equipped_pet_skin || 'golden'
+          const bonus = getPetBonus(skinId)
+          player.immunityTokensLeft = bonus.wrongImmunity || 0
+        }
+
+        if (player.immunityTokensLeft <= 0) return reject()
+
+        // Konsumsi satu token & reset flag agar tidak bisa diklaim ulang soal yang sama
+        player.immunityTokensLeft--
+        player.lastAnswerCorrect = null
+        if (player.nextRoundTimer) {
+          clearTimeout(player.nextRoundTimer)
+          player.nextRoundTimer = null
+        }
+
+        // Generate fresh bonus question (round counter NOT incremented)
+        player.answered = false
+        player.lastAnswer = null
+        const q = genTournamentQ(room.gameKey || 'katak')
+        player.currentQ = q
+        const { answer, ...qForClient } = q
+        const playerSocket = io.sockets.sockets.get(player.socketId)
+        playerSocket?.emit('duel:question', {
+          question:        qForClient,
+          round:           player.myRound,  // same round — immunity bonus
+          maxRounds:       MAX_ROUNDS,
+          scores:          room.players.map(safePlayer),
+          gameKey:         room.gameKey || 'katak',
+          isImmunityBonus: true,
+        })
+        if (typeof ack === 'function') {
+          ack({ ok: true, tokensLeft: player.immunityTokensLeft })
+        }
+      } catch (err) {
+        console.error('[duel:use-immunity] DB check error:', err)
+        reject()
+      } finally {
+        player.immunityInFlight = false
+      }
     })
 
     // Re-attach a player to an in-progress duel after a WebSocket reconnect.
@@ -590,7 +649,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       }
       socket._bossQ = null
 
-      const correct = (value === pending.answer)
+      // BUG-03 FIX: gunakan Number() agar jawaban numeric string tidak selalu salah
+      const correct = (Number(value) === Number(pending.answer))
       const damage  = correct ? BOSS_DAMAGE : 0
 
       // Upsert participant record
@@ -830,12 +890,19 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const match = round?.matches.find(m => m.id === matchId)
       if (!match || match.status === 'finished' || match.status === 'walkover') return
 
-      socket.join(match.roomCode)
-
+      // BUG-04 FIX: validasi kepemilikan match SEBELUM socket.join agar
+      // peserta dari match lain tidak bisa masuk room dan mempengaruhi state.
       if (t.mode === 'kelompok') {
         // Kelompok: semua anggota tim boleh join, bukan hanya representatif
         const teamId = getTeamIdForUser(t, user.id)
         if (!teamId) return
+
+        // Pastikan tim ini memang peserta match ini
+        const isMatchParticipant = match.player1?.teamId === teamId || match.player2?.teamId === teamId
+        if (!isMatchParticipant) return
+
+        // Baru join room setelah validasi
+        socket.join(match.roomCode)
         match._teamMemberSockets = match._teamMemberSockets || {}
         match._teamMemberSockets[user.id] = socket.id
 
@@ -869,10 +936,13 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
           }
         }
       } else {
-        // Individual: hanya representatif
+        // Individual: hanya peserta match ini yang boleh join
         const isP1 = match.player1?.userId === user.id
         const isP2 = match.player2?.userId === user.id
-        if (!isP1 && !isP2) return
+        if (!isP1 && !isP2) return  // BUG-04 FIX: cek sebelum join
+
+        // Baru join room setelah validasi
+        socket.join(match.roomCode)
 
         if (isP1) match.player1.socketId = socket.id
         if (isP2) match.player2.socketId = socket.id
@@ -903,6 +973,9 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const round = t.rounds[t.currentRound - 1]
       const match = round?.matches.find(m => m.id === matchId)
       if (!match || !['waiting-join','waiting-juru'].includes(match.status)) return
+
+      // BUG-05 FIX: user harus sudah join match ini via tournament:player-ready
+      if (!match._teamMemberSockets?.[user.id]) return
 
       const teamId = getTeamIdForUser(t, user.id)
       if (!teamId) return
@@ -938,34 +1011,94 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     })
 
     // Siswa: Nananaga immunity — kirim soal bonus tanpa menambah round tournament
-    socket.on('tournament:use-immunity', async ({ tournamentId, matchId } = {}) => {
+    // BUG-02 FIX: tambahkan validasi server-side sebelum memberikan soal bonus:
+    //   1. Player harus sudah menjawab soal aktif (_playerCurrentQ[userId] === null)
+    //   2. Jawaban terakhir harus salah (_playerLastAnswerCorrect[userId] === false)
+    //   3. Sisa token immunity > 0 (lazy fetch dari DB berdasarkan skin equipped)
+    socket.on('tournament:use-immunity', async ({ tournamentId, matchId } = {}, ack) => {
+      const reject = () => {
+        if (typeof ack === 'function') ack({ ok: false })
+      }
       if (user.role !== 'siswa') return
-      if (!(await canPlayStudentMode(socket, 'tournament:error'))) return
+      if (!(await canPlayStudentMode(socket, 'tournament:error'))) return reject()
       const t = tournaments.get(tournamentId)
-      if (!t) return
+      if (!t || t.mode === 'kelompok') return reject()
       const round = t.rounds[t.currentRound - 1]
       const match = round?.matches.find(m => m.id === matchId)
-      if (!match || match.status !== 'in-progress') return
-
-      match._playerRounds = match._playerRounds || {}
-      match._playerCurrentQ = match._playerCurrentQ || {}
+      if (!match || match.status !== 'in-progress') return reject()
 
       const userId = user.id
-      const playerRound = match._playerRounds[userId] || 0
+      const isMatchParticipant =
+        String(match.player1?.userId) === String(userId) ||
+        String(match.player2?.userId) === String(userId)
+      if (!isMatchParticipant) return reject()
 
-      // Generate bonus question without advancing round counter
-      const q = genTournamentQ(t.gameKey || 'katak')
-      match._playerCurrentQ[userId] = q
-      match._playerQuestionStartedAt = match._playerQuestionStartedAt || {}
-      match._playerQuestionStartedAt[userId] = Date.now()
-      const { answer, ...qForClient } = q
-      socket.emit('tournament:question', {
-        question:        qForClient,
-        round:           playerRound,   // same round — immunity bonus
-        maxRounds:       7,             // TOURNAMENT_MAX_ROUNDS
-        scores:          match.scores,
-        isImmunityBonus: true,
-      })
+      match._playerRounds        = match._playerRounds        || {}
+      match._playerCurrentQ      = match._playerCurrentQ      || {}
+      match._playerLastAnswerCorrect = match._playerLastAnswerCorrect || {}
+      match._playerImmunityLeft  = match._playerImmunityLeft  || {}
+      match._playerImmunityInFlight = match._playerImmunityInFlight || {}
+      match._playerNextQuestionTimers = match._playerNextQuestionTimers || {}
+
+      // Validasi 1: player harus sudah menjawab (currentQ = null artinya sudah)
+      if (match._playerCurrentQ[userId] !== null && match._playerCurrentQ[userId] !== undefined) {
+        return reject()
+      }
+
+      // Validasi 2: jawaban terakhir harus salah
+      if (match._playerLastAnswerCorrect[userId] !== false) return reject()
+
+      // Serialisasi klaim sebelum query DB agar dua emit simultan tidak
+      // sama-sama memakai token yang sama.
+      if (match._playerImmunityInFlight[userId]) return reject()
+      match._playerImmunityInFlight[userId] = true
+
+      try {
+        // Validasi 3: cek sisa token dari DB (lazy fetch sekali per match per player)
+        if (match._playerImmunityLeft[userId] === undefined) {
+          const { rows } = await pool.query(
+            'SELECT equipped_pet_skin FROM students WHERE id = $1',
+            [userId]
+          )
+          const skinId = rows[0]?.equipped_pet_skin || 'golden'
+          const bonus = getPetBonus(skinId)
+          match._playerImmunityLeft[userId] = bonus.wrongImmunity || 0
+        }
+
+        if (match._playerImmunityLeft[userId] <= 0) return reject()
+
+        // Konsumsi satu token & reset flag
+        match._playerImmunityLeft[userId]--
+        match._playerLastAnswerCorrect[userId] = null
+        if (match._playerNextQuestionTimers[userId]) {
+          clearTimeout(match._playerNextQuestionTimers[userId])
+          match._playerNextQuestionTimers[userId] = null
+        }
+
+        const playerRound = match._playerRounds[userId] || 0
+
+        // Generate bonus question without advancing round counter
+        const q = genTournamentQ(t.gameKey || 'katak')
+        match._playerCurrentQ[userId] = q
+        match._playerQuestionStartedAt = match._playerQuestionStartedAt || {}
+        match._playerQuestionStartedAt[userId] = Date.now()
+        const { answer, ...qForClient } = q
+        socket.emit('tournament:question', {
+          question:        qForClient,
+          round:           playerRound,  // same round — immunity bonus
+          maxRounds:       TOURNAMENT_MAX_ROUNDS,
+          scores:          match.scores,
+          isImmunityBonus: true,
+        })
+        if (typeof ack === 'function') {
+          ack({ ok: true, tokensLeft: match._playerImmunityLeft[userId] })
+        }
+      } catch (err) {
+        console.error('[tournament:use-immunity] DB check error:', err)
+        reject()
+      } finally {
+        match._playerImmunityInFlight[userId] = false
+      }
     })
 
     // Siswa: kirim posisi slider ke guru spectator
