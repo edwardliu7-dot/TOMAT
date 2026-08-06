@@ -90,20 +90,33 @@ export function getMissionsForEvent(eventSlug) {
  * Fire-and-forget safe — errors are caught and logged, never thrown.
  */
 export async function incrementMissionProgress(studentId, missionId, delta = 1) {
+  let client
   try {
     const mission = EVENT_MISSIONS.find(m => m.id === missionId)
     if (!mission) return null
     const ev = SEASONAL_EVENTS.find(e => e.slug === mission.eventSlug)
     if (!ev || !isEventActive(ev)) return null
 
-    // Read current progress first so we can compute the actual delta applied.
-    const { rows: prevRows } = await pool.query(`
+    // Keep the progress update and dependent-mission completion in one
+    // transaction. The row lock prevents simultaneous answers from both
+    // calculating their delta from the same stale progress value.
+    client = await pool.connect()
+    await client.query('BEGIN')
+    // Serialize all mission updates for one student, including updates to
+    // different missions that may complete the same dependent mission.
+    await client.query(
+      'select pg_advisory_xact_lock(hashtext($1))',
+      [String(studentId)]
+    )
+
+    const { rows: prevRows } = await client.query(`
       select progress from event_mission_progress
       where student_id = $1 and mission_id = $2
+      for update
     `, [studentId, missionId])
     const prevProgress = prevRows[0]?.progress ?? 0
 
-    const { rows } = await pool.query(`
+    const { rows } = await client.query(`
       insert into event_mission_progress (student_id, mission_id, progress)
       values ($1, $2, least($3::int, $4::int))
       on conflict (student_id, mission_id) do update
@@ -120,18 +133,29 @@ export async function incrementMissionProgress(studentId, missionId, delta = 1) 
     `, [studentId, missionId, delta, mission.goal])
 
     // No rows returned → mission was already completed (WHERE clause blocked the update)
-    if (rows.length === 0) return null
+    if (rows.length === 0) {
+      await client.query('COMMIT')
+      return null
+    }
 
     const row = rows[0]
     const justCompleted = row.completed_at !== null
     const actualDelta = Math.max(0, row.progress - prevProgress)
 
-    const autoCompleted = await _autoCompleteRequires(studentId, mission.eventSlug)
+    const autoCompleted = await _autoCompleteRequires(studentId, mission.eventSlug, client)
+    await client.query('COMMIT')
 
     return { progress: row.progress, goal: mission.goal, justCompleted, autoCompleted, delta: actualDelta }
   } catch (err) {
+    try {
+      await client?.query('ROLLBACK')
+    } catch (rollbackErr) {
+      console.error('incrementMissionProgress rollback error', rollbackErr)
+    }
     console.error('incrementMissionProgress error', err)
     return null
+  } finally {
+    client?.release()
   }
 }
 
@@ -139,14 +163,14 @@ export async function incrementMissionProgress(studentId, missionId, delta = 1) 
  * Auto-complete missions whose `requires` list is fully satisfied.
  * Returns array of mission IDs that were NEWLY auto-completed this call.
  */
-async function _autoCompleteRequires(studentId, eventSlug) {
+async function _autoCompleteRequires(studentId, eventSlug, db = pool) {
   const autoMissions = EVENT_MISSIONS.filter(
     m => m.eventSlug === eventSlug && m.requires.length > 0
   )
   if (autoMissions.length === 0) return []
 
   const allIds = EVENT_MISSIONS.filter(m => m.eventSlug === eventSlug).map(m => m.id)
-  const { rows } = await pool.query(`
+  const { rows } = await db.query(`
     select mission_id from event_mission_progress
     where student_id = $1 and mission_id = any($2::text[]) and completed_at is not null
   `, [studentId, allIds])
@@ -156,7 +180,7 @@ async function _autoCompleteRequires(studentId, eventSlug) {
   for (const mission of autoMissions) {
     if (done.has(mission.id)) continue
     if (!mission.requires.every(id => done.has(id))) continue
-    const { rowCount } = await pool.query(`
+    const { rowCount } = await db.query(`
       insert into event_mission_progress (student_id, mission_id, progress, completed_at)
       values ($1, $2, $3, now())
       on conflict (student_id, mission_id) do update

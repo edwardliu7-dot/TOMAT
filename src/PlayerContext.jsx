@@ -43,6 +43,7 @@ export function PlayerProvider({ children }) {
   const [newBadges, setNewBadges] = useState([])
   const [missionToasts, setMissionToasts] = useState([])  // Array<MissionDelta & { id }>
   const [missionClaims, setMissionClaims] = useState([])  // Array<MissionDelta> yang baru completed
+  const pendingGainRef = useRef({ coins: 0, exp: 0, scheduled: false })
 
   useEffect(() => {
     if (user?.name) {
@@ -64,33 +65,57 @@ export function PlayerProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
-  const addCoins = useCallback((amount) => {
+  const applyGainResponse = useCallback((data) => {
+    if (!data) return
+    if (data.player) {
+      setPlayer(p => ({
+        ...p,
+        coins: data.player.coins,
+        level: data.player.level,
+        exp: data.player.exp,
+        maxExp: data.player.maxExp,
+      }))
+    }
+    if (data.newBadges?.length) setNewBadges(b => [...b, ...data.newBadges])
+    if (data.missionDeltas?.length) {
+      const toasts = data.missionDeltas.map(d => ({
+        ...d,
+        id: `${d.missionId}-${Date.now()}-${Math.random()}`,
+      }))
+      setMissionToasts(q => [...q, ...toasts])
+      const newlyCompleted = data.missionDeltas.filter(d => d.completed)
+      if (newlyCompleted.length) setMissionClaims(q => [...q, ...newlyCompleted])
+    }
+  }, [])
+
+  // Game screens call addCoins() and addExp() synchronously for one answer.
+  // Batch those calls in the same microtask so one answer produces one
+  // server-authoritative gain update instead of two concurrent updates.
+  const queuePersistGain = useCallback((coins, exp) => {
+    if (!isSiswa) return
+    const pending = pendingGainRef.current
+    pending.coins += coins
+    pending.exp += exp
+    if (pending.scheduled) return
+    pending.scheduled = true
+    Promise.resolve().then(async () => {
+      const queued = pendingGainRef.current
+      pendingGainRef.current = { coins: 0, exp: 0, scheduled: false }
+      if (queued.coins === 0 && queued.exp === 0) return
+      const data = await persistGain(queued.coins, queued.exp)
+      applyGainResponse(data)
+    })
+  }, [isSiswa, applyGainResponse])
+
+  const addCoins = useCallback((amount, options = {}) => {
     // `base` is the raw gameplay reward; server will apply pet multiplier independently.
     // We apply the same multiplier client-side for an accurate optimistic display.
     const base   = amount === 50 ? CORRECT_ANSWER_COIN_REWARD : amount
     const reward = Math.round(base * coinMult)
     setPlayer(p => ({ ...p, coins: p.coins + reward }))
-    if (isSiswa) {
-      persistGain(base, 0).then(data => {
-        if (data?.player) {
-          // Reconcile with server's authoritative coin balance to prevent drift.
-          setPlayer(p => ({ ...p, coins: data.player.coins, level: data.player.level, exp: data.player.exp, maxExp: data.player.maxExp }))
-        }
-        if (data?.newBadges?.length) setNewBadges(b => [...b, ...data.newBadges])
-        // missionDeltas: Array<MissionDelta> dari gameplay-events.js — sudah terformat,
-        // tidak perlu lookup EVENT_MISSIONS di sini (RULES.md §16).
-        if (data?.missionDeltas?.length) {
-          const toasts = data.missionDeltas.map(d => ({
-            ...d,
-            id: `${d.missionId}-${Date.now()}-${Math.random()}`,
-          }))
-          setMissionToasts(q => [...q, ...toasts])
-          const newlyCompleted = data.missionDeltas.filter(d => d.completed)
-          if (newlyCompleted.length) setMissionClaims(q => [...q, ...newlyCompleted])
-        }
-      })
-    }
-  }, [isSiswa, coinMult])
+    queuePersistGain(base, 0)
+    return options
+  }, [coinMult, queuePersistGain])
 
   const addExp = useCallback((amount) => {
     // Apply pet EXP multiplier client-side (server applies the same)
@@ -110,17 +135,8 @@ export function PlayerProvider({ children }) {
       }
       return { ...p, level, exp, maxExp }
     })
-    if (isSiswa) {
-      persistGain(0, amount).then(data => {
-        if (data?.player) {
-          // Reconcile with the server's authoritative level/exp (its curve formula is the
-          // source of truth) in case client-side rounding ever drifts from it.
-          setPlayer(p => ({ ...p, coins: data.player.coins, level: data.player.level, exp: data.player.exp, maxExp: data.player.maxExp }))
-        }
-        if (data?.newBadges?.length) setNewBadges(b => [...b, ...data.newBadges])
-      })
-    }
-  }, [isSiswa, expMult])
+    queuePersistGain(0, amount)
+  }, [expMult, queuePersistGain])
 
   // Called by games when a wrong answer is confirmed. In free-play this is a
   // no-op; TaskContext overrides it to advance the task session counter so that

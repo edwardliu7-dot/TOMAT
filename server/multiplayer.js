@@ -1022,12 +1022,77 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       if (user.role !== 'siswa') return
       if (!(await canPlayStudentMode(socket, 'tournament:error'))) return reject()
       const t = tournaments.get(tournamentId)
-      if (!t || t.mode === 'kelompok') return reject()
+      if (!t) return reject()
       const round = t.rounds[t.currentRound - 1]
       const match = round?.matches.find(m => m.id === matchId)
       if (!match || match.status !== 'in-progress') return reject()
 
       const userId = user.id
+      const teamId = getTeamIdForUser(t, userId)
+      if (t.mode === 'kelompok') {
+        const isMatchTeam = Boolean(teamId && (
+          match.player1?.teamId === teamId || match.player2?.teamId === teamId
+        ))
+        const isJuruJawab = String(match.teamJuruJawab?.[teamId]) === String(userId)
+        if (!isMatchTeam || !isJuruJawab) return reject()
+
+        match._kelompokAnswers = match._kelompokAnswers || {}
+        match._kelompokQuestionsByTeam = match._kelompokQuestionsByTeam || {}
+        match._kelompokLastAnswerCorrect = match._kelompokLastAnswerCorrect || {}
+        match._kelompokImmunityLeft = match._kelompokImmunityLeft || {}
+        match._kelompokImmunityInFlight = match._kelompokImmunityInFlight || {}
+
+        // The original wrong answer has already been recorded. Only the
+        // answering team may claim a bonus, and only after a wrong answer.
+        if (match._kelompokAnswers[teamId] !== true) return reject()
+        if (match._kelompokLastAnswerCorrect[teamId] !== false) return reject()
+        if (match._kelompokImmunityInFlight[teamId]) return reject()
+        match._kelompokImmunityInFlight[teamId] = true
+
+        try {
+          if (match._kelompokImmunityLeft[teamId] === undefined) {
+            const { rows } = await pool.query(
+              'SELECT equipped_pet_skin FROM students WHERE id = $1',
+              [userId]
+            )
+            const skinId = rows[0]?.equipped_pet_skin || 'golden'
+            const bonus = getPetBonus(skinId)
+            match._kelompokImmunityLeft[teamId] = bonus.wrongImmunity || 0
+          }
+          if (match._kelompokImmunityLeft[teamId] <= 0) return reject()
+
+          match._kelompokImmunityLeft[teamId]--
+          match._kelompokLastAnswerCorrect[teamId] = null
+          match._kelompokAnswers[teamId] = false
+
+          const q = genTournamentQ(t.gameKey || 'katak')
+          match._kelompokQuestionsByTeam[teamId] = q
+          const { answer, ...qForClient } = q
+          const team = t.teams?.find(tm => tm.id === teamId)
+          for (const member of team?.members || []) {
+            const memberSocketId = match._teamMemberSockets?.[member.userId]
+            io.sockets.sockets.get(memberSocketId)?.emit('tournament:question', {
+              question: qForClient,
+              round: match._kelompokRound,
+              maxRounds: TOURNAMENT_MAX_ROUNDS,
+              scores: match.scores,
+              isKelompok: true,
+              teamJuruJawab: match.teamJuruJawab,
+              isImmunityBonus: true,
+            })
+          }
+          if (typeof ack === 'function') {
+            ack({ ok: true, tokensLeft: match._kelompokImmunityLeft[teamId] })
+          }
+        } catch (err) {
+          console.error('[tournament:use-immunity kelompok] DB check error:', err)
+          reject()
+        } finally {
+          match._kelompokImmunityInFlight[teamId] = false
+        }
+        return
+      }
+
       const isMatchParticipant =
         String(match.player1?.userId) === String(userId) ||
         String(match.player2?.userId) === String(userId)

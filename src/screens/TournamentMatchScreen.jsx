@@ -241,6 +241,9 @@ export default function TournamentMatchScreen({
 
   // Nananaga immunity
   const immunityLeft = useRef(!activeSession && user?.equippedPetSkin ? getWrongImmunity(user.equippedPetSkin) : 0)
+  const activeSessionRef = useRef(activeSession)
+  const isJuruJawabRef = useRef(false)
+  useEffect(() => { activeSessionRef.current = activeSession }, [activeSession])
 
   // Kelompok juru jawab state
   const [juruJawabList,   setJuruJawabList]   = useState([]) // [{teamId, userId, name}]
@@ -250,6 +253,7 @@ export default function TournamentMatchScreen({
   // Determine if I am juru jawab (after selection)
   const myJuruJawabEntry = juruJawabList.find(j => j.teamId === teamId)
   const isJuruJawab = myJuruJawabEntry ? String(myJuruJawabEntry.userId) === String(myUserId) : false
+  useEffect(() => { isJuruJawabRef.current = isJuruJawab }, [isJuruJawab])
 
   // phase: 'waiting' | 'juru-select' | 'playing' | 'result' | 'leaderboard' | 'match-over'
   const [phase, setPhase] = useState('waiting')
@@ -312,6 +316,30 @@ export default function TournamentMatchScreen({
     // Hasil jawaban tim (kelompok)
     socket.on('tournament:team-answer-result', ({ teamId: tid, correct, correctAnswer: ans, scores: s }) => {
       setScores(s || {})
+       if (tid === teamId && !correct && immunityLeft.current > 0 && !activeSessionRef.current && isJuruJawabRef.current) {
+         getSocket()?.emit(
+           'tournament:use-immunity',
+           { tournamentId: tournIdRef.current, matchId: matchIdRef.current },
+           ({ ok, tokensLeft } = {}) => {
+             if (!ok) {
+               setMyAnswered(true)
+               setMyCorrect(false)
+               setCorrectAnswer(ans)
+               setPhase('result')
+               return
+             }
+             immunityLeft.current = tokensLeft
+             window.dispatchEvent(new CustomEvent('nananaga-shield', {
+               detail: { tokensLeft },
+             }))
+             setMyAnswered(false)
+             setMyCorrect(null)
+             setCorrectAnswer(null)
+             setPhase('playing')
+           },
+         )
+         return
+       }
       setTeamAnswerResult({ teamId: tid, correct, correctAnswer: ans })
       if (tid === teamId) {
         setMyAnswered(true)
@@ -329,7 +357,7 @@ export default function TournamentMatchScreen({
 
     // Hasil jawaban individual
     socket.on('tournament:answer-result', ({ correct, correctAnswer: ans, yourValue, scores: s }) => {
-      if (!correct && immunityLeft.current > 0 && !activeSession) {
+      if (!correct && immunityLeft.current > 0 && !activeSessionRef.current) {
         getSocket()?.emit(
           'tournament:use-immunity',
           { tournamentId: tournIdRef.current, matchId: matchIdRef.current },

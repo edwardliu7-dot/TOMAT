@@ -78,6 +78,7 @@ export function TaskProvider({ children, onTaskComplete }) {
   const [submitError, setSubmitError] = useState(null)
   // exitWarning: true when student was caught leaving and task was auto-reset
   const [exitWarning, setExitWarning] = useState(false)
+  const submittingTaskIdRef = useRef(null)
 
   const onTaskCompleteRef = useRef(onTaskComplete)
   useEffect(() => { onTaskCompleteRef.current = onTaskComplete }, [onTaskComplete])
@@ -130,8 +131,16 @@ export function TaskProvider({ children, onTaskComplete }) {
     const totalAnswered = newCorrect + newWrong
     if (totalAnswered < session.totalQuestions) return false
 
-    // Clear session immediately to prevent double-submission while the request is in-flight.
-    setActiveSession(null)
+    // Keep the session visible until the server confirms the grade. The
+    // in-flight ref prevents duplicate submissions without losing progress on
+    // a network failure.
+    if (submittingTaskIdRef.current === session.taskId) return true
+    submittingTaskIdRef.current = session.taskId
+    setActiveSession(s => s ? {
+      ...s,
+      correctAnswers: newCorrect,
+      wrongAnswers: newWrong,
+    } : s)
     setSubmitError(null)
 
     apiCall('/api/siswa/nilai', {
@@ -141,6 +150,8 @@ export function TaskProvider({ children, onTaskComplete }) {
       const gradeRecord = { ...mapNilai({ ...nilai, game_name: session.task.gameName, game_emoji: session.task.gameEmoji, type: session.task.type }) }
       setTasks(ts => ts.map(t => t.id === session.taskId ? { ...t, status: 'completed' } : t))
       setGrades(gs => [...gs, gradeRecord])
+      submittingTaskIdRef.current = null
+      setActiveSession(null)
       onTaskCompleteRef.current?.(gradeRecord)
     }).catch(err => {
       console.error('Failed to submit grade', err)
@@ -148,6 +159,7 @@ export function TaskProvider({ children, onTaskComplete }) {
       // Common causes: pet died during gameplay, guru closed the task, session expired.
       const msg = err?.message || 'Terjadi kesalahan jaringan.'
       setSubmitError(msg)
+      submittingTaskIdRef.current = null
     })
     return true
   }, [])
@@ -155,10 +167,11 @@ export function TaskProvider({ children, onTaskComplete }) {
   // Override addCoins: game files use the legacy 50 marker, while the actual
   // normalized economy reward is 15 coins per correct answer.
   // A correct answer advances correctAnswers; when correct+wrong >= totalQuestions the session ends.
-  const addCoins = useCallback((amount) => {
+  const addCoins = useCallback((amount, options = {}) => {
     playerCtx.addCoins(amount)
     const session = activeSessionRef.current
-    if (!session || amount !== 50) return // legacy marker = one correct game answer
+    const isCorrectAnswer = options.isCorrectAnswer ?? amount > 0
+    if (!session || !isCorrectAnswer) return
 
     const newCorrect = session.correctAnswers + 1
     const newWrong = session.wrongAnswers ?? 0

@@ -66,7 +66,8 @@ export function resendTournamentQuestion(io, tournament, match, userId, socket) 
   if (!match || match.status !== 'in-progress') return false
 
   if (tournament.mode === 'kelompok') {
-    const currentQ = match._kelompokCurrentQ
+    const teamId = getTeamIdForUser(tournament, userId)
+    const currentQ = match._kelompokQuestionsByTeam?.[teamId] || match._kelompokCurrentQ
     if (!currentQ) return false
     const { answer, ...safeQ } = currentQ
     socket.emit('tournament:question', {
@@ -76,6 +77,7 @@ export function resendTournamentQuestion(io, tournament, match, userId, socket) 
       scores: match.scores,
       isKelompok: true,
       teamJuruJawab: match.teamJuruJawab,
+      isImmunityBonus: Boolean(match._kelompokQuestionsByTeam?.[teamId]),
       isRecovery: true,
     })
     return true
@@ -101,6 +103,8 @@ function sendQuestionToAllTeamMembers(io, tournament, match) {
   const q = genTournamentQ(tournament.gameKey)
   match._kelompokCurrentQ  = q
   match._kelompokAnswers   = {}
+  match._kelompokQuestionsByTeam = {}
+  match._kelompokLastAnswerCorrect = {}
   match._kelompokQuestionStartedAt = Date.now()
 
   const { answer, ...safeQ } = q
@@ -198,6 +202,8 @@ export function startTournamentMatch(io, tournament, match) {
     match._kelompokRound          = 0
     match._kelompokCurrentQ       = null
     match._kelompokAnswers        = {}
+    match._kelompokQuestionsByTeam = {}
+    match._kelompokLastAnswerCorrect = {}
     match._kelompokFinishedRounds = 0
     match._teamAnswerTimeMs       = {}
     match._kelompokQuestionStartedAt = null
@@ -376,7 +382,7 @@ async function handleIndividualAnswer(io, tournament, match, userId, value, sock
 
 // ─── Handle a juru jawab's answer (kelompok mode) ─────────────────────────────
 async function handleKelompokAnswer(io, tournament, match, userId, value, socket, teamId) {
-  const currentQ = match._kelompokCurrentQ
+  const currentQ = match._kelompokQuestionsByTeam?.[teamId] || match._kelompokCurrentQ
   if (!currentQ) {
     socket.emit('tournament:error', { message: 'Soal belum siap atau sudah berganti. Tunggu soal berikutnya.' })
     return
@@ -384,6 +390,11 @@ async function handleKelompokAnswer(io, tournament, match, userId, value, socket
   if (match._kelompokAnswers[teamId]) return // sudah jawab soal ini
 
   match._kelompokAnswers[teamId] = true
+  match._kelompokLastAnswerCorrect = match._kelompokLastAnswerCorrect || {}
+  match._kelompokLastAnswerCorrect[teamId] = correct
+  if (match._kelompokQuestionsByTeam?.[teamId]) {
+    delete match._kelompokQuestionsByTeam[teamId]
+  }
 
   const receivedAt = Date.now()
   const elapsed = Math.max(0, receivedAt - (match._kelompokQuestionStartedAt || receivedAt))
@@ -427,15 +438,21 @@ async function handleKelompokAnswer(io, tournament, match, userId, value, socket
   if (team1Done && team2Done) {
     match._kelompokFinishedRounds = (match._kelompokFinishedRounds || 0) + 1
     match._kelompokCurrentQ = null // clear soal aktif
+    match._kelompokQuestionsByTeam = {}
+    match._kelompokLastAnswerCorrect = {}
 
     if (match._kelompokFinishedRounds >= TOURNAMENT_MAX_ROUNDS) {
       // Semua soal selesai
       setTimeout(() => {
-        if (match.status === 'in-progress') finishTournamentMatch(io, tournament, match)
+        const bonusPending = Object.values(match._kelompokAnswers || {}).some(answered => answered === false)
+        if (match.status === 'in-progress' && !bonusPending) finishTournamentMatch(io, tournament, match)
       }, NEXT_Q_DELAY_MS)
     } else {
       setTimeout(() => {
-        if (match.status === 'in-progress' && !match._kelompokCurrentQ) sendQuestionToAllTeamMembers(io, tournament, match)
+        const bonusPending = Object.values(match._kelompokAnswers || {}).some(answered => answered === false)
+        if (match.status === 'in-progress' && !match._kelompokCurrentQ && !bonusPending) {
+          sendQuestionToAllTeamMembers(io, tournament, match)
+        }
       }, NEXT_Q_DELAY_MS)
     }
   } else {
@@ -585,9 +602,13 @@ function checkRoundComplete(io, tournament) {
       tiedMatch._kelompokRound = 0
       tiedMatch._kelompokCurrentQ = null
       tiedMatch._kelompokAnswers = {}
+      tiedMatch._kelompokQuestionsByTeam = {}
+      tiedMatch._kelompokLastAnswerCorrect = {}
       tiedMatch._kelompokFinishedRounds = 0
     }
-    startTournamentRound_all(io, tournament)
+    // Replay only this tied match. Resetting the whole round here would
+    // overwrite winners that were already decided in the other matches.
+    startTournamentRound_all(io, tournament, tiedMatch)
     return
   }
 
@@ -651,7 +672,7 @@ function checkRoundComplete(io, tournament) {
 }
 
 // ─── Kick off all matches in current round ────────────────────────────────────
-export function startTournamentRound_all(io, tournament) {
+export function startTournamentRound_all(io, tournament, onlyMatch = null) {
   const round = tournament.rounds[tournament.currentRound - 1]
 
   const allKelasForRound = tournament.kelasArr || [tournament.kelas]
@@ -663,6 +684,7 @@ export function startTournamentRound_all(io, tournament) {
   })
 
   round.matches.forEach(match => {
+    if (onlyMatch && match !== onlyMatch) return
     if (match.status === 'bye') {
       match.winner = match.player1
       return

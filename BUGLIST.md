@@ -49,7 +49,7 @@
 
 ## 🟡 MEDIUM — Bug Logika
 
-### BUG-06 — Tie di turnamen mereset seluruh round (bukan hanya match yang tie)
+### BUG-06 — Tie di turnamen mereset seluruh round (bukan hanya match yang tie) ✅ (6 Agustus 2026)
 - **File:** `server/tournament-engine.js` (sekitar baris 489–515)
 - **Masalah:** Ketika satu match berakhir tie, `startTournamentRound_all()` dipanggil dan mereset semua match di round tersebut — termasuk match yang sudah selesai — sehingga winner match lain bisa berubah.
 - **Dampak:** Hasil turnamen bisa rusak saat ada tie.
@@ -57,7 +57,7 @@
 
 ---
 
-### BUG-07 — Race condition progress misi event (non-atomic update)
+### BUG-07 — Race condition progress misi event (non-atomic update) ✅ (6 Agustus 2026)
 - **File:** `server/event-missions.js` (sekitar baris 99–127)
 - **Masalah:** Progress misi dibaca dalam satu query dan diupdate dalam query terpisah. Dua jawaban benar yang dikirim simultan (mis. di duel kelompok) bisa membaca nilai lama yang sama → delta toast salah → `_autoCompleteRequires()` bisa race di luar transaksi.
 - **Dampak:** Progress misi tidak akurat, notifikasi selesai misi bisa ganda atau tidak muncul.
@@ -65,7 +65,7 @@
 
 ---
 
-### BUG-08 — addCoins + addExp kirim dua POST → lost update
+### BUG-08 — addCoins + addExp kirim dua POST → lost update ✅ (6 Agustus 2026)
 - **File:** `src/PlayerContext.jsx` (sekitar baris 67–123)
 - **Masalah:** `addCoins()` dan `addExp()` masing-masing POST ke `/api/siswa/player/gain` secara terpisah. Game memanggil keduanya setelah satu jawaban benar → dua request concurrent → response yang lebih lambat bisa overwrite state yang lebih baru → coins atau EXP hilang.
 - **Dampak:** Siswa kehilangan sebagian reward koin/EXP secara intermiten.
@@ -73,7 +73,7 @@
 
 ---
 
-### BUG-09 — submitGrade menghapus activeSession sebelum POST berhasil
+### BUG-09 — submitGrade menghapus activeSession sebelum POST berhasil ✅ (6 Agustus 2026)
 - **File:** `src/TaskContext.jsx` (sekitar baris 129–153)
 - **Masalah:** `submitGrade` menghapus `activeSession` di state lokal sebelum POST ke server. Jika request gagal (network error, server down), sesi tugas tidak bisa di-restore → progress hilang permanen.
 - **Dampak:** Siswa yang sedang mengerjakan tugas kehilangan hasil saat koneksi putus.
@@ -81,7 +81,7 @@
 
 ---
 
-### BUG-10 — TaskContext: correctAnswers tidak bertambah jika reward bukan 50 koin
+### BUG-10 — TaskContext: correctAnswers tidak bertambah jika reward bukan 50 koin ✅ (6 Agustus 2026)
 - **File:** `src/TaskContext.jsx` (sekitar baris 158–182)
 - **Masalah:** `addCoins` di TaskContext hanya menghitung progress tugas jika `amount === 50`. Game yang menggunakan reward amount berbeda (misalnya game dengan difficulty modifier atau bonus) tidak akan increment `correctAnswers` meski jawaban benar.
 - **Dampak:** Progress tugas tidak bergerak di beberapa game tertentu.
@@ -89,7 +89,7 @@
 
 ---
 
-### BUG-11 — Immunity dikurangi lokal tanpa acknowledgement dari server
+### BUG-11 — Immunity dikurangi lokal tanpa acknowledgement dari server ✅ (6 Agustus 2026)
 - **File:** `src/screens/DuelKatakScreen.jsx` (sekitar baris 383–389) & `src/screens/TournamentMatchScreen.jsx` (sekitar baris 332–335)
 - **Masalah:** Token immunity dikurangi di client (`immunityLeft.current--`) lalu `duel:use-immunity` / `tournament:use-immunity` diemit tanpa menunggu acknowledgement server. Jika emit hilang atau server menolak, client kehilangan token permanent dan state round bisa desync.
 - **Dampak:** Token immunity terpotong meski tidak dipakai; round bisa stuck.
@@ -97,7 +97,7 @@
 
 ---
 
-### BUG-12 — Immunity tidak berlaku di kelompok mode turnamen
+### BUG-12 — Immunity tidak berlaku di kelompok mode turnamen ✅ (6 Agustus 2026)
 - **File:** `src/screens/TournamentMatchScreen.jsx` (sekitar baris 313–321)
 - **Masalah:** Path `team-answer-result` (kelompok mode) tidak menerapkan logika immunity, sementara path `answer-result` (individual mode) ya. Perilaku berbeda per mode.
 - **Dampak:** Siswa dalam mode kelompok tidak mendapat benefit immunity dari Nananaga.
@@ -189,7 +189,7 @@
 | Kategori | Jumlah |
 |----------|--------|
 | 🔴 HIGH (eksploitasi / data loss) | 0 terbuka / 5 selesai |
-| 🟡 MEDIUM (logika salah) | 7 |
+| 🟡 MEDIUM (logika salah) | 0 terbuka / 7 selesai |
 | 🟠 DATA / SCHEMA | 3 |
 | 🔵 LOW / UX | 6 |
 | **Total** | **21** |
