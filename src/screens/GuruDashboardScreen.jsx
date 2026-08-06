@@ -1493,6 +1493,25 @@ function TurnamenTab({ kelasDiampu }) {
     }
   }
 
+  // Turnamen yang sudah selesai tidak perlu dihapus. Cukup tutup bracket-nya
+  // agar guru kembali ke form untuk mengatur turnamen berikutnya.
+  const handleNewTournament = async () => {
+    setTournament(null)
+    setActiveRound(null)
+    setLiveFeed([])
+    setSpectate(null)
+    setError('')
+
+    // Refresh riwayat supaya turnamen yang baru selesai tetap terlihat di bawah
+    // form tanpa perlu memuat ulang halaman.
+    try {
+      const data = await apiCall('/api/guru/tournament/history')
+      setHistory(data.history || [])
+    } catch {
+      // Kegagalan refresh riwayat tidak boleh menghalangi pembuatan turnamen baru.
+    }
+  }
+
   const handleStartFromLobby = async () => {
     if (!tournament) return
     try {
@@ -2255,7 +2274,15 @@ function TurnamenTab({ kelasDiampu }) {
             >
               📊 Lihat Nilai Siswa
             </button>
-            {tournament.status !== 'finished' && (
+            {tournament.status === 'finished' ? (
+              <button onClick={handleNewTournament} style={{
+                flex: 1, background: 'linear-gradient(135deg, #0e7490, #155e75)', border: '1px solid rgba(103,232,249,0.35)',
+                borderRadius: 14, padding: '14px 0', color: '#fff', fontSize: 14, fontWeight: 800,
+                cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(14,116,144,0.22)',
+              }}>
+                🏆 Turnamen Baru
+              </button>
+            ) : (
               <button onClick={handleEnd} style={{
                 flex: 1, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
                 borderRadius: 14, padding: '14px 0', color: '#f87171', fontSize: 14, fontWeight: 700,
