@@ -8,7 +8,7 @@ import { applyExp } from './gamify.js'
 import { onCorrectAnswer, onDuelWin, onCorrectAnswerWithResult, onDuelWinWithResult } from './gameplay-events.js'
 import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
 import { tournaments, tournamentToClient, getTournamentIo } from './tournament-state.js'
-import { startTournamentMatch, handleTournamentAnswer } from './tournament-engine.js'
+import { startTournamentMatch, handleTournamentAnswer, autoSelectJuruJawab, checkAndStartKelompokMatch, getTeamIdForUser, TOURNAMENT_MAX_ROUNDS, emitToUser } from './tournament-engine.js'
 import { genTournamentQ } from './tournament-questions.js'
 import { notifyUser } from './notifications.js'
 import { isStudentPetDead } from './pet-state.js'
@@ -639,6 +639,25 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     // TOURNAMENT — spectator (guru) + player (siswa) events
     // ════════════════════════════════════════════════════════════════════════
 
+    // Siswa: masuk lobby turnamen (sebelum guru mulai)
+    socket.on('tournament:join-lobby', ({ tournamentId } = {}) => {
+      if (user.role !== 'siswa') return
+      const t = tournaments.get(tournamentId)
+      if (!t || !t.lobbyOpen) return
+      const isParticipant = t.students?.some(s => String(s.userId) === String(user.id))
+      if (!isParticipant) return
+      if (!t.lobby) t.lobby = {}
+      t.lobby[user.id] = { userId: user.id, name: user.name, joinedAt: Date.now() }
+      // Join bracket room so they receive state updates
+      socket.join(`tournament:${tournamentId}`)
+      // Tell guru the lobby state
+      io.to(`tournament:${tournamentId}`).emit('tournament:lobby-state', {
+        tournamentId,
+        lobby: Object.values(t.lobby),
+        total: t.students?.length ?? 0,
+      })
+    })
+
     // Siswa: cek apakah ada turnamen aktif setelah refresh halaman.
     // Mencari turnamen mana pun yang masih berjalan dan siswa ini termasuk peserta.
     socket.on('tournament:check-active', () => {
@@ -719,27 +738,87 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const match = round?.matches.find(m => m.id === matchId)
       if (!match || match.status === 'finished' || match.status === 'walkover') return
 
-      const isP1 = match.player1?.userId === user.id
-      const isP2 = match.player2?.userId === user.id
-      if (!isP1 && !isP2) return
-
-      // Update socketId
-      if (isP1) match.player1.socketId = socket.id
-      if (isP2) match.player2.socketId = socket.id
-
-      // Join duel room
       socket.join(match.roomCode)
 
-      // Broadcast bracket ke guru
-      io.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(t))
+      if (t.mode === 'kelompok') {
+        // Kelompok: semua anggota tim boleh join, bukan hanya representatif
+        const teamId = getTeamIdForUser(t, user.id)
+        if (!teamId) return
+        match._teamMemberSockets = match._teamMemberSockets || {}
+        match._teamMemberSockets[user.id] = socket.id
 
-      // Cek apakah kedua player sudah join → mulai match
-      const p1Ready = !match.player1 || match.player1.socketId
-      const p2Ready = !match.player2 || match.player2.socketId
-      if (p1Ready && p2Ready && match.status === 'waiting-join') {
-        if (match.walkoverTimer) { clearTimeout(match.walkoverTimer); match.walkoverTimer = null }
-        startTournamentMatch(io, t, match)
+        io.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(t))
+
+        // Beritahu anggota lain di match room siapa yang sudah join
+        io.to(match.roomCode).emit('tournament:team-member-joined', {
+          userId:   user.id,
+          name:     user.name,
+          teamId,
+          matchId:  match.id,
+        })
+
+        // Jika ini match pertama yang joining dan belum ada timer juru jawab → mulai timer
+        if (match.status === 'waiting-join') {
+          const anyJoined = Object.keys(match._teamMemberSockets).length === 1
+          if (anyJoined && !match._teamJuruTimer) {
+            // Mulai timer 30 detik untuk pemilihan juru jawab
+            match._teamJuruTimer = setTimeout(() => {
+              if (match.status === 'waiting-join' || match.status === 'waiting-juru') {
+                autoSelectJuruJawab(io, t, match)
+              }
+            }, 30_000)
+            match.status = 'waiting-juru'
+            io.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(t))
+          }
+        }
+      } else {
+        // Individual: hanya representatif
+        const isP1 = match.player1?.userId === user.id
+        const isP2 = match.player2?.userId === user.id
+        if (!isP1 && !isP2) return
+
+        if (isP1) match.player1.socketId = socket.id
+        if (isP2) match.player2.socketId = socket.id
+
+        io.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(t))
+
+        const p1Ready = !match.player1 || match.player1.socketId
+        const p2Ready = !match.player2 || match.player2.socketId
+        if (p1Ready && p2Ready && match.status === 'waiting-join') {
+          if (match.walkoverTimer) { clearTimeout(match.walkoverTimer); match.walkoverTimer = null }
+          startTournamentMatch(io, t, match)
+        }
       }
+    })
+
+    // Siswa (kelompok): klaim jadi juru jawab tim
+    socket.on('tournament:claim-juru-jawab', ({ tournamentId, matchId } = {}) => {
+      if (user.role !== 'siswa') return
+      const t = tournaments.get(tournamentId)
+      if (!t || t.mode !== 'kelompok') return
+      const round = t.rounds[t.currentRound - 1]
+      const match = round?.matches.find(m => m.id === matchId)
+      if (!match || !['waiting-join','waiting-juru'].includes(match.status)) return
+
+      const teamId = getTeamIdForUser(t, user.id)
+      if (!teamId) return
+      if (match.teamJuruJawab?.[teamId]) return // sudah ada juru jawab
+
+      match.teamJuruJawab = match.teamJuruJawab || {}
+      match.teamJuruJawab[teamId] = user.id
+
+      const team = t.teams?.find(tm => tm.id === teamId)
+      const memberName = team?.members.find(m => String(m.userId) === String(user.id))?.name || user.name
+
+      io.to(match.roomCode).emit('tournament:juru-jawab-set', {
+        teamId,
+        userId:       user.id,
+        name:         memberName,
+        autoSelected: false,
+      })
+
+      // Cek apakah kedua tim sudah punya juru jawab
+      checkAndStartKelompokMatch(io, t, match)
     })
 
     // Siswa: submit jawaban turnamen
@@ -787,6 +866,24 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     socket.on('tournament:slider-move', async ({ matchId, value } = {}) => {
       if (user.role !== 'siswa') return
       if (!(await canPlayStudentMode(socket, 'tournament:error'))) return
+      socket.to(`match-spectate:${matchId}`).emit('tournament:opponent-slider', {
+        userId: user.id, value, matchId,
+      })
+    })
+
+    // Siswa (juru jawab kelompok): broadcast posisi slider ke anggota tim sendiri
+    socket.on('tournament:team-slider', async ({ tournamentId, matchId, value } = {}) => {
+      if (user.role !== 'siswa') return
+      const t = tournaments.get(tournamentId)
+      if (!t || t.mode !== 'kelompok') return
+      const round = t.rounds[t.currentRound - 1]
+      const match = round?.matches.find(m => m.id === matchId)
+      if (!match) return
+      // Broadcast ke seluruh match room kecuali pengirim
+      socket.to(match.roomCode).emit('tournament:team-slider-update', {
+        userId: user.id, value, matchId,
+      })
+      // Juga ke guru spectator
       socket.to(`match-spectate:${matchId}`).emit('tournament:opponent-slider', {
         userId: user.id, value, matchId,
       })

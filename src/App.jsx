@@ -313,6 +313,11 @@ function TournamentMatchWithAuth({ matchData, goBack, onMatchOver }) {
       myName={user?.name}
       goBack={goBack}
       onMatchOver={onMatchOver}
+      isKelompok={matchData.isKelompok || false}
+      teamId={matchData.teamId || null}
+      teamName={matchData.teamName || null}
+      teamRepUserId={matchData.teamRepUserId || null}
+      myTeamMembers={matchData.myTeamMembers || null}
     />
   )
 }
@@ -800,9 +805,20 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       // Jika sedang di tournament-wait, setTournamentBanner cukup; bracket update via socket di screen
     })
 
-    // Turnamen baru dimulai oleh guru
-    socket.on('tournament:started', ({ tournamentId }) => {
+    // Turnamen baru dibuat guru — buka lobby (TournamentWaitScreen menangani lobbyOpen)
+    socket.on('tournament:started', ({ tournamentId, state }) => {
       setActiveTournamentId(tournamentId)
+      // Navigasi ke lobby wait screen jika siswa belum di sana
+      setHistory(h => {
+        if (h.includes('tournament-wait') || h.includes('tournament-match')) return h
+        return [...h, 'tournament-wait']
+      })
+      showLocalNotification({
+        id: 9003,
+        title: '🏆 Turnamen Dimulai!',
+        body: 'Guru membuka lobby turnamen — silakan masuk',
+        channel: 'tomat_game',
+      })
     })
 
     socket.on('tournament:cancelled', () => {

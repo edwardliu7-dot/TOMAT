@@ -17,11 +17,13 @@ export function getTournamentIo()   { return _io }
  *   guruId: number,
  *   gameKey: string,
  *   status: 'in-progress' | 'finished',
+ *   lobbyOpen: boolean,           // true = menunggu guru mulai; false = sudah berjalan
+ *   lobby: { [userId]: { name, joinedAt } },  // siapa sudah masuk lobby
  *   currentRound: number,
- *   rounds: Round[],       // index 0 = ronde 1
- *   students: Student[],   // semua peserta
+ *   rounds: Round[],              // index 0 = ronde 1
+ *   students: Student[],          // semua peserta
  *   mode: 'individual' | 'kelompok',
- *   teams: Team[] | null,  // hanya jika mode === 'kelompok'
+ *   teams: Team[] | null,         // hanya jika mode === 'kelompok'
  *   champion: Student | null,
  *   runnerUp: Student | null,
  *   semifinalists: Student[],
@@ -30,18 +32,22 @@ export function getTournamentIo()   { return _io }
  *
  * Round: { matches: Match[] }
  *
- * Match: {
- *   id: string,
- *   player1: Student | null,  // null = tidak pernah terjadi (defensive)
- *   player2: Student | null,  // null = bye
- *   winner: Student | null,
- *   status: 'bye' | 'waiting-join' | 'in-progress' | 'finished' | 'walkover',
- *   roomCode: string | null,
- *   scores: { [userId]: number },
- *   walkoverTimer: NodeJS timer | null,
- *   _round: number,        // soal ke-berapa (server-only)
- *   _answers: object,      // jawaban ronde soal ini (server-only)
- *   _currentQ: object,     // soal aktif (server-only)
+ * Match (individual):
+ * {
+ *   id, player1, player2, winner, status, roomCode, scores,
+ *   walkoverTimer,
+ *   _playerRounds, _playerCurrentQ, _playerFinished  (server-only)
+ * }
+ *
+ * Match (kelompok) extra fields:
+ * {
+ *   teamJuruJawab: { [teamId]: userId },      // juru jawab per tim
+ *   _teamMemberSockets: { [userId]: socketId }, // semua anggota yang join match room
+ *   _teamJuruTimer: Timer | null,             // auto-select juru jawab timer
+ *   _kelompokRound: number,                    // soal ke-berapa (shared)
+ *   _kelompokCurrentQ: object | null,          // soal aktif (shared)
+ *   _kelompokAnswers: { [teamId]: bool },      // sudah jawab soal ini?
+ *   _kelompokFinishedRounds: number,           // soal yang sudah diselesaikan kedua tim
  * }
  *
  * Student: { userId, name, kelas, socketId | null, teamId?, teamName? }
@@ -60,7 +66,6 @@ function shuffle(arr) {
 
 /**
  * Label otomatis untuk tiap ronde berdasarkan jumlah pertandingan.
- * matchCount = jumlah match di ronde tersebut.
  */
 export function getRoundLabel(matchCount) {
   if (matchCount <= 1) return 'Final'
@@ -74,7 +79,7 @@ export function buildFirstRound(students) {
   const matches  = []
   for (let i = 0; i < shuffled.length; i += 2) {
     const p1 = shuffled[i]
-    const p2 = shuffled[i + 1] || null  // null = bye
+    const p2 = shuffled[i + 1] || null
     matches.push({
       id:            crypto.randomUUID(),
       player1:       p1,
@@ -139,6 +144,14 @@ export function buildFirstRoundFromTeams(teams, roundNumber = 1) {
       _round:        0,
       _answers:      {},
       _currentQ:     null,
+      // Kelompok-specific
+      teamJuruJawab:          {},
+      _teamMemberSockets:     {},
+      _teamJuruTimer:         null,
+      _kelompokRound:         0,
+      _kelompokCurrentQ:      null,
+      _kelompokAnswers:       {},
+      _kelompokFinishedRounds: 0,
     })
   }
   return { matches }
@@ -164,20 +177,25 @@ export function tournamentToClient(t) {
     gameKey:      t.gameKey,
     status:       t.status,
     mode:         t.mode || 'individual',
+    lobbyOpen:    t.lobbyOpen || false,
+    lobby:        t.lobby
+                    ? Object.values(t.lobby).map(e => ({ userId: e.userId, name: e.name }))
+                    : [],
     teams:        t.teams
-                    ? t.teams.map(tm => ({ id: tm.id, name: tm.name, memberCount: tm.members.length }))
+                    ? t.teams.map(tm => ({ id: tm.id, name: tm.name, memberCount: tm.members.length, members: tm.members.map(m => ({ userId: m.userId, name: m.name })) }))
                     : null,
     currentRound: t.currentRound,
     rounds: t.rounds.map(round => ({
       label: getRoundLabel(round.matches.length),
       matches: round.matches.map(m => ({
-        id:      m.id,
-        player1: playerDTO(m.player1),
-        player2: playerDTO(m.player2),
-        winner:  playerDTO(m.winner),
-        status:  m.status,
-        roomCode: m.roomCode,
-        scores:  m.scores,
+        id:            m.id,
+        player1:       playerDTO(m.player1),
+        player2:       playerDTO(m.player2),
+        winner:        playerDTO(m.winner),
+        status:        m.status,
+        roomCode:      m.roomCode,
+        scores:        m.scores,
+        teamJuruJawab: m.teamJuruJawab || null,
       })),
     })),
     champion:      playerDTO(t.champion),

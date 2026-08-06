@@ -1,36 +1,60 @@
 ---
 name: TOMAT tournament upgrades
-description: Multi-kelas tournament, auto round labels (Final/Semifinal/Perempat Final), podium top-3 tracking.
+description: Lobby system + kelompok team mode with juru jawab selection for tournaments
 ---
 
-## Multi-kelas support
-- `tournament.kelasArr: string[]` — array of all participating classes; `tournament.kelas` stays as `kelasArr[0]` for backward compat.
-- POST `/api/guru/tournament` accepts `{ kelasArr: string[], gameKey }`. Falls back to `[kelas]` if only single kelas sent.
-- All socket emits (started / round-start / finished / cancelled) loop over `kelasArr` rooms.
-- GET filters by `kelasArr.some(k => kelasDiampu.includes(k))`.
+## Lobby System (berlaku untuk semua mode)
 
-## Round labels
-- `getRoundLabel(matchCount)` in `server/tournament-state.js` — exported helper:
-  - 1 match → 'Final', 2 → 'Semifinal', ≤4 → 'Perempat Final', else → 'Babak N Besar'
-- Each round in `tournamentToClient` includes a `label` field.
-- Both `TournamentWaitScreen` and `GuruDashboardScreen` use `round.label` instead of hardcoded "Ronde N".
+Tournament dibuat dengan `lobbyOpen: true` → ronde TIDAK otomatis mulai.
+- Siswa mendapat notifikasi → buka app → navigasi ke `tournament-wait` (TournamentWaitScreen)
+- Siswa klik "Masuk Lobby" → emit `tournament:join-lobby` → server update `tournament.lobby` → emit `tournament:lobby-state` ke guru room
+- Guru melihat daftar peserta lobby live di GuruDashboardScreen TurnamenTab
+- Guru klik "Mulai Pertandingan" → POST `/api/guru/tournament/:id/start` → server set `lobbyOpen: false`, call `startTournamentRound_all`
 
-## Podium top-3
-- `tournament.runnerUp` — loser of the final match, computed in `checkRoundComplete`.
-- `tournament.semifinalists[]` — losers of the second-to-last round (when it had ≥2 real matches).
-- Emitted in `tournament:finished` state payload.
-- `TournamentWaitScreen` shows a podium card (🥇🥈🥉) instead of a plain champion name.
-- `GuruDashboardScreen` champion banner shows runner-up and semifinalist chips.
+**Why:** Agar guru bisa memastikan semua siswa siap sebelum ronde dimulai, mencegah banyak walkover.
 
-## Schema
-- `tournament_history` gets 4 new columns via `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`:
-  `kelas_arr text[]`, `runner_up_name text`, `runner_up_id text`, `third_place_names text[]`.
+**How to apply:** Jangan call `startTournamentRound_all` langsung saat POST /tournament. Selalu via `/start` endpoint.
 
-## Reward koin podium
-- `grantTournamentRewards(io, tournament)` di `tournament-engine.js` — dipanggil setelah `saveTournamentHistory`.
-- Langsung UPDATE DB (`coins + total_coins_earned`), kemudian emit `tournament:reward { amount, rank, newCoins }` via `emitToUser`.
-- Jumlah: rank 1 = 500, rank 2 = 250, rank 3 = 100 (konstanta `TOURNAMENT_REWARDS`).
-- Client: `TournamentWaitScreen` listen `tournament:reward`, panggil `syncCoins(newCoins)` dari PlayerContext (TANPA persistGain agar tidak double-count), tampilkan toast animasi 5 detik.
-- `syncCoins` ditambah ke PlayerContext sebagai method tersendiri yang hanya `setState` tanpa persist.
+---
 
-**Why:** Teachers running school competitions wanted cross-class tournaments; named rounds and a podium make results more meaningful for students and parents. Coin rewards added to incentivize participation.
+## Kelompok Mode — Juru Jawab System
+
+Soal SAMA dikirim ke semua anggota kedua tim. Hanya juru jawab yang bisa submit.
+
+### Server-side flow:
+1. `startTournamentRound_all` → emit `tournament:your-match` ke SEMUA anggota kedua tim (bukan hanya representatif)
+2. `tournament:player-ready` (multiplayer.js) → kelompok: semua anggota bisa join; track socket di `match._teamMemberSockets`; set `match.status = 'waiting-juru'`; mulai timer 30s `_teamJuruTimer`
+3. `tournament:claim-juru-jawab` → set `match.teamJuruJawab[teamId] = userId`; emit `tournament:juru-jawab-set`; call `checkAndStartKelompokMatch`
+4. `checkAndStartKelompokMatch` → jika kedua tim punya juru jawab → `startTournamentMatch`
+5. `sendQuestionToAllTeamMembers` → generate 1 soal → kirim ke semua `_teamMemberSockets` dengan `isKelompok: true, teamJuruJawab`
+6. `handleTournamentAnswer` (kelompok) → validasi user adalah juru jawab → `handleKelompokAnswer` → update skor team rep → emit `tournament:team-answer-result` ke seluruh match room → tunggu kedua tim jawab → next Q
+7. Setelah `TOURNAMENT_MAX_ROUNDS` (7) soal → `finishTournamentMatch`
+
+### Scoring (kelompok):
+- Skor keyed by `teamRepUserId` (player1.userId / player2.userId) di `match.scores`
+- `getTeamRepUserId(match, teamId)` → cari player1 atau player2 yang punya teamId ini
+- Reward koin diberikan ke SEMUA anggota tim yang menang (bukan hanya representatif)
+
+### Client-side flow (TournamentMatchScreen):
+- Props baru: `isKelompok, teamId, teamName, teamRepUserId, myTeamMembers`
+- Phase baru `'juru-select'` → tampilkan `JuruJawabSelectScreen` dengan tombol "Saya Jadi Juru Jawab!"
+- Socket event `tournament:juru-jawab-set` → update `juruJawabList`
+- `isJuruJawab = juruJawabList.find(j => j.teamId === teamId)?.userId === myUserId`
+- Non-juru: slider disabled, lihat posisi juru via `tournament:team-slider-update`
+- Juru: emit `tournament:team-slider` (broadcast ke tim + guru)
+- `tournament:team-answer-result` → semua anggota kedua tim lihat hasilnya
+
+### Match states untuk kelompok:
+- `'pending'` → `'waiting-join'` → `'waiting-juru'` → `'in-progress'` → `'finished'`
+
+---
+
+## File yang diubah
+- `server/tournament-state.js` — lobbyOpen/lobby fields, kelompok match fields, tournamentToClient update
+- `server/tournament-engine.js` — lobby gate, kelompok question/answer handlers, team reward
+- `server/multiplayer.js` — join-lobby, player-ready kelompok, claim-juru-jawab, team-slider handlers
+- `server/guru.js` — POST tournament sets lobbyOpen=true; POST /:id/start endpoint
+- `src/screens/TournamentWaitScreen.jsx` — LobbyWaitScreen component, lobby state handling
+- `src/screens/TournamentMatchScreen.jsx` — JuruJawabSelectScreen, team-aware game UI
+- `src/screens/GuruDashboardScreen.jsx` — lobby management panel, handleStartFromLobby
+- `src/App.jsx` — pass kelompok props, navigate to tournament-wait on tournament:started

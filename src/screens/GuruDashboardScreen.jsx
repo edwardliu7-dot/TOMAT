@@ -1328,6 +1328,10 @@ function TurnamenTab({ kelasDiampu }) {
     socket.on('tournament:cancelled', () => {
       setTournament(null)
     })
+    // Lobby updates — update lobby list in real-time
+    socket.on('tournament:lobby-state', ({ tournamentId: tid, lobby }) => {
+      setTournament(prev => prev && prev.id === tid ? { ...prev, lobby } : prev)
+    })
     socket.on('tournament:player-answered', (data) => {
       if (spectate?.id === data.matchId) {
         setSpectate(s => s ? { ...s, scores: data.scores } : s)
@@ -1359,6 +1363,7 @@ function TurnamenTab({ kelasDiampu }) {
       socket.off('tournament:round-start')
       socket.off('tournament:finished')
       socket.off('tournament:cancelled')
+      socket.off('tournament:lobby-state')
       socket.off('tournament:player-answered')
       socket.off('tournament:player-finished')
     }
@@ -1483,6 +1488,16 @@ function TurnamenTab({ kelasDiampu }) {
     try {
       await apiCall(`/api/guru/tournament/${tournament.id}`, { method: 'DELETE' })
       setTournament(null)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const handleStartFromLobby = async () => {
+    if (!tournament) return
+    try {
+      const data = await apiCall(`/api/guru/tournament/${tournament.id}/start`, { method: 'POST' })
+      setTournament(data.tournament)
     } catch (err) {
       setError(err.message)
     }
@@ -1928,6 +1943,93 @@ function TurnamenTab({ kelasDiampu }) {
             </button>
           </form>
         </div>
+      ) : tournament.lobbyOpen ? (
+        // ── Lobby Management View ────────────────────────────────────────────
+        <>
+          <div style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 16, padding: '16px 16px 12px' }}>
+            <div style={{ fontSize: 11, color: '#a78bfa', fontWeight: 800, letterSpacing: 1.5, marginBottom: 4 }}>🏆 LOBBY TURNAMEN — MENUNGGU SISWA MASUK</div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>
+              {TOURNAMENT_GAMES.find(g => g.key === tournament.gameKey)?.label || tournament.gameKey}
+            </div>
+            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>
+              Mode: {tournament.mode === 'kelompok' ? '👥 Kelompok' : '👤 Individual'} · {tournament.kelasArr?.join(', ')}
+            </div>
+          </div>
+
+          {/* Lobby counter */}
+          <div style={{ background: '#1A1D27', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1 }}>SISWA DI LOBBY</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#a78bfa' }}>
+                {tournament.lobby?.length ?? 0} / {tournament.students?.length ?? tournament.rounds?.[0]?.matches?.reduce((a,m) => a + (m.player1?1:0) + (m.player2?1:0), 0) ?? '?'}
+              </div>
+            </div>
+
+            {(!tournament.lobby || tournament.lobby.length === 0) ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: '#475569' }}>
+                Belum ada siswa yang masuk lobby…
+                <div style={{ fontSize: 11, color: '#334155', marginTop: 6 }}>Siswa akan mendapat notifikasi dan dapat masuk lobby dari aplikasi.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 240, overflowY: 'auto' }}>
+                {tournament.lobby.map((member, i) => (
+                  <div key={member.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 10 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{member.name}</span>
+                    <span style={{ fontSize: 10, color: '#10b981', fontWeight: 700 }}>✓ Siap</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Kelompok teams info (saat lobby) */}
+          {tournament.mode === 'kelompok' && tournament.teams && (
+            <div style={{ background: '#1A1D27', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 16 }}>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>SUSUNAN KELOMPOK</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {tournament.teams.map(team => (
+                  <div key={team.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b', marginBottom: 6 }}>👥 {team.name}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {team.members?.map(m => (
+                        <div key={m.userId} style={{ fontSize: 11, padding: '3px 8px', background: 'rgba(245,158,11,0.1)', borderRadius: 20, color: '#f59e0b', fontWeight: 600 }}>
+                          {m.name}
+                          {tournament.lobby?.some(l => String(l.userId) === String(m.userId)) ? ' ✓' : ''}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Start button */}
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button
+              onClick={handleStartFromLobby}
+              disabled={!tournament.lobby || tournament.lobby.length < 2}
+              style={{
+                flex: 2, background: (!tournament.lobby || tournament.lobby.length < 2) ? 'rgba(167,139,250,0.2)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+                border: 'none', borderRadius: 14, padding: '16px 0', color: '#fff',
+                fontSize: 15, fontWeight: 800, cursor: (!tournament.lobby || tournament.lobby.length < 2) ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit', opacity: (!tournament.lobby || tournament.lobby.length < 2) ? 0.6 : 1,
+              }}
+            >
+              🚀 Mulai Pertandingan ({tournament.lobby?.length ?? 0} peserta)
+            </button>
+            <button onClick={handleEnd} style={{ flex: 1, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 14, padding: '16px 0', color: '#f87171', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              🛑 Batalkan
+            </button>
+          </div>
+
+          {(!tournament.lobby || tournament.lobby.length < 2) && (
+            <div style={{ fontSize: 12, color: '#475569', textAlign: 'center' }}>
+              Minimal 2 peserta di lobby untuk memulai pertandingan.
+            </div>
+          )}
+        </>
       ) : (
         // ── Bracket View ─────────────────────────────────────────────────────
         <>

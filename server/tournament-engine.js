@@ -3,8 +3,8 @@
  * Fungsi-fungsi inti untuk menjalankan turnamen: start match, handle answer,
  * finish match, check round complete, start next round.
  *
- * Async flow: setiap pemain maju ke soal berikutnya secara independen
- * tanpa menunggu lawan menjawab.
+ * Individual mode: setiap pemain maju ke soal berikutnya secara independen.
+ * Kelompok mode: semua anggota tim melihat soal yang sama; hanya juru jawab yang submit.
  */
 import { genTournamentQ } from './tournament-questions.js'
 import { tournaments, tournamentToClient, buildFirstRound, buildFirstRoundFromTeams, getTournamentIo } from './tournament-state.js'
@@ -44,12 +44,13 @@ async function saveTournamentHistory(tournament, status) {
   }
 }
 
-const TOURNAMENT_MAX_ROUNDS  = 7
+export const TOURNAMENT_MAX_ROUNDS  = 7
 const WALKOVER_TIMEOUT_MS    = 60_000   // 60 detik jika tidak join
-const NEXT_Q_DELAY_MS        = 1200     // jeda sebelum soal berikutnya (per-player, async)
-const NEXT_ROUND_DELAY_MS    = 5_000    // jeda sebelum ronde baru
+const JURU_SELECT_TIMEOUT_MS = 30_000  // 30 detik pilih juru jawab, lalu auto
+const NEXT_Q_DELAY_MS        = 1200    // jeda sebelum soal berikutnya
+const NEXT_ROUND_DELAY_MS    = 5_000   // jeda sebelum ronde baru
 
-function emitToUser(io, userId, event, payload) {
+export function emitToUser(io, userId, event, payload) {
   for (const socket of io.sockets.sockets.values()) {
     if (String(socket.data?.userId) === String(userId)) {
       socket.emit(event, payload)
@@ -57,9 +58,58 @@ function emitToUser(io, userId, event, payload) {
   }
 }
 
-// ─── Send one question to a single player ────────────────────────────────────
+// ─── Helpers for kelompok ─────────────────────────────────────────────────────
+/** Kirim soal yang sama ke SEMUA anggota yang sudah join match room (kelompok) */
+function sendQuestionToAllTeamMembers(io, tournament, match) {
+  match._kelompokRound++
+  const q = genTournamentQ(tournament.gameKey)
+  match._kelompokCurrentQ  = q
+  match._kelompokAnswers   = {}
+
+  const { answer, ...safeQ } = q
+  const payload = {
+    question:        safeQ,
+    round:           match._kelompokRound,
+    maxRounds:       TOURNAMENT_MAX_ROUNDS,
+    scores:          match.scores,
+    isKelompok:      true,
+    teamJuruJawab:   match.teamJuruJawab,
+  }
+
+  // Kirim ke semua anggota yang sudah join (tertrack di _teamMemberSockets)
+  for (const [userId, socketId] of Object.entries(match._teamMemberSockets || {})) {
+    const sock = io.sockets.sockets.get(socketId)
+    sock?.emit('tournament:question', payload)
+  }
+
+  // Guru spectator
+  io.to(`match-spectate:${match.id}`).emit('tournament:question', {
+    ...payload,
+    matchId: match.id,
+  })
+}
+
+/** Cari teamId dari userId berdasarkan tournament.teams */
+export function getTeamIdForUser(tournament, userId) {
+  if (!tournament.teams) return null
+  for (const team of tournament.teams) {
+    if (team.members.some(m => String(m.userId) === String(userId))) {
+      return team.id
+    }
+  }
+  return null
+}
+
+/** Dapatkan teamRepUserId (player1 atau player2) untuk sebuah teamId */
+function getTeamRepUserId(match, teamId) {
+  if (match.player1?.teamId === teamId) return match.player1.userId
+  if (match.player2?.teamId === teamId) return match.player2.userId
+  return null
+}
+
+// ─── Send one question to a single player (individual mode) ──────────────────
 function startPlayerTournamentRound(io, tournament, match, userId) {
-  match._playerRounds  = match._playerRounds  || {}
+  match._playerRounds   = match._playerRounds   || {}
   match._playerCurrentQ = match._playerCurrentQ || {}
 
   match._playerRounds[userId] = (match._playerRounds[userId] || 0) + 1
@@ -69,9 +119,7 @@ function startPlayerTournamentRound(io, tournament, match, userId) {
   const { answer, ...safeQ } = q
 
   const playerRound = match._playerRounds[userId]
-
-  // Find socket for this specific player
-  const playerInfo = [match.player1, match.player2].find(p => p?.userId === userId)
+  const playerInfo  = [match.player1, match.player2].find(p => p?.userId === userId)
   const playerSocket = io.sockets.sockets.get(playerInfo?.socketId)
 
   playerSocket?.emit('tournament:question', {
@@ -81,7 +129,6 @@ function startPlayerTournamentRound(io, tournament, match, userId) {
     scores:    match.scores,
   })
 
-  // Spectator guru (best-effort, sees latest question sent)
   io.to(`match-spectate:${match.id}`).emit('tournament:question', {
     question:  safeQ,
     round:     playerRound,
@@ -93,47 +140,92 @@ function startPlayerTournamentRound(io, tournament, match, userId) {
 
 // ─── Start one match ──────────────────────────────────────────────────────────
 export function startTournamentMatch(io, tournament, match) {
-  match.status  = 'in-progress'
-  match.scores  = {}
-  match._playerRounds   = {}
-  match._playerFinished = {}
-  match._playerCurrentQ = {}
+  match.status = 'in-progress'
+  match.scores = {}
   if (match.player1) match.scores[match.player1.userId] = 0
   if (match.player2) match.scores[match.player2.userId] = 0
 
   io.to(`tournament:${tournament.id}`).emit('tournament:state', tournamentToClient(tournament))
 
-  // Async flow: send each player their own first question independently
-  if (match.player1) startPlayerTournamentRound(io, tournament, match, match.player1.userId)
-  if (match.player2) startPlayerTournamentRound(io, tournament, match, match.player2.userId)
+  if (tournament.mode === 'kelompok') {
+    // Kelompok: inisialisasi dan kirim soal ke semua anggota
+    match._kelompokRound          = 0
+    match._kelompokCurrentQ       = null
+    match._kelompokAnswers        = {}
+    match._kelompokFinishedRounds = 0
+    sendQuestionToAllTeamMembers(io, tournament, match)
+  } else {
+    // Individual: soal terpisah per pemain
+    match._playerRounds   = {}
+    match._playerFinished = {}
+    match._playerCurrentQ = {}
+    if (match.player1) startPlayerTournamentRound(io, tournament, match, match.player1.userId)
+    if (match.player2) startPlayerTournamentRound(io, tournament, match, match.player2.userId)
+  }
 }
 
-// ─── Handle a player's answer ─────────────────────────────────────────────────
-export async function handleTournamentAnswer(io, tournament, match, userId, value, socket) {
+// ─── Auto-select juru jawab jika waktu habis (kelompok) ──────────────────────
+export function autoSelectJuruJawab(io, tournament, match) {
+  const { player1, player2 } = match
+  // Team1
+  if (player1?.teamId && !match.teamJuruJawab[player1.teamId]) {
+    // Pakai representative, atau anggota pertama yang join
+    const fallbackId = player1.userId
+    match.teamJuruJawab[player1.teamId] = fallbackId
+    io.to(match.roomCode).emit('tournament:juru-jawab-set', {
+      teamId:   player1.teamId,
+      userId:   fallbackId,
+      name:     player1.name,
+      autoSelected: true,
+    })
+  }
+  // Team2
+  if (player2?.teamId && !match.teamJuruJawab[player2.teamId]) {
+    const fallbackId = player2.userId
+    match.teamJuruJawab[player2.teamId] = fallbackId
+    io.to(match.roomCode).emit('tournament:juru-jawab-set', {
+      teamId:   player2.teamId,
+      userId:   fallbackId,
+      name:     player2.name,
+      autoSelected: true,
+    })
+  }
+  match._teamJuruTimer = null
+  startTournamentMatch(io, tournament, match)
+}
+
+// ─── Check if juru jawab selected for both teams → start match ───────────────
+export function checkAndStartKelompokMatch(io, tournament, match) {
+  const { player1, player2 } = match
+  if (!player1 || !player2) return // bye — handled separately
+  const team1Ready = !!match.teamJuruJawab[player1.teamId]
+  const team2Ready = !!match.teamJuruJawab[player2.teamId]
+  if (team1Ready && team2Ready) {
+    if (match._teamJuruTimer) { clearTimeout(match._teamJuruTimer); match._teamJuruTimer = null }
+    startTournamentMatch(io, tournament, match)
+  }
+}
+
+// ─── Handle a player's answer (individual mode) ───────────────────────────────
+async function handleIndividualAnswer(io, tournament, match, userId, value, socket) {
   match._playerRounds   = match._playerRounds   || {}
   match._playerFinished = match._playerFinished || {}
   match._playerCurrentQ = match._playerCurrentQ || {}
 
-  // Jika tidak ada soal aktif untuk player ini (sudah jawab / belum terima soal), abaikan
   const currentQ = match._playerCurrentQ[userId]
   if (!currentQ) return
 
   const playerRound = match._playerRounds[userId] || 0
-
   const correct = (value === currentQ.answer)
   if (correct) match.scores[userId] = (match.scores[userId] || 0) + 1
 
-  // onCorrectAnswerWithResult returns Array<MissionDelta> already formatted —
-  // no need to import EVENT_MISSIONS here (RULES.md §16).
   if (correct) {
     const deltas = await onCorrectAnswerWithResult(userId)
     for (const delta of deltas) emitToUser(io, userId, 'mission:progress', delta)
   }
 
-  // Hapus soal aktif untuk mencegah double-submit
   match._playerCurrentQ[userId] = null
 
-  // Kirim hasil ke player ini
   socket.emit('tournament:answer-result', {
     correct,
     correctAnswer: currentQ.answer,
@@ -141,7 +233,6 @@ export async function handleTournamentAnswer(io, tournament, match, userId, valu
     scores:        match.scores,
   })
 
-  // Update spectator guru — include playerName and round for live feed
   const playerInfo = [match.player1, match.player2].find(p => p?.userId === userId)
   io.to(`match-spectate:${match.id}`).emit('tournament:player-answered', {
     userId, correct, value,
@@ -151,7 +242,6 @@ export async function handleTournamentAnswer(io, tournament, match, userId, valu
     round:      playerRound,
   })
 
-  // Beritahu lawan: skor kita terbaru (realtime, lawan mungkin masih bermain atau di leaderboard)
   const opponent = [match.player1, match.player2].find(p => p?.userId !== userId)
   if (opponent?.socketId) {
     const oppSocket = io.sockets.sockets.get(opponent.socketId)
@@ -162,10 +252,8 @@ export async function handleTournamentAnswer(io, tournament, match, userId, valu
   }
 
   if (playerRound >= TOURNAMENT_MAX_ROUNDS) {
-    // Player ini sudah selesai semua soal
     match._playerFinished[userId] = true
 
-    // Beritahu guru spectator bahwa player ini sudah selesai
     const finishedPlayerInfo = [match.player1, match.player2].find(p => p?.userId === userId)
     io.to(`match-spectate:${match.id}`).emit('tournament:player-finished', {
       userId,
@@ -176,21 +264,102 @@ export async function handleTournamentAnswer(io, tournament, match, userId, valu
 
     const opponentId = opponent?.userId
     if (!opponentId || match._playerFinished[opponentId]) {
-      // Kedua pemain selesai → tentukan pemenang
       finishTournamentMatch(io, tournament, match)
     } else {
-      // Lawan masih bermain → masukkan player ini ke leaderboard, tunggu lawan
-      socket.emit('tournament:self-finished', {
-        scores: match.scores,
-      })
+      socket.emit('tournament:self-finished', { scores: match.scores })
     }
   } else {
-    // Langsung kirim soal berikutnya ke player ini setelah jeda singkat
     setTimeout(() => {
       if (match.status === 'in-progress') {
         startPlayerTournamentRound(io, tournament, match, userId)
       }
     }, NEXT_Q_DELAY_MS)
+  }
+}
+
+// ─── Handle a juru jawab's answer (kelompok mode) ─────────────────────────────
+async function handleKelompokAnswer(io, tournament, match, userId, value, socket, teamId) {
+  const currentQ = match._kelompokCurrentQ
+  if (!currentQ) return
+  if (match._kelompokAnswers[teamId]) return // sudah jawab soal ini
+
+  match._kelompokAnswers[teamId] = true
+
+  const correct = (value === currentQ.answer)
+  const teamRepId = getTeamRepUserId(match, teamId)
+  if (correct && teamRepId) {
+    match.scores[teamRepId] = (match.scores[teamRepId] || 0) + 1
+  }
+
+  if (correct) {
+    const deltas = await onCorrectAnswerWithResult(userId)
+    for (const delta of deltas) emitToUser(io, userId, 'mission:progress', delta)
+  }
+
+  // Broadcast hasil jawaban tim ke seluruh anggota di match room
+  io.to(match.roomCode).emit('tournament:team-answer-result', {
+    teamId,
+    correct,
+    correctAnswer: currentQ.answer,
+    yourValue:     value,
+    scores:        match.scores,
+    answeredBy:    userId,
+  })
+
+  // Guru spectator
+  io.to(`match-spectate:${match.id}`).emit('tournament:player-answered', {
+    userId, correct, value,
+    scores:     match.scores,
+    matchId:    match.id,
+    playerName: `[${match.player1?.teamId === teamId ? match.player1.teamName : match.player2?.teamName}] ${(tournament.teams?.find(t => t.id === teamId)?.members.find(m => String(m.userId) === String(userId))?.name ?? String(userId))}`,
+    round:      match._kelompokRound,
+  })
+
+  // Cek apakah KEDUA tim sudah menjawab
+  const team1Id = match.player1?.teamId
+  const team2Id = match.player2?.teamId
+  const team1Done = !team1Id || match._kelompokAnswers[team1Id]
+  const team2Done = !team2Id || match._kelompokAnswers[team2Id]
+
+  if (team1Done && team2Done) {
+    match._kelompokFinishedRounds = (match._kelompokFinishedRounds || 0) + 1
+    match._kelompokCurrentQ = null // clear soal aktif
+
+    if (match._kelompokFinishedRounds >= TOURNAMENT_MAX_ROUNDS) {
+      // Semua soal selesai
+      setTimeout(() => {
+        if (match.status === 'in-progress') finishTournamentMatch(io, tournament, match)
+      }, NEXT_Q_DELAY_MS)
+    } else {
+      setTimeout(() => {
+        if (match.status === 'in-progress') sendQuestionToAllTeamMembers(io, tournament, match)
+      }, NEXT_Q_DELAY_MS)
+    }
+  } else {
+    // Satu tim sudah jawab, tunggu tim lain
+    io.to(match.roomCode).emit('tournament:waiting-other-team', {
+      answeredTeamId: teamId,
+      scores:         match.scores,
+    })
+  }
+}
+
+// ─── Public: handle tournament answer (dispatches to mode-specific handler) ──
+export async function handleTournamentAnswer(io, tournament, match, userId, value, socket) {
+  if (match.status !== 'in-progress') return
+
+  if (tournament.mode === 'kelompok') {
+    // Hanya juru jawab yang boleh menjawab
+    const teamId = getTeamIdForUser(tournament, userId)
+    if (!teamId) return
+    const juruJawabId = match.teamJuruJawab?.[teamId]
+    if (!juruJawabId || String(juruJawabId) !== String(userId)) {
+      socket.emit('tournament:error', { message: 'Hanya juru jawab yang boleh menjawab.' })
+      return
+    }
+    await handleKelompokAnswer(io, tournament, match, userId, value, socket, teamId)
+  } else {
+    await handleIndividualAnswer(io, tournament, match, userId, value, socket)
   }
 }
 
@@ -207,16 +376,26 @@ async function grantTournamentRewards(io, tournament) {
   for (const { player, rank } of recipients) {
     const amount = TOURNAMENT_REWARDS[rank]
     try {
-      const { rows } = await pool.query(
-        `update students
-           set coins              = coins              + $1,
-               total_coins_earned = total_coins_earned + $1
-         where id = $2
-         returning coins`,
-        [amount, player.userId]
-      )
-      const newCoins = rows[0]?.coins
-      emitToUser(io, player.userId, 'tournament:reward', { amount, rank, newCoins })
+      // For kelompok: reward ALL members of winning team
+      if (tournament.mode === 'kelompok' && player.teamId) {
+        const team = tournament.teams?.find(t => t.id === player.teamId)
+        const members = team?.members || [player]
+        for (const member of members) {
+          const { rows } = await pool.query(
+            `update students set coins = coins + $1, total_coins_earned = total_coins_earned + $1 where id = $2 returning coins`,
+            [amount, member.userId]
+          )
+          const newCoins = rows[0]?.coins
+          emitToUser(io, member.userId, 'tournament:reward', { amount, rank, newCoins })
+        }
+      } else {
+        const { rows } = await pool.query(
+          `update students set coins = coins + $1, total_coins_earned = total_coins_earned + $1 where id = $2 returning coins`,
+          [amount, player.userId]
+        )
+        const newCoins = rows[0]?.coins
+        emitToUser(io, player.userId, 'tournament:reward', { amount, rank, newCoins })
+      }
     } catch (err) {
       console.error(`grantTournamentRewards rank ${rank} error:`, err)
     }
@@ -240,19 +419,17 @@ function finishTournamentMatch(io, tournament, match) {
   } else if (s2 > s1) {
     match.winner = p2
   } else {
-    // Seri → random
     match.winner = Math.random() < 0.5 ? p1 : p2
   }
 
   io.to(match.roomCode).emit('tournament:match-over', {
-    winner: { userId: match.winner.userId, name: match.winner.name },
+    winner: { userId: match.winner.userId, name: match.winner.name, teamName: match.winner.teamName || null },
     scores: match.scores,
     matchId: match.id,
   })
 
   io.to(`tournament:${tournament.id}`).emit('tournament:state', tournamentToClient(tournament))
 
-  // Delegate tournament-win side-effects to the centralized gameplay event bus.
   onTournamentWin(match.winner.userId)
 
   checkRoundComplete(io, tournament)
@@ -269,12 +446,9 @@ function checkRoundComplete(io, tournament) {
   const winners = round.matches.map(m => m.winner).filter(Boolean)
 
   if (winners.length === 1) {
-    // Turnamen selesai!
     tournament.status   = 'finished'
     tournament.champion = winners[0]
 
-    // ── Podium: runner-up & semifinalists ─────────────────────────────────
-    // Runner-up = loser of the final match
     const finalMatch = round.matches.find(
       m => m.player1 && m.player2 && ['finished','walkover'].includes(m.status)
     )
@@ -283,7 +457,6 @@ function checkRoundComplete(io, tournament) {
         ? finalMatch.player2 : finalMatch.player1
       if (loser) tournament.runnerUp = loser
     }
-    // Semifinalists = losers from second-to-last round (if it had ≥2 real matches)
     if (tournament.rounds.length >= 2) {
       const semiFinalRound = tournament.rounds[tournament.rounds.length - 2]
       const sfLosers = semiFinalRound.matches
@@ -295,14 +468,13 @@ function checkRoundComplete(io, tournament) {
 
     const finishedState = tournamentToClient(tournament)
     io.to(`tournament:${tournament.id}`).emit('tournament:finished', {
-      champion: { userId: winners[0].userId, name: winners[0].name },
+      champion: { userId: winners[0].userId, name: winners[0].name, teamName: winners[0].teamName || null },
       state:    finishedState,
     })
-    // Emit to all kelas rooms
     const allKelas = tournament.kelasArr || [tournament.kelas]
     allKelas.forEach(k => {
       io.to(`kelas:${k}`).emit('tournament:finished', {
-        champion: { userId: winners[0].userId, name: winners[0].name },
+        champion: { userId: winners[0].userId, name: winners[0].name, teamName: winners[0].teamName || null },
       })
     })
     saveTournamentHistory(tournament, 'finished')
@@ -310,7 +482,6 @@ function checkRoundComplete(io, tournament) {
     return
   }
 
-  // Lanjut ke ronde berikutnya
   tournament.currentRound++
   let nextRound
   if (tournament.mode === 'kelompok' && tournament.teams) {
@@ -335,7 +506,6 @@ function checkRoundComplete(io, tournament) {
 export function startTournamentRound_all(io, tournament) {
   const round = tournament.rounds[tournament.currentRound - 1]
 
-  // Notify semua peserta di semua kelas
   const allKelasForRound = tournament.kelasArr || [tournament.kelas]
   allKelasForRound.forEach(k => {
     io.to(`kelas:${k}`).emit('tournament:round-start', {
@@ -345,7 +515,6 @@ export function startTournamentRound_all(io, tournament) {
   })
 
   round.matches.forEach(match => {
-    // Bye: langsung lolos
     if (match.status === 'bye') {
       match.winner = match.player1
       return
@@ -354,43 +523,97 @@ export function startTournamentRound_all(io, tournament) {
     match.status   = 'waiting-join'
     match.roomCode = `t-${tournament.id}-${match.id}`.slice(0, 24)
 
-    // Notify players by authenticated user id. At the beginning of a round
-    // socketId can still be null because the player has not opened the match.
-    const p1Payload = {
-      matchId:      match.id,
-      tournamentId: tournament.id,
-      opponent:     match.player2
-        ? { userId: match.player2.userId, name: match.player2.name }
-        : null,
-      gameKey:      tournament.gameKey,
-      round:        tournament.currentRound,
-    }
-    emitToUser(io, match.player1?.userId, 'tournament:your-match', p1Payload)
-
-    const p2Payload = {
-      matchId:      match.id,
-      tournamentId: tournament.id,
-      opponent:     { userId: match.player1.userId, name: match.player1.name },
-      gameKey:      tournament.gameKey,
-      round:        tournament.currentRound,
-    }
-    if (match.player2) {
-      emitToUser(io, match.player2.userId, 'tournament:your-match', p2Payload)
+    // Untuk kelompok, init tracking fields
+    if (tournament.mode === 'kelompok') {
+      match.teamJuruJawab      = match.teamJuruJawab      || {}
+      match._teamMemberSockets = match._teamMemberSockets || {}
+      match._teamJuruTimer     = null
     }
 
-    // Walkover timer: 60 detik jika tidak join
+    if (tournament.mode === 'kelompok' && tournament.teams) {
+      // Notifikasi SEMUA anggota kedua tim
+      const team1 = tournament.teams.find(t => t.id === match.player1?.teamId)
+      const team2 = match.player2 ? tournament.teams.find(t => t.id === match.player2.teamId) : null
+
+      const makePayload = (myTeam, oppTeam, myPlayerRep) => ({
+        matchId:        match.id,
+        tournamentId:   tournament.id,
+        opponent:       oppTeam ? { teamId: oppTeam.id, teamName: oppTeam.name, name: oppTeam.name } : null,
+        gameKey:        tournament.gameKey,
+        round:          tournament.currentRound,
+        isKelompok:     true,
+        teamId:         myTeam.id,
+        teamName:       myTeam.name,
+        teamRepUserId:  myPlayerRep.userId,
+        myTeamMembers:  myTeam.members.map(m => ({ userId: m.userId, name: m.name })),
+      })
+
+      if (team1) {
+        const payload = makePayload(team1, team2, match.player1)
+        for (const member of team1.members) {
+          emitToUser(io, member.userId, 'tournament:your-match', payload)
+        }
+      }
+      if (team2) {
+        const payload = makePayload(team2, team1, match.player2)
+        for (const member of team2.members) {
+          emitToUser(io, member.userId, 'tournament:your-match', payload)
+        }
+      }
+    } else {
+      // Individual
+      const p1Payload = {
+        matchId:      match.id,
+        tournamentId: tournament.id,
+        opponent:     match.player2
+          ? { userId: match.player2.userId, name: match.player2.name }
+          : null,
+        gameKey:      tournament.gameKey,
+        round:        tournament.currentRound,
+        isKelompok:   false,
+      }
+      emitToUser(io, match.player1?.userId, 'tournament:your-match', p1Payload)
+
+      const p2Payload = {
+        matchId:      match.id,
+        tournamentId: tournament.id,
+        opponent:     { userId: match.player1.userId, name: match.player1.name },
+        gameKey:      tournament.gameKey,
+        round:        tournament.currentRound,
+        isKelompok:   false,
+      }
+      if (match.player2) {
+        emitToUser(io, match.player2.userId, 'tournament:your-match', p2Payload)
+      }
+    }
+
+    // Walkover timer
     match.walkoverTimer = setTimeout(() => {
       if (match.status !== 'waiting-join') return
 
-      const p1Joined = !!match.player1?.socketId
-      const p2Joined = !!match.player2?.socketId
+      if (tournament.mode === 'kelompok') {
+        // Kelompok: cek apakah ada anggota yang join
+        const team1MembersJoined = tournament.teams
+          ?.find(t => t.id === match.player1?.teamId)
+          ?.members.some(m => match._teamMemberSockets?.[m.userId])
+        const team2MembersJoined = match.player2 ? tournament.teams
+          ?.find(t => t.id === match.player2.teamId)
+          ?.members.some(m => match._teamMemberSockets?.[m.userId]) : false
 
-      if (!p1Joined && p2Joined) {
-        match.winner = match.player2
-      } else if (p1Joined && !p2Joined) {
-        match.winner = match.player1
+        if (!team1MembersJoined && team2MembersJoined) {
+          match.winner = match.player2
+        } else if (team1MembersJoined && !team2MembersJoined) {
+          match.winner = match.player1
+        } else {
+          match.winner = Math.random() < 0.5 ? match.player1 : match.player2
+        }
+        if (match._teamJuruTimer) { clearTimeout(match._teamJuruTimer); match._teamJuruTimer = null }
       } else {
-        match.winner = Math.random() < 0.5 ? match.player1 : match.player2
+        const p1Joined = !!match.player1?.socketId
+        const p2Joined = !!match.player2?.socketId
+        if (!p1Joined && p2Joined)        match.winner = match.player2
+        else if (p1Joined && !p2Joined)   match.winner = match.player1
+        else match.winner = Math.random() < 0.5 ? match.player1 : match.player2
       }
 
       match.status = 'walkover'

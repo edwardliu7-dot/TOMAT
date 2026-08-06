@@ -438,6 +438,8 @@ router.post('/tournament', requireGuruMapelTerdaftar, async (req, res) => {
       guruId:       req.session.user.id,
       gameKey,
       status:       'in-progress',
+      lobbyOpen:    true,
+      lobby:        {},
       mode:         mode === 'kelompok' ? 'kelompok' : 'individual',
       teams,
       currentRound: 1,
@@ -450,7 +452,7 @@ router.post('/tournament', requireGuruMapelTerdaftar, async (req, res) => {
     }
     tournaments.set(tournamentId, tournament)
 
-    // Notify semua siswa di semua kelas via socket
+    // Notify semua siswa di semua kelas via socket — buka lobby, belum mulai ronde
     const io = getTournamentIo()
     kelasArr.forEach(k => {
       io?.to(`kelas:${k}`).emit('tournament:started', {
@@ -460,12 +462,38 @@ router.post('/tournament', requireGuruMapelTerdaftar, async (req, res) => {
       })
     })
 
-    // Mulai ronde 1
-    startTournamentRound_all(io, tournament)
+    // Guru join room turnamen untuk menerima lobby updates
+    // (room join terjadi via socket, bukan REST — cukup emit state saja)
+    io?.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(tournament))
+
+    // Tidak langsung mulai ronde — tunggu guru klik "Mulai" dari lobby
 
     res.json({ tournament: tournamentToClient(tournament) })
   } catch (err) {
     console.error('guru/tournament POST error', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/guru/tournament/:id/start — guru menutup lobby dan memulai ronde 1
+router.post('/tournament/:id/start', requireGuruMapelTerdaftar, async (req, res) => {
+  try {
+    const t = tournaments.get(req.params.id)
+    if (!t) return res.status(404).json({ error: 'Turnamen tidak ditemukan.' })
+    const kelasDiampu = await getMyKelasDiampu(req)
+    const tKelas = t.kelasArr || [t.kelas]
+    const isOwner = t.guruId === req.session.user.id
+    const hasAccess = tKelas.some(k => kelasDiampu.includes(k))
+    if (!isOwner && !hasAccess) return res.status(403).json({ error: 'Akses ditolak.' })
+    if (!t.lobbyOpen) return res.status(400).json({ error: 'Lobby sudah ditutup atau turnamen sudah berjalan.' })
+
+    t.lobbyOpen = false
+    const io = getTournamentIo()
+    startTournamentRound_all(io, t)
+
+    res.json({ tournament: tournamentToClient(t) })
+  } catch (err) {
+    console.error('guru/tournament start error', err)
     res.status(500).json({ error: err.message })
   }
 })
