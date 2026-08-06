@@ -1056,11 +1056,15 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               <NananagaShieldToast />
               {/* Mission toasts + claim modal — inside PlayerProvider via MissionBridge */}
               <MissionBridge />
-              {/* Tomi the guinea pig — walks across screen for students */}
-              <FloatingPet onHungryClick={() => {
-                setTokoInitialTab('pet_skin')
-                navigate('toko')
-              }} />
+              {/* Tomi stays out of the answer area during live matches. The
+                  arena has interactive sliders/buttons and the pet's fixed
+                  overlay must never intercept those interactions. */}
+              {current !== 'duel-katak' && current !== 'tournament-match' && (
+                <FloatingPet onHungryClick={() => {
+                  setTokoInitialTab('pet_skin')
+                  navigate('toko')
+                }} />
+              )}
               {/* Tournament match notification banner */}
               {tournamentBanner && current !== 'tournament-match' && (
                 <TournamentNotificationBanner
