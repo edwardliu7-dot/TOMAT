@@ -141,11 +141,14 @@ export async function handleTournamentAnswer(io, tournament, match, userId, valu
     scores:        match.scores,
   })
 
-  // Update spectator guru
+  // Update spectator guru — include playerName and round for live feed
+  const playerInfo = [match.player1, match.player2].find(p => p?.userId === userId)
   io.to(`match-spectate:${match.id}`).emit('tournament:player-answered', {
     userId, correct, value,
-    scores:  match.scores,
-    matchId: match.id,
+    scores:     match.scores,
+    matchId:    match.id,
+    playerName: playerInfo?.name ?? null,
+    round:      playerRound,
   })
 
   // Beritahu lawan: skor kita terbaru (realtime, lawan mungkin masih bermain atau di leaderboard)
@@ -161,6 +164,15 @@ export async function handleTournamentAnswer(io, tournament, match, userId, valu
   if (playerRound >= TOURNAMENT_MAX_ROUNDS) {
     // Player ini sudah selesai semua soal
     match._playerFinished[userId] = true
+
+    // Beritahu guru spectator bahwa player ini sudah selesai
+    const finishedPlayerInfo = [match.player1, match.player2].find(p => p?.userId === userId)
+    io.to(`match-spectate:${match.id}`).emit('tournament:player-finished', {
+      userId,
+      playerName: finishedPlayerInfo?.name ?? null,
+      score:      match.scores[userId] ?? 0,
+      matchId:    match.id,
+    })
 
     const opponentId = opponent?.userId
     if (!opponentId || match._playerFinished[opponentId]) {

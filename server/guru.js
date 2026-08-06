@@ -476,7 +476,10 @@ router.delete('/tournament/:id', requireGuruMapelTerdaftar, async (req, res) => 
     const t = tournaments.get(req.params.id)
     if (!t) return res.status(404).json({ error: 'Turnamen tidak ditemukan.' })
     const kelasDiampu = await getMyKelasDiampu(req)
-    if (!kelasDiampu.includes(t.kelas)) return res.status(403).json({ error: 'Akses ditolak.' })
+    const tKelas = t.kelasArr || [t.kelas]
+    const isOwner = t.guruId === req.session.user.id
+    const hasAccess = tKelas.some(k => kelasDiampu.includes(k))
+    if (!isOwner && !hasAccess) return res.status(403).json({ error: 'Akses ditolak.' })
 
     const wasFinished = t.status === 'finished'
     t.status = 'finished'
