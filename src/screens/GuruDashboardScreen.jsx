@@ -1276,21 +1276,21 @@ function TurnamenTab({ kelasDiampu }) {
     apiCall('/api/guru/students')
       .then(({ students: all }) => {
         const filtered = (all || []).filter(s => form.kelasArr.includes(s.kelas))
-        const filteredSet = new Set(filtered.map(s => String(s.userId)))
+        const filteredSet = new Set(filtered.map(s => String(s.id)))
         setStudents(filtered)
         setForm(f => {
           // First load: nothing selected yet → select all
           if (f.selectedStudentIds.length === 0) {
-            return { ...f, selectedStudentIds: filtered.map(s => String(s.userId)) }
+            return { ...f, selectedStudentIds: filtered.map(s => String(s.id)) }
           }
           // Kelas removed → drop those students
           const removedIds = new Set(
-            (all || []).filter(s => removedKelas.includes(s.kelas)).map(s => String(s.userId))
+            (all || []).filter(s => removedKelas.includes(s.kelas)).map(s => String(s.id))
           )
           // Kelas added → auto-add new students from that kelas
           const addedIds = (all || [])
             .filter(s => addedKelas.includes(s.kelas))
-            .map(s => String(s.userId))
+            .map(s => String(s.id))
           const kept    = f.selectedStudentIds.filter(id => filteredSet.has(id) && !removedIds.has(id))
           const newOnes = addedIds.filter(id => !kept.includes(id))
           return { ...f, selectedStudentIds: [...kept, ...newOnes] }
@@ -1581,7 +1581,7 @@ function TurnamenTab({ kelasDiampu }) {
                     {/* Tombol Pilih Semua */}
                     <button type="button"
                       onClick={() => {
-                        const allIds = students.map(s => String(s.userId))
+                        const allIds = students.map(s => String(s.id))
                         const curIds = getSelectedIds()
                         const allSelected = curIds.length === students.length
                         setForm(f => ({ ...f, selectedStudentIds: allSelected ? [] : allIds }))
@@ -1611,16 +1611,18 @@ function TurnamenTab({ kelasDiampu }) {
                             </div>
                           )}
                           {siswaDiKelas.map(s => {
-                            const id = String(s.userId)
+                            const id = String(s.id)
                             const checked = selectedIds.includes(id)
                             return (
                               <button key={id} type="button"
                                 onClick={() => {
-                                  const cur = getSelectedIds()
-                                  const next = cur.includes(id)
-                                    ? cur.filter(x => x !== id)
-                                    : [...cur, id]
-                                  setForm(f => ({ ...f, selectedStudentIds: next }))
+                                  setForm(f => {
+                                    const cur = f.selectedStudentIds
+                                    const next = cur.includes(id)
+                                      ? cur.filter(x => x !== id)
+                                      : [...cur, id]
+                                    return { ...f, selectedStudentIds: next }
+                                  })
                                 }}
                                 style={{
                                   display: 'flex', alignItems: 'center', gap: 10,
@@ -1792,7 +1794,7 @@ function TurnamenTab({ kelasDiampu }) {
                       const team = form.manualTeams[i] || { name: `Kelompok ${i + 1}`, memberIds: [] }
                       const color = TEAM_COLORS[i % TEAM_COLORS.length]
                       const memberNames = team.memberIds
-                        .map(id => students.find(s => String(s.userId) === id)?.name)
+                        .map(id => students.find(s => String(s.id) === id)?.name)
                         .filter(Boolean)
                       return (
                         <div key={i} style={{ borderRadius: 10, border: `1px solid ${color}33`, background: `${color}08`, padding: '8px 10px' }}>
@@ -1817,7 +1819,7 @@ function TurnamenTab({ kelasDiampu }) {
                     {(() => {
                       const assignedIds = (form.manualTeams || []).flatMap(t => t.memberIds)
                       const unassigned = students
-                        .filter(s => getSelectedIds().includes(String(s.userId)) && !assignedIds.includes(String(s.userId)))
+                        .filter(s => getSelectedIds().includes(String(s.id)) && !assignedIds.includes(String(s.id)))
                       if (unassigned.length === 0) return null
                       return (
                         <div style={{ borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: '8px 10px' }}>
@@ -1826,7 +1828,7 @@ function TurnamenTab({ kelasDiampu }) {
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                             {unassigned.map(s => (
-                              <span key={s.userId} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', color: '#64748B', border: '1px solid rgba(255,255,255,0.1)' }}>
+                              <span key={s.id} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', color: '#64748B', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 {s.name}
                               </span>
                             ))}
@@ -1839,8 +1841,8 @@ function TurnamenTab({ kelasDiampu }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <div style={{ fontSize: 11, color: '#475569', fontWeight: 700, letterSpacing: 0.8 }}>KLIK SISWA UNTUK PINDAHKAN KELOMPOK</div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {students.filter(s => getSelectedIds().includes(String(s.userId))).map(s => {
-                          const id = String(s.userId)
+                        {students.filter(s => getSelectedIds().includes(String(s.id))).map(s => {
+                          const id = String(s.id)
                           const teams = form.manualTeams || []
                           const teamIdx = teams.findIndex(t => t.memberIds.includes(id))
                           const color = teamIdx >= 0 ? TEAM_COLORS[teamIdx % TEAM_COLORS.length] : '#475569'
@@ -1868,7 +1870,7 @@ function TurnamenTab({ kelasDiampu }) {
                     {(() => {
                       const assignedIds = (form.manualTeams || []).flatMap(t => t.memberIds)
                       const unassignedCount = students
-                        .filter(s => getSelectedIds().includes(String(s.userId)) && !assignedIds.includes(String(s.userId))).length
+                        .filter(s => getSelectedIds().includes(String(s.id)) && !assignedIds.includes(String(s.id))).length
                       if (unassignedCount === 0) return null
                       return (
                         <div style={{ fontSize: 11, color: '#f59e0b', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '6px 10px' }}>
