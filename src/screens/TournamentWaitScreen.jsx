@@ -244,37 +244,46 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
 
   useEffect(() => {
     const socket = connectSocket()
-    socket.emit('tournament:spectate', { tournamentId })
 
-    socket.on('tournament:state', state => {
+    const handleState = state => {
       if (state?.id === tournamentId) setTournament(state)
-    })
-    socket.on('tournament:round-start', ({ state }) => {
+    }
+    const handleRoundStart = ({ state }) => {
       if (state?.id === tournamentId) setTournament(state)
-    })
-    socket.on('tournament:finished', ({ state }) => {
+    }
+    const handleFinished = ({ state }) => {
       if (state?.id === tournamentId) setTournament(state)
-    })
-    socket.on('tournament:lobby-state', ({ tournamentId: tid, lobby }) => {
+    }
+    const handleLobbyState = ({ tournamentId: tid, lobby }) => {
       if (tid === tournamentId) {
         setTournament(prev => prev ? { ...prev, lobby } : prev)
         if (lobby?.some(l => String(l.userId) === String(myUserId))) {
           setHasJoinedLobby(true)
         }
       }
-    })
-    socket.on('tournament:reward', ({ amount, rank, newCoins }) => {
+    }
+    const handleReward = ({ amount, rank, newCoins }) => {
       setRewardToast({ amount, rank })
       if (newCoins != null && syncCoins) syncCoins(newCoins)
       setTimeout(() => setRewardToast(null), 5000)
-    })
+    }
+
+    socket.on('tournament:state', handleState)
+    socket.on('tournament:round-start', handleRoundStart)
+    socket.on('tournament:finished', handleFinished)
+    socket.on('tournament:lobby-state', handleLobbyState)
+    socket.on('tournament:reward', handleReward)
+
+    // Join the bracket room only after listeners are ready; otherwise the
+    // initial tournament:state event can be lost on fast connections.
+    socket.emit('tournament:spectate', { tournamentId })
 
     return () => {
-      socket.off('tournament:state')
-      socket.off('tournament:round-start')
-      socket.off('tournament:finished')
-      socket.off('tournament:lobby-state')
-      socket.off('tournament:reward')
+      socket.off('tournament:state', handleState)
+      socket.off('tournament:round-start', handleRoundStart)
+      socket.off('tournament:finished', handleFinished)
+      socket.off('tournament:lobby-state', handleLobbyState)
+      socket.off('tournament:reward', handleReward)
     }
   }, [tournamentId])
 

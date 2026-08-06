@@ -20,7 +20,7 @@
 - [TOMAT pet skin prerequisites](tomat-pet-skin-prerequisites.md) — animal skins require ownership of the matching base pet in both shop UI and server purchase/equip validation.
 - [TOMAT G8 Bab2 duel support](tomat-g8bab2-duel.md) — 6 Pythagoras games (g8trebuchet/perisai/hartakarun/inspeksisudut/petaradar/taligantung) added to DUEL_GAME_KEYS and tournament-questions.js generators.
 - [TOMAT multi-grade leaderboard](tomat-leaderboard-grades.md) — GET /api/siswa/papan-peringkat/kelas/:gradeNum returns all-grade ranking by prefix (VII/VIII/IX); LeaderboardScreen has 3 tabs: Kelasku/Kelas 8/Kelas 9.
-- [TOMAT multiplayer duel](tomat-multiplayer.md) — Socket.io on http.createServer; server-authoritative Katak questions; lobby rooms in-memory Map; stale-closure fix via refs in LobbyScreen.
+- [TOMAT multiplayer duel](tomat-multiplayer.md) — Socket.io on http.createServer; server-authoritative questions; stale-closure and reconnect recovery are required for arena flows.
 - [TOMAT Boss Raid](tomat-boss-raid.md) — Co-op event: guru creates via REST, students attack via socket; boss-state.js shared module; setIo() wires socket to REST layer; 60s cooldown per student; 100 HP per correct answer.
 - [TOMAT auth bootstrap resilience](tomat-auth-bootstrap-resilience.md) — session checks must time out so database/session-store outages cannot keep the splash screen visible forever.
 - [TOMAT profile contract](tomat-profile-contract.md) — normalize profile targets once, reuse access-checked data, and distinguish omitted photo updates from explicit null.

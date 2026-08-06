@@ -363,6 +363,8 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   useEffect(() => {
     const socket = connectSocket()
 
+    const rejoin = () => socket.emit('duel:rejoin', { code })
+
     // Opponent score updated (fires every time opponent answers any question)
     socket.on('duel:score-update', ({ opponentScore, opponentRound }) => {
       setScores(prev => {
@@ -458,6 +460,11 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
       setOppSlider(value)
     })
 
+    socket.on('connect', rejoin)
+    // LobbyScreen normally leaves the socket connected, but this also
+    // recovers a duel when the screen is opened after a reconnect.
+    if (socket.connected) rejoin()
+
     return () => {
       socket.off('duel:score-update')
       socket.off('duel:answer-result')
@@ -466,6 +473,7 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
       socket.off('duel:game-over')
       socket.off('duel:player-left')
       socket.off('duel:opponent-slider')
+      socket.off('connect', rejoin)
     }
   }, [myIndex, code, gameKey, syncCoins, user])
 

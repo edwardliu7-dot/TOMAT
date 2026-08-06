@@ -768,9 +768,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     if (guruMode) return  // guru tidak perlu socket di mode practice
     const socket = connectSocket()
 
-    // Ask server if there is an ongoing tournament for this student's class
-    socket.emit('tournament:check-active')
-
     // Server responds with active tournament state after page load / reconnect.
     // Shape: { tournamentId, match: { matchId, opponent, gameKey, round } | null }
     socket.on('tournament:active-state', ({ tournamentId, match } = {}) => {
@@ -842,6 +839,12 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       // Host: invite timed out — LobbyScreen handles its own state
     })
 
+    // Register listeners before requesting state. This prevents a fast socket
+    // response from arriving before tournament:active-state is subscribed.
+    const checkActiveTournament = () => socket.emit('tournament:check-active')
+    socket.on('connect', checkActiveTournament)
+    if (socket.connected) checkActiveTournament()
+
     return () => {
       socket.off('tournament:active-state')
       socket.off('tournament:your-match')
@@ -850,6 +853,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       socket.off('tournament:cancelled')
       socket.off('duel:incoming-invite')
       socket.off('duel:invite-expired')
+      socket.off('connect', checkActiveTournament)
     }
   }, [guruMode])
 
@@ -1058,7 +1062,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
                 navigate('toko')
               }} />
               {/* Tournament match notification banner */}
-              {tournamentBanner && current !== 'tournament-match' && current !== 'tournament-wait' && (
+              {tournamentBanner && current !== 'tournament-match' && (
                 <TournamentNotificationBanner
                   matchData={tournamentBanner}
                   onAccept={(data) => {

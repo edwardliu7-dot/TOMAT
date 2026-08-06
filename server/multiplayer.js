@@ -8,7 +8,7 @@ import { applyExp } from './gamify.js'
 import { onCorrectAnswer, onDuelWin, onCorrectAnswerWithResult, onDuelWinWithResult } from './gameplay-events.js'
 import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
 import { tournaments, tournamentToClient, getTournamentIo } from './tournament-state.js'
-import { startTournamentMatch, handleTournamentAnswer, autoSelectJuruJawab, checkAndStartKelompokMatch, getTeamIdForUser, TOURNAMENT_MAX_ROUNDS, emitToUser } from './tournament-engine.js'
+import { startTournamentMatch, handleTournamentAnswer, autoSelectJuruJawab, checkAndStartKelompokMatch, getTeamIdForUser, TOURNAMENT_MAX_ROUNDS, emitToUser, resendTournamentQuestion } from './tournament-engine.js'
 import { genTournamentQ } from './tournament-questions.js'
 import { notifyUser } from './notifications.js'
 import { isStudentPetDead } from './pet-state.js'
@@ -52,6 +52,7 @@ function startPlayerRound(io, room, player) {
   player.lastAnswer = null
   const q = genTournamentQ(room.gameKey || 'katak')
   player.currentQ = q
+  player.questionStartedAt = Date.now()
   const { answer, ...qForClient } = q
   const playerSocket = io.sockets.sockets.get(player.socketId)
   playerSocket?.emit('duel:question', {
@@ -63,16 +64,38 @@ function startPlayerRound(io, room, player) {
   })
 }
 
+function resendDuelQuestion(io, room, player, socket) {
+  if (!room || room.status !== 'in-progress' || !player?.currentQ || player.answered) return false
+  const { answer, ...qForClient } = player.currentQ
+  socket.emit('duel:question', {
+    question: qForClient,
+    round: player.myRound,
+    maxRounds: MAX_ROUNDS,
+    scores: room.players.map(safePlayer),
+    gameKey: room.gameKey || 'katak',
+    isRecovery: true,
+  })
+  return true
+}
+
 async function finishGame(io, room) {
   if (room._finishingGame) return
   room._finishingGame = true
   room.status = 'finished'
   const [p0, p1] = room.players
   let winner = null
+  let winnerReason = 'accuracy'
   if (p0 && p1) {
     if (p0.score > p1.score) winner = safePlayer(p0)
     else if (p1.score > p0.score) winner = safePlayer(p1)
-    // winner === null → draw
+    else if ((p0.answerTimeMs || 0) < (p1.answerTimeMs || 0)) {
+      winner = safePlayer(p0)
+      winnerReason = 'speed'
+    } else if ((p1.answerTimeMs || 0) < (p0.answerTimeMs || 0)) {
+      winner = safePlayer(p1)
+      winnerReason = 'speed'
+    }
+    // Exact same accuracy and response time → draw.
   } else if (p0) {
     // Only one player left (other disconnected from leaderboard) — remaining wins
     winner = safePlayer(p0)
@@ -109,6 +132,8 @@ async function finishGame(io, room) {
   io.to(room.code).emit('duel:game-over', {
     winner,
     scores: room.players.map(safePlayer),
+    winnerReason,
+    responseTimes: room.players.map(p => ({ userId: p.userId, timeMs: p.answerTimeMs || 0 })),
     winnerNewCoins,   // new field: client uses this to sync coin display without double-counting
   })
 }
@@ -221,6 +246,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       score:      0,
       answered:   false,
       lastAnswer: null,
+      answerTimeMs: 0,
+      questionStartedAt: null,
       myRound:    0,       // soal ke-N yang sedang dikerjakan player ini
       finished:   false,   // apakah sudah selesai semua soal
       currentQ:   null,    // soal aktif player ini (server-authoritative)
@@ -317,7 +344,10 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
 
       player.answered   = true
       player.lastAnswer = value
-      const correct = (value === player.currentQ.answer)
+      player.answerTimeMs = (player.answerTimeMs || 0) + Math.max(
+        0, Date.now() - (player.questionStartedAt || Date.now())
+      )
+      const correct = (Number(value) === Number(player.currentQ.answer))
       if (correct) player.score++
 
       // onCorrectAnswerWithResult returns Array<MissionDelta> already formatted —
@@ -395,6 +425,32 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
         gameKey:    room.gameKey || 'katak',
         isImmunityBonus: true,
       })
+    })
+
+    // Re-attach a player to an in-progress duel after a WebSocket reconnect.
+    // Socket IDs are connection-scoped, so keeping the old ID would make
+    // subsequent questions/results disappear for the player.
+    socket.on('duel:rejoin', async ({ code: rawCode } = {}) => {
+      if (!(await canPlayStudentMode(socket, 'duel:error'))) return
+      const code = rawCode?.toUpperCase?.()?.trim()
+      const room = rooms.get(code)
+      if (!room || !['waiting', 'in-progress'].includes(room.status)) return
+      const player = room.players.find(p => String(p.userId) === String(user.id))
+      if (!player) return
+
+      // The normal lobby → arena transition keeps the same socket and the
+      // player is already in this room. Do not call leaveAllRooms here or the
+      // recovery attempt would remove the player before re-attaching it.
+      if (player.socketId !== socket.id) leaveAllRooms(socket, io)
+      player.socketId = socket.id
+      socket.join(code)
+      socket.emit('duel:rejoined', {
+        code,
+        players: room.players.map(safePlayer),
+        myIndex: room.players.indexOf(player),
+        status: room.status,
+      })
+      resendDuelQuestion(io, room, player, socket)
     })
 
     // ── LEAVE (explicit, e.g. pressing back mid-game) ────────────────────────
@@ -674,24 +730,60 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
         const round = t.rounds[t.currentRound - 1]
         let pendingMatch = null
         if (round) {
-          pendingMatch = round.matches.find(m =>
-            (m.player1?.userId === user.id || m.player2?.userId === user.id) &&
-            ['waiting-join', 'in-progress'].includes(m.status)
-          )
+          pendingMatch = round.matches.find(m => {
+            if (!['waiting-join', 'waiting-juru', 'in-progress'].includes(m.status)) return false
+            if (t.mode !== 'kelompok') {
+              return m.player1?.userId === user.id || m.player2?.userId === user.id
+            }
+            const teamId = getTeamIdForUser(t, user.id)
+            return teamId && (m.player1?.teamId === teamId || m.player2?.teamId === teamId)
+          })
         }
 
         if (pendingMatch) {
-          const opponent = pendingMatch.player1?.userId === user.id
-            ? pendingMatch.player2 : pendingMatch.player1
-          socket.emit('tournament:active-state', {
-            tournamentId,
-            match: {
-              matchId:    pendingMatch.id,
-              opponent:   opponent ? { userId: opponent.userId, name: opponent.name } : null,
-              gameKey:    t.gameKey,
-              round:      t.currentRound,
-            },
-          })
+          if (t.mode === 'kelompok') {
+            const myTeamId = getTeamIdForUser(t, user.id)
+            const myTeam = t.teams?.find(team => team.id === myTeamId)
+            const opponentTeamId = pendingMatch.player1?.teamId === myTeamId
+              ? pendingMatch.player2?.teamId
+              : pendingMatch.player1?.teamId
+            const opponentTeam = t.teams?.find(team => team.id === opponentTeamId)
+            const myRep = pendingMatch.player1?.teamId === myTeamId
+              ? pendingMatch.player1
+              : pendingMatch.player2
+            socket.emit('tournament:active-state', {
+              tournamentId,
+              match: {
+                matchId: pendingMatch.id,
+                opponent: opponentTeam
+                  ? { teamId: opponentTeam.id, teamName: opponentTeam.name, name: opponentTeam.name }
+                  : null,
+                gameKey: t.gameKey,
+                round: t.currentRound,
+                isKelompok: true,
+                teamId: myTeam?.id || myTeamId,
+                teamName: myTeam?.name || null,
+                teamRepUserId: myRep?.userId || null,
+                myTeamMembers: myTeam?.members?.map(member => ({
+                  userId: member.userId,
+                  name: member.name,
+                })) || [],
+              },
+            })
+          } else {
+            const opponent = pendingMatch.player1?.userId === user.id
+              ? pendingMatch.player2 : pendingMatch.player1
+            socket.emit('tournament:active-state', {
+              tournamentId,
+              match: {
+                matchId:    pendingMatch.id,
+                opponent:   opponent ? { userId: opponent.userId, name: opponent.name } : null,
+                gameKey:    t.gameKey,
+                round:      t.currentRound,
+                isKelompok: false,
+              },
+            })
+          }
         } else {
           // Turnamen masih berjalan tapi tidak ada match pending untuk siswa ini
           // (mungkin sudah menang/kalah di ronde ini, menunggu ronde berikutnya)
@@ -747,6 +839,11 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
         match._teamMemberSockets = match._teamMemberSockets || {}
         match._teamMemberSockets[user.id] = socket.id
 
+        // The question event may have been emitted just before this socket
+        // connected (or while the app was resuming). Re-send the durable
+        // server-side question instead of leaving the arena blank.
+        resendTournamentQuestion(io, t, match, user.id, socket)
+
         io.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(t))
 
         // Beritahu anggota lain di match room siapa yang sudah join
@@ -779,6 +876,13 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
 
         if (isP1) match.player1.socketId = socket.id
         if (isP2) match.player2.socketId = socket.id
+
+        // If the match is already live, this is a reconnect/re-entry. The
+        // original question event is not durable, so recover it immediately.
+        if (match.status === 'in-progress') {
+          resendTournamentQuestion(io, t, match, user.id, socket)
+          return
+        }
 
         io.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(t))
 
@@ -852,6 +956,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       // Generate bonus question without advancing round counter
       const q = genTournamentQ(t.gameKey || 'katak')
       match._playerCurrentQ[userId] = q
+      match._playerQuestionStartedAt = match._playerQuestionStartedAt || {}
+      match._playerQuestionStartedAt[userId] = Date.now()
       const { answer, ...qForClient } = q
       socket.emit('tournament:question', {
         question:        qForClient,

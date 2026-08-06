@@ -267,13 +267,8 @@ export default function TournamentMatchScreen({
   // ── Emit player-ready on mount ───────────────────────────────────────────
   useEffect(() => {
     const socket = connectSocket()
-    socket.emit('tournament:player-ready', {
-      tournamentId: tournIdRef.current,
-      matchId:      matchIdRef.current,
-    })
-
     // Soal baru datang
-    socket.on('tournament:question', ({ question: q, round: r, maxRounds: mr, scores: s, isKelompok: ik, teamJuruJawab: tjj }) => {
+    const handleQuestion = ({ question: q, round: r, maxRounds: mr, scores: s, isKelompok: ik, teamJuruJawab: tjj }) => {
       setQuestion(q)
       setRound(r)
       setMaxRounds(mr)
@@ -293,7 +288,8 @@ export default function TournamentMatchScreen({
         const list = Object.entries(tjj).map(([tid, uid]) => ({ teamId: tid, userId: uid }))
         setJuruJawabList(list)
       }
-    })
+    }
+    socket.on('tournament:question', handleQuestion)
 
     // Juru jawab dipilih (kelompok)
     socket.on('tournament:juru-jawab-set', ({ teamId: tid, userId, name, autoSelected }) => {
@@ -391,8 +387,15 @@ export default function TournamentMatchScreen({
       setPhase('juru-select')
     }
 
+    // Announce readiness only after all listeners are active. The second
+    // player can cause the server to emit the first question immediately.
+    socket.emit('tournament:player-ready', {
+      tournamentId: tournIdRef.current,
+      matchId:      matchIdRef.current,
+    })
+
     return () => {
-      socket.off('tournament:question')
+      socket.off('tournament:question', handleQuestion)
       socket.off('tournament:juru-jawab-set')
       socket.off('tournament:team-member-joined')
       socket.off('tournament:team-answer-result')
