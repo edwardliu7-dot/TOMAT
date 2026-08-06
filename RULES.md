@@ -271,7 +271,7 @@ Setelah membuat file game, daftarkan di:
 | Tomi | Base + skin umum/langka/epic |
 | Kelinsay | Base + skin umum/langka/epic |
 | Monyang | Base + skin umum/langka/epic |
-| Nananaga | Skin khusus (sheet sprite terpisah, immunitas) |
+| Nananaga | Skin khusus (sheet sprite terpisah, immunitas + koin & EXP booster) |
 
 ### Aturan Pet
 - `hunger_map` menggunakan key **tipe pet** (tomi/kelinsay/monyang/nananaga), bukan skinId.

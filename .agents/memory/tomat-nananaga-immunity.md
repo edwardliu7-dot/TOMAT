@@ -1,13 +1,13 @@
 ---
 name: TOMAT Nananaga immunity
-description: Wrong-answer immunity bonus for Nananaga pet skins in duel, tournament, and survival modes.
+description: Wrong-answer immunity + coinMult/expMult bonus for Nananaga pet skins in duel, tournament, and survival modes.
 ---
 
 ## Rule
-Nananaga pet skins grant wrong-answer immunity tokens (not hungerMult):
-- `pet_nananaga` → 1 token
-- `pet_nananaga_merah` → 2 tokens
-- `pet_nananaga_es` → 3 tokens
+Nananaga pet skins grant wrong-answer immunity tokens AND coin+EXP multipliers:
+- `pet_nananaga`       → wrongImmunity:1, coinMult:1.50, expMult:1.50
+- `pet_nananaga_merah` → wrongImmunity:2, coinMult:1.60, expMult:1.60
+- `pet_nananaga_es`    → wrongImmunity:3, coinMult:1.70, expMult:1.70
 
 Immunity ONLY applies in: duel, tournament, survival.
 Immunity is DISABLED when `activeSession !== null` (tugas guru active).

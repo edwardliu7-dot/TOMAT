@@ -20,10 +20,10 @@ export const PET_BONUS_DISPLAY = {
   pet_monyong_raja:   { label: '+30% Koin & EXP',    icon: '✨',  color: '#D4AF37', desc: '+30% koin dan EXP dari setiap jawaban benar.' },            // langka
   pet_monyong_kosmik: { label: '+50% Koin & EXP',    icon: '✨',  color: '#C084FC', desc: '+50% koin dan EXP dari setiap jawaban benar!' },            // epic
 
-  // ── Nananaga — wrong-answer immunity (epic → epic → epic) ─────────────────
-  pet_nananaga:       { label: '🛡️ Kebal Salah ×1',  icon: '🛡️',  color: '#FB923C', desc: 'Saat duel, turnamen, atau survival: 1 jawaban salah tidak dihitung — mendapat soal tambahan.' },  // epic
-  pet_nananaga_merah: { label: '🛡️ Kebal Salah ×2',  icon: '🛡️',  color: '#F87171', desc: 'Saat duel, turnamen, atau survival: 2 jawaban salah tidak dihitung — mendapat soal tambahan.' }, // epic
-  pet_nananaga_es:    { label: '🛡️ Kebal Salah ×3',  icon: '🛡️',  color: '#7DD3FC', desc: 'Saat duel, turnamen, atau survival: 3 jawaban salah tidak dihitung — mendapat soal tambahan!' }, // epic
+  // ── Nananaga — wrong-answer immunity + koin & EXP booster (epic → epic → epic)
+  pet_nananaga:       { label: '🛡️×1 · +50% Koin & EXP', icon: '🛡️', color: '#FB923C', desc: 'Kebal 1 jawaban salah (duel/turnamen/survival) + setiap jawaban benar memberikan 50% koin & EXP lebih banyak.' },  // epic
+  pet_nananaga_merah: { label: '🛡️×2 · +60% Koin & EXP', icon: '🛡️', color: '#F87171', desc: 'Kebal 2 jawaban salah (duel/turnamen/survival) + setiap jawaban benar memberikan 60% koin & EXP lebih banyak.' }, // epic
+  pet_nananaga_es:    { label: '🛡️×3 · +70% Koin & EXP', icon: '🛡️', color: '#7DD3FC', desc: 'Kebal 3 jawaban salah (duel/turnamen/survival) + setiap jawaban benar memberikan 70% koin & EXP lebih banyak!' }, // epic
 }
 
 export function getPetBonusDisplay(skinId) {
@@ -41,6 +41,9 @@ export const PET_COIN_MULT = {
   pet_monyong:        1.20,
   pet_monyong_raja:   1.30,
   pet_monyong_kosmik: 1.50,
+  pet_nananaga:       1.50,
+  pet_nananaga_merah: 1.60,
+  pet_nananaga_es:    1.70,
 }
 
 export const PET_EXP_MULT = {
@@ -52,6 +55,9 @@ export const PET_EXP_MULT = {
   pet_monyong:             1.20,
   pet_monyong_raja:        1.30,
   pet_monyong_kosmik:      1.50,
+  pet_nananaga:            1.50,
+  pet_nananaga_merah:      1.60,
+  pet_nananaga_es:         1.70,
 }
 
 // ── Wrong-immunity helpers ─────────────────────────────────────────────────────
