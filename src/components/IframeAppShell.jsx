@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { openExternalUrl } from '../openExternalUrl'
+import { Browser } from '@capacitor/browser'
 
 const GURU_URL = 'https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io'
 const BLP_URL  = 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io'
@@ -168,10 +169,6 @@ function CapacitorInAppBrowser({ src, title, onBack }) {
         return
       }
       try {
-        // Gunakan variabel agar Vite tidak gagal resolve di build web
-        const cap = '@capacitor' + '/browser'
-        const { Browser } = await import(/* @vite-ignore */ cap)
-
         // Dengarkan event tutup agar bisa kembali ke TOMAT otomatis
         unlisten = await Browser.addListener('browserFinished', () => {
           setStatus('done')

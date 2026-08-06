@@ -6,13 +6,16 @@
  * Gunakan @capacitor/browser agar URL benar-benar terbuka di browser sistem.
  *
  * Di browser web biasa, cukup window.open seperti biasa.
+ *
+ * NOTE: @capacitor/browser di-alias ke src/stubs/capacitor-browser.js di vite.config.js
+ * agar Vite selalu mem-bundle-nya (import dinamis dengan string concatenation dulu tidak
+ * ter-bundle → gagal di APK → catch → tidak ada yang terbuka).
  */
+import { Browser } from '@capacitor/browser'
 
 export async function openExternalUrl(url) {
   if (window.Capacitor) {
     try {
-      const cap = '@capacitor' + '/browser'
-      const { Browser } = await import(/* @vite-ignore */ cap)
       await Browser.open({ url, presentationStyle: 'popover' })
     } catch (err) {
       // Fallback kalau plugin browser gagal
