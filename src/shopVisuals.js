@@ -98,6 +98,12 @@ export const PET_SKIN_INFO = {
     story: 'Sembah Sang Raja Usil! Lengkap dengan jubah mewah dan mahkota emas—yang kemungkinan besar hasil curian—Monyang kini memerintah kerajaan kejahilannya sendiri.',
     glow: 'rgba(212,175,55,0.42)', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong', rarity: 'langka',
   },
+  pet_komodih: {
+    nama: 'KomoDIH', tier: 'LANGKA', tierColor: '#A3E635',
+    desc: 'Komodo muda penjelajah yang teliti, memakai topi ekspedisi dan kalung bunga.',
+    story: 'KomoDIH mencari Jejak Purba—tanda misterius yang hanya muncul bagi mereka yang terus belajar. Ia bisa mengendus jawaban benar di antara pilihan yang membingungkan.',
+    glow: 'rgba(163,230,53,0.38)', baseAnimal: 'komodo', rarity: 'langka',
+  },
   // ── EPIC ────────────────────────────────────────────────────────────────────
   pet_kelinsay_malam: {
     nama: 'Kelinsay Malam', tier: 'EPIC', tierColor: '#A78BFA',

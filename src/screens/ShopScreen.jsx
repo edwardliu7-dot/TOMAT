@@ -263,6 +263,7 @@ const BASE_PETS = [
   { id: 'golden',       rarity: 'umum',   rarityColor: '#94A3B8' },
   { id: 'pet_kelinsay', rarity: 'umum',   rarityColor: '#34D399' },
   { id: 'pet_monyong',  rarity: 'langka', rarityColor: '#FB923C' },
+  { id: 'pet_komodih',  rarity: 'langka', rarityColor: '#A3E635' },
   { id: 'pet_nananaga', rarity: 'epic',   rarityColor: '#C084FC' },
 ]
 

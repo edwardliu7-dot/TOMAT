@@ -20,6 +20,9 @@ export const PET_BONUS_DISPLAY = {
   pet_monyong_raja:   { label: '+30% Koin & EXP',    icon: '✨',  color: '#D4AF37', desc: '+30% koin dan EXP dari setiap jawaban benar.' },            // langka
   pet_monyong_kosmik: { label: '+50% Koin & EXP',    icon: '✨',  color: '#C084FC', desc: '+50% koin dan EXP dari setiap jawaban benar!' },            // epic
 
+  // ── KomoDIH — explorer bonus (langka) ──────────────────────────────────────
+  pet_komodih:        { label: '+15% EXP · +10% Durasi', icon: '🧭', color: '#A3E635', desc: '+15% EXP dari jawaban benar dan makanan bertahan 10% lebih lama.' },
+
   // ── Nananaga — wrong-answer immunity + koin & EXP booster (epic → epic → epic)
   pet_nananaga:       { label: '🛡️×1 · +50% Koin & EXP', icon: '🛡️', color: '#FB923C', desc: 'Kebal 1 jawaban salah (duel/turnamen/survival) + setiap jawaban benar memberikan 50% koin & EXP lebih banyak.' },  // epic
   pet_nananaga_merah: { label: '🛡️×2 · +60% Koin & EXP', icon: '🛡️', color: '#F87171', desc: 'Kebal 2 jawaban salah (duel/turnamen/survival) + setiap jawaban benar memberikan 60% koin & EXP lebih banyak.' }, // epic
@@ -41,6 +44,7 @@ export const PET_COIN_MULT = {
   pet_monyong:        1.20,
   pet_monyong_raja:   1.30,
   pet_monyong_kosmik: 1.50,
+  pet_komodih:        1.00,
   pet_nananaga:       1.50,
   pet_nananaga_merah: 1.60,
   pet_nananaga_es:    1.70,
@@ -55,6 +59,7 @@ export const PET_EXP_MULT = {
   pet_monyong:             1.20,
   pet_monyong_raja:        1.30,
   pet_monyong_kosmik:      1.50,
+  pet_komodih:             1.15,
   pet_nananaga:            1.50,
   pet_nananaga_merah:      1.60,
   pet_nananaga_es:         1.70,

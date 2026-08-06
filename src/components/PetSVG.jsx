@@ -9,6 +9,7 @@ import TomiSprite from './TomiSprite'
 import KelinsaySprite from './KelinsaySprite'
 import MonyangSprite from './MonyangSprite'
 import NananagaSprite from './NananagaSprite'
+import KomodihSprite from './KomodihSprite'
 
 // Re-export so callers only need to import from PetSVG
 export { PET_CSS, STATE_ANIMS } from './TomiSVG'
@@ -32,6 +33,7 @@ export const PET_NAMES = {
   pet_nananaga:              'Nananaga',
   pet_nananaga_merah:        'Nananaga',
   pet_nananaga_es:           'Nananaga',
+  pet_komodih:               'KomoDIH',
 }
 
 /**
@@ -55,6 +57,7 @@ export default function PetSVG({ state = 'idle', skinId = 'golden', size = 100, 
   if (skinId.startsWith('pet_kelinsay'))  sprite = <KelinsaySprite state={state} variant={skinId} size={size} />
   else if (skinId.startsWith('pet_monyong'))   sprite = <MonyangSprite state={state} variant={skinId} size={size} />
   else if (skinId.startsWith('pet_nananaga'))  sprite = <NananagaSprite state={state} variant={skinId} size={size} />
+  else if (skinId === 'pet_komodih')           sprite = <KomodihSprite state={state} size={size} />
   else sprite = <TomiSprite state={state} skinId={skinId} size={size} />
 
   if (!cssFilter) return sprite

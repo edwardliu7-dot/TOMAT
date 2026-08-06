@@ -26,6 +26,9 @@ export const PET_BONUSES = {
   pet_monyong_raja:   { coinMult: 1.30, expMult: 1.30, hungerMult: 1.00 }, // langka (was 1.20)
   pet_monyong_kosmik: { coinMult: 1.50, expMult: 1.50, hungerMult: 1.00 }, // epic   (was 1.35)
 
+  // ── KomoDIH — EXP + food-duration explorer bonus ───────────────────────────
+  pet_komodih:       { coinMult: 1.00, expMult: 1.15, hungerMult: 1.10 }, // langka
+
   // ── Nananaga — wrong-answer immunity + koin & EXP booster ─────────────────
   // wrongImmunity: jumlah token kebal jawaban salah per sesi (duel/tournamen/survival)
   // Hanya berlaku saat mode duel, turnamen, survival — TIDAK berlaku saat tugas guru aktif

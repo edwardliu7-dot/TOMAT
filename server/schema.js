@@ -362,32 +362,33 @@ export async function ensureSchema() {
     // New animal pets — different base animal, not a Tomi skin
     ['pet_kelinsay', 'pet_skin', 'Kelinsay',  3000, { tier: 'umum',   baseAnimal: 'kelinci', desc: 'Kelinci putih lembut berhati hangat. Telinganya panjang, selalu mendengarkan.' }, 4],
     ['pet_monyong',  'pet_skin', 'Monyang',   6000, { tier: 'langka', baseAnimal: 'monyet',  desc: 'Monyet ceria penuh ekspresi. Ekornya selalu berayun dan senyumnya lebar!' }, 5],
-    ['pet_nananaga', 'pet_skin', 'Nananaga', 15000, { tier: 'epic',   baseAnimal: 'naga',    desc: 'Naga abadi berkuasa. Matanya menyala, sayapnya menggelegar, api di mulutnya.' }, 6],
+    ['pet_komodih',  'pet_skin', 'KomoDIH',   7500, { tier: 'langka', baseAnimal: 'komodo',  desc: 'Komodo muda penjelajah dengan topi ekspedisi. Teliti membaca setiap jejak menuju jawaban.' }, 6],
+    ['pet_nananaga', 'pet_skin', 'Nananaga', 15000, { tier: 'epic',   baseAnimal: 'naga',    desc: 'Naga abadi berkuasa. Matanya menyala, sayapnya menggelegar, api di mulutnya.' }, 7],
     // Animal skins — locked until the matching base pet is owned.
     ['pet_kelinsay_senja', 'pet_skin', 'Kelinsay Senja', 2000, {
       tier: 'umum+', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
       desc: 'Bulu hangat warna senja. Muncul saat matahari terbenam, membawa ketenangan dan semangat belajar.'
-    }, 7],
+    }, 8],
     ['pet_kelinsay_malam', 'pet_skin', 'Kelinsay Malam', 9000, {
       tier: 'epic', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
       desc: 'Bulu malam bertabur bintang. Pendiam, elegan, dan selalu ditemani cahaya bulan.'
-    }, 8],
+    }, 9],
     ['pet_monyong_raja', 'pet_skin', 'Monyang Raja', 9000, {
       tier: 'langka', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
       desc: 'Mahkota emas bertahta di kepalanya. Monyang Raja memerintah leaderboard dengan senyum lebarnya.'
-    }, 9],
+    }, 10],
     ['pet_monyong_kosmik', 'pet_skin', 'Monyang Kosmik', 13000, {
       tier: 'epic', baseAnimal: 'monyet', prerequisitePetId: 'pet_monyong',
       desc: 'Monyet penjelajah galaksi dengan bulu nebula dan bintang-bintang yang berkilau di sekelilingnya.'
-    }, 10],
+    }, 11],
     ['pet_nananaga_merah', 'pet_skin', 'Nananaga Merah', 18000, {
       tier: 'epic', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
       desc: 'Naga api merah menyala. Sisiknya membara dan napasnya meninggalkan jejak bara.'
-    }, 11],
+    }, 12],
     ['pet_nananaga_es', 'pet_skin', 'Nananaga Es', 20000, {
       tier: 'epic', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
       desc: 'Naga es dari puncak gunung beku. Napasnya membekukan segalanya, matanya biru seperti samudra arktik.'
-    }, 12],
+    }, 13],
     // Tema — shifts the game screen color palette + particle overlay
     ['tema_space', 'tema', 'Luar Angkasa', 1500, { accent: '#22d3ee', gradient: 'linear-gradient(135deg,#020610,#0a0f1e)', swatches: ['#020610','#0a0f1e','#22d3ee','#6366f1'], description: 'Background galaxy gelap, aksen cyan, partikel bintang.' }, 1],
     ['tema_hutan', 'tema', 'Hutan Mistis',  2000, { accent: '#4ade80', gradient: 'linear-gradient(135deg,#021408,#04230e)', swatches: ['#021408','#04230e','#4ade80','#2dd4bf'], description: 'Gradien hijau tua, aksen hijau neon, partikel daun.' }, 2],
