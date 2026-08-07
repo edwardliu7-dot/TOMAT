@@ -129,7 +129,7 @@ function NananagaShieldToast() {
 // Toast shown when a tugas submission fails (pet dead, network error, etc.)
 // so students know their grade was not saved and can act accordingly.
 function SubmitErrorToast() {
-  const { submitError, clearSubmitError } = useTask()
+  const { submitError, clearSubmitError, retrySubmitGrade } = useTask()
   if (!submitError) return null
   return (
     <div style={{
@@ -144,11 +144,18 @@ function SubmitErrorToast() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: '#f87171', marginBottom: 3 }}>Tugas Gagal Tersimpan</div>
         <div style={{ fontSize: 12, color: '#FCA5A5', lineHeight: 1.5 }}>{submitError}</div>
-        <button onClick={clearSubmitError} style={{
-          marginTop: 10, background: 'rgba(239,68,68,0.2)', border: '1px solid #ef4444',
-          borderRadius: 8, padding: '6px 14px', color: '#f87171', fontSize: 12,
-          fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-        }}>Tutup</button>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <button onClick={retrySubmitGrade} style={{
+            background: '#ef4444', border: '1px solid #ef4444',
+            borderRadius: 8, padding: '6px 14px', color: '#fff', fontSize: 12,
+            fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Coba Lagi</button>
+          <button onClick={clearSubmitError} style={{
+            background: 'rgba(239,68,68,0.2)', border: '1px solid #ef4444',
+            borderRadius: 8, padding: '6px 14px', color: '#f87171', fontSize: 12,
+            fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Tutup</button>
+        </div>
       </div>
     </div>
   )

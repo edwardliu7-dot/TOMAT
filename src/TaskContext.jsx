@@ -164,6 +164,15 @@ export function TaskProvider({ children, onTaskComplete }) {
     return true
   }, [])
 
+  // Retry the last complete submission without restarting the game. The
+  // session remains alive after a network failure, and the server treats a
+  // repeated POST as an idempotent success if the first request was committed.
+  const retrySubmitGrade = useCallback(() => {
+    const session = activeSessionRef.current
+    if (!session) return false
+    return submitGrade(session, session.correctAnswers, session.wrongAnswers ?? 0)
+  }, [submitGrade])
+
   // Override addCoins: game files use the legacy 50 marker, while the actual
   // normalized economy reward is 15 coins per correct answer.
   // A correct answer advances correctAnswers; when correct+wrong >= totalQuestions the session ends.
@@ -215,6 +224,7 @@ export function TaskProvider({ children, onTaskComplete }) {
     refresh,
     submitError,
     clearSubmitError,
+    retrySubmitGrade,
     exitWarning,
   }
 

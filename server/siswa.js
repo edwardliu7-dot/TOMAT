@@ -124,7 +124,13 @@ router.post('/nilai', async (req, res) => {
       [tId, req.session.user.id]
     )
     if (existing.length > 0) {
-      return res.status(409).json({ error: 'Tugas ini sudah pernah dikerjakan dan tidak dapat diulang.' })
+      const { rows: existingRows } = await pool.query(
+        'select * from nilai where id = $1',
+        [existing[0].id]
+      )
+      // A retry after a lost response must be safe. The first request may have
+      // committed the grade even though the client saw "Failed to fetch".
+      return res.json({ nilai: existingRows[0], alreadySaved: true, newBadges: [] })
     }
     const { rows } = await pool.query(
       `insert into nilai (tugas_id, student_id, correct_count, total_questions, score)
@@ -132,21 +138,43 @@ router.post('/nilai', async (req, res) => {
        returning *`,
       [tId, req.session.user.id, clampedCorrect, total, score]
     )
-    // A finished task can unlock "nilai_sempurna", "rajin_berlatih" or "penjelajah_lengkap" —
-    // check right after the insert so the badge shows up as soon as the student finishes.
-    const newBadges = await checkAndAwardBadges(req.session.user.id)
-    await notifyUser({
-      userId: tugas.guru_id,
-      role: 'guru',
-      type: 'nilai_baru',
-      title: 'Nilai tugas baru',
-      body: `${req.session.user.id} mengumpulkan ${tugas.game_name} dengan nilai ${score}.`,
-      url: '/',
-      metadata: { tugasId: tId, studentId: req.session.user.id, nilaiId: rows[0].id, score },
-    })
-    res.json({ nilai: rows[0], newBadges })
+
+    // The grade insert is the critical operation. Return it immediately so a
+    // slow badge/notification query cannot turn a successful save into a
+    // misleading browser-level "Failed to fetch" error.
+    res.json({ nilai: rows[0], newBadges: [] })
+
+    // Non-critical side effects run after the grade response. They must never
+    // change the result already sent to the student.
+    void (async () => {
+      try {
+        // A finished task can unlock badges. The next normal refresh will show
+        // the badge even though it is not needed to save the grade.
+        await checkAndAwardBadges(req.session.user.id)
+        await notifyUser({
+          userId: tugas.guru_id,
+          role: 'guru',
+          type: 'nilai_baru',
+          title: 'Nilai tugas baru',
+          body: `${req.session.user.id} mengumpulkan ${tugas.game_name} dengan nilai ${score}.`,
+          url: '/',
+          metadata: { tugasId: tId, studentId: req.session.user.id, nilaiId: rows[0].id, score },
+        })
+      } catch (sideEffectError) {
+        console.error('siswa/nilai post-save side effect error', sideEffectError)
+      }
+    })()
   } catch (err) {
     if (err.code === '23505') {
+      // Another request won the race between the SELECT and INSERT. Treat the
+      // duplicate as an idempotent success for the same student and task.
+      const { rows: existingRows } = await pool.query(
+        'select * from nilai where tugas_id = $1 and student_id = $2 limit 1',
+        [parseInt(req.body?.tugasId, 10), req.session.user.id]
+      )
+      if (existingRows[0]) {
+        return res.json({ nilai: existingRows[0], alreadySaved: true, newBadges: [] })
+      }
       return res.status(409).json({ error: 'Tugas ini sudah pernah dikerjakan dan tidak dapat diulang.' })
     }
     console.error('siswa/nilai error', err)
