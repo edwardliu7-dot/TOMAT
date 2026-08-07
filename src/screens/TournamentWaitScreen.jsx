@@ -282,9 +282,12 @@ export default function TournamentWaitScreen({ tournamentId, myUserId, myName, g
 
     // Join the bracket room only after listeners are ready; otherwise the
     // initial tournament:state event can be lost on fast connections.
-    socket.emit('tournament:spectate', { tournamentId })
+    const joinTournamentRoom = () => socket.emit('tournament:spectate', { tournamentId })
+    socket.on('connect', joinTournamentRoom)
+    if (socket.connected) joinTournamentRoom()
 
     return () => {
+      socket.off('connect', joinTournamentRoom)
       socket.off('tournament:state', handleState)
       socket.off('tournament:round-start', handleRoundStart)
       socket.off('tournament:finished', handleFinished)

@@ -1318,19 +1318,21 @@ function TurnamenTab({ kelasDiampu }) {
   useEffect(() => {
     const socket = connectSocket()
 
-    socket.on('tournament:state', (state) => {
-      setTournament(state)
-    })
-    socket.on('tournament:round-start', ({ state }) => {
-      if (state) setTournament(state)
-    })
-    socket.on('tournament:finished', ({ state }) => {
-      if (state) setTournament(state)
+    const handleState = (state) => {
+      if (state?.id) setTournament(prev => !prev || prev.id === state.id ? state : prev)
+    }
+    const handleRoundStart = ({ state }) => {
+      if (state?.id) setTournament(prev => !prev || prev.id === state.id ? state : prev)
+    }
+    const handleFinished = ({ state }) => {
+      if (state?.id) setTournament(prev => !prev || prev.id === state.id ? state : prev)
       setShowFinishedPodium(true)
-    })
-    socket.on('tournament:cancelled', () => {
-      setTournament(null)
-    })
+    }
+    const handleCancelled = () => setTournament(prev => prev?.status === 'finished' ? prev : null)
+    socket.on('tournament:state', handleState)
+    socket.on('tournament:round-start', handleRoundStart)
+    socket.on('tournament:finished', handleFinished)
+    socket.on('tournament:cancelled', handleCancelled)
     // Lobby updates — update lobby list in real-time
     socket.on('tournament:lobby-state', ({ tournamentId: tid, lobby }) => {
       setTournament(prev => prev && prev.id === tid ? { ...prev, lobby } : prev)
@@ -1362,10 +1364,10 @@ function TurnamenTab({ kelasDiampu }) {
     })
 
     return () => {
-      socket.off('tournament:state')
-      socket.off('tournament:round-start')
-      socket.off('tournament:finished')
-      socket.off('tournament:cancelled')
+      socket.off('tournament:state', handleState)
+      socket.off('tournament:round-start', handleRoundStart)
+      socket.off('tournament:finished', handleFinished)
+      socket.off('tournament:cancelled', handleCancelled)
       socket.off('tournament:lobby-state')
       socket.off('tournament:player-answered')
       socket.off('tournament:player-finished')
@@ -1377,7 +1379,19 @@ function TurnamenTab({ kelasDiampu }) {
     if (!tournament?.id || socketJoined.current === tournament.id) return
     socketJoined.current = tournament.id
     const socket = getSocket()
-    socket?.emit('tournament:spectate', { tournamentId: tournament.id })
+    if (!socket) return
+    const joinTournamentRoom = () => socket.emit('tournament:spectate', { tournamentId: tournament.id })
+    const handleDisconnect = () => {
+      // Socket.io rooms are lost on disconnect; allow the next connect to rejoin.
+      socketJoined.current = false
+    }
+    socket.on('connect', joinTournamentRoom)
+    socket.on('disconnect', handleDisconnect)
+    if (socket.connected) joinTournamentRoom()
+    return () => {
+      socket.off('connect', joinTournamentRoom)
+      socket.off('disconnect', handleDisconnect)
+    }
   }, [tournament?.id])
 
   // Spectate-match socket events

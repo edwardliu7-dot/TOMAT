@@ -257,6 +257,8 @@ export default function TournamentMatchScreen({
   const [myAnswered,    setMyAnswered]    = useState(false)
   const [myCorrect,     setMyCorrect]     = useState(null)
   const [correctAnswer, setCorrectAnswer] = useState(null)
+  const [connectionError, setConnectionError] = useState('')
+  const [isReconnecting, setIsReconnecting] = useState(false)
 
   // Nananaga immunity
   const immunityLeft = useRef(!activeSession && user?.equippedPetSkin ? getWrongImmunity(user.equippedPetSkin) : 0)
@@ -292,6 +294,8 @@ export default function TournamentMatchScreen({
     const socket = connectSocket()
     // Soal baru datang
     const handleQuestion = ({ question: q, round: r, maxRounds: mr, scores: s, isKelompok: ik, teamJuruJawab: tjj }) => {
+      setConnectionError('')
+      setIsReconnecting(false)
       setQuestion(q)
       setRound(r)
       setMaxRounds(mr)
@@ -313,6 +317,24 @@ export default function TournamentMatchScreen({
       }
     }
     socket.on('tournament:question', handleQuestion)
+
+    const handleTournamentError = ({ message } = {}) => {
+      setConnectionError(message || 'Jawaban belum dapat diproses. Silakan tunggu lalu coba lagi.')
+    }
+    socket.on('tournament:error', handleTournamentError)
+
+    // Socket events are not durable. Re-announce readiness after reconnect so
+    // the server can restore room membership and replay the active question.
+    const handleConnect = () => {
+      setIsReconnecting(false)
+      socket.emit('tournament:player-ready', {
+        tournamentId: tournIdRef.current,
+        matchId: matchIdRef.current,
+      })
+    }
+    const handleDisconnect = () => setIsReconnecting(true)
+    socket.on('connect', handleConnect)
+    socket.on('disconnect', handleDisconnect)
 
     // Juru jawab dipilih (kelompok)
     socket.on('tournament:juru-jawab-set', ({ teamId: tid, userId, name, autoSelected }) => {
@@ -458,6 +480,9 @@ export default function TournamentMatchScreen({
 
     return () => {
       socket.off('tournament:question', handleQuestion)
+      socket.off('tournament:error', handleTournamentError)
+      socket.off('connect', handleConnect)
+      socket.off('disconnect', handleDisconnect)
       socket.off('tournament:juru-jawab-set')
       socket.off('tournament:team-member-joined')
       socket.off('tournament:team-answer-result')
@@ -536,6 +561,8 @@ export default function TournamentMatchScreen({
         <div style={{ fontSize:48 }}>⚔️</div>
         <div style={{ fontSize:20, fontWeight:900, color:'#f59e0b' }}>Memasuki Arena…</div>
         <div style={{ fontSize:13, color:'#94A3B8' }}>vs {opponent?.teamName || opponent?.name} — Menunggu lawan siap</div>
+        {isReconnecting && <div style={{ color:'#f59e0b', fontSize:12 }}>Koneksi terputus — menghubungkan ulang…</div>}
+        {connectionError && <div style={{ maxWidth:340, color:'#f87171', fontSize:12, textAlign:'center' }}>{connectionError}</div>}
         <div style={{ display:'flex', gap:6, marginTop:8 }}>
           {[0,1,2].map(i => <div key={i} style={{ width:8, height:8, borderRadius:'50%', background:'#f59e0b', animation:`bounce 1.2s ease-in-out ${i*0.2}s infinite` }} />)}
         </div>
@@ -654,6 +681,11 @@ export default function TournamentMatchScreen({
         <button onClick={submitAnswer} style={{ width:'100%', background:'#0e7490', border:'none', borderRadius:14, padding:'16px', color:'#fff', fontSize:16, fontWeight:'bold', cursor:'pointer', fontFamily:'inherit', boxShadow:'0 4px 12px rgba(14,116,144,0.3)', marginTop:8 }}>
           ✅ Konfirmasi Jawaban: {slider}
         </button>
+      )}
+      {connectionError && (
+        <div style={{ marginTop:10, padding:'9px 12px', borderRadius:10, background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.25)', color:'#fca5a5', fontSize:12, textAlign:'center' }}>
+          {connectionError}
+        </div>
       )}
       {isKelompok && !isJuruJawab && phase === 'playing' && (
         <div style={{ marginTop:8, padding:'10px', background:'rgba(255,255,255,0.03)', borderRadius:10, textAlign:'center', fontSize:12, color:'#64748B' }}>

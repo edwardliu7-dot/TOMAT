@@ -190,6 +190,9 @@ function startPlayerTournamentRound(io, tournament, match, userId) {
 
 // ─── Start one match ──────────────────────────────────────────────────────────
 export function startTournamentMatch(io, tournament, match) {
+  // A reconnect/re-entry may send player-ready more than once. Do not reset
+  // an already running match (scores, questions, and timing are server state).
+  if (match.status === 'in-progress') return
   match.status = 'in-progress'
   match.scores = {}
   if (match.player1) match.scores[match.player1.userId] = 0
@@ -389,6 +392,7 @@ async function handleKelompokAnswer(io, tournament, match, userId, value, socket
   }
   if (match._kelompokAnswers[teamId]) return // sudah jawab soal ini
 
+  const correct = (Number(value) === Number(currentQ.answer))
   match._kelompokAnswers[teamId] = true
   match._kelompokLastAnswerCorrect = match._kelompokLastAnswerCorrect || {}
   match._kelompokLastAnswerCorrect[teamId] = correct
@@ -398,8 +402,8 @@ async function handleKelompokAnswer(io, tournament, match, userId, value, socket
 
   const receivedAt = Date.now()
   const elapsed = Math.max(0, receivedAt - (match._kelompokQuestionStartedAt || receivedAt))
+  match._teamAnswerTimeMs = match._teamAnswerTimeMs || {}
   match._teamAnswerTimeMs[teamId] = (match._teamAnswerTimeMs[teamId] || 0) + elapsed
-  const correct = (Number(value) === Number(currentQ.answer))
   const teamRepId = getTeamRepUserId(match, teamId)
   if (correct && teamRepId) {
     match.scores[teamRepId] = (match.scores[teamRepId] || 0) + 1

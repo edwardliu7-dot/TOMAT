@@ -335,7 +335,7 @@ router.get('/tournament', async (req, res) => {
     const active = [...tournaments.values()]
       .filter(t => {
         const arr = t.kelasArr || [t.kelas]
-        return arr.some(k => kelasDiampu.includes(k))
+        return t.status !== 'finished' && arr.some(k => kelasDiampu.includes(k))
       })
       .map(tournamentToClient)
     res.json({ tournaments: active })
