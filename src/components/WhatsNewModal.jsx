@@ -5,6 +5,12 @@ const STORAGE_KEY = `tomat_seen_whats_new_v${APP_VERSION}`
 
 const CHANGES = [
   {
+    icon: '🏆',
+    title: 'Bracket Turnamen Lebih Jelas',
+    body: 'Bracket turnamen kini tampil live saat menunggu ronde berikutnya. Tampilan bracket guru dan siswa disamakan, sementara guru tetap bisa memantau pertandingan yang sedang berlangsung secara real-time.',
+    highlight: true,
+  },
+  {
     icon: '🎓',
     title: 'Game IPA Kelas 7 & 8 Hadir!',
     body: 'Materi IPA kini tersedia di SMARTISA! Kelas 7 BAB 4 (Gaya & Gerak) dan Kelas 8 BAB 1 (Pengenalan Sel) sudah bisa dimainkan — 7 game baru dengan tema warna berbeda, 10 soal per sesi, dan reward koin seperti biasa.',
