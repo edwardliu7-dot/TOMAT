@@ -44,6 +44,14 @@ Soal SAMA dikirim ke semua anggota kedua tim. Hanya juru jawab yang bisa submit.
 - Juru: emit `tournament:team-slider` (broadcast ke tim + guru)
 - `tournament:team-answer-result` → semua anggota kedua tim lihat hasilnya
 
+### Bracket saat menunggu ronde
+- Siswa yang sudah selesai bertanding menampilkan bracket live pada layar menunggu hasil/ronde berikutnya.
+- Popup `Masuk Arena!` tetap menjadi overlay paling atas; transisi ke arena mengganti route turnamen yang sedang tampil, bukan menumpuk route baru.
+
+**Why:** Siswa perlu melihat progres pertandingan lain tanpa kehilangan notifikasi pertandingan berikutnya atau membuat bracket menutupi CTA masuk arena.
+
+**How to apply:** Bracket adalah konten layar biasa; notifikasi arena dirender sebagai overlay global dengan z-index tertinggi dan navigasi ke arena mengganti layar turnamen aktif.
+
 ### Match states untuk kelompok:
 - `'pending'` → `'waiting-join'` → `'waiting-juru'` → `'in-progress'` → `'finished'`
 

@@ -3,6 +3,7 @@ import { connectSocket, getSocket } from '../socket'
 import { useAuth } from '../AuthContext'
 import { useTask } from '../TaskContext'
 import { getWrongImmunity } from '../petBonuses'
+import { ClassicBracket } from './TournamentWaitScreen'
 
 function useIsMd() {
   const [md, setMd] = React.useState(() => window.innerWidth >= 768)
@@ -136,11 +137,27 @@ function JuruJawabSelectScreen({ myUserId, myName, teamName, teamMembers, juruJa
 }
 
 // ─── Leaderboard Wait Screen ──────────────────────────────────────────────────
-function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, round, onLeave, onViewBracket, bracketState, isKelompok, myTeamName, oppTeamName }) {
+function BracketWaitingCard({ bracketState, myUserId, title = 'BRACKET TURNAMEN' }) {
+  if (!bracketState?.rounds?.length) return null
+
   return (
-    <div style={{ minHeight:'100vh', background:'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)', fontFamily:'system-ui,sans-serif', color:'#fff', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ width:'100%', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:16, padding:'14px 10px', boxSizing:'border-box' }}>
+      <div style={{ fontSize:10, color:'#67E8F9', fontWeight:800, letterSpacing:1, marginBottom:10, textAlign:'left' }}>{title}</div>
+      <ClassicBracket
+        rounds={bracketState.rounds}
+        myUserId={myUserId}
+        currentRound={bracketState.currentRound}
+        mode={bracketState.mode}
+      />
+    </div>
+  )
+}
+
+function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, round, onLeave, onViewBracket, bracketState, myUserId, isKelompok, myTeamName, oppTeamName }) {
+  return (
+    <div style={{ minHeight:'100vh', background:'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)', fontFamily:'system-ui,sans-serif', color:'#fff', display:'flex', flexDirection:'column', overflowY:'auto' }}>
       <style>{`@keyframes tLbBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-3px)}}`}</style>
-      <div style={{ flex:1, width:'100%', maxWidth:390, margin:'0 auto', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, boxSizing:'border-box', gap:24 }}>
+      <div style={{ flex:1, width:'100%', maxWidth:600, margin:'0 auto', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, boxSizing:'border-box', gap:24 }}>
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
           <div style={{ fontSize:56, lineHeight:1 }}>🏁</div>
           <div style={{ fontSize:22, fontWeight:900, color:'#67E8F9', textAlign:'center' }}>Tim Kamu Sudah Menjawab!</div>
@@ -171,6 +188,7 @@ function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, round, onLe
             </span>
           </div>
         </div>
+        <BracketWaitingCard bracketState={bracketState} myUserId={myUserId} title="BRACKET — MENUNGGU MATCH LAIN" />
         {onViewBracket && (
           <button onClick={onViewBracket} style={{ background:'#0e7490', border:'none', borderRadius:14, padding:'14px 24px', color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit', width:'100%', maxWidth:300, display:'flex', justifyContent:'center', alignItems:'center', gap:8 }}>
             🏆 Lihat Bracket Turnamen
@@ -183,14 +201,14 @@ function LeaderboardWaitScreen({ myScore, myName, oppScore, oppName, round, onLe
 }
 
 // ─── Match Over Screen ─────────────────────────────────────────────────────────
-function MatchOverScreen({ winner, scores, myUserId, myName, oppName, onLeave, isKelompok, myTeamName, oppTeamName, myTeamRepId }) {
+function MatchOverScreen({ winner, scores, myUserId, myName, oppName, onLeave, bracketState, isKelompok, myTeamName, oppTeamName, myTeamRepId }) {
   const iWon = winner?.userId === myUserId || (isKelompok && winner?.teamId && myTeamRepId)
   // For kelompok: determine if my team won by checking winner's teamId against my rep
   const myScore  = isKelompok && myTeamRepId ? (scores[myTeamRepId] ?? 0) : (scores[myUserId] ?? 0)
   const oppScore = Object.entries(scores).find(([id]) => id !== String(isKelompok && myTeamRepId ? myTeamRepId : myUserId))?.[1] ?? 0
 
   return (
-    <div style={{ minHeight:'100vh', background:'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, gap:20, fontFamily:'system-ui,sans-serif', color:'#fff' }}>
+    <div style={{ minHeight:'100vh', background:'linear-gradient(180deg,#0A1628 0%,#0d1f3c 100%)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, gap:20, fontFamily:'system-ui,sans-serif', color:'#fff', overflowY:'auto' }}>
       <div style={{ fontSize:72 }}>{iWon ? '🏆' : '😤'}</div>
       <div style={{ fontSize:26, fontWeight:900, color: iWon ? '#fbbf24' : '#f87171', textAlign:'center' }}>
         {iWon ? (isKelompok ? `${myTeamName || 'Tim Kamu'} Menang!` : 'Kamu Menang!') : `${winner?.teamName || winner?.name} Menang!`}
@@ -211,6 +229,7 @@ function MatchOverScreen({ winner, scores, myUserId, myName, oppName, onLeave, i
         </div>
       </div>
       {iWon && <div style={{ fontSize:13, color:'#94A3B8', textAlign:'center' }}>Menunggu ronde berikutnya…</div>}
+      <BracketWaitingCard bracketState={bracketState} myUserId={myUserId} title="BRACKET — MENUNGGU RONDE BERIKUTNYA" />
       <button onClick={onLeave} style={{ background:'#1e293b', border:'1px solid rgba(255,255,255,0.1)', borderRadius:14, padding:'14px 32px', color:'#94A3B8', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>← Keluar Turnamen</button>
     </div>
   )
@@ -538,6 +557,7 @@ export default function TournamentMatchScreen({
         onLeave={goBack}
         onViewBracket={onMatchOver}
         bracketState={bracketState}
+        myUserId={myUserId}
         isKelompok={isKelompok}
         myTeamName={teamName}
         oppTeamName={opponent?.teamName || opponent?.name}
@@ -555,6 +575,7 @@ export default function TournamentMatchScreen({
         myName={myName}
         oppName={opponent?.teamName || opponent?.name}
         onLeave={onMatchOver}
+        bracketState={bracketState}
         isKelompok={isKelompok}
         myTeamName={teamName}
         oppTeamName={opponent?.teamName || opponent?.name}

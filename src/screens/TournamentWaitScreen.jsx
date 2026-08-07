@@ -6,7 +6,7 @@ const RANK_LABEL = { 1: '🥇 Juara 1', 2: '🥈 Runner-up', 3: '🥉 Peringkat 
 const RANK_COLOR = { 1: '#fbbf24', 2: '#94A3B8', 3: '#cd7c3a' }
 
 // ── Classic single-elimination bracket ─────────────────────────────────────
-function ClassicBracket({ rounds, myUserId, currentRound, mode }) {
+export function ClassicBracket({ rounds, myUserId, currentRound, mode }) {
   const isKelompok = mode === 'kelompok'
   const PLAYER_H = isKelompok ? 42 : 30
   const MATCH_H  = PLAYER_H * 2 + 1

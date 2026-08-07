@@ -1066,7 +1066,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
                 }} />
               )}
               {/* Tournament match notification banner */}
-              {tournamentBanner && current !== 'tournament-match' && (
+              {tournamentBanner && (
                 <TournamentNotificationBanner
                   matchData={tournamentBanner}
                   onAccept={(data) => {
@@ -1074,12 +1074,22 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
                     if (data?.type === 'bracket') {
                       // Rejoin bracket view — no pending match yet
                       setActiveTournamentId(data.tournamentId)
-                      setHistory(h => [...h, 'tournament-wait'])
+                      setHistory(h => {
+                        const top = h[h.length - 1]
+                        if (top === 'tournament-wait') return h
+                        if (top === 'tournament-match') return [...h.slice(0, -1), 'tournament-wait']
+                        return [...h, 'tournament-wait']
+                      })
                     } else {
                       // Live match — go straight to arena
                       setTournamentMatchData(data)
                       setActiveTournamentId(data.tournamentId)
-                      navigate('tournament-match')
+                      setHistory(h => {
+                        const top = h[h.length - 1]
+                        if (top === 'tournament-match') return h
+                        if (top === 'tournament-wait') return [...h.slice(0, -1), 'tournament-match']
+                        return [...h, 'tournament-match']
+                      })
                     }
                   }}
                   onDismiss={() => setTournamentBanner(null)}
