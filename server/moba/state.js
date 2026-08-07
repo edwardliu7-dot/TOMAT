@@ -97,6 +97,7 @@ export function createPlayerState({
     petSkinId,
     position: clonePosition(position, fallbackPosition),
     connected: Boolean(connected),
+    ready: false,
     lastInputAt: now,
     stunUntil: 0,
     claimedNodeId: null,
@@ -145,8 +146,10 @@ export function createMatchState({
     // Server-only question data. Entries can contain answer/correctAnswer.
     questions: new Map(),
     timers: {
+      countdown: null,
       spawn: null,
       finish: null,
+      cleanup: null,
     },
     eventSeq: 0,
   }
@@ -193,6 +196,7 @@ export function publicPlayer(player) {
     petSkinId: player.petSkinId,
     position: publicPosition(player.position),
     connected: player.connected,
+    ready: Boolean(player.ready),
     stunUntil: player.stunUntil,
     claimedNodeId: player.claimedNodeId,
     scrolls: player.scrolls.map(({ id, points, difficulty, earnedAt }) => ({
@@ -235,6 +239,8 @@ export function sanitizeMatchState(match) {
 
   const publicConfig = {
     durationMs: match.config.durationMs,
+    countdownMs: match.config.countdownMs,
+    cleanupGraceMs: match.config.cleanupGraceMs,
     nodeSpawnIntervalMs: match.config.nodeSpawnIntervalMs,
     nodeTtlMs: match.config.nodeTtlMs,
     maxActiveNodes: match.config.maxActiveNodes,
@@ -253,6 +259,8 @@ export function sanitizeMatchState(match) {
     createdAt: match.createdAt,
     startedAt: match.startedAt,
     endsAt: match.endsAt,
+    countdownStartedAt: match.countdownStartedAt ?? null,
+    countdownEndsAt: match.countdownEndsAt ?? null,
     tick: match.tick,
     config: publicConfig,
     teams: {

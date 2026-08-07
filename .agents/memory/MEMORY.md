@@ -43,4 +43,5 @@
 - [TOMAT BLP notifications cross-module](tomat-blp-notifications.md) — notifications tabel punya kolom source ('tomat'/'blp'); notifyUser() terima source param; BLP submit notif guru, BLP review notif siswa; AppNotificationBell tampilkan pill badge per source.
 - [TOMAT reward dan task submission](tomat-reward-task-sync.md) — reward coins+EXP harus dibatch per jawaban dan sesi tugas tetap dipertahankan sampai submit nilai dikonfirmasi server.
 - [TOMAT MOBA concept](tomat-moba-concept.md) — mode multiplayer 2D berdampingan dengan mode individu; format 1v1/2v2/3v3 dan karakter berupa Pet siswa.
+- [TOMAT MOBA lifecycle](tomat-moba-lifecycle.md) — match manager in-memory terpisah dari Socket.io/UI; lifecycle memakai timestamp absolut dan timer injectable untuk test.
 - [Mockup sandbox icon compatibility](mockup-sandbox-icon-compatibility.md) — cek ekspor lucide-react sebelum memakai ikon baru; gunakan CSS fallback bila ikon tidak tersedia agar preview tidak blank.
