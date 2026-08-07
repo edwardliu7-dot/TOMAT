@@ -762,6 +762,8 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 
 **Tujuan:** menghubungkan service murni dengan Socket.io.
 
+**Status:** selesai dan terverifikasi.
+
 **Pekerjaan:**
 
 - pasang handler event dengan payload terdefinisi;
@@ -776,6 +778,8 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 ### Hari 10 — Reducer dan hook Socket.io frontend
 
 **Tujuan:** menyiapkan state UI tanpa membangun seluruh visual.
+
+**Status:** selesai dan terverifikasi.
 
 **Pekerjaan:**
 

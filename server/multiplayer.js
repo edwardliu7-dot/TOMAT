@@ -13,6 +13,7 @@ import { genTournamentQ } from './tournament-questions.js'
 import { notifyUser } from './notifications.js'
 import { isStudentPetDead } from './pet-state.js'
 import { getPetBonus } from './pet-bonuses.js'
+import { createMobaSocketAdapter } from './moba/socket-handlers.js'
 
 // ─── Question generation (server-authoritative) ───────────────────────────────
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
@@ -216,6 +217,7 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
 
   // Share Express session so socket.request.session works
   io.engine.use((req, res, next) => sessionMiddleware(req, res, next))
+  const moba = createMobaSocketAdapter({ io, pool })
 
   io.on('connection', (socket) => {
     const session = socket.request?.session
@@ -230,6 +232,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     // so keep the authenticated user id on the socket for server-side lookup.
     socket.data.userId = user.id
     socket.data.role = user.role
+    socket.data.displayName = user.name || user.username || 'Siswa'
+    moba.attach(socket)
 
     // Register socket for direct messaging
     if (!userSockets.has(user.id)) userSockets.set(user.id, new Set())

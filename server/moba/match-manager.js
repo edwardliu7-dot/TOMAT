@@ -158,9 +158,20 @@ function matchResult(match) {
   }
 }
 
-function defaultPlayerInput({ playerId, userId, displayName, petType, petSkinId, position, connected, now }) {
+function defaultPlayerInput({
+  playerId,
+  userId,
+  displayName,
+  petType,
+  petSkinId,
+  position,
+  connected,
+  teamId,
+  now,
+}) {
   return {
     id: playerId,
+    teamId,
     userId: userId || playerId,
     displayName: displayName || 'Pemain',
     petType,
@@ -569,6 +580,7 @@ export function createMobaMatchManager({
     try {
       player = createPlayerState(defaultPlayerInput({
         playerId,
+        teamId: selectedTeamId,
         userId,
         displayName,
         petType,
@@ -1047,6 +1059,42 @@ export function createMobaMatchManager({
     return ok({ matchId, cleaned: true })
   }
 
+  function setPlayerConnection({ matchId, playerId, connected } = {}) {
+    const match = getMatch(matchId)
+    if (!match) return fail(ERROR_CODES.MATCH_NOT_FOUND)
+    const player = match.players.get(playerId)
+    if (!player) return fail(ERROR_CODES.PLAYER_NOT_IN_MATCH)
+
+    player.connected = Boolean(connected)
+    match.eventSeq++
+    const result = ok({
+      matchId,
+      player: publicPlayer(player),
+      snapshot: sanitizeMatchState(match),
+    })
+    emit(match, 'player_updated', {
+      player: result.player,
+      snapshot: result.snapshot,
+    })
+    return result
+  }
+
+  function getPrivateQuestion({ matchId, playerId } = {}) {
+    const match = getMatch(matchId)
+    if (!match) return fail(ERROR_CODES.MATCH_NOT_FOUND)
+    const player = match.players.get(playerId)
+    if (!player) return fail(ERROR_CODES.PLAYER_NOT_IN_MATCH)
+    const session = player.questionSession
+    if (!session || session.expiresAt <= now()) return ok({ question: null })
+    const question = match.questions.get(session.questionId)
+    if (!question) return ok({ question: null })
+    return ok({
+      question: publicQuestion(question),
+      questionSessionId: session.id,
+      expiresAt: session.expiresAt,
+    })
+  }
+
   function leaveMatch({ matchId, playerId } = {}) {
     const match = requireMatch(matchId)
     if (match?.ok === false) return match
@@ -1070,6 +1118,7 @@ export function createMobaMatchManager({
   }
 
   manager.getMatch = getMatch
+  manager.findPlayerMatch = findPlayerMatch
   manager.listMatches = () => [...matches.values()].map(sanitizeMatchState)
   manager.createMatch = createMatch
   manager.joinMatch = joinMatch
@@ -1081,6 +1130,8 @@ export function createMobaMatchManager({
   }
   manager.finishMatch = finishMatch
   manager.cleanupMatch = cleanupMatch
+  manager.setPlayerConnection = setPlayerConnection
+  manager.getPrivateQuestion = getPrivateQuestion
   manager.leaveMatch = leaveMatch
   manager.spawnNode = spawnNode
   manager.expireNode = (matchId, nodeId, reason) => {
