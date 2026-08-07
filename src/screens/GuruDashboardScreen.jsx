@@ -16,6 +16,7 @@ import {
   AppNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile, fetchPublicProfile, normalizeProfileTarget,
 } from '../components/shared'
 import { guruCacheGet, guruCacheSet } from '../guruCache'
+import { ClassicBracket } from './TournamentWaitScreen'
 
 async function apiCall(path, options = {}) {
   const res = await fetch(path, {
@@ -2175,6 +2176,30 @@ function TurnamenTab({ kelasDiampu }) {
           )}
 
           {/* Bracket for selected round */}
+          {tournament.rounds?.length > 0 && (
+            <div style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(103,232,249,0.2)', padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: '#67E8F9' }}>BRACKET TURNAMEN</div>
+                {tournament.status !== 'finished' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(248,113,113,0.15)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171', padding: '3px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>
+                    <div style={{ width: 5, height: 5, background: '#f87171', borderRadius: '50%' }} />
+                    LIVE
+                  </div>
+                )}
+              </div>
+              <ClassicBracket
+                rounds={tournament.rounds}
+                currentRound={tournament.currentRound}
+                mode={tournament.mode}
+                onMatchClick={openSpectate}
+              />
+              <div style={{ fontSize: 10, color: '#475569', marginTop: 8 }}>
+                Klik match yang sedang LIVE untuk memantau pertandingan secara real-time.
+              </div>
+            </div>
+          )}
+
+          {/* Detail ronde terpilih — mempertahankan status match dan kontrol pantau guru */}
           {tournament.rounds?.[displayRound] && (() => {
             const round = tournament.rounds[displayRound]
             const ri = displayRound

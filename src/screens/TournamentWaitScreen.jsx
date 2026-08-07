@@ -6,7 +6,7 @@ const RANK_LABEL = { 1: '🥇 Juara 1', 2: '🥈 Runner-up', 3: '🥉 Peringkat 
 const RANK_COLOR = { 1: '#fbbf24', 2: '#94A3B8', 3: '#cd7c3a' }
 
 // ── Classic single-elimination bracket ─────────────────────────────────────
-export function ClassicBracket({ rounds, myUserId, currentRound, mode }) {
+export function ClassicBracket({ rounds, myUserId, currentRound, mode, onMatchClick }) {
   const isKelompok = mode === 'kelompok'
   const PLAYER_H = isKelompok ? 42 : 30
   const MATCH_H  = PLAYER_H * 2 + 1
@@ -130,12 +130,18 @@ export function ClassicBracket({ rounds, myUserId, currentRound, mode }) {
             const isLive = match.status === 'in-progress'
             const isDone = match.status === 'finished' || !!match.winner
             const bColor = isLive ? '#67E8F9' : isMyM ? 'rgba(103,232,249,0.38)' : isDone ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.10)'
+            const canOpenMatch = isLive && typeof onMatchClick === 'function'
             return (
-              <div key={`m-${ri}-${mi}`} style={{ position: 'absolute', left: ri * (MATCH_W + CONN_W), top: matchTop(ri, mi) + LABEL_H, width: MATCH_W, background: isDone ? '#0d1320' : '#141927', border: `1.5px solid ${bColor}`, borderRadius: 8, overflow: 'hidden', boxShadow: isLive ? '0 0 16px rgba(103,232,249,0.18)' : 'none' }}>
+              <div
+                key={`m-${ri}-${mi}`}
+                onClick={canOpenMatch ? () => onMatchClick(match) : undefined}
+                title={canOpenMatch ? 'Pantau match real-time' : undefined}
+                style={{ position: 'absolute', left: ri * (MATCH_W + CONN_W), top: matchTop(ri, mi) + LABEL_H, width: MATCH_W, background: isDone ? '#0d1320' : '#141927', border: `1.5px solid ${bColor}`, borderRadius: 8, overflow: 'hidden', boxShadow: isLive ? '0 0 16px rgba(103,232,249,0.18)' : 'none', cursor: canOpenMatch ? 'pointer' : 'default' }}
+              >
                 <PlayerSlot player={match.player1} match={match} />
                 <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
                 <PlayerSlot player={match.player2} match={match} />
-                {isLive && <div style={{ position: 'absolute', top: 2, right: 5, fontSize: 8, color: '#67E8F9', fontWeight: 900, letterSpacing: 0.5 }}>LIVE</div>}
+                {isLive && <div style={{ position: 'absolute', top: 2, right: 5, fontSize: 8, color: '#67E8F9', fontWeight: 900, letterSpacing: 0.5 }}>{canOpenMatch ? '👁 LIVE' : 'LIVE'}</div>}
               </div>
             )
           })

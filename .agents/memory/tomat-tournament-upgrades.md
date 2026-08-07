@@ -47,6 +47,7 @@ Soal SAMA dikirim ke semua anggota kedua tim. Hanya juru jawab yang bisa submit.
 ### Bracket saat menunggu ronde
 - Siswa yang sudah selesai bertanding menampilkan bracket live pada layar menunggu hasil/ronde berikutnya.
 - Popup `Masuk Arena!` tetap menjadi overlay paling atas; transisi ke arena mengganti route turnamen yang sedang tampil, bukan menumpuk route baru.
+- Guru dan siswa menggunakan renderer bracket yang sama; fitur guru seperti navigasi ronde, detail status match, live feed, dan spectate tetap berada di panel guru.
 
 **Why:** Siswa perlu melihat progres pertandingan lain tanpa kehilangan notifikasi pertandingan berikutnya atau membuat bracket menutupi CTA masuk arena.
 
