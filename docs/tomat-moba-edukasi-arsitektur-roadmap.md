@@ -6,7 +6,7 @@
 
 ## 1. Ringkasan fitur
 
-Mode ini adalah multiplayer tim, misalnya 3v3 atau 5v5, dengan durasi sekitar 10 menit. Pemain tidak menyerang pemain lain secara langsung. Mereka:
+Mode ini adalah mode multiplayer tim yang hadir **berdampingan dengan mode individu** di TOMAT, bukan pengganti mode individu. Karena jumlah siswa TISA masih terbatas, format pertandingan dibatasi menjadi **1v1, 2v2, atau 3v3**, dengan durasi sekitar 10 menit. Pemain tidak menyerang pemain lain secara langsung. Mereka:
 
 1. bergerak di arena;
 2. mengambil titik soal yang muncul secara dinamis;
@@ -18,6 +18,23 @@ Mode ini adalah multiplayer tim, misalnya 3v3 atau 5v5, dengan durasi sekitar 10
 
 Semua keputusan penting harus diproses server. Klien hanya mengirim niat pemain dan menampilkan state terbaru.
 
+### 1.1 Hubungan dengan mode individu
+
+TOMAT memiliki dua jalur bermain yang terpisah:
+
+- **Mode individu:** siswa mengerjakan game matematika sendiri, termasuk Latihan Bebas, Mode Tugas, dan mode individu lain yang sudah tersedia.
+- **Mode MOBA multiplayer:** siswa masuk ke lobby pertandingan 1v1, 2v2, atau 3v3 dan bermain real-time bersama siswa lain.
+
+Mode MOBA tidak menghapus, menggantikan, atau mengubah alur mode individu. Keduanya harus memiliki:
+
+- pilihan masuk yang berbeda pada UI;
+- state pertandingan yang terisolasi dari state game individu;
+- lifecycle dan error handling yang tidak mengganggu sesi individu;
+- aturan reward yang tidak menggandakan reward dari mode individu;
+- feature flag atau akses terbatas agar mode MOBA dapat dinonaktifkan tanpa mematikan game individu.
+
+Satu siswa tidak boleh berada di dua pertandingan MOBA aktif sekaligus. Siswa tetap dapat kembali ke mode individu setelah pertandingan MOBA selesai atau dibatalkan.
+
 ## 2. Konteks teknologi dan batasan proyek
 
 - Frontend: React 18 + Vite
@@ -26,7 +43,10 @@ Semua keputusan penting harus diproses server. Klien hanya mengirim niat pemain 
 - Real-time: Socket.io
 - Aplikasi utama: TOMAT di repository ini
 - Mode baru harus mengikuti pola autentikasi, sesi siswa, pet, dan multiplayer yang sudah ada
-- Jangan membuat sistem login, pet, atau lobby kedua jika sistem yang sudah ada dapat digunakan kembali
+- Jangan membuat sistem login atau pet kedua jika sistem yang sudah ada dapat digunakan kembali
+- Mode MOBA boleh memiliki lobby pertandingan sendiri, tetapi lobby tersebut harus hanya mengelola pertandingan MOBA dan tidak menggantikan lobby/flow mode individu
+- Ukuran pertandingan yang valid hanya `1v1`, `2v2`, dan `3v3`; ukuran lain harus ditolak server
+- Satu pertandingan memiliki jumlah pemain yang sama di kedua tim: 1 lawan 1, 2 lawan 2, atau 3 lawan 3
 - Jangan memindahkan state pertandingan aktif ke database sebagai sumber kebenaran utama
 - Database hanya digunakan untuk data yang memang perlu disimpan setelah pertandingan, misalnya hasil, statistik, atau reward
 
@@ -60,14 +80,15 @@ Klien tidak boleh:
 
 ### 3.2 Model arena dua sisi
 
-Gunakan dua tim tetap:
+Gunakan dua tim tetap dengan ukuran yang ditentukan oleh `teamSize`:
 
 ```text
-teamA -> towerA -> baseA
-teamB -> towerB -> baseB
+match.teamSize = 1 | 2 | 3
+teamA[teamSize] -> towerA -> baseA
+teamB[teamSize] -> towerB -> baseB
 ```
 
-Pemain dari `teamA` menyetor ke target milik `teamB`, dan sebaliknya. Nama yang tampil ke pengguna boleh berupa nama kelas atau nama tim, tetapi state internal menggunakan ID yang stabil.
+Pemain dari `teamA` menyetor ke target milik `teamB`, dan sebaliknya. Nama yang tampil ke pengguna boleh berupa nama kelas atau nama tim, tetapi state internal menggunakan ID yang stabil. Arena dan aturan skor tetap sama untuk 1v1, 2v2, dan 3v3; yang berubah hanya jumlah pemain per tim.
 
 ### 3.3 Poin dan HP
 
@@ -108,6 +129,7 @@ Buat modul state khusus mode ini. Nama file final mengikuti struktur server yang
 const match = {
   id: "match-id",
   mode: "tomat-moba",
+  teamSize: 1, // hanya 1, 2, atau 3
   phase: "lobby",
   createdAt: 0,
   startedAt: null,
@@ -125,6 +147,7 @@ const match = {
       id: "teamA",
       name: "Tim A",
       playerIds: [],
+      maxPlayers: 1,
       tower: { points: 0, maxPoints: 100, destroyed: false },
       base: { points: 0, maxPoints: 100, hp: 100 },
     },
@@ -132,6 +155,7 @@ const match = {
       id: "teamB",
       name: "Tim B",
       playerIds: [],
+      maxPlayers: 1,
       tower: { points: 0, maxPoints: 100, destroyed: false },
       base: { points: 0, maxPoints: 100, hp: 100 },
     },
@@ -198,6 +222,9 @@ Handler harus menolak aksi jika salah satu kondisi ini terjadi:
 - pertandingan bukan pada fase yang sesuai;
 - socket tidak terdaftar sebagai pemain pertandingan;
 - pemain bukan anggota tim yang diklaimnya;
+- `teamSize` bukan 1, 2, atau 3;
+- tim sudah penuh sesuai `teamSize`;
+- pertandingan belum memenuhi jumlah pemain minimum untuk format yang dipilih;
 - pemain sedang stun;
 - pemain sudah memiliki soal aktif;
 - node tidak ada, sudah kedaluwarsa, atau sudah diklaim;
@@ -398,8 +425,8 @@ Tomi memberi bonus setoran. Kelinsay hanya mempercepat gerak ketika `scrolls.len
 
 ## 7. Siklus hidup pertandingan
 
-1. **Membuat lobby:** server membuat `matchId`, konfigurasi, dan room Socket.io.
-2. **Join:** server memvalidasi siswa, kelas, jumlah pemain, dan tim.
+1. **Membuat lobby:** server membuat `matchId`, memilih `teamSize` 1, 2, atau 3, lalu membuat room Socket.io.
+2. **Join:** server memvalidasi siswa, kelas, format pertandingan, jumlah pemain, dan tim.
 3. **Ready check:** pertandingan hanya mulai jika syarat minimal pemain terpenuhi.
 4. **Countdown:** server menyiarkan `match_started` dengan timestamp absolut.
 5. **Running:** server menjalankan spawn node, expiry node, validasi gerak, soal, setoran, dan timer.
@@ -596,6 +623,7 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 
 - cari implementasi Socket.io yang sudah ada;
 - cari pola lobby, room, autentikasi siswa, dan identitas socket;
+- cari lokasi UI yang tepat untuk menampilkan pilihan mode individu dan mode MOBA berdampingan;
 - cari model pet dan bonus yang sudah berjalan;
 - cari pola game screen, route, dan reducer/state;
 - catat file yang akan dipakai ulang dan konflik nama yang harus dihindari;
@@ -626,12 +654,14 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 **Pekerjaan:**
 
 - buat registry pertandingan in-memory;
-- validasi kapasitas dan tim;
+- validasi format hanya `1v1`, `2v2`, atau `3v3`;
+- validasi kapasitas dan keseimbangan kedua tim;
+- jangan mengubah atau memblokir lobby mode individu;
 - gunakan timestamp absolut untuk `startedAt` dan `endsAt`;
 - implementasikan transisi fase;
 - pastikan timer dibersihkan.
 
-**Kriteria selesai:** test lifecycle lulus, termasuk finish otomatis saat waktu habis.
+**Kriteria selesai:** test lifecycle untuk 1v1, 2v2, dan 3v3 lulus, termasuk finish otomatis saat waktu habis dan isolasi dari mode individu.
 
 ### Hari 4 — Spawn, expiry, dan claim node
 
@@ -768,7 +798,8 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 **Pekerjaan:**
 
 - jalankan test backend dan build frontend;
-- uji 3v3 minimal;
+- uji format 1v1, 2v2, dan 3v3;
+- pastikan membuka/menutup MOBA tidak merusak alur mode individu;
 - uji node yang sama diklaim bersamaan;
 - uji jawaban dan setoran ganda;
 - uji refresh/reconnect;
@@ -797,8 +828,9 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 Jika waktu terbatas, MVP berhenti setelah Hari 12 dengan batas berikut:
 
 - satu map;
-- dua tim;
-- maksimal 3v3;
+- dua tim seimbang;
+- format pertandingan hanya 1v1, 2v2, dan 3v3;
+- jumlah pemain maksimal 6 siswa per pertandingan;
 - satu jenis soal per tingkat kesulitan;
 - node hijau/kuning/merah;
 - satu tower dan satu base per tim;
@@ -808,7 +840,7 @@ Jika waktu terbatas, MVP berhenti setelah Hari 12 dengan batas berikut:
 - tidak ada leaderboard permanen;
 - hasil pertandingan hanya disimpan bila sudah ada kebutuhan produk yang jelas.
 
-Jangan menambahkan matchmaking kompleks, chat pertandingan, animasi berat, replay, atau banyak map sebelum loop inti stabil.
+Jangan menambahkan matchmaking kompleks, chat pertandingan, animasi berat, replay, atau banyak map sebelum loop inti stabil. Jangan menghapus atau memigrasikan mode individu untuk mendukung MOBA.
 
 ## 15. Checklist setiap sesi harian
 
@@ -832,7 +864,8 @@ Beberapa detail harus disesuaikan setelah Hari 1:
 - sumber bank soal dan kontrak validasi jawaban;
 - aturan reward TOMAT yang sudah berlaku;
 - cara penyimpanan statistik dan nilai siswa;
-- apakah mode dimainkan antarkelas atau hanya dalam satu kelas;
+- apakah pertandingan MOBA dimainkan antarkelas atau hanya dalam satu kelas;
+- bagaimana tombol/pintu masuk mode individu dan mode MOBA ditempatkan berdampingan;
 - apakah pet yang dipakai harus dikunci dari loadout sebelum join;
 - batasan performa pada perangkat Android target.
 
