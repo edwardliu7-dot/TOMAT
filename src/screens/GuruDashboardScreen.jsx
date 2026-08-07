@@ -1259,6 +1259,7 @@ function TurnamenTab({ kelasDiampu }) {
   const [activeRound,  setActiveRound]  = useState(null) // for round pill navigation
   const [history,      setHistory]      = useState([])
   const [historyLoading, setHistoryLoading] = useState(true)
+  const [showFinishedPodium, setShowFinishedPodium] = useState(false)
   const socketJoined   = useRef(false)
   const prevKelasRef   = useRef(kelasDiampu.slice(0, 1))
 
@@ -1324,6 +1325,7 @@ function TurnamenTab({ kelasDiampu }) {
     })
     socket.on('tournament:finished', ({ state }) => {
       if (state) setTournament(state)
+      setShowFinishedPodium(true)
     })
     socket.on('tournament:cancelled', () => {
       setTournament(null)
@@ -2049,6 +2051,52 @@ function TurnamenTab({ kelasDiampu }) {
             </div>
           )}
         </>
+      ) : showFinishedPodium && tournament.champion ? (
+        // ── Podium otomatis saat turnamen selesai ─────────────────────────────
+        (() => {
+          const champion  = tournament.champion
+          const runnerUp  = tournament.runnerUp
+          const semis     = tournament.semifinalists || []
+
+          const PodiumCard = ({ rank, player, highlight, emoji, accentColor, height }) => player ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flex: 1 }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: `linear-gradient(135deg,${accentColor}33,${accentColor}11)`, border: `2.5px solid ${accentColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: highlight ? `0 0 20px ${accentColor}55` : 'none' }}>{emoji}</div>
+              <div style={{ textAlign: 'center', lineHeight: 1.3, maxWidth: 80 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: accentColor }}>{player.teamName || player.name}</div>
+                {player.teamName && <div style={{ fontSize: 9, color: '#475569', fontStyle: 'italic', marginTop: 2 }}>({player.name})</div>}
+              </div>
+              <div style={{ background: accentColor, color: '#000', borderRadius: 8, padding: '8px 0', width: '100%', textAlign: 'center', fontSize: 18, fontWeight: 900, height, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 8 }}>{rank}</div>
+            </div>
+          ) : null
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: '32px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 2 }}>🏆 TURNAMEN SELESAI</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24' }}>Turnamen Berakhir!</div>
+
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '24px 20px', width: '100%' }}>
+                <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 20 }}>PODIUM</div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', justifyContent: 'center' }}>
+                  <PodiumCard rank="🥈" player={runnerUp}        highlight={false} emoji="🥈" accentColor="#94A3B8" height={60} />
+                  <PodiumCard rank="🥇" player={champion}        highlight={true}  emoji="👑" accentColor="#fbbf24" height={80} />
+                  <PodiumCard rank="🥉" player={semis[0] || null} highlight={false} emoji="🥉" accentColor="#cd7c3a" height={50} />
+                </div>
+                {semis.length > 1 && (
+                  <div style={{ marginTop: 12, fontSize: 11, color: '#64748B' }}>
+                    🥉 {semis.map(s => s.name).join(' & ')} — Peringkat 3
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowFinishedPodium(false)}
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 14, padding: '12px 32px', color: '#94A3B8', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                📊 Lihat Bracket
+              </button>
+            </div>
+          )
+        })()
       ) : (
         // ── Bracket View ─────────────────────────────────────────────────────
         <>
