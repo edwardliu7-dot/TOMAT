@@ -339,7 +339,13 @@ export function createMobaSocketAdapter({
       if (!requireStudent(socket, ack)) return
       const result = manager.createMatch({ teamSize, config })
       if (!result.ok) return emitError(socket, result, ack)
-      await joinOrReconnect(socket, result.matchId, ack)
+      const joined = await joinOrReconnect(socket, result.matchId, ack)
+      // Creating the registry entry and joining it are one user action. If
+      // profile/access validation fails after createMatch succeeds, do not
+      // leave an unreachable empty match in the in-memory registry.
+      if (joined?.ok === false) {
+        manager.cleanupMatch(result.matchId)
+      }
     })
 
     socket.on('moba:join', (payload = {}, ack) =>

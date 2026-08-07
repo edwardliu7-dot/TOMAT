@@ -60,8 +60,11 @@ export function useMobaSocket({
     const onConnect = () => {
       log('connected', socket.id)
       dispatch({ type: MOBA_ACTIONS.CONNECTION, status: MOBA_CONNECTION.CONNECTED })
-      const activeMatchId = matchId || stateRef.current.matchId
-      if (activeMatchId) {
+      // A requested match still needs to be joined first. Requesting a
+      // snapshot here races MobaScreen's join effect when the shared socket is
+      // already connected (for example, after leaving the lobby).
+      const activeMatchId = stateRef.current.matchId
+      if (activeMatchId && (!matchId || activeMatchId === matchId)) {
         socket.emit('moba:state_snapshot', { matchId: activeMatchId })
       }
     }
@@ -148,6 +151,20 @@ export function useMobaSocket({
           dispatch({ type: MOBA_ACTIONS.ERROR, error: result.error })
           reject(Object.assign(new Error(result.error?.message || 'Aksi ditolak.'), result.error))
           return
+        }
+        // create/join/ready and snapshot acknowledgements all contain the
+        // authoritative public snapshot. Hydrate it immediately instead of
+        // waiting for a room broadcast (the creator is not in the room until
+        // after the create request has already emitted its first event).
+        if (result?.snapshot?.id) {
+          dispatch({
+            type: MOBA_ACTIONS.SNAPSHOT,
+            payload: {
+              matchId: result.matchId || result.snapshot.id,
+              serverNow: result.serverNow ?? Date.now(),
+              snapshot: result.snapshot,
+            },
+          })
         }
         resolve(result || { ok: true })
       })

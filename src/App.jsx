@@ -41,6 +41,7 @@ import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 import TentangScreen from './screens/TentangScreen'
 import MobaScreen from './features/moba/MobaScreen.jsx'
+import MobaLobbyScreen from './features/moba/MobaLobbyScreen.jsx'
 import OtaUpdateBanner from './components/OtaUpdateBanner'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
 import MissionProgressToast from './components/MissionProgressToast'
@@ -554,6 +555,7 @@ const SCREEN_TITLES = {
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
   'tournament-wait': 'Turnamen',
+  'moba-lobby': 'Lobby Arena MOBA',
   'moba-match': 'Arena MOBA',
 }
 
@@ -1009,6 +1011,15 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           matchId={mobaMatchId}
           goBack={goBack}
           debug="auto"
+        />
+      )
+    }
+
+    if (current === 'moba-lobby') {
+      return (
+        <MobaLobbyScreen
+          goBack={goBack}
+          onEnterArena={matchId => navigate('moba-match', { matchId })}
         />
       )
     }

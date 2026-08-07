@@ -43,6 +43,7 @@
 - [TOMAT BLP notifications cross-module](tomat-blp-notifications.md) — notifications tabel punya kolom source ('tomat'/'blp'); notifyUser() terima source param; BLP submit notif guru, BLP review notif siswa; AppNotificationBell tampilkan pill badge per source.
 - [TOMAT reward dan task submission](tomat-reward-task-sync.md) — reward coins+EXP harus dibatch per jawaban dan sesi tugas tetap dipertahankan sampai submit nilai dikonfirmasi server.
 - [TOMAT MOBA concept](tomat-moba-concept.md) — mode multiplayer 2D berdampingan dengan mode individu; format 1v1/2v2/3v3 dan karakter berupa Pet siswa.
+- [TOMAT MOBA UI entry](tomat-moba-ui-entry.md) — siswa masuk melalui lobby; acknowledgement yang membawa snapshot harus langsung menghidrasi reducer.
 - [TOMAT MOBA lifecycle](tomat-moba-lifecycle.md) — match manager in-memory terpisah dari Socket.io/UI; lifecycle memakai timestamp absolut dan timer injectable untuk test.
 - [TOMAT MOBA question nodes](tomat-moba-question-nodes.md) — node dibuat server-side dengan validasi arena, TTL, jarak interaksi, dan claim sinkron first-come-first-served.
 - [TOMAT MOBA Pet effects](tomat-moba-pet-effects.md) — seluruh buff Pet MOBA dihitung melalui satu modul server dari PlayerState tervalidasi; Kelinsay, Monyang, Tomi, dan Nananaga tidak boleh kembali tersebar di handler.

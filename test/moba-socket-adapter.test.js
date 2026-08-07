@@ -221,3 +221,21 @@ test('question result stays private while opponents receive only the snapshot', 
 
   adapter.manager.clearAll()
 })
+
+test('failed create join does not leave an orphaned match', async () => {
+  const io = createFakeIo()
+  const adapter = createMobaSocketAdapter({
+    io,
+    getPlayerProfile: async () => ({ petType: 'tomi', petSkinId: 'golden', isDead: true }),
+  })
+  const socket = new FakeSocket('student-dead')
+  io.sockets.sockets.set(socket.id, socket)
+  adapter.attach(socket)
+
+  const created = ackResult()
+  await socket.trigger('moba:create', { teamSize: 1 }, created.ack)
+  const result = await created.promise
+
+  assert.equal(result.ok, false)
+  assert.equal(adapter.manager.listMatches().length, 0)
+})
