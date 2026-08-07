@@ -7,4 +7,4 @@ Adapter Socket.io MOBA harus tetap tipis: autentikasi memakai session socket, id
 
 **Why:** State manager sengaja transport-agnostic, sementara koneksi buruk dapat mengirim ulang aksi dan ID pemain internal server tidak selalu sama dengan user ID yang dipakai reducer.
 
-**How to apply:** Jangan menaruh aturan scoring/lifecycle di handler socket. Saat event soal masuk ke reducer, terima player ID internal maupun user ID milik `self`; setelah reconnect selalu minta snapshot, dan jangan memakai optimistic update sebagai sumber skor/posisi.
+**How to apply:** Jangan menaruh aturan scoring/lifecycle di handler socket. Saat event soal masuk ke reducer, terima player ID internal maupun user ID milik `self`; setelah reconnect selalu minta snapshot, dan jangan memakai optimistic update sebagai sumber skor/posisi. Event `question_closed` harus mengirim hasil lengkap hanya ke pengklaim, sementara lawan menerima snapshot publik tanpa `correct`, `scroll`, atau `immune`; status stun boleh terlihat sebagai bagian dari state pemain.

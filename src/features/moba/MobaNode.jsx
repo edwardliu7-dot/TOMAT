@@ -7,7 +7,7 @@ const DIFFICULTY_LABELS = {
   hard: 'sulit',
 }
 
-export default function MobaNode({ node, style }) {
+export default function MobaNode({ node, style, isNearby = false, onClaim }) {
   if (!node) return null
   const difficulty = node.difficulty || 'easy'
   const label = DIFFICULTY_LABELS[difficulty] || difficulty
@@ -15,14 +15,18 @@ export default function MobaNode({ node, style }) {
   const statusLabel = isAvailable ? 'tersedia' : `status ${node.status || 'tidak tersedia'}`
 
   return (
-    <div
+    <button
+      type="button"
       className={`moba11-node moba11-node--${difficulty} ${isAvailable ? '' : 'moba11-node--claimed'}`}
       style={style}
       aria-label={`Node soal ${label}, ${node.points ?? 0} poin, ${statusLabel}`}
+      disabled={!isAvailable}
+      onClick={() => isAvailable && onClaim?.(node)}
     >
       <CircleHelp size={15} />
       <b>+{node.points ?? 0}</b>
       <span>{label}</span>
-    </div>
+      {isNearby && isAvailable && <em>Ambil</em>}
+    </button>
   )
 }

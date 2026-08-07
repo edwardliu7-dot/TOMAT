@@ -20,6 +20,7 @@ export const MOBA_ACTIONS = Object.freeze({
   SERVER_EVENT: 'moba/server_event',
   ERROR: 'moba/error',
   CLEAR_ERROR: 'moba/clear_error',
+  CLEAR_QUESTION_RESULT: 'moba/clear_question_result',
   RESET: 'moba/reset',
 })
 
@@ -53,6 +54,7 @@ export const MOBA_SERVER_EVENTS = Object.freeze([
  *   players: Record<string, object>,
  *   nodes: Record<string, object>,
  *   activeQuestion: object|null,
+ *   questionResult: object|null,
  *   lastError: object|null,
  *   eventFeed: Array<object>,
  *   serverNow: number|null,
@@ -70,6 +72,7 @@ export const initialMobaState = Object.freeze({
   players: {},
   nodes: {},
   activeQuestion: null,
+  questionResult: null,
   lastError: null,
   eventFeed: [],
   serverNow: null,

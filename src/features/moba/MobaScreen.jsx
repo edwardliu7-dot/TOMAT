@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ArrowLeft, LoaderCircle, Radio, RefreshCw } from 'lucide-react'
 import { useAuth } from '../../AuthContext.jsx'
 import useMobaSocket from './useMobaSocket.js'
 import { selectMobaNodes, selectMobaPlayers } from './mobaReducer.js'
 import MobaArena from './MobaArena.jsx'
 import MobaHud from './MobaHud.jsx'
+import MobaQuestionModal, { MobaQuestionResult } from './MobaQuestionModal.jsx'
 import './moba.css'
 
 function useServerRemaining(match, serverNow) {
@@ -38,8 +39,13 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
     state,
     connected,
     join,
+    move,
+    claimNode,
+    answerQuestion,
+    depositScroll,
     requestSnapshot,
     leave,
+    clearQuestionResult,
   } = useMobaSocket({
     enabled: true,
     userId: user?.id || user?.userId || null,
@@ -51,6 +57,42 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
   const players = useMemo(() => selectMobaPlayers(state), [state])
   const nodes = useMemo(() => selectMobaNodes(state), [state])
   const remainingMs = useServerRemaining(state.match, state.serverNow)
+  const targetTeamId = state.self?.teamId === 'teamA' ? 'teamB' : 'teamA'
+  const canAct = connected &&
+    Boolean(state.self) &&
+    ['running_outer_tower', 'running_main_base'].includes(state.match?.phase) &&
+    Number(state.self?.stunUntil || 0) <= Date.now() &&
+    !state.activeQuestion
+
+  const sendMove = useCallback(direction => {
+    if (!canAct) return
+    move({ direction }).catch(() => {})
+  }, [canAct, move])
+
+  useEffect(() => {
+    const onKeyDown = event => {
+      const directions = {
+        ArrowUp: { x: 0, y: -1 },
+        w: { x: 0, y: -1 },
+        W: { x: 0, y: -1 },
+        ArrowDown: { x: 0, y: 1 },
+        s: { x: 0, y: 1 },
+        S: { x: 0, y: 1 },
+        ArrowLeft: { x: -1, y: 0 },
+        a: { x: -1, y: 0 },
+        A: { x: -1, y: 0 },
+        ArrowRight: { x: 1, y: 0 },
+        d: { x: 1, y: 0 },
+        D: { x: 1, y: 0 },
+      }
+      const direction = directions[event.key]
+      if (!direction || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+      event.preventDefault()
+      sendMove(direction)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [sendMove])
 
   useEffect(() => {
     if (!requestedMatchId || state.matchId || !connected) return
@@ -71,6 +113,27 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
     } finally {
       setSnapshotPending(false)
     }
+  }
+
+  const handleClaimNode = node => {
+    if (!canAct || node?.status !== 'available') return
+    claimNode({ nodeId: node.id }).catch(() => {})
+  }
+
+  const handleAnswer = payload => answerQuestion(payload)
+
+  const handleDeposit = scroll => {
+    if (!canAct || !scroll || !targetTeamId) return
+    depositScroll({
+      targetId: targetTeamId,
+      scrollId: scroll.id,
+    }).catch(() => {})
+  }
+
+  const dismissQuestionResult = () => {
+    // The next server event/snapshot can still replace this result. Clearing
+    // locally only dismisses the transient notification.
+    clearQuestionResult()
   }
 
   if (!requestedMatchId && !state.match) {
@@ -110,18 +173,38 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
           eventFeed={state.eventFeed}
           onSnapshot={refreshSnapshot}
           snapshotPending={snapshotPending}
+          onDeposit={handleDeposit}
+          canAct={canAct}
+          targetTeamId={targetTeamId}
         />
         <section className="moba11-game-panel">
           <div className="moba11-game-panel__status">
             <span>Match #{state.match?.id || matchId || '—'}</span>
             {errorMessage && <span className="moba11-error"><AlertTriangle size={13} /> {errorMessage}</span>}
           </div>
-          <MobaArena match={state.match} players={players} nodes={nodes} selfId={state.selfId} />
+          <MobaArena
+            match={state.match}
+            players={players}
+            nodes={nodes}
+            selfId={state.selfId}
+            onClaimNode={handleClaimNode}
+            onMove={sendMove}
+            canAct={canAct}
+          />
           <div className="moba11-game-panel__note">
             <Radio size={13} /> Posisi, node, skor, dan gulungan berasal dari snapshot server.
             {!connected && <><span>•</span><RefreshCw size={13} /> Menunggu koneksi pulih.</>}
           </div>
         </section>
+        <MobaQuestionModal
+          questionState={state.activeQuestion}
+          onAnswer={handleAnswer}
+          disabled={!connected}
+        />
+        <MobaQuestionResult
+          result={state.questionResult}
+          onClose={dismissQuestionResult}
+        />
       </div>
     </main>
   )

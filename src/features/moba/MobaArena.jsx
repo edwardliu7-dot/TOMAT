@@ -30,8 +30,25 @@ function toPosition(position = {}, arena = DEFAULT_ARENA) {
   }
 }
 
-export default function MobaArena({ match, players = [], nodes = [], selfId }) {
+function distanceBetween(left, right) {
+  return Math.hypot(
+    Number(left?.x || 0) - Number(right?.x || 0),
+    Number(left?.y || 0) - Number(right?.y || 0),
+  )
+}
+
+export default function MobaArena({
+  match,
+  players = [],
+  nodes = [],
+  selfId,
+  onClaimNode,
+  onMove,
+  canAct = false,
+}) {
   const arena = match?.config?.arena || DEFAULT_ARENA
+  const self = players.find(player => player.id === selfId || player.userId === selfId)
+  const interactionRadius = Number(match?.config?.nodeInteractionRadius) || 72
 
   return (
     <div
@@ -53,7 +70,13 @@ export default function MobaArena({ match, players = [], nodes = [], selfId }) {
       <MobaBase team={match?.teams?.teamA} side="left" />
       <MobaBase team={match?.teams?.teamB} side="right" />
       {nodes.map(node => (
-        <MobaNode key={node.id} node={node} style={toPosition(node.position, arena)} />
+        <MobaNode
+          key={node.id}
+          node={node}
+          style={toPosition(node.position, arena)}
+          isNearby={Boolean(self && distanceBetween(self.position, node.position) <= interactionRadius)}
+          onClaim={onClaimNode}
+        />
       ))}
       {players.map(player => (
         <div key={player.id} className="moba11-positioned" style={toPosition(player.position, arena)}>
@@ -61,8 +84,16 @@ export default function MobaArena({ match, players = [], nodes = [], selfId }) {
         </div>
       ))}
       <div className="moba11-arena__center"><Gem size={19} /></div>
+      <div className="moba12-move-pad" aria-label="Kontrol gerak Pet">
+        <button type="button" onClick={() => onMove?.({ x: 0, y: -1 })} disabled={!canAct} aria-label="Gerak ke atas">↑</button>
+        <div>
+          <button type="button" onClick={() => onMove?.({ x: -1, y: 0 })} disabled={!canAct} aria-label="Gerak ke kiri">←</button>
+          <button type="button" onClick={() => onMove?.({ x: 1, y: 0 })} disabled={!canAct} aria-label="Gerak ke kanan">→</button>
+        </div>
+        <button type="button" onClick={() => onMove?.({ x: 0, y: 1 })} disabled={!canAct} aria-label="Gerak ke bawah">↓</button>
+      </div>
     </div>
   )
 }
 
-export { DEFAULT_ARENA, getArenaBounds, toPosition }
+export { DEFAULT_ARENA, distanceBetween, getArenaBounds, toPosition }

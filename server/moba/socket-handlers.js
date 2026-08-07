@@ -93,6 +93,26 @@ export function createMobaSocketAdapter({
       return
     }
 
+    if (event === 'question_closed') {
+      const match = adapter.manager.getMatch(matchId)
+      const player = match?.players.get(payload.playerId)
+      const targetSocketId = player
+        ? adapter.playerSockets.get(player.userId)
+        : null
+      const targetSocket = targetSocketId
+        ? io.sockets.sockets.get(targetSocketId)
+        : null
+
+      // Opponents receive the authoritative snapshot, but not the result of
+      // another player's private question.
+      const { correct, timedOut, immune, scroll, stunUntil, ...publicResult } = payload
+      io.to(matchRoom).emit(eventName, publicResult)
+      // Emit after the public event so the claiming player keeps the private
+      // result when both events arrive through the same socket.
+      targetSocket?.emit(eventName, payload)
+      return
+    }
+
     io.to(matchRoom).emit(eventName, payload)
   }
 

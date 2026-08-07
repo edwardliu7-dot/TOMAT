@@ -150,12 +150,15 @@
 
 .moba11-node { position: absolute; z-index: 6; transform: translate(-50%, -50%); display: grid; place-items: center; width: 47px; height: 47px; border-radius: 50%; transition: transform .2s ease; }
 .moba11-node:hover { transform: translate(-50%, -50%) scale(1.12); }
+.moba11-node:disabled { cursor: not-allowed; }
+.moba11-node:not(:disabled) { cursor: pointer; }
 .moba11-node--easy { background: #e8f2b7; border: 4px solid #82b96d; color: #417452; }
 .moba11-node--medium { background: #ffe3a3; border: 4px solid #dcaa4b; color: #a46c2a; }
 .moba11-node--hard { background: #ffd0bc; border: 4px solid #e47a62; color: #ac4d42; }
 .moba11-node--claimed { opacity: .5; filter: grayscale(.3); }
 .moba11-node b { font-size: 10px; }
 .moba11-node span { font-size: 8px; margin-top: -2px; font-weight: 700; }
+.moba11-node em { position: absolute; bottom: -18px; padding: 3px 6px; border-radius: 999px; background: #193c46; color: #fff8dd; font-size: 8px; font-style: normal; white-space: nowrap; }
 
 .moba11-pet { min-width: 67px; text-align: center; position: relative; }
 .moba11-pet__name { background: #fffbeb; border: 1px solid #d7c998; border-radius: 5px; padding: 3px 5px; font-size: 9px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 4px rgba(53,72,54,.14); }
@@ -201,6 +204,38 @@
 .moba11-empty__card p { margin: 0 0 20px; color: #7c7664; line-height: 1.6; font-size: 13px; }
 .moba11-empty__card button { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 10px; padding: 10px 14px; background: #193c46; color: #fff; font-weight: 700; cursor: pointer; }
 
+.moba12-modal-layer { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 18px; background: rgba(25, 60, 70, .42); backdrop-filter: blur(3px); }
+.moba12-question-modal { width: min(100%, 460px); border: 2px solid #d7c998; border-radius: 22px; padding: 22px; background: #fffbeb; color: #193c46; box-shadow: 0 22px 60px rgba(25, 60, 70, .26); }
+.moba12-modal-kicker { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #8b7550; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.moba12-modal-kicker span { display: inline-flex; align-items: center; gap: 5px; }
+.moba12-question-timer { padding: 6px 9px; border-radius: 999px; background: #e8f2b7; color: #417452; font-variant-numeric: tabular-nums; }
+.moba12-question-timer.is-urgent { background: #ffd0bc; color: #ac4d42; }
+.moba12-question-modal h2 { margin: 22px 0 8px; font-size: clamp(22px, 5vw, 31px); line-height: 1.2; }
+.moba12-modal-help { margin: 0 0 18px; color: #7c7664; font-size: 12px; line-height: 1.5; }
+.moba12-answer-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.moba12-answer-option { display: flex; align-items: center; gap: 10px; min-height: 54px; border: 1px solid #dfd0a9; border-radius: 12px; padding: 10px 12px; background: #fff9e6; color: #3f5f5a; text-align: left; font-weight: 700; cursor: pointer; }
+.moba12-answer-option:hover, .moba12-answer-option.is-selected { border-color: #4c9b8e; background: #dff1e1; color: #193c46; }
+.moba12-answer-option:disabled { cursor: wait; opacity: .65; }
+.moba12-answer-option span { display: grid; place-items: center; width: 25px; height: 25px; flex: 0 0 25px; border-radius: 8px; background: #f0dfaf; color: #8b6d35; font-size: 11px; }
+.moba12-answer-input { width: 100%; box-sizing: border-box; border: 1px solid #d7c998; border-radius: 12px; padding: 13px; background: #fff9e6; color: #193c46; font-size: 16px; }
+.moba12-submit-answer { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 18px; border: 0; border-radius: 12px; padding: 13px; background: #193c46; color: #fff8dd; font-weight: 800; cursor: pointer; }
+.moba12-submit-answer:disabled { cursor: not-allowed; opacity: .5; }
+.moba12-modal-note { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 13px; color: #8c8269; font-size: 10px; }
+.moba12-result { position: fixed; left: 50%; bottom: 22px; z-index: 35; display: flex; align-items: center; gap: 10px; width: min(calc(100% - 28px), 420px); transform: translateX(-50%); border: 1px solid #d7c998; border-radius: 15px; padding: 12px 13px; background: #fffbeb; box-shadow: 0 12px 32px rgba(25, 60, 70, .2); }
+.moba12-result--correct { border-color: #9ac79d; }
+.moba12-result--wrong { border-color: #e9b1a1; }
+.moba12-result__icon { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; border-radius: 50%; background: #dff1e1; color: #3f8b60; }
+.moba12-result--wrong .moba12-result__icon { background: #ffd9cd; color: #ac4d42; }
+.moba12-result strong { font-size: 13px; }
+.moba12-result p { margin: 3px 0 0; color: #7c7664; font-size: 11px; }
+.moba12-result > button { margin-left: auto; border: 0; background: transparent; color: #8c8269; cursor: pointer; }
+.moba12-deposit-button { display: block; width: 100%; margin-top: 8px; border: 1px solid #d7b56a; border-radius: 7px; padding: 5px 3px; background: #ffe8a8; color: #785526; font-size: 9px; font-weight: 800; cursor: pointer; }
+.moba12-deposit-button:disabled { cursor: not-allowed; opacity: .5; }
+.moba12-move-pad { position: absolute; right: 16px; bottom: 16px; z-index: 12; display: grid; justify-items: center; gap: 3px; }
+.moba12-move-pad > div { display: flex; gap: 3px; }
+.moba12-move-pad button { width: 34px; height: 30px; border: 1px solid rgba(25, 60, 70, .3); border-radius: 8px; background: rgba(255, 251, 235, .86); color: #193c46; font-size: 17px; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+.moba12-move-pad button:disabled { cursor: not-allowed; opacity: .45; }
+
 @media (max-width: 820px) {
   .moba11-shell { padding: 12px; }
   .moba11-side-panel { grid-template-columns: 1fr 1fr; }
@@ -220,4 +255,8 @@
   .moba11-arena { min-height: 430px; border-width: 3px; }
   .moba11-base { transform: scale(.78); transform-origin: center; }
   .moba11-side-panel { display: flex; flex-direction: column; }
+  .moba12-modal-layer { align-items: end; padding: 10px; }
+  .moba12-question-modal { border-radius: 18px; padding: 17px; }
+  .moba12-answer-options { grid-template-columns: 1fr; }
+  .moba12-move-pad { right: 9px; bottom: 9px; }
 }

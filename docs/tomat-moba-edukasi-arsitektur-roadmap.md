@@ -810,6 +810,8 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 
 **Tujuan:** membuat alur interaktif pemain.
 
+**Status:** selesai dan terverifikasi.
+
 **Pekerjaan:**
 
 - klik/dekat node mengirim claim;

@@ -30,6 +30,9 @@ export default function MobaHud({
   eventFeed,
   onSnapshot,
   snapshotPending = false,
+  onDeposit,
+  canAct = false,
+  targetTeamId = null,
 }) {
   const teamA = match?.teams?.teamA
   const teamB = match?.teams?.teamB
@@ -95,6 +98,14 @@ export default function MobaHud({
                 <BookOpen size={16} />
                 <b>+{scroll.points}</b>
                 <span>{scroll.difficulty || 'soal'}</span>
+                <button
+                  type="button"
+                  className="moba12-deposit-button"
+                  onClick={() => onDeposit?.(scroll)}
+                  disabled={!canAct || !targetTeamId}
+                >
+                  Setor ke {targetTeamId === 'teamA' ? 'Tim A' : 'Tim B'}
+                </button>
               </div>
             ))}
             {Array.from({ length: Math.max(0, capacity - scrolls.length) }).map((_, index) => (

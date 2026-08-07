@@ -116,6 +116,7 @@ function applyServerEvent(state, event, payload = {}) {
       ...next,
       connection: MOBA_CONNECTION.CONNECTED,
       activeQuestion: null,
+      questionResult: null,
       lastError: null,
       lastEvent: event,
     }
@@ -133,14 +134,20 @@ function applyServerEvent(state, event, payload = {}) {
         ...payload,
         question: payload.question || null,
       },
+      questionResult: null,
       lastEvent: event,
     }
   }
 
   if (event === 'question_closed') {
+    const isSelfResult = !payload.playerId ||
+      payload.playerId === state.selfId ||
+      payload.playerId === state.self?.id ||
+      payload.playerId === state.self?.userId
     return {
       ...next,
       activeQuestion: null,
+      questionResult: isSelfResult ? payload : next.questionResult,
       lastEvent: event,
       eventFeed: addFeed(next, event, payload),
     }
@@ -231,6 +238,8 @@ export function mobaReducer(state = initialMobaState, action = {}) {
       }
     case MOBA_ACTIONS.CLEAR_ERROR:
       return { ...state, lastError: null }
+    case MOBA_ACTIONS.CLEAR_QUESTION_RESULT:
+      return { ...state, questionResult: null }
     case MOBA_ACTIONS.RESET:
       return { ...initialMobaState, selfId: state.selfId }
     default:
