@@ -6,7 +6,7 @@
 
 ## 1. Ringkasan fitur
 
-Mode ini adalah mode multiplayer tim yang hadir **berdampingan dengan mode individu** di TOMAT, bukan pengganti mode individu. Karena jumlah siswa TISA masih terbatas, format pertandingan dibatasi menjadi **1v1, 2v2, atau 3v3**, dengan durasi sekitar 10 menit. Pemain tidak menyerang pemain lain secara langsung. Mereka:
+Mode ini adalah mode multiplayer tim **2 dimensi (2D)** yang hadir **berdampingan dengan mode individu** di TOMAT, bukan pengganti mode individu. Karena jumlah siswa TISA masih terbatas, format pertandingan dibatasi menjadi **1v1, 2v2, atau 3v3**, dengan durasi sekitar 10 menit. Karakter yang bergerak di arena adalah **Pet milik siswa**, bukan avatar manusia terpisah. Pemain tidak menyerang pemain lain secara langsung. Mereka:
 
 1. bergerak di arena;
 2. mengambil titik soal yang muncul secara dinamis;
@@ -23,7 +23,7 @@ Semua keputusan penting harus diproses server. Klien hanya mengirim niat pemain 
 TOMAT memiliki dua jalur bermain yang terpisah:
 
 - **Mode individu:** siswa mengerjakan game matematika sendiri, termasuk Latihan Bebas, Mode Tugas, dan mode individu lain yang sudah tersedia.
-- **Mode MOBA multiplayer:** siswa masuk ke lobby pertandingan 1v1, 2v2, atau 3v3 dan bermain real-time bersama siswa lain.
+- **Mode MOBA multiplayer 2D:** siswa masuk ke lobby pertandingan 1v1, 2v2, atau 3v3 dan mengendalikan Pet masing-masing secara real-time bersama siswa lain.
 
 Mode MOBA tidak menghapus, menggantikan, atau mengubah alur mode individu. Keduanya harus memiliki:
 
@@ -35,6 +35,16 @@ Mode MOBA tidak menghapus, menggantikan, atau mengubah alur mode individu. Kedua
 
 Satu siswa tidak boleh berada di dua pertandingan MOBA aktif sekaligus. Siswa tetap dapat kembali ke mode individu setelah pertandingan MOBA selesai atau dibatalkan.
 
+### 1.2 Model karakter 2D berbasis Pet
+
+- Setiap siswa direpresentasikan di arena oleh satu Pet aktif.
+- Sprite, animasi, nama tampilan, dan efek status yang terlihat adalah milik Pet.
+- `petType` dan `petSkinId` diambil dari loadout siswa yang sudah tervalidasi server.
+- Pet yang dipakai dikunci ketika siswa masuk pertandingan; pergantian Pet hanya boleh dilakukan sebelum join.
+- Tidak ada karakter manusia 3D, kamera 3D, atau engine 3D dalam MVP.
+- Arena menggunakan koordinat 2D pada bidang `x/y`; lane, node soal, tower, dan base juga dirender sebagai elemen 2D.
+- Buff Pet memengaruhi aturan server, sedangkan sprite Pet memberi umpan balik visual atas status seperti membawa gulungan, stun, atau shield.
+
 ## 2. Konteks teknologi dan batasan proyek
 
 - Frontend: React 18 + Vite
@@ -44,6 +54,8 @@ Satu siswa tidak boleh berada di dua pertandingan MOBA aktif sekaligus. Siswa te
 - Aplikasi utama: TOMAT di repository ini
 - Mode baru harus mengikuti pola autentikasi, sesi siswa, pet, dan multiplayer yang sudah ada
 - Jangan membuat sistem login atau pet kedua jika sistem yang sudah ada dapat digunakan kembali
+- Karakter gameplay harus menggunakan Pet dan sistem skin Pet yang sudah ada; jangan membuat avatar karakter baru khusus MOBA
+- Mode ini adalah 2D; jangan menambahkan dependensi rendering 3D untuk kebutuhan MVP
 - Mode MOBA boleh memiliki lobby pertandingan sendiri, tetapi lobby tersebut harus hanya mengelola pertandingan MOBA dan tidak menggantikan lobby/flow mode individu
 - Ukuran pertandingan yang valid hanya `1v1`, `2v2`, dan `3v3`; ukuran lain harus ditolak server
 - Satu pertandingan memiliki jumlah pemain yang sama di kedua tim: 1 lawan 1, 2 lawan 2, atau 3 lawan 3
@@ -180,6 +192,7 @@ State pemain:
   userId,
   displayName,
   petType,                 // tomi | kelinsay | monyang | nananaga
+  petSkinId,               // skin Pet yang dikunci saat join pertandingan
   position: { x, y, lane },
   connected,
   lastInputAt,
@@ -468,7 +481,7 @@ src/
     MobaHud.jsx
     MobaQuestionModal.jsx
     MobaNode.jsx
-    MobaPlayer.jsx
+    MobaPet.jsx             # karakter 2D yang dirender di arena
     MobaBase.jsx
     useMobaSocket.js
     mobaReducer.js
@@ -483,7 +496,7 @@ Jangan membuat file besar yang mencampur reducer React, handler Socket.io, atura
 
 - `MobaScreen`: route, loading, error, reconnect, dan lifecycle pertandingan.
 - `MobaArena`: wrapper peta dan koordinat arena.
-- `MobaPlayer`: sprite/avatar, nama, tim, stun, dan gulungan.
+- `MobaPet`: sprite Pet 2D, nama siswa, tim, stun, shield, dan gulungan.
 - `MobaNode`: node hijau/kuning/merah dengan status available/claimed.
 - `MobaBase`: tower, base, HP/poin, dan indikator jalur terbuka.
 - `MobaHud`: timer, skor, jumlah gulungan, pet, dan status koneksi.
@@ -512,13 +525,14 @@ Reducer hanya menerapkan event server. Optimistic update boleh digunakan untuk a
 
 ### 9.3 Peta sederhana
 
-Untuk MVP, gunakan peta 2D berbasis DOM/CSS:
+Untuk MVP, gunakan peta 2D berbasis DOM/CSS dengan Pet sebagai karakter:
 
 - arena memakai `position: relative`;
-- pemain, node, tower, dan base memakai `position: absolute`;
+- sprite Pet, node, tower, dan base memakai `position: absolute`;
 - koordinat state disimpan dalam rentang normalisasi `0..1`;
 - rendering mengubah koordinat menjadi persentase;
 - lane atau area interaksi ditampilkan dengan elemen dekoratif;
+- sprite Pet dapat memakai asset sprite sheet 2D yang sudah tersedia;
 - jangan mulai dengan canvas atau engine game jika DOM sudah memenuhi kebutuhan MVP.
 
 Canvas atau library game baru hanya dipertimbangkan setelah mekanik server stabil dan kebutuhan performa terbukti.
@@ -549,6 +563,7 @@ Snapshot yang dikirim ke klien harus aman:
       teamId,
       displayName,
       petType,
+      petSkinId,
       position,
       stunUntil,
       scrollCount,
@@ -603,7 +618,7 @@ Jangan pernah memasukkan `answer`, `correctAnswer`, seluruh bank soal, atau info
 
 ### Frontend
 
-- peta tampil dalam desktop dan viewport Android;
+- peta 2D dan sprite Pet tampil dalam desktop dan viewport Android;
 - timer tetap konsisten setelah reconnect;
 - modal soal hanya tampil untuk pemain yang mengklaim node;
 - node yang diklaim pemain lain berubah status tanpa refresh;
@@ -770,7 +785,7 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 
 **Pekerjaan:**
 
-- buat `MobaArena`, `MobaPlayer`, `MobaNode`, dan `MobaBase`;
+- buat `MobaArena`, `MobaPet`, `MobaNode`, dan `MobaBase`;
 - render koordinat normalisasi;
 - tampilkan timer, skor, tower, base, pet, dan gulungan;
 - buat layout responsif untuk Android.
@@ -828,13 +843,15 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 Jika waktu terbatas, MVP berhenti setelah Hari 12 dengan batas berikut:
 
 - satu map;
+- arena 2D tanpa perspektif atau rendering 3D;
 - dua tim seimbang;
 - format pertandingan hanya 1v1, 2v2, dan 3v3;
 - jumlah pemain maksimal 6 siswa per pertandingan;
 - satu jenis soal per tingkat kesulitan;
 - node hijau/kuning/merah;
 - satu tower dan satu base per tim;
-- empat buff pet;
+- karakter berupa Pet dengan empat buff Pet;
+- skin Pet dikunci saat join dan tidak dapat diganti di tengah pertandingan;
 - DOM/CSS 2D;
 - tidak ada combat;
 - tidak ada leaderboard permanen;
