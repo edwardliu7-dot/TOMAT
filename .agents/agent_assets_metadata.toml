@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "ZIyg001HR1Pf9Dbu4nNNH"
+uri = "file://attached_assets/tomat-moba-map-template.jpg"
+type = "image"
+title = "Template Asset Map TOMAT MOBA"
+description = "Template JPG 2048×2048 untuk menggambar map jungle TOMAT: area map, safe area, sungai, tiga jalur, base, tower, jungle, node soal, dan checklist asset."
