@@ -746,6 +746,8 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 
 **Tujuan:** menerapkan empat pet menggunakan satu modul aturan.
 
+**Status:** selesai dan terverifikasi.
+
 **Pekerjaan:**
 
 - Kelinsay: movement speed tanpa gulungan;

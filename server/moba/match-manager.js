@@ -22,13 +22,20 @@ import {
   sanitizeMatchState,
 } from './state.js'
 import { createQuestionNode, distanceBetween, isInsideArena } from './nodes.js'
-import { getPetBonus } from '../pet-bonuses.js'
 import {
   createQuestionSession,
   defaultQuestionGenerator,
   normalizeAnswer,
   publicQuestion,
 } from './questions.js'
+import {
+  canUseWrongAnswerImmunity,
+  consumeWrongAnswerImmunity,
+  getDepositMultiplier,
+  getInitialImmunity,
+  getMovementSpeed,
+  getScrollCapacity,
+} from './pet-effects.js'
 
 const TEAM_IDS = Object.freeze(['teamA', 'teamB'])
 
@@ -284,7 +291,7 @@ export function createMobaMatchManager({
   }
 
   function movementSpeed(player, match) {
-    return match.config.movementSpeed
+    return getMovementSpeed({ player, config: match.config })
   }
 
   function movePlayer({
@@ -383,9 +390,10 @@ export function createMobaMatchManager({
     if (scrollIndex < 0) return fail(ERROR_CODES.SCROLL_NOT_OWNED, { actionId })
 
     const scroll = player.scrolls[scrollIndex]
-    const multiplier = player.petType === 'tomi'
-      ? 1 + (match.config.tomiDepositMultiplier - 1)
-      : 1
+    const multiplier = getDepositMultiplier({
+      player,
+      config: match.config,
+    })
     const awardedPoints = Math.round(scroll.points * multiplier)
 
     player.scrolls.splice(scrollIndex, 1)
@@ -574,14 +582,12 @@ export function createMobaMatchManager({
     }
 
     player.teamId = selectedTeamId
-    const petBonus = getPetBonus(player.petSkinId)
-    if (player.petType === 'monyang') {
-      player.maxScrolls = match.config.monyangScrollCapacity
-    }
-    if (player.petType === 'nananaga') {
-      player.immunityRemaining = petBonus.wrongImmunity || 0
-      player.immunityAvailable = player.immunityRemaining > 0
-    }
+    player.maxScrolls = getScrollCapacity({
+      player,
+      config: match.config,
+    })
+    player.immunityRemaining = getInitialImmunity({ player })
+    player.immunityAvailable = player.immunityRemaining > 0
     match.players.set(player.id, player)
     match.teams[selectedTeamId].playerIds.push(player.id)
     match.eventSeq++
@@ -948,9 +954,10 @@ export function createMobaMatchManager({
     const correct = normalizeAnswer(answer) === normalizeAnswer(
       question.correctAnswer ?? question.answer)
     const node = match.activeNodes.get(session.nodeId)
-    const hardImmunity = node?.difficulty === 'hard' &&
-      player.immunityRemaining > 0 &&
-      player.petType === 'nananaga'
+    const hardImmunity = canUseWrongAnswerImmunity({
+      player,
+      difficulty: node?.difficulty,
+    })
 
     if (correct) {
       player.answeredCorrect++
@@ -977,8 +984,7 @@ export function createMobaMatchManager({
 
     player.answeredWrong++
     if (hardImmunity) {
-      player.immunityRemaining--
-      player.immunityAvailable = player.immunityRemaining > 0
+      consumeWrongAnswerImmunity(player)
       const resultData = clearQuestionSession(match, player, session, {
         reason: 'immune_wrong',
         immune: true,

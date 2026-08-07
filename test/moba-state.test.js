@@ -15,6 +15,14 @@ import {
   sanitizeMatchState,
 } from '../server/moba/state.js'
 import { createMobaMatchManager } from '../server/moba/match-manager.js'
+import {
+  canUseWrongAnswerImmunity,
+  consumeWrongAnswerImmunity,
+  getDepositMultiplier,
+  getInitialImmunity,
+  getMovementSpeed,
+  getScrollCapacity,
+} from '../server/moba/pet-effects.js'
 
 class FakeClock {
   constructor(start = 0) {
@@ -835,6 +843,73 @@ test('Monyang gets two scroll capacity and Nananaga immunity applies only to har
   assert.equal(thirdClaim.error.code, ERROR_CODES.SCROLL_CAPACITY_REACHED)
   monyangManager.clearAll()
   manager.clearAll()
+})
+
+test('Pet effects keep each Hari 8 buff isolated and server-derived', () => {
+  const config = {
+    movementSpeed: 100,
+    kelinsayEmptyScrollSpeedMultiplier: 1.15,
+    baseScrollCapacity: 1,
+    monyangScrollCapacity: 2,
+    tomiDepositMultiplier: 1.2,
+  }
+
+  const kelinsay = {
+    petType: PET_TYPES.KELINSAY,
+    petSkinId: 'pet_kelinsay',
+    scrolls: [],
+  }
+  assert.ok(Math.abs(getMovementSpeed({ player: kelinsay, config }) - 115) < 0.000001)
+  kelinsay.scrolls.push({ id: 'scroll-1', points: 10 })
+  assert.equal(getMovementSpeed({ player: kelinsay, config }), 100)
+
+  const tomi = {
+    petType: PET_TYPES.TOMI,
+    petSkinId: 'golden',
+    scrolls: [],
+  }
+  assert.equal(getDepositMultiplier({ player: tomi, config }), 1.2)
+  assert.equal(getDepositMultiplier({
+    player: { ...tomi, petType: PET_TYPES.KELINSAY },
+    config,
+  }), 1)
+
+  const monyang = {
+    petType: PET_TYPES.MONYANG,
+    petSkinId: 'pet_monyong',
+    scrolls: [],
+  }
+  assert.equal(getScrollCapacity({ player: monyang, config }), 2)
+  assert.equal(getScrollCapacity({
+    player: { ...monyang, petType: PET_TYPES.TOMI },
+    config,
+  }), 1)
+
+  const nananaga = {
+    petType: PET_TYPES.NANANAGA,
+    petSkinId: 'pet_nananaga_es',
+    immunityRemaining: 3,
+  }
+  assert.equal(getInitialImmunity({ player: nananaga }), 3)
+  assert.equal(canUseWrongAnswerImmunity({
+    player: nananaga,
+    difficulty: DIFFICULTIES.HARD,
+  }), true)
+  assert.equal(canUseWrongAnswerImmunity({
+    player: nananaga,
+    difficulty: DIFFICULTIES.EASY,
+  }), false)
+  assert.equal(consumeWrongAnswerImmunity(nananaga), true)
+  assert.equal(nananaga.immunityRemaining, 2)
+  assert.equal(nananaga.immunityAvailable, true)
+
+  assert.equal(getInitialImmunity({
+    player: { petType: PET_TYPES.TOMI, petSkinId: 'golden' },
+  }), 0)
+  assert.equal(getMovementSpeed({
+    player: { petType: PET_TYPES.TOMI, scrolls: [] },
+    config,
+  }), 100)
 })
 
 test('server-authoritative movement ignores client coordinates and enforces speed, bounds, collision, and stun', async () => {

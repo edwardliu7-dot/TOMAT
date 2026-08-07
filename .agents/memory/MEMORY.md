@@ -45,4 +45,5 @@
 - [TOMAT MOBA concept](tomat-moba-concept.md) — mode multiplayer 2D berdampingan dengan mode individu; format 1v1/2v2/3v3 dan karakter berupa Pet siswa.
 - [TOMAT MOBA lifecycle](tomat-moba-lifecycle.md) — match manager in-memory terpisah dari Socket.io/UI; lifecycle memakai timestamp absolut dan timer injectable untuk test.
 - [TOMAT MOBA question nodes](tomat-moba-question-nodes.md) — node dibuat server-side dengan validasi arena, TTL, jarak interaksi, dan claim sinkron first-come-first-served.
+- [TOMAT MOBA Pet effects](tomat-moba-pet-effects.md) — seluruh buff Pet MOBA dihitung melalui satu modul server dari PlayerState tervalidasi; Kelinsay, Monyang, Tomi, dan Nananaga tidak boleh kembali tersebar di handler.
 - [Mockup sandbox icon compatibility](mockup-sandbox-icon-compatibility.md) — cek ekspor lucide-react sebelum memakai ikon baru; gunakan CSS fallback bila ikon tidak tersedia agar preview tidak blank.
