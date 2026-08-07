@@ -1,0 +1,268 @@
+/**
+ * Pure TOMAT MOBA state model.
+ *
+ * MatchState contains Maps and server-only references. Consumers must use
+ * sanitizeMatchState() before sending anything to a client.
+ */
+
+import { randomUUID } from 'node:crypto'
+import {
+  DEFAULT_MOBA_CONFIG,
+  DEFAULT_POSITION_BY_TEAM,
+  DIFFICULTIES,
+  MOBA_MODE,
+  PET_TYPES,
+  PHASES,
+  POINTS_BY_DIFFICULTY,
+  TEAM_SIZES,
+  isValidDifficulty,
+  isValidPetType,
+  isValidTeamSize,
+} from './config.js'
+
+const DEFAULT_PET_TYPE = PET_TYPES.TOMI
+const DEFAULT_DIFFICULTY = DIFFICULTIES.EASY
+
+function createId(prefix) {
+  return `${prefix}-${randomUUID()}`
+}
+
+function clonePosition(position, fallback) {
+  const source = position || fallback
+  return {
+    x: Number.isFinite(source?.x) ? source.x : fallback.x,
+    y: Number.isFinite(source?.y) ? source.y : fallback.y,
+    lane: typeof source?.lane === 'string' ? source.lane : fallback.lane,
+  }
+}
+
+function cloneConfig(config = {}) {
+  return { ...DEFAULT_MOBA_CONFIG, ...config }
+}
+
+function createTeam(id, teamSize, config) {
+  return {
+    id,
+    name: id === 'teamA' ? 'Tim A' : 'Tim B',
+    playerIds: [],
+    maxPlayers: teamSize,
+    tower: {
+      points: 0,
+      maxPoints: config.towerMaxPoints,
+      destroyed: false,
+    },
+    base: {
+      points: 0,
+      maxPoints: config.baseMaxHp,
+      hp: config.baseMaxHp,
+    },
+  }
+}
+
+function assertTeamSize(teamSize) {
+  if (!isValidTeamSize(teamSize)) {
+    throw new RangeError(`teamSize must be one of: ${TEAM_SIZES.join(', ')}`)
+  }
+}
+
+/**
+ * Creates the mutable server-side player state.
+ *
+ * questionSession and recentActionIds are deliberately private fields. They
+ * are useful to future action handlers, but never appear in publicPlayer().
+ */
+export function createPlayerState({
+  id = createId('player'),
+  teamId = 'teamA',
+  userId = id,
+  displayName = 'Pemain',
+  petType = DEFAULT_PET_TYPE,
+  petSkinId = 'golden',
+  position,
+  connected = true,
+  now = Date.now(),
+} = {}) {
+  if (!isValidPetType(petType)) {
+    throw new RangeError(`Unknown MOBA pet type: ${petType}`)
+  }
+
+  const fallbackPosition = DEFAULT_POSITION_BY_TEAM[teamId] || DEFAULT_POSITION_BY_TEAM.teamA
+
+  return {
+    id,
+    teamId,
+    userId,
+    displayName,
+    petType,
+    petSkinId,
+    position: clonePosition(position, fallbackPosition),
+    connected: Boolean(connected),
+    lastInputAt: now,
+    stunUntil: 0,
+    claimedNodeId: null,
+    questionSession: null,
+    scrolls: [],
+    maxScrolls: DEFAULT_MOBA_CONFIG.baseScrollCapacity,
+    score: 0,
+    answeredCorrect: 0,
+    answeredWrong: 0,
+    deposits: 0,
+    immunityAvailable: false,
+    // Server-only idempotency bookkeeping. The lifecycle/action layer owns
+    // its retention policy; the state model only provides the container.
+    recentActionIds: new Map(),
+  }
+}
+
+/**
+ * Creates the mutable server-side match state.
+ */
+export function createMatchState({
+  id = createId('match'),
+  teamSize = 1,
+  now = Date.now(),
+  config: configOverrides = {},
+} = {}) {
+  assertTeamSize(teamSize)
+  const config = cloneConfig(configOverrides)
+
+  return {
+    id,
+    mode: MOBA_MODE,
+    teamSize,
+    phase: PHASES.LOBBY,
+    createdAt: now,
+    startedAt: null,
+    endsAt: null,
+    tick: 0,
+    config,
+    teams: {
+      teamA: createTeam('teamA', teamSize, config),
+      teamB: createTeam('teamB', teamSize, config),
+    },
+    players: new Map(),
+    activeNodes: new Map(),
+    // Server-only question data. Entries can contain answer/correctAnswer.
+    questions: new Map(),
+    timers: {
+      spawn: null,
+      finish: null,
+    },
+    eventSeq: 0,
+  }
+}
+
+function publicPosition(position) {
+  return {
+    x: position.x,
+    y: position.y,
+    lane: position.lane,
+  }
+}
+
+/**
+ * Returns the only node shape safe for a client.
+ */
+export function publicNode(node) {
+  if (!node) return null
+
+  return {
+    id: node.id,
+    difficulty: node.difficulty,
+    points: node.points ?? POINTS_BY_DIFFICULTY[node.difficulty] ?? 0,
+    position: publicPosition(node.position),
+    status: node.status,
+    claimedBy: node.claimedBy ?? null,
+    spawnedAt: node.spawnedAt,
+    expiresAt: node.expiresAt,
+  }
+}
+
+/**
+ * Returns the public player shape. In particular, questionSession is omitted.
+ */
+export function publicPlayer(player) {
+  if (!player) return null
+
+  return {
+    id: player.id,
+    teamId: player.teamId,
+    userId: player.userId,
+    displayName: player.displayName,
+    petType: player.petType,
+    petSkinId: player.petSkinId,
+    position: publicPosition(player.position),
+    connected: player.connected,
+    stunUntil: player.stunUntil,
+    claimedNodeId: player.claimedNodeId,
+    scrolls: player.scrolls.map(({ id, points, difficulty, earnedAt }) => ({
+      id,
+      points,
+      difficulty,
+      earnedAt,
+    })),
+    maxScrolls: player.maxScrolls,
+    score: player.score,
+    answeredCorrect: player.answeredCorrect,
+    answeredWrong: player.answeredWrong,
+    deposits: player.deposits,
+    immunityAvailable: player.immunityAvailable,
+  }
+}
+
+function publicTeam(team) {
+  return {
+    id: team.id,
+    name: team.name,
+    playerIds: [...team.playerIds],
+    maxPlayers: team.maxPlayers,
+    tower: { ...team.tower },
+    base: { ...team.base },
+  }
+}
+
+/**
+ * Creates a detached, client-safe snapshot.
+ *
+ * It intentionally does not include match.questions, match.timers, or any
+ * other server-only bookkeeping. Returned arrays/objects can be mutated by a
+ * caller without changing the live MatchState.
+ */
+export function sanitizeMatchState(match) {
+  if (!match || typeof match !== 'object') {
+    throw new TypeError('match is required')
+  }
+
+  const publicConfig = {
+    durationMs: match.config.durationMs,
+    nodeSpawnIntervalMs: match.config.nodeSpawnIntervalMs,
+    nodeTtlMs: match.config.nodeTtlMs,
+    maxActiveNodes: match.config.maxActiveNodes,
+    towerMaxPoints: match.config.towerMaxPoints,
+    baseMaxHp: match.config.baseMaxHp,
+    wrongAnswerStunMs: match.config.wrongAnswerStunMs,
+    baseScrollCapacity: match.config.baseScrollCapacity,
+    monyangScrollCapacity: match.config.monyangScrollCapacity,
+  }
+
+  return {
+    id: match.id,
+    mode: match.mode,
+    teamSize: match.teamSize,
+    phase: match.phase,
+    createdAt: match.createdAt,
+    startedAt: match.startedAt,
+    endsAt: match.endsAt,
+    tick: match.tick,
+    config: publicConfig,
+    teams: {
+      teamA: publicTeam(match.teams.teamA),
+      teamB: publicTeam(match.teams.teamB),
+    },
+    players: [...match.players.values()].map(publicPlayer),
+    activeNodes: [...match.activeNodes.values()].map(publicNode),
+    eventSeq: match.eventSeq,
+  }
+}
+
+export { DIFFICULTIES, PHASES, POINTS_BY_DIFFICULTY }
