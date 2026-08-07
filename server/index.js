@@ -1,5 +1,6 @@
 import express from 'express'
 import http from 'node:http'
+import path from 'node:path'
 import session from 'express-session'
 import connectPgSimple from 'connect-pg-simple'
 import authRouter from './auth.js'
@@ -18,6 +19,7 @@ import petRouter from './pet.js'
 import eventMissionsRouter from './event-missions-router.js'
 import appVersionRouter from './app-version.js'
 import mobaResultsRouter from './moba-results.js'
+import mobaAssetsRouter from './moba-assets.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
 import { setupMultiplayer } from './multiplayer.js'
@@ -176,6 +178,10 @@ async function createServer() {
 
   // ── App version & OTA bundles ─────────────────────────────────────────────
   app.use('/api/app', appVersionRouter)
+  // Internal-only MOBA Arena Editor assets. This route is intentionally
+  // separate from TOMAT's authenticated product APIs.
+  app.use('/api/internal', mobaAssetsRouter)
+  app.use('/local-moba-assets', express.static(path.resolve(process.cwd(), 'local_moba_assets')))
 
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite')
@@ -185,7 +191,6 @@ async function createServer() {
     })
     app.use(vite.middlewares)
   } else {
-    const path = await import('node:path')
     // Serve OTA bundle zips dari folder bundles/ (dibuat oleh scripts/deploy-bundle.sh)
     app.use('/bundles', express.static(path.resolve(process.cwd(), 'bundles')))
     const distPath = path.resolve(process.cwd(), 'dist')

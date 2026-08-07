@@ -4,6 +4,7 @@ applyNativePatch() // harus dipanggil sebelum semua import lain agar __TOMAT_API
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import MobaArenaEditor from './moba-editor/MobaArenaEditor.jsx'
 import { AuthProvider } from './AuthContext'
 import AssetPreloader from './components/AssetPreloader'
 
@@ -23,12 +24,18 @@ if ('serviceWorker' in navigator) {
   })
 }
 
+const isInternalMobaEditor = window.location.pathname === '/hidden-moba-editor'
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AssetPreloader>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </AssetPreloader>
+    {isInternalMobaEditor ? (
+      <MobaArenaEditor />
+    ) : (
+      <AssetPreloader>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </AssetPreloader>
+    )}
   </React.StrictMode>
 )
