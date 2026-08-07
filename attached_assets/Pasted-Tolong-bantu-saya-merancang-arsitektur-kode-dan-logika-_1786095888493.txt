@@ -1,0 +1,38 @@
+Tolong bantu saya merancang arsitektur kode dan logika untuk mode game baru di platform pembelajaran gamifikasi saya yang bernama "TOMAT". 
+
+Berikut adalah konteks teknologi yang digunakan:
+- Frontend: React 18 + Vite
+- Mobile: Capacitor 8 (Android APK)
+- Backend: Node.js + Express
+- Real-time: Socket.io
+
+Konsep Mode Game (MOBA Edukasi Non-Combat):
+Ini adalah mode multiplayer tim (misalnya 3v3 atau 5v5) yang berfokus pada balapan lari dan menjawab soal, tanpa ada pertarungan langsung (combat) antar pemain. Waktu permainan dibatasi (misalnya 10 menit).
+
+Mekanik Utama:
+1. Titik Soal (Dynamic Spawning): 
+   - Di arena, akan muncul titik-titik soal secara acak (random spawn) setiap beberapa detik.
+   - Ada 3 level titik soal: Hijau (Easy, 10 Poin), Kuning (Medium, 25 Poin), dan Merah (Hard, 50 Poin). Semakin sulit, waktu menjawabnya semakin lama.
+   - Sistemnya "First Come, First Served". Pemain pertama yang menyentuh titik akan membuka pop-up soal. Jika pemain lain datang ke titik yang sama, mereka tidak bisa membukanya kecuali pemain pertama gagal.
+
+2. Sistem Gulungan (Looting):
+   - Jika pemain menjawab soal dengan benar, mereka mendapatkan "Gulungan Soal" dan harus membawanya berlari ke base musuh.
+   - Jika salah, gulungan hangus dan pemain terkena efek "stun" (berhenti bergerak selama 3 detik).
+
+3. Menghancurkan Base (Scoring):
+   - Pemain menyetor gulungan ke Tower Luar musuh terlebih dahulu. Setiap gulungan menambah poin.
+   - Jika poin Tower Luar sudah penuh (misal 100 poin), tower hancur dan jalan ke Base Utama musuh terbuka.
+   - Di Base Utama, tim berlomba menyetor poin sebanyak-banyaknya (sudden death) sampai waktu habis. Tim dengan sisa HP Base paling banyak (atau poin setoran terbanyak) menang.
+
+4. Integrasi Pet (Role/Buff):
+   Siswa menggunakan Pet yang memberikan kemampuan khusus selama permainan:
+   - Kelinsay (Kelinci): +15% Movement Speed saat tidak membawa gulungan.
+   - Monyong (Monyet): Kapasitas bawaan lebih besar (bisa membawa 2 gulungan sekaligus).
+   - Tomi (Marmot): Memberikan bonus +20% poin saat menyetor gulungan ke base.
+   - Nananaga (Naga): Punya shield imunitas; jika salah jawab soal Hard, pemain tidak kena stun dan mendapat kesempatan kedua.
+
+Instruksi untuk AI:
+Berdasarkan konsep di atas, tolong buatkan:
+1. Struktur state management untuk Socket.io di backend (misalnya cara menyimpan array `activeNodes`, state pemain, dan skor base).
+2. Contoh implementasi event emitter/listener Socket.io yang krusial (seperti `spawn_node`, `claim_node`, `deposit_scroll`).
+3. Saran komponen React untuk me-render peta sederhana dan pergerakan pemain.

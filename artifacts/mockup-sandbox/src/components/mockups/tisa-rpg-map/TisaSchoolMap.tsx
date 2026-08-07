@@ -3,9 +3,7 @@ import { DoorOpen, Leaf, Trees } from "lucide-react";
 
 type Room = { name: string; x: number; y: number; w: number; h: number; kind?: "room" | "stairs" | "outdoor" | "roof" };
 
-const floors: Record<number, { subtitle: string; rooms: Room[] }> = {
-  1: {
-    subtitle: "Taman belajar, lapangan, dan sayap adik kecil",
+const rooms: Room[] = [
     rooms: [
       { name: "Toilet Putra", x: 38, y: 34, w: 144, h: 38 }, { name: "Kelas SD", x: 38, y: 74, w: 144, h: 44 },
       { name: "Kelas SD", x: 38, y: 120, w: 144, h: 44 }, { name: "Kelas 1 Umar", x: 38, y: 166, w: 144, h: 54 },
@@ -19,29 +17,7 @@ const floors: Record<number, { subtitle: string; rooms: Room[] }> = {
       { name: "Kelas 1 Said", x: 430, y: 396, w: 276, h: 70 }, { name: "TKB Madinah", x: 430, y: 468, w: 276, h: 70 },
       { name: "Daycare Siang", x: 430, y: 540, w: 276, h: 70 },
     ],
-  },
-  2: {
-    subtitle: "Koridor tengah menghubungkan ruang putri, putra, dan perpustakaan",
-    rooms: [
-      { name: "Toilet Putri", x: 38, y: 30, w: 144, h: 42 }, ...["Kelas SD Putri", "Kelas SD Putri", "Kelas SD Putri", "Kelas SD Putri"].map((name, i) => ({ name, x: 38, y: 74 + i * 52, w: 144, h: 48 })),
-      { name: "Tangga ke lt3", x: 38, y: 286, w: 82, h: 32, kind: "stairs" }, { name: "Ruang Guru", x: 38, y: 322, w: 144, h: 46 },
-      { name: "Toilet Putra", x: 8, y: 392, w: 86, h: 56 }, { name: "Tangga dari lt1", x: 38, y: 396, w: 82, h: 32, kind: "stairs" },
-      ...["Kelas SD Putra", "Kelas SD Putra", "Kelas SD Putra", "Kelas SD Putra", "Kelas SD Putra"].map((name, i) => ({ name, x: 38, y: 452 + i * 50, w: 144, h: 46 })),
-      { name: "Ruang Kepsek SMP", x: 38, y: 704, w: 144, h: 52 }, { name: "Koridor utama", x: 184, y: 382, w: 260, h: 64, kind: "outdoor" },
-      { name: "Mesjid", x: 470, y: 382, w: 238, h: 146, kind: "outdoor" }, { name: "Perpustakaan", x: 470, y: 532, w: 238, h: 92, kind: "outdoor" },
-    ],
-  },
-  3: {
-    subtitle: "Atap sekolah dan ruang eksplorasi untuk kakak-kakak",
-    rooms: [
-      { name: "Toilet Putri", x: 70, y: 30, w: 144, h: 34 }, { name: "Toilet Putra", x: 70, y: 66, w: 144, h: 34 },
-      { name: "Ruang Ummi", x: 70, y: 102, w: 144, h: 40 }, { name: "Lab Komputer", x: 70, y: 144, w: 144, h: 40 },
-      { name: "Kelas 9", x: 70, y: 186, w: 144, h: 60 }, { name: "Kelas 8", x: 70, y: 248, w: 144, h: 60 },
-      { name: "Kelas 7", x: 70, y: 310, w: 144, h: 60 }, { name: "Tangga dari lt2", x: 70, y: 376, w: 82, h: 34, kind: "stairs" },
-      { name: "Atap/Genteng", x: 70, y: 416, w: 144, h: 360, kind: "roof" },
-    ],
-  },
-};
+];
 
 function Sprite({ npc = false }: { npc?: boolean }) {
   return <span className={npc ? "tisa-sprite npc" : "tisa-sprite"} aria-hidden="true"><span className="sprite-head" /><span className="sprite-body" /></span>;
@@ -62,17 +38,15 @@ function RoomTile({ room, active, onSelect }: { room: Room; active: boolean; onS
   );
 }
 
-function WorldDetails({ floor }: { floor: number }) {
-  const windows = Array.from({ length: floor === 3 ? 4 : 10 });
+function WorldDetails() {
+  const windows = Array.from({ length: 10 });
   return <div className="pointer-events-none absolute inset-0 z-10">
     <div className="absolute left-5 top-5 flex gap-2 opacity-80"><Trees className="h-8 w-8 text-[#376b58]" /><Trees className="h-6 w-6 text-[#315f56]" /><span className="h-7 w-14 rounded-full border-2 border-[#315f56] bg-[#4d7d58]" /></div>
     <div className="absolute left-[220px] top-[60px] h-3 w-24 border-y-2 border-[#e0d49b] bg-[#6c8c65]" />
     <div className="absolute left-[222px] top-[88px] flex gap-2">{windows.slice(0, 5).map((_, i) => <i key={i} className="h-3 w-6 border-2 border-[#193243] bg-[#80b8a7]" />)}</div>
     <div className="absolute left-[216px] top-[270px] flex gap-2">{windows.slice(0, 4).map((_, i) => <i key={i} className="h-3 w-6 border-2 border-[#193243] bg-[#80b8a7]" />)}</div>
     <div className="absolute left-[205px] top-[325px] flex gap-3"><span className="h-7 w-16 border-2 border-[#193243] bg-[#a75a43] shadow-[3px_3px_0_#53604e]" /><span className="h-7 w-16 border-2 border-[#193243] bg-[#a75a43] shadow-[3px_3px_0_#53604e]" /><span className="h-7 w-16 border-2 border-[#193243] bg-[#a75a43] shadow-[3px_3px_0_#53604e]" /></div>
-    {floor === 1 && <><div className="absolute left-[490px] top-[158px] h-44 w-52 rounded-[50%] border-4 border-[#e8dfaa]"><span className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-[#e8dfaa]" /></div><div className="absolute left-[530px] top-[180px] h-10 w-2 rotate-12 bg-[#a75a43] shadow-[18px_10px_0_#e3b94e,36px_0_0_#a75a43]" /><div className="absolute left-[655px] top-[47px] h-14 w-12 border-2 border-[#193243] bg-[#bd6b4d] shadow-[inset_0_5px_0_#dfaf67]"><i className="absolute left-2 top-3 h-8 w-1 bg-[#193243]" /><i className="absolute right-2 top-3 h-8 w-1 bg-[#193243]" /></div><div className="absolute right-5 top-[350px] flex gap-2"><Trees className="h-8 w-8 text-[#315f56]" /><Trees className="h-6 w-6 text-[#376b58]" /><Trees className="h-8 w-8 text-[#315f56]" /></div></>}
-    {floor === 2 && <><div className="absolute left-[490px] top-[402px] h-24 w-188 bg-[#b45f4e] opacity-70" /><div className="absolute left-[500px] top-[418px] flex gap-2">{[1,2,3,4,5].map((i)=><i key={i} className="h-20 w-2 rounded bg-[#e6b86d]" />)}</div><div className="absolute left-[505px] top-[570px] flex gap-8"><i className="h-3 w-20 bg-[#7d543c]" /><i className="h-3 w-20 bg-[#7d543c]" /><i className="h-3 w-20 bg-[#7d543c]" /></div><div className="absolute left-[600px] top-[670px] flex gap-3"><span className="h-8 w-2 rounded bg-[#f4df9f]" /><span className="h-8 w-2 rounded bg-[#f4df9f]" /><span className="h-8 w-2 rounded bg-[#f4df9f]" /></div></>}
-    {floor === 3 && <><div className="absolute left-[83px] top-[430px] h-2 w-120 bg-[#7c3f39] shadow-[0_28px_0_#7c3f39,0_56px_0_#7c3f39,0_84px_0_#7c3f39,0_112px_0_#7c3f39,0_140px_0_#7c3f39,0_168px_0_#7c3f39,0_196px_0_#7c3f39,0_224px_0_#7c3f39,0_252px_0_#7c3f39,0_280px_0_#7c3f39" /><div className="absolute left-[45px] top-[420px] h-[350px] w-2 border-l-4 border-dashed border-[#f0d18a]" /><div className="absolute left-[232px] top-[420px] h-[350px] w-2 border-r-4 border-dashed border-[#f0d18a]" /><div className="absolute left-[98px] top-[490px] h-2 w-16 rounded bg-[#6d8b77] shadow-[0_90px_0_#6d8b77,0_180px_0_#6d8b77]" /></>}
+    <><div className="absolute left-[490px] top-[158px] h-44 w-52 rounded-[50%] border-4 border-[#e8dfaa]"><span className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-[#e8dfaa]" /></div><div className="absolute left-[530px] top-[180px] h-10 w-2 rotate-12 bg-[#a75a43] shadow-[18px_10px_0_#e3b94e,36px_0_0_#a75a43]" /><div className="absolute left-[655px] top-[47px] h-14 w-12 border-2 border-[#193243] bg-[#bd6b4d] shadow-[inset_0_5px_0_#dfaf67]"><i className="absolute left-2 top-3 h-8 w-1 bg-[#193243]" /><i className="absolute right-2 top-3 h-8 w-1 bg-[#193243]" /></div><div className="absolute right-5 top-[350px] flex gap-2"><Trees className="h-8 w-8 text-[#315f56]" /><Trees className="h-6 w-6 text-[#376b58]" /><Trees className="h-8 w-8 text-[#315f56]" /></div></>
   </div>;
 }
 
