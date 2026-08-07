@@ -7,8 +7,10 @@
  * registry or mutable state with the existing multiplayer module.
  */
 
+import { randomUUID } from 'node:crypto'
 import {
   ERROR_CODES,
+  DEFAULT_POSITION_BY_TEAM,
   PHASES,
   TEAM_SIZES,
   isValidTeamSize,
@@ -19,7 +21,14 @@ import {
   publicPlayer,
   sanitizeMatchState,
 } from './state.js'
-import { createQuestionNode, distanceBetween } from './nodes.js'
+import { createQuestionNode, distanceBetween, isInsideArena } from './nodes.js'
+import { getPetBonus } from '../pet-bonuses.js'
+import {
+  createQuestionSession,
+  defaultQuestionGenerator,
+  normalizeAnswer,
+  publicQuestion,
+} from './questions.js'
 
 const TEAM_IDS = Object.freeze(['teamA', 'teamB'])
 
@@ -44,6 +53,17 @@ const ERROR_MESSAGES = Object.freeze({
   [ERROR_CODES.QUESTION_ALREADY_ACTIVE]: 'Pemain sudah memiliki node soal aktif.',
   [ERROR_CODES.NODE_NOT_AVAILABLE]: 'Titik soal sudah diambil atau sudah kedaluwarsa.',
   [ERROR_CODES.PLAYER_TOO_FAR]: 'Pemain terlalu jauh dari titik soal.',
+  [ERROR_CODES.ACTION_ID_REQUIRED]: 'actionId wajib dikirim untuk aksi ini.',
+  [ERROR_CODES.QUESTION_EXPIRED]: 'Waktu menjawab soal sudah habis.',
+  [ERROR_CODES.QUESTION_NOT_ACTIVE]: 'Sesi soal tidak aktif.',
+  [ERROR_CODES.SCROLL_CAPACITY_REACHED]: 'Kapasitas gulungan pemain sudah penuh.',
+  [ERROR_CODES.MOVE_INVALID_INPUT]: 'Input gerak tidak valid.',
+  [ERROR_CODES.MOVE_RATE_LIMITED]: 'Gerakan terlalu cepat.',
+  [ERROR_CODES.MOVE_OUT_OF_BOUNDS]: 'Posisi berada di luar arena.',
+  [ERROR_CODES.MOVE_COLLISION]: 'Posisi bertabrakan dengan pemain lain.',
+  [ERROR_CODES.TOWER_STILL_ACTIVE]: 'Tower Luar target belum hancur.',
+  [ERROR_CODES.INVALID_DEPOSIT_TARGET]: 'Target setor harus base lawan.',
+  [ERROR_CODES.SCROLL_NOT_OWNED]: 'Gulungan bukan milik pemain.',
 })
 
 function ok(data = {}) {
@@ -102,6 +122,10 @@ function clearLifecycleTimers(manager, match) {
       node.expiryTimer = null
     }
   }
+  for (const timer of match.questionTimers.values()) {
+    manager.clearTimeout(timer)
+  }
+  match.questionTimers.clear()
 }
 
 function isRunningPhase(phase) {
@@ -110,9 +134,19 @@ function isRunningPhase(phase) {
 }
 
 function matchResult(match) {
+  const teamA = match.teams.teamA
+  const teamB = match.teams.teamB
+  const winner = teamA.score === teamB.score
+    ? 'draw'
+    : teamA.score > teamB.score ? 'teamA' : 'teamB'
   return {
     matchId: match.id,
     phase: match.phase,
+    winner,
+    scores: {
+      teamA: teamA.score,
+      teamB: teamB.score,
+    },
     snapshot: sanitizeMatchState(match),
   }
 }
@@ -143,6 +177,7 @@ export function createMobaMatchManager({
   onEvent = null,
   idFactory = null,
   random = Math.random,
+  questionGenerator = defaultQuestionGenerator,
 } = {}) {
   const matches = new Map()
   const manager = {
@@ -159,6 +194,285 @@ export function createMobaMatchManager({
         ...payload,
       })
     }
+  }
+
+  function rememberAction(player, actionId, result, match) {
+    if (!actionId) return
+    player.recentActionIds.set(actionId, {
+      result,
+      expiresAt: now() + match.config.actionIdTtlMs,
+    })
+  }
+
+  function getRememberedAction(player, actionId, match) {
+    if (!actionId) return null
+    const remembered = player.recentActionIds.get(actionId)
+    if (!remembered) return null
+    if (remembered.expiresAt <= now()) {
+      player.recentActionIds.delete(actionId)
+      return null
+    }
+    return { ...remembered.result, duplicate: true }
+  }
+
+  function clearQuestionSession(match, player, session, {
+    reason,
+    correct = false,
+    timedOut = false,
+    immune = false,
+    scroll = null,
+  } = {}) {
+    const timer = match.questionTimers.get(session.id)
+    if (timer !== undefined) manager.clearTimeout(timer)
+    match.questionTimers.delete(session.id)
+    match.questions.delete(session.questionId)
+    match.closedQuestionSessions.set(session.id, {
+      reason,
+      expiresAt: now() + match.config.actionIdTtlMs,
+    })
+
+    const node = match.activeNodes.get(session.nodeId)
+    if (node) {
+      if (node.expiryTimer !== null && node.expiryTimer !== undefined) {
+        manager.clearTimeout(node.expiryTimer)
+      }
+      match.activeNodes.delete(session.nodeId)
+    }
+    if (player.claimedNodeId === session.nodeId) player.claimedNodeId = null
+    player.questionSession = null
+    match.eventSeq++
+
+    const result = {
+      questionSessionId: session.id,
+      questionId: session.questionId,
+      playerId: player.id,
+      correct,
+      timedOut,
+      immune,
+      stunUntil: player.stunUntil,
+      scroll: scroll
+        ? {
+            id: scroll.id,
+            points: scroll.points,
+            difficulty: scroll.difficulty,
+            questionId: scroll.questionId,
+            earnedAt: scroll.earnedAt,
+          }
+        : null,
+      snapshot: sanitizeMatchState(match),
+    }
+    emit(match, 'question_closed', result)
+    return result
+  }
+
+  function actionKey(actionType, actionId) {
+    return actionId ? `${actionType}:${actionId}` : null
+  }
+
+  function getBasePosition(teamId) {
+    return DEFAULT_POSITION_BY_TEAM[teamId]
+  }
+
+  function normalizeDirection(direction) {
+    if (!direction || typeof direction !== 'object') return null
+    const x = Number(direction.x)
+    const y = Number(direction.y)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null
+    const length = Math.hypot(x, y)
+    if (length === 0 || length > 1.001) return null
+    return { x: x / length, y: y / length }
+  }
+
+  function movementSpeed(player, match) {
+    return match.config.movementSpeed
+  }
+
+  function movePlayer({
+    matchId,
+    playerId,
+    actionId,
+    direction,
+    clientPosition = null,
+  } = {}) {
+    if (!actionId) return fail(ERROR_CODES.ACTION_ID_REQUIRED)
+    const match = getMatch(matchId)
+    if (!match) return fail(ERROR_CODES.MATCH_NOT_FOUND, { actionId })
+    const player = match.players.get(playerId)
+    if (!player) return fail(ERROR_CODES.PLAYER_NOT_IN_MATCH, { actionId })
+    const duplicate = getRememberedAction(player, actionId, match)
+    if (duplicate) return duplicate
+    if (match.phase === PHASES.FINISHED) return fail(ERROR_CODES.MATCH_FINISHED, { actionId })
+    if (!isRunningPhase(match.phase)) return fail(ERROR_CODES.INVALID_PHASE, { actionId })
+    if (!player.connected) return fail(ERROR_CODES.PLAYER_DISCONNECTED, { actionId })
+    if (player.stunUntil > now()) return fail(ERROR_CODES.PLAYER_STUNNED, { actionId })
+
+    const normalized = normalizeDirection(direction)
+    if (!normalized) return fail(ERROR_CODES.MOVE_INVALID_INPUT, { actionId })
+
+    const elapsedMs = now() - player.lastInputAt
+    if (elapsedMs < match.config.movementMinIntervalMs) {
+      return fail(ERROR_CODES.MOVE_RATE_LIMITED, { actionId })
+    }
+
+    // clientPosition is intentionally ignored. The authoritative position is
+    // derived from the last accepted server position and server elapsed time.
+    const maxDistance = movementSpeed(player, match) * elapsedMs / 1000
+    const candidate = {
+      x: player.position.x + normalized.x * maxDistance,
+      y: player.position.y + normalized.y * maxDistance,
+      lane: player.position.lane,
+    }
+    if (!isInsideArena(candidate, match.config.arena)) {
+      return fail(ERROR_CODES.MOVE_OUT_OF_BOUNDS, { actionId })
+    }
+
+    const collision = [...match.players.values()].some(other =>
+      other.id !== player.id &&
+      distanceBetween(candidate, other.position) < match.config.playerCollisionRadius * 2)
+    if (collision) return fail(ERROR_CODES.MOVE_COLLISION, { actionId })
+
+    candidate.lane = candidate.y < 230 ? 'top' : candidate.y > 370 ? 'bottom' : 'middle'
+    player.position = candidate
+    player.lastInputAt = now()
+    match.eventSeq++
+    const result = ok({
+      actionId,
+      playerId,
+      position: { ...player.position },
+      player: publicPlayer(player),
+      snapshot: sanitizeMatchState(match),
+    })
+    rememberAction(player, actionId, result, match)
+    emit(match, 'player_updated', {
+      player: publicPlayer(player),
+      actionId,
+      snapshot: result.snapshot,
+    })
+    return result
+  }
+
+  function depositScroll({
+    matchId,
+    playerId,
+    actionId,
+    targetId,
+    scrollId,
+  } = {}) {
+    if (!actionId) return fail(ERROR_CODES.ACTION_ID_REQUIRED)
+    const match = getMatch(matchId)
+    if (!match) return fail(ERROR_CODES.MATCH_NOT_FOUND, { actionId })
+    const player = match.players.get(playerId)
+    if (!player) return fail(ERROR_CODES.PLAYER_NOT_IN_MATCH, { actionId })
+    const duplicate = getRememberedAction(player, actionId, match)
+    if (duplicate) return duplicate
+    if (match.phase === PHASES.FINISHED) return fail(ERROR_CODES.MATCH_FINISHED, { actionId })
+    if (!isRunningPhase(match.phase)) return fail(ERROR_CODES.INVALID_PHASE, { actionId })
+    if (!player.connected) return fail(ERROR_CODES.PLAYER_DISCONNECTED, { actionId })
+    if (player.stunUntil > now()) return fail(ERROR_CODES.PLAYER_STUNNED, { actionId })
+    if (!isTeamId(targetId) || targetId === player.teamId) {
+      return fail(ERROR_CODES.INVALID_DEPOSIT_TARGET, { actionId })
+    }
+
+    const targetTeam = match.teams[targetId]
+    const scoringTeam = match.teams[player.teamId]
+    const targetBase = getBasePosition(targetId)
+    if (distanceBetween(player.position, targetBase) > match.config.depositInteractionRadius) {
+      return fail(ERROR_CODES.INVALID_DEPOSIT_TARGET, { actionId, reason: 'too_far' })
+    }
+    const scrollIndex = player.scrolls.findIndex(scroll => scroll.id === scrollId)
+    if (scrollIndex < 0) return fail(ERROR_CODES.SCROLL_NOT_OWNED, { actionId })
+
+    const scroll = player.scrolls[scrollIndex]
+    const multiplier = player.petType === 'tomi'
+      ? 1 + (match.config.tomiDepositMultiplier - 1)
+      : 1
+    const awardedPoints = Math.round(scroll.points * multiplier)
+
+    player.scrolls.splice(scrollIndex, 1)
+    player.score += awardedPoints
+    player.deposits++
+    scoringTeam.score += awardedPoints
+
+    let towerDestroyed = false
+    let baseDestroyed = false
+    if (!targetTeam.tower.destroyed) {
+      targetTeam.tower.points = Math.min(
+        targetTeam.tower.maxPoints,
+        targetTeam.tower.points + awardedPoints,
+      )
+      if (targetTeam.tower.points >= targetTeam.tower.maxPoints) {
+        targetTeam.tower.destroyed = true
+        towerDestroyed = true
+        match.phase = PHASES.RUNNING_MAIN_BASE
+      }
+    } else {
+      targetTeam.base.points = Math.min(
+        targetTeam.base.maxPoints,
+        targetTeam.base.points + awardedPoints,
+      )
+      targetTeam.base.hp = Math.max(0, targetTeam.base.hp - awardedPoints)
+      baseDestroyed = targetTeam.base.hp === 0
+    }
+
+    match.eventSeq++
+    const result = ok({
+      actionId,
+      playerId,
+      targetId,
+      scrollId,
+      awardedPoints,
+      tower: { ...targetTeam.tower },
+      base: { ...targetTeam.base },
+      towerDestroyed,
+      baseDestroyed,
+      phase: match.phase,
+      snapshot: sanitizeMatchState(match),
+    })
+    rememberAction(player, actionId, result, match)
+    emit(match, 'scroll_deposited', {
+      playerId,
+      targetId,
+      scrollId,
+      awardedPoints,
+      tower: { ...targetTeam.tower },
+      base: { ...targetTeam.base },
+      snapshot: result.snapshot,
+    })
+    if (towerDestroyed) {
+      emit(match, 'tower_destroyed', {
+        targetId,
+        phase: match.phase,
+        snapshot: result.snapshot,
+      })
+    }
+
+    if (baseDestroyed) {
+      const finishResult = finishMatch(match.id, {
+        reason: 'base_destroyed',
+        result: { winner: player.teamId, defeated: targetId },
+      })
+      return {
+        ...result,
+        phase: finishResult.snapshot.phase,
+        winner: player.teamId,
+        snapshot: finishResult.snapshot,
+      }
+    }
+    return result
+  }
+
+  function timeoutQuestion(matchId, playerId, questionSessionId) {
+    const match = getMatch(matchId)
+    if (!match) return fail(ERROR_CODES.MATCH_NOT_FOUND)
+    const player = match.players.get(playerId)
+    const session = player?.questionSession
+    if (!player || !session || session.id !== questionSessionId) return null
+    player.answeredWrong++
+    player.stunUntil = now() + match.config.wrongAnswerStunMs
+    return clearQuestionSession(match, player, session, {
+      reason: 'timeout',
+      timedOut: true,
+    })
   }
 
   function getMatch(matchId) {
@@ -260,6 +574,14 @@ export function createMobaMatchManager({
     }
 
     player.teamId = selectedTeamId
+    const petBonus = getPetBonus(player.petSkinId)
+    if (player.petType === 'monyang') {
+      player.maxScrolls = match.config.monyangScrollCapacity
+    }
+    if (player.petType === 'nananaga') {
+      player.immunityRemaining = petBonus.wrongImmunity || 0
+      player.immunityAvailable = player.immunityRemaining > 0
+    }
     match.players.set(player.id, player)
     match.teams[selectedTeamId].playerIds.push(player.id)
     match.eventSeq++
@@ -471,9 +793,14 @@ export function createMobaMatchManager({
 
     const player = match.players.get(playerId)
     if (!player) return fail(ERROR_CODES.PLAYER_NOT_IN_MATCH, { actionId })
+    const duplicate = getRememberedAction(player, actionId, match)
+    if (duplicate) return duplicate
     if (!player.connected) return fail(ERROR_CODES.PLAYER_DISCONNECTED, { actionId })
     if (player.stunUntil > now()) return fail(ERROR_CODES.PLAYER_STUNNED, { actionId })
     if (player.claimedNodeId) return fail(ERROR_CODES.QUESTION_ALREADY_ACTIVE, { actionId })
+    if (player.scrolls.length >= player.maxScrolls) {
+      return fail(ERROR_CODES.SCROLL_CAPACITY_REACHED, { actionId })
+    }
 
     const node = match.activeNodes.get(nodeId)
     if (!node || node.status !== 'available') {
@@ -492,7 +819,62 @@ export function createMobaMatchManager({
     node.status = 'claimed'
     node.claimedBy = player.id
     player.claimedNodeId = node.id
+    if (node.expiryTimer !== null && node.expiryTimer !== undefined) {
+      manager.clearTimeout(node.expiryTimer)
+      node.expiryTimer = null
+    }
+
+    let question
+    try {
+      question = questionGenerator({
+        difficulty: node.difficulty,
+        node,
+        match,
+        player,
+        random,
+      })
+    } catch (error) {
+      node.status = 'available'
+      node.claimedBy = null
+      player.claimedNodeId = null
+      return fail(ERROR_CODES.QUESTION_NOT_ACTIVE, { actionId, cause: error.message })
+    }
+    if (!question || question.answer === undefined || !question.prompt) {
+      node.status = 'available'
+      node.claimedBy = null
+      player.claimedNodeId = null
+      return fail(ERROR_CODES.QUESTION_NOT_ACTIVE, { actionId })
+    }
+    const openedAt = now()
+    const session = createQuestionSession({
+      question,
+      playerId: player.id,
+      nodeId: node.id,
+      openedAt,
+      expiresAt: openedAt + match.config.questionTimeMs,
+      questionSessionId: typeof idFactory === 'function'
+        ? idFactory('question-session')
+        : undefined,
+    })
+    question.id = session.questionId
+    question.difficulty = node.difficulty
+    match.questions.set(session.questionId, {
+      ...question,
+      id: session.questionId,
+      answer: question.answer,
+      correctAnswer: question.correctAnswer ?? question.answer,
+    })
+    player.questionSession = session
+    const questionTimer = manager.setTimeout(() => {
+      timeoutQuestion(match.id, player.id, session.id)
+    }, match.config.questionTimeMs)
+    match.questionTimers.set(session.id, questionTimer)
     match.eventSeq++
+    const openedQuestion = publicQuestion({
+      ...question,
+      id: session.questionId,
+      difficulty: node.difficulty,
+    })
     emit(match, 'node_claimed', {
       nodeId: node.id,
       playerId: player.id,
@@ -509,13 +891,116 @@ export function createMobaMatchManager({
       },
       snapshot: sanitizeMatchState(match),
     })
-    return ok({
+    emit(match, 'question_opened', {
+      playerId: player.id,
+      questionSessionId: session.id,
+      expiresAt: session.expiresAt,
+      question: openedQuestion,
+    })
+    const result = ok({
       actionId,
       nodeId: node.id,
       playerId: player.id,
       node,
+      questionSessionId: session.id,
+      question: openedQuestion,
       snapshot: sanitizeMatchState(match),
     })
+    rememberAction(player, actionId, result, match)
+    return result
+  }
+
+  function answerQuestion({
+    matchId,
+    playerId,
+    actionId,
+    questionSessionId,
+    answer,
+  } = {}) {
+    if (!actionId) return fail(ERROR_CODES.ACTION_ID_REQUIRED)
+    const match = getMatch(matchId)
+    if (!match) return fail(ERROR_CODES.MATCH_NOT_FOUND, { actionId })
+    const player = match.players.get(playerId)
+    if (!player) return fail(ERROR_CODES.PLAYER_NOT_IN_MATCH, { actionId })
+    const duplicate = getRememberedAction(player, actionId, match)
+    if (duplicate) return duplicate
+    if (match.phase === PHASES.FINISHED) return fail(ERROR_CODES.MATCH_FINISHED, { actionId })
+
+    const closed = match.closedQuestionSessions.get(questionSessionId)
+    if (closed && closed.expiresAt > now()) {
+      return fail(closed.reason === 'timeout'
+        ? ERROR_CODES.QUESTION_EXPIRED
+        : ERROR_CODES.QUESTION_NOT_ACTIVE, { actionId })
+    }
+    const session = player.questionSession
+    if (!session || session.id !== questionSessionId) {
+      return fail(ERROR_CODES.QUESTION_NOT_ACTIVE, { actionId })
+    }
+    if (now() >= session.expiresAt) {
+      const timedOut = timeoutQuestion(match.id, player.id, session.id)
+      const result = fail(ERROR_CODES.QUESTION_EXPIRED, { actionId })
+      rememberAction(player, actionId, result, match)
+      return result
+    }
+
+    const question = match.questions.get(session.questionId)
+    if (!question) return fail(ERROR_CODES.QUESTION_NOT_ACTIVE, { actionId })
+    const correct = normalizeAnswer(answer) === normalizeAnswer(
+      question.correctAnswer ?? question.answer)
+    const node = match.activeNodes.get(session.nodeId)
+    const hardImmunity = node?.difficulty === 'hard' &&
+      player.immunityRemaining > 0 &&
+      player.petType === 'nananaga'
+
+    if (correct) {
+      player.answeredCorrect++
+      const scroll = {
+        id: typeof idFactory === 'function' ? idFactory('scroll') : `scroll-${randomUUID()}`,
+        points: node.points,
+        difficulty: node.difficulty,
+        questionId: session.questionId,
+        earnedAt: now(),
+      }
+      player.scrolls.push(scroll)
+      const resultData = clearQuestionSession(match, player, session, {
+        reason: 'correct',
+        correct: true,
+        scroll,
+      })
+      const result = ok({
+        actionId,
+        ...resultData,
+      })
+      rememberAction(player, actionId, result, match)
+      return result
+    }
+
+    player.answeredWrong++
+    if (hardImmunity) {
+      player.immunityRemaining--
+      player.immunityAvailable = player.immunityRemaining > 0
+      const resultData = clearQuestionSession(match, player, session, {
+        reason: 'immune_wrong',
+        immune: true,
+      })
+      const result = ok({
+        actionId,
+        ...resultData,
+      })
+      rememberAction(player, actionId, result, match)
+      return result
+    }
+
+    player.stunUntil = now() + match.config.wrongAnswerStunMs
+    const resultData = clearQuestionSession(match, player, session, {
+      reason: 'wrong',
+    })
+    const result = ok({
+      actionId,
+      ...resultData,
+    })
+    rememberAction(player, actionId, result, match)
+    return result
   }
 
   function finishMatch(matchId, { reason = 'manual', result = null } = {}) {
@@ -598,6 +1083,9 @@ export function createMobaMatchManager({
     return expireNode(match, nodeId, reason)
   }
   manager.claimNode = claimNode
+  manager.answerQuestion = answerQuestion
+  manager.movePlayer = movePlayer
+  manager.depositScroll = depositScroll
   manager.clearAll = () => {
     for (const match of matches.values()) clearLifecycleTimers(manager, match)
     matches.clear()

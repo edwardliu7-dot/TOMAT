@@ -1,6 +1,6 @@
 # TOMAT — Arsitektur Mode MOBA Edukasi Non-Combat
 
-> **Status:** rancangan awal, belum diimplementasikan  
+> **Status:** fondasi Hari 1–7 sudah diimplementasikan dan diverifikasi; integrasi Socket.io/frontend dimulai pada Hari 9–12
 > **Tujuan dokumen:** menjadi spesifikasi teknis sekaligus roadmap pengerjaan berkala.  
 > **Batas sesi:** setiap hari dirancang sebagai satu unit kerja yang dapat dikerjakan oleh satu akun dengan limit harian gratis. Jangan menggabungkan dua hari dalam satu sesi kecuali pekerjaan hari sebelumnya sudah selesai dan terverifikasi.
 
@@ -696,6 +696,8 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 
 **Tujuan:** menyambungkan node yang diklaim ke sesi soal.
 
+**Status:** selesai dan terverifikasi.
+
 **Pekerjaan:**
 
 - buat question session server-side;
@@ -711,6 +713,8 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 
 **Tujuan:** membuat pemain dapat bergerak tanpa mempercayai koordinat klien.
 
+**Status:** selesai dan terverifikasi.
+
 **Pekerjaan:**
 
 - definisikan format input gerak;
@@ -724,6 +728,8 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 ### Hari 7 — Tower, Base, dan scoring
 
 **Tujuan:** menyelesaikan loop membawa gulungan ke target.
+
+**Status:** selesai dan terverifikasi.
 
 **Pekerjaan:**
 

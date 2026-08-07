@@ -58,6 +58,7 @@ function createTeam(id, teamSize, config) {
       maxPoints: config.towerMaxPoints,
       destroyed: false,
     },
+    score: 0,
     base: {
       points: 0,
       maxPoints: config.baseMaxHp,
@@ -116,6 +117,7 @@ export function createPlayerState({
     answeredWrong: 0,
     deposits: 0,
     immunityAvailable: false,
+    immunityRemaining: 0,
     // Server-only idempotency bookkeeping. The lifecycle/action layer owns
     // its retention policy; the state model only provides the container.
     recentActionIds: new Map(),
@@ -152,6 +154,8 @@ export function createMatchState({
     activeNodes: new Map(),
     // Server-only question data. Entries can contain answer/correctAnswer.
     questions: new Map(),
+    questionTimers: new Map(),
+    closedQuestionSessions: new Map(),
     timers: {
       countdown: null,
       spawn: null,
@@ -206,10 +210,11 @@ export function publicPlayer(player) {
     ready: Boolean(player.ready),
     stunUntil: player.stunUntil,
     claimedNodeId: player.claimedNodeId,
-    scrolls: player.scrolls.map(({ id, points, difficulty, earnedAt }) => ({
+    scrolls: player.scrolls.map(({ id, points, difficulty, questionId, earnedAt }) => ({
       id,
       points,
       difficulty,
+      questionId,
       earnedAt,
     })),
     maxScrolls: player.maxScrolls,
@@ -218,6 +223,7 @@ export function publicPlayer(player) {
     answeredWrong: player.answeredWrong,
     deposits: player.deposits,
     immunityAvailable: player.immunityAvailable,
+    immunityRemaining: player.immunityRemaining ?? 0,
   }
 }
 
@@ -227,6 +233,7 @@ function publicTeam(team) {
     name: team.name,
     playerIds: [...team.playerIds],
     maxPlayers: team.maxPlayers,
+    score: team.score,
     tower: { ...team.tower },
     base: { ...team.base },
   }
@@ -250,8 +257,15 @@ export function sanitizeMatchState(match) {
     cleanupGraceMs: match.config.cleanupGraceMs,
     nodeSpawnIntervalMs: match.config.nodeSpawnIntervalMs,
     nodeTtlMs: match.config.nodeTtlMs,
+    questionTimeMs: match.config.questionTimeMs,
+    actionIdTtlMs: match.config.actionIdTtlMs,
+    movementSpeed: match.config.movementSpeed,
+    movementMinIntervalMs: match.config.movementMinIntervalMs,
     maxActiveNodes: match.config.maxActiveNodes,
     nodeInteractionRadius: match.config.nodeInteractionRadius,
+    depositInteractionRadius: match.config.depositInteractionRadius,
+    playerCollisionRadius: match.config.playerCollisionRadius,
+    tomiDepositMultiplier: match.config.tomiDepositMultiplier,
     arena: { ...match.config.arena },
     towerMaxPoints: match.config.towerMaxPoints,
     baseMaxHp: match.config.baseMaxHp,

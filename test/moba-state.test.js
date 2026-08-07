@@ -339,7 +339,7 @@ test('requires every player to be ready and never affects individual-game state'
   manager.clearAll()
 })
 
-function startRunningMatch(manager, matchId, clock, config = {}) {
+function startRunningMatch(manager, matchId, clock, config = {}, loadout = {}) {
   assert.equal(manager.createMatch({
     matchId,
     teamSize: 1,
@@ -352,6 +352,8 @@ function startRunningMatch(manager, matchId, clock, config = {}) {
       userId: `${matchId}-user-${teamId}`,
       teamId,
       position: { x: 500, y: 300, lane: 'middle' },
+      petType: teamId === 'teamA' ? loadout.petType : undefined,
+      petSkinId: teamId === 'teamA' ? loadout.petSkinId : undefined,
     })
     assert.equal(joined.ok, true)
     assert.equal(manager.setReady({
@@ -525,5 +527,490 @@ test('automatically spawns nodes on the running interval and stops after finish'
   const eventCountAtFinish = events.filter(event => event.event === 'node_spawned').length
   await clock.advance(500)
   assert.equal(events.filter(event => event.event === 'node_spawned').length, eventCountAtFinish)
+  manager.clearAll()
+})
+
+function createQuestionManager(clock, questionGenerator) {
+  let idSequence = 0
+  return createMobaMatchManager({
+    now: clock.now,
+    setTimeout: clock.setTimeout,
+    clearTimeout: clock.clearTimeout,
+    idFactory: prefix => `${prefix}-question-${++idSequence}`,
+    questionGenerator,
+  })
+}
+
+async function prepareQuestionMatch(manager, clock, {
+  matchId = 'moba-question',
+  petType,
+  petSkinId,
+  config = {},
+} = {}) {
+  await startRunningMatch(manager, matchId, clock, {
+    durationMs: 100_000,
+    nodeTtlMs: 20_000,
+    questionTimeMs: 100,
+    ...config,
+  }, { petType, petSkinId })
+  const player = manager.getMatch(matchId).players.get(`${matchId}-teamA`)
+  return manager
+}
+
+test('opens a private question and a correct answer creates exactly one scroll', async () => {
+  const clock = new FakeClock(5_000)
+  const manager = createQuestionManager(clock, ({ difficulty }) => ({
+    id: 'generated-question',
+    prompt: 'Berapakah 6 × 7?',
+    options: ['40', '42', '48'],
+    answer: '42',
+    difficulty,
+  }))
+  manager.clearAll = manager.clearAll.bind(manager)
+  // Events are asserted through the returned answer and public question below;
+  // this keeps the test independent from any transport adapter.
+  await prepareQuestionMatch(manager, clock, { matchId: 'moba-correct' })
+  const spawned = manager.spawnNode('moba-correct', {
+    difficulty: DIFFICULTIES.MEDIUM,
+    position: { x: 570, y: 300, lane: 'middle' },
+  })
+  const claimed = manager.claimNode({
+    matchId: 'moba-correct',
+    playerId: 'moba-correct-teamA',
+    nodeId: spawned.nodeId,
+    actionId: 'claim-question',
+  })
+  assert.equal(claimed.ok, true)
+  assert.equal(claimed.question.prompt, 'Berapakah 6 × 7?')
+  assert.deepEqual(claimed.question.options, ['40', '42', '48'])
+  assert.equal(claimed.question.answer, undefined)
+  assert.equal(claimed.question.correctAnswer, undefined)
+  assert.equal(claimed.questionSessionId, 'question-session-question-2')
+
+  const answered = manager.answerQuestion({
+    matchId: 'moba-correct',
+    playerId: 'moba-correct-teamA',
+    actionId: 'answer-correct',
+    questionSessionId: claimed.questionSessionId,
+    answer: '42',
+  })
+  assert.equal(answered.ok, true)
+  assert.equal(answered.correct, true)
+  assert.equal(answered.scroll.points, 25)
+  const player = manager.getMatch('moba-correct').players.get('moba-correct-teamA')
+  assert.equal(player.scrolls.length, 1)
+  assert.equal(player.answeredCorrect, 1)
+  assert.equal(player.questionSession, null)
+  assert.equal(manager.getMatch('moba-correct').questions.size, 0)
+  assert.equal(manager.getMatch('moba-correct').activeNodes.size, 0)
+
+  const duplicate = manager.answerQuestion({
+    matchId: 'moba-correct',
+    playerId: 'moba-correct-teamA',
+    actionId: 'answer-correct',
+    questionSessionId: claimed.questionSessionId,
+    answer: '42',
+  })
+  assert.equal(duplicate.ok, true)
+  assert.equal(duplicate.duplicate, true)
+  assert.equal(player.scrolls.length, 1)
+  manager.clearAll()
+})
+
+test('wrong answer closes the session, gives stun, and blocks unauthorized player', async () => {
+  const clock = new FakeClock(6_000)
+  const manager = createQuestionManager(clock, () => ({
+    prompt: '2 + 2 = ...',
+    options: ['3', '4'],
+    answer: '4',
+  }))
+  await prepareQuestionMatch(manager, clock, { matchId: 'moba-wrong' })
+  const spawned = manager.spawnNode('moba-wrong', {
+    position: { x: 570, y: 300, lane: 'middle' },
+  })
+  const claimed = manager.claimNode({
+    matchId: 'moba-wrong',
+    playerId: 'moba-wrong-teamA',
+    nodeId: spawned.nodeId,
+    actionId: 'claim-wrong',
+  })
+  assert.equal(claimed.ok, true)
+
+  const unauthorized = manager.answerQuestion({
+    matchId: 'moba-wrong',
+    playerId: 'moba-wrong-teamB',
+    actionId: 'answer-unauthorized',
+    questionSessionId: claimed.questionSessionId,
+    answer: '4',
+  })
+  assert.equal(unauthorized.ok, false)
+  assert.equal(unauthorized.error.code, ERROR_CODES.QUESTION_NOT_ACTIVE)
+
+  const answered = manager.answerQuestion({
+    matchId: 'moba-wrong',
+    playerId: 'moba-wrong-teamA',
+    actionId: 'answer-wrong',
+    questionSessionId: claimed.questionSessionId,
+    answer: '3',
+  })
+  assert.equal(answered.ok, true)
+  assert.equal(answered.correct, false)
+  assert.equal(answered.immune, false)
+  const player = manager.getMatch('moba-wrong').players.get('moba-wrong-teamA')
+  assert.equal(player.scrolls.length, 0)
+  assert.equal(player.answeredWrong, 1)
+  assert.equal(player.stunUntil, 6_010 + 3_000)
+  assert.equal(player.questionSession, null)
+  manager.clearAll()
+})
+
+test('question timeout closes the session and cannot be submitted again', async () => {
+  const clock = new FakeClock(7_000)
+  const manager = createQuestionManager(clock, () => ({
+    prompt: '5 × 5 = ...',
+    options: ['20', '25'],
+    answer: '25',
+  }))
+  await prepareQuestionMatch(manager, clock, {
+    matchId: 'moba-timeout',
+    config: { questionTimeMs: 100 },
+  })
+  const spawned = manager.spawnNode('moba-timeout', {
+    position: { x: 570, y: 300, lane: 'middle' },
+  })
+  const claimed = manager.claimNode({
+    matchId: 'moba-timeout',
+    playerId: 'moba-timeout-teamA',
+    nodeId: spawned.nodeId,
+    actionId: 'claim-timeout',
+  })
+  assert.equal(claimed.ok, true)
+  await clock.advance(99)
+  assert.ok(manager.getMatch('moba-timeout').players.get('moba-timeout-teamA').questionSession)
+  await clock.advance(1)
+  const player = manager.getMatch('moba-timeout').players.get('moba-timeout-teamA')
+  assert.equal(player.questionSession, null)
+  assert.equal(player.answeredWrong, 1)
+  assert.equal(player.stunUntil, 10_110)
+
+  const lateAnswer = manager.answerQuestion({
+    matchId: 'moba-timeout',
+    playerId: 'moba-timeout-teamA',
+    actionId: 'answer-late',
+    questionSessionId: claimed.questionSessionId,
+    answer: '25',
+  })
+  assert.equal(lateAnswer.ok, false)
+  assert.equal(lateAnswer.error.code, ERROR_CODES.QUESTION_EXPIRED)
+  manager.clearAll()
+})
+
+test('rejects double submit with a different action and enforces scroll capacity', async () => {
+  const clock = new FakeClock(8_000)
+  const manager = createQuestionManager(clock, () => ({
+    prompt: '1 + 1 = ...',
+    options: ['2', '3'],
+    answer: '2',
+  }))
+  await prepareQuestionMatch(manager, clock, {
+    matchId: 'moba-capacity',
+    config: { questionTimeMs: 100 },
+  })
+  const firstNode = manager.spawnNode('moba-capacity', {
+    position: { x: 570, y: 300, lane: 'middle' },
+  })
+  const firstClaim = manager.claimNode({
+    matchId: 'moba-capacity',
+    playerId: 'moba-capacity-teamA',
+    nodeId: firstNode.nodeId,
+  })
+  const firstAnswer = manager.answerQuestion({
+    matchId: 'moba-capacity',
+    playerId: 'moba-capacity-teamA',
+    actionId: 'answer-capacity-first',
+    questionSessionId: firstClaim.questionSessionId,
+    answer: '2',
+  })
+  assert.equal(firstAnswer.ok, true)
+
+  const secondNode = manager.spawnNode('moba-capacity', {
+    position: { x: 570, y: 300, lane: 'middle' },
+  })
+  const secondClaim = manager.claimNode({
+    matchId: 'moba-capacity',
+    playerId: 'moba-capacity-teamA',
+    nodeId: secondNode.nodeId,
+  })
+  assert.equal(secondClaim.ok, false)
+  assert.equal(secondClaim.error.code, ERROR_CODES.SCROLL_CAPACITY_REACHED)
+  manager.clearAll()
+})
+
+test('Monyang gets two scroll capacity and Nananaga immunity applies only to hard questions', async () => {
+  const clock = new FakeClock(9_000)
+  const manager = createQuestionManager(clock, () => ({
+    prompt: 'Soal sulit',
+    options: ['1', '2'],
+    answer: '2',
+  }))
+  await prepareQuestionMatch(manager, clock, {
+    matchId: 'moba-pets',
+    petType: 'nananaga',
+    petSkinId: 'pet_nananaga_es',
+    config: { questionTimeMs: 100 },
+  })
+  const player = manager.getMatch('moba-pets').players.get('moba-pets-teamA')
+  assert.equal(player.immunityRemaining, 3)
+  const hardNode = manager.spawnNode('moba-pets', {
+    difficulty: DIFFICULTIES.HARD,
+    position: { x: 570, y: 300, lane: 'middle' },
+  })
+  const claim = manager.claimNode({
+    matchId: 'moba-pets',
+    playerId: 'moba-pets-teamA',
+    nodeId: hardNode.nodeId,
+  })
+  const wrong = manager.answerQuestion({
+    matchId: 'moba-pets',
+    playerId: 'moba-pets-teamA',
+    actionId: 'answer-shield',
+    questionSessionId: claim.questionSessionId,
+    answer: '1',
+  })
+  assert.equal(wrong.ok, true)
+  assert.equal(wrong.immune, true)
+  assert.equal(wrong.scroll, null)
+  assert.equal(player.stunUntil, 0)
+  assert.equal(player.immunityRemaining, 2)
+
+  const monyangClock = new FakeClock(10_000)
+  const monyangManager = createQuestionManager(monyangClock, () => ({
+    prompt: 'Soal',
+    options: ['1', '2'],
+    answer: '2',
+  }))
+  await prepareQuestionMatch(monyangManager, monyangClock, {
+    matchId: 'moba-monyang',
+    petType: 'monyang',
+    petSkinId: 'pet_monyong',
+    config: { questionTimeMs: 100 },
+  })
+  const monyangPlayer = monyangManager.getMatch('moba-monyang')
+    .players.get('moba-monyang-teamA')
+  assert.equal(monyangPlayer.maxScrolls, 2)
+  for (const suffix of ['one', 'two']) {
+    const node = monyangManager.spawnNode('moba-monyang', {
+      difficulty: DIFFICULTIES.EASY,
+      position: suffix === 'one'
+        ? { x: 570, y: 300, lane: 'middle' }
+        : { x: 570, y: 300, lane: 'middle' },
+    })
+    const claim = monyangManager.claimNode({
+      matchId: 'moba-monyang',
+      playerId: 'moba-monyang-teamA',
+      nodeId: node.nodeId,
+      actionId: `claim-monyang-${suffix}`,
+    })
+    assert.equal(claim.ok, true)
+    const answer = monyangManager.answerQuestion({
+      matchId: 'moba-monyang',
+      playerId: 'moba-monyang-teamA',
+      actionId: `answer-monyang-${suffix}`,
+      questionSessionId: claim.questionSessionId,
+      answer: '2',
+    })
+    assert.equal(answer.ok, true)
+  }
+  assert.equal(monyangPlayer.scrolls.length, 2)
+  const thirdNode = monyangManager.spawnNode('moba-monyang', {
+    position: { x: 570, y: 200, lane: 'top' },
+  })
+  const thirdClaim = monyangManager.claimNode({
+    matchId: 'moba-monyang',
+    playerId: 'moba-monyang-teamA',
+    nodeId: thirdNode.nodeId,
+    actionId: 'claim-monyang-three',
+  })
+  assert.equal(thirdClaim.ok, false)
+  assert.equal(thirdClaim.error.code, ERROR_CODES.SCROLL_CAPACITY_REACHED)
+  monyangManager.clearAll()
+  manager.clearAll()
+})
+
+test('server-authoritative movement ignores client coordinates and enforces speed, bounds, collision, and stun', async () => {
+  const clock = new FakeClock(11_000)
+  const events = []
+  const manager = createMobaMatchManager({
+    now: clock.now,
+    setTimeout: clock.setTimeout,
+    clearTimeout: clock.clearTimeout,
+    onEvent: (event, payload) => events.push({ event, payload }),
+  })
+  await startRunningMatch(manager, 'moba-movement', clock, {
+    movementSpeed: 100,
+    movementMinIntervalMs: 40,
+  })
+
+  const match = manager.getMatch('moba-movement')
+  const player = match.players.get('moba-movement-teamA')
+  const opponent = match.players.get('moba-movement-teamB')
+  opponent.position = { x: 650, y: 300, lane: 'middle' }
+
+  await clock.advance(100)
+  const moved = manager.movePlayer({
+    matchId: 'moba-movement',
+    playerId: player.id,
+    actionId: 'move-1',
+    direction: { x: 1, y: 0 },
+    clientPosition: { x: 900, y: 300, lane: 'middle' },
+  })
+  assert.equal(moved.ok, true)
+  assert.equal(moved.position.x, 511)
+  assert.equal(player.position.x, 511)
+  assert.equal(events.at(-1).event, 'player_updated')
+
+  const duplicate = manager.movePlayer({
+    matchId: 'moba-movement',
+    playerId: player.id,
+    actionId: 'move-1',
+    direction: { x: 1, y: 0 },
+    clientPosition: { x: 900, y: 300, lane: 'middle' },
+  })
+  assert.equal(duplicate.ok, true)
+  assert.equal(duplicate.duplicate, true)
+  assert.equal(player.position.x, 511)
+
+  const tooSoon = manager.movePlayer({
+    matchId: 'moba-movement',
+    playerId: player.id,
+    actionId: 'move-too-soon',
+    direction: { x: 1, y: 0 },
+  })
+  assert.equal(tooSoon.error.code, ERROR_CODES.MOVE_RATE_LIMITED)
+
+  player.position = { x: 920, y: 300, lane: 'middle' }
+  await clock.advance(100)
+  const outOfBounds = manager.movePlayer({
+    matchId: 'moba-movement',
+    playerId: player.id,
+    actionId: 'move-out',
+    direction: { x: 1, y: 0 },
+  })
+  assert.equal(outOfBounds.error.code, ERROR_CODES.MOVE_OUT_OF_BOUNDS)
+  assert.equal(player.position.x, 920)
+
+  player.position = { x: 600, y: 300, lane: 'middle' }
+  await clock.advance(100)
+  const collision = manager.movePlayer({
+    matchId: 'moba-movement',
+    playerId: player.id,
+    actionId: 'move-collision',
+    direction: { x: 1, y: 0 },
+  })
+  assert.equal(collision.error.code, ERROR_CODES.MOVE_COLLISION)
+
+  player.stunUntil = clock.now() + 1_000
+  const stunned = manager.movePlayer({
+    matchId: 'moba-movement',
+    playerId: player.id,
+    actionId: 'move-stunned',
+    direction: { x: -1, y: 0 },
+  })
+  assert.equal(stunned.error.code, ERROR_CODES.PLAYER_STUNNED)
+  manager.clearAll()
+})
+
+test('deposits score the attacking team, destroy tower once, then damage the enemy base', async () => {
+  const clock = new FakeClock(12_000)
+  const manager = createQuestionManager(clock, () => ({
+    prompt: '1 + 1 = ...',
+    options: ['2', '3'],
+    answer: '2',
+  }))
+  await prepareQuestionMatch(manager, clock, {
+    matchId: 'moba-scoring',
+    config: {
+      towerMaxPoints: 12,
+      baseMaxHp: 12,
+      cleanupGraceMs: -1,
+    },
+  })
+  const match = manager.getMatch('moba-scoring')
+  const player = match.players.get('moba-scoring-teamA')
+
+  async function earnScroll(actionSuffix) {
+    player.position = { x: 500, y: 300, lane: 'middle' }
+    const spawned = manager.spawnNode('moba-scoring', {
+      difficulty: DIFFICULTIES.EASY,
+      position: { x: 570, y: 300, lane: 'middle' },
+    })
+    const claim = manager.claimNode({
+      matchId: 'moba-scoring',
+      playerId: player.id,
+      nodeId: spawned.nodeId,
+      actionId: `claim-${actionSuffix}`,
+    })
+    assert.equal(claim.ok, true)
+    const answer = manager.answerQuestion({
+      matchId: 'moba-scoring',
+      playerId: player.id,
+      actionId: `answer-${actionSuffix}`,
+      questionSessionId: claim.questionSessionId,
+      answer: '2',
+    })
+    assert.equal(answer.ok, true)
+  }
+
+  await earnScroll('tower')
+  player.position = { x: 880, y: 300, lane: 'middle' }
+  const first = manager.depositScroll({
+    matchId: 'moba-scoring',
+    playerId: player.id,
+    actionId: 'deposit-tower',
+    targetId: 'teamB',
+    scrollId: player.scrolls[0].id,
+  })
+  assert.equal(first.ok, true)
+  assert.equal(first.awardedPoints, 12)
+  assert.equal(first.towerDestroyed, true)
+  assert.equal(first.phase, PHASES.RUNNING_MAIN_BASE)
+  assert.equal(match.teams.teamA.score, 12)
+  assert.equal(match.teams.teamB.tower.destroyed, true)
+  assert.equal(match.teams.teamB.tower.points, 12)
+  assert.equal(match.teams.teamB.base.hp, 12)
+
+  const repeated = manager.depositScroll({
+    matchId: 'moba-scoring',
+    playerId: player.id,
+    actionId: 'deposit-repeat',
+    targetId: 'teamB',
+    scrollId: first.scrollId,
+  })
+  assert.equal(repeated.error.code, ERROR_CODES.SCROLL_NOT_OWNED)
+
+  await earnScroll('base')
+  player.position = { x: 880, y: 300, lane: 'middle' }
+  const second = manager.depositScroll({
+    matchId: 'moba-scoring',
+    playerId: player.id,
+    actionId: 'deposit-base',
+    targetId: 'teamB',
+    scrollId: player.scrolls[0].id,
+  })
+  assert.equal(second.ok, true)
+  assert.equal(second.baseDestroyed, true)
+  assert.equal(second.phase, PHASES.FINISHED)
+  assert.equal(second.winner, 'teamA')
+  assert.equal(match.teams.teamB.base.hp, 0)
+  assert.equal(match.teams.teamA.score, 24)
+
+  const afterFinish = manager.depositScroll({
+    matchId: 'moba-scoring',
+    playerId: player.id,
+    actionId: 'deposit-after-finish',
+    targetId: 'teamB',
+    scrollId: 'missing',
+  })
+  assert.equal(afterFinish.error.code, ERROR_CODES.MATCH_FINISHED)
   manager.clearAll()
 })
