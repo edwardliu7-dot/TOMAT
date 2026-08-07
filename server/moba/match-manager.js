@@ -913,6 +913,7 @@ export function createMobaMatchManager({
       playerId: player.id,
       questionSessionId: session.id,
       expiresAt: session.expiresAt,
+      serverNow: now(),
       question: openedQuestion,
     })
     const result = ok({
@@ -1092,6 +1093,7 @@ export function createMobaMatchManager({
       question: publicQuestion(question),
       questionSessionId: session.id,
       expiresAt: session.expiresAt,
+      serverNow: now(),
     })
   }
 

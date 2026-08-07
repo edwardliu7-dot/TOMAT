@@ -754,6 +754,68 @@ test('rejects double submit with a different action and enforces scroll capacity
   manager.clearAll()
 })
 
+test('answer and deposit retries are idempotent and never duplicate rewards', async () => {
+  const clock = new FakeClock(8_500)
+  const manager = createQuestionManager(clock, () => ({
+    prompt: '3 + 3 = ...',
+    options: ['6', '7'],
+    answer: '6',
+  }))
+  await prepareQuestionMatch(manager, clock, {
+    matchId: 'moba-idempotent',
+    config: { questionTimeMs: 100 },
+  })
+  const match = manager.getMatch('moba-idempotent')
+  const player = match.players.get('moba-idempotent-teamA')
+  const node = manager.spawnNode('moba-idempotent', {
+    position: { x: 570, y: 300, lane: 'middle' },
+  })
+  const claim = manager.claimNode({
+    matchId: 'moba-idempotent',
+    playerId: player.id,
+    nodeId: node.nodeId,
+    actionId: 'claim-idempotent',
+  })
+  const answerPayload = {
+    matchId: 'moba-idempotent',
+    playerId: player.id,
+    questionSessionId: claim.questionSessionId,
+    answer: '6',
+  }
+  const answer = manager.answerQuestion({
+    ...answerPayload,
+    actionId: 'answer-idempotent',
+  })
+  const answerRetry = manager.answerQuestion({
+    ...answerPayload,
+    actionId: 'answer-idempotent',
+  })
+  assert.equal(answer.ok, true)
+  assert.equal(answerRetry.duplicate, true)
+  assert.equal(player.scrolls.length, 1)
+
+  player.position = { x: 880, y: 300, lane: 'middle' }
+  const depositPayload = {
+    matchId: 'moba-idempotent',
+    playerId: player.id,
+    targetId: 'teamB',
+    scrollId: player.scrolls[0].id,
+  }
+  const deposit = manager.depositScroll({
+    ...depositPayload,
+    actionId: 'deposit-idempotent',
+  })
+  const depositRetry = manager.depositScroll({
+    ...depositPayload,
+    actionId: 'deposit-idempotent',
+  })
+  assert.equal(deposit.ok, true)
+  assert.equal(depositRetry.duplicate, true)
+  assert.equal(match.teams.teamA.score, deposit.awardedPoints)
+  assert.equal(player.deposits, 1)
+  manager.clearAll()
+})
+
 test('Monyang gets two scroll capacity and Nananaga immunity applies only to hard questions', async () => {
   const clock = new FakeClock(9_000)
   const manager = createQuestionManager(clock, () => ({

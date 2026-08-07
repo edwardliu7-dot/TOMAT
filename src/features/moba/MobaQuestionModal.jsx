@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Clock3, LoaderCircle, Shield, Sparkles, X } from 'lucide-react'
 
 function formatQuestionTime(remainingMs) {
@@ -12,6 +12,7 @@ export default function MobaQuestionModal({
   disabled = false,
 }) {
   const [now, setNow] = useState(() => Date.now())
+  const syncRef = useRef(null)
   const [selectedAnswer, setSelectedAnswer] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const question = questionState?.question
@@ -19,6 +20,12 @@ export default function MobaQuestionModal({
   useEffect(() => {
     setSelectedAnswer('')
     setSubmitting(false)
+    if (Number.isFinite(Number(questionState?.serverNow))) {
+      syncRef.current = {
+        serverNow: Number(questionState.serverNow),
+        receivedAt: Date.now(),
+      }
+    }
   }, [questionState?.questionSessionId])
 
   useEffect(() => {
@@ -26,7 +33,11 @@ export default function MobaQuestionModal({
     return () => window.clearInterval(timer)
   }, [])
 
-  const remainingMs = Math.max(0, Number(questionState?.expiresAt || 0) - now)
+  const sync = syncRef.current
+  const estimatedServerNow = sync
+    ? sync.serverNow + (now - sync.receivedAt)
+    : now
+  const remainingMs = Math.max(0, Number(questionState?.expiresAt || 0) - estimatedServerNow)
   const options = useMemo(() => (
     Array.isArray(question?.options) ? question.options : []
   ), [question?.options])

@@ -106,7 +106,14 @@ export function createMobaSocketAdapter({
       // Opponents receive the authoritative snapshot, but not the result of
       // another player's private question.
       const { correct, timedOut, immune, scroll, stunUntil, ...publicResult } = payload
-      io.to(matchRoom).emit(eventName, publicResult)
+      const room = io.to(matchRoom)
+      if (targetSocketId && typeof room.except === 'function') {
+        room.except(targetSocketId).emit(eventName, publicResult)
+      } else {
+        // The fallback keeps lightweight test doubles and older adapters
+        // functional; real Socket.io uses room.except above.
+        room.emit(eventName, publicResult)
+      }
       // Emit after the public event so the claiming player keeps the private
       // result when both events arrive through the same socket.
       targetSocket?.emit(eventName, payload)

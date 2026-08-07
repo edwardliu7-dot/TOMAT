@@ -39,11 +39,17 @@ function createFakeIo() {
     broadcasts,
     sockets: { sockets: new Map() },
     to(room) {
-      return {
+      const broadcast = {
         emit(event, payload) {
           broadcasts.push({ room, event, payload })
         },
       }
+      broadcast.except = socketId => ({
+        emit(event, payload) {
+          broadcasts.push({ room, event, payload, except: socketId })
+        },
+      })
+      return broadcast
     },
   }
 }
@@ -110,6 +116,8 @@ test('adapter gives two sockets the same snapshot and reconnect preserves state'
   const secondSnapshot = second.sent.find(item => item.event === 'moba:state_snapshot')
   assert.equal(firstSnapshot.payload.snapshot.id, matchId)
   assert.equal(secondSnapshot.payload.snapshot.id, firstSnapshot.payload.snapshot.id)
+  assert.equal(first.sent.some(item => item.event === 'moba:question_opened'), false)
+  assert.equal(second.sent.some(item => item.event === 'moba:question_opened'), false)
   assert.deepEqual(
     adapter.manager.listMatches()[0].players.map(player => player.userId).sort(),
     ['student-1', 'student-2'],
@@ -134,6 +142,7 @@ test('adapter gives two sockets the same snapshot and reconnect preserves state'
   assert.equal(reconnectResult.snapshot.players.find(player =>
     player.userId === 'student-1').connected, true)
   assert.ok(reconnecting.sent.some(item => item.event === 'moba:state_snapshot'))
+  adapter.manager.clearAll()
 })
 
 test('question result stays private while opponents receive only the snapshot', async () => {
@@ -196,8 +205,14 @@ test('question result stays private while opponents receive only the snapshot', 
   const publicResult = io.broadcasts
     .filter(item => item.event === 'moba:question_closed')
     .at(-1).payload
+  const publicEvent = io.broadcasts
+    .filter(item => item.event === 'moba:question_closed')
+    .at(-1)
+  assert.equal(publicEvent.except, first.id)
   assert.equal(publicResult.correct, undefined)
   assert.equal(publicResult.scroll, undefined)
+  assert.equal(JSON.stringify(publicResult).includes('correctAnswer'), false)
+  assert.equal(JSON.stringify(publicResult).includes('"answer"'), false)
   const privateResult = first.sent
     .filter(item => item.event === 'moba:question_closed')
     .at(-1).payload

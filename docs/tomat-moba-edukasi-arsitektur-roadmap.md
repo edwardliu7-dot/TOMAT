@@ -826,6 +826,8 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 
 **Tujuan:** menemukan bug race condition, reconnect, dan kebocoran data.
 
+**Status:** selesai dan terverifikasi.
+
 **Pekerjaan:**
 
 - jalankan test backend dan build frontend;
