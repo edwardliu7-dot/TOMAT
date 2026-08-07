@@ -17,6 +17,7 @@ import notifikasiRouter from './notifikasi.js'
 import petRouter from './pet.js'
 import eventMissionsRouter from './event-missions-router.js'
 import appVersionRouter from './app-version.js'
+import mobaResultsRouter from './moba-results.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
 import { setupMultiplayer } from './multiplayer.js'
@@ -160,6 +161,7 @@ async function createServer() {
   app.use('/api/auth', authRouter)
   app.use('/api/guru', guruRouter)
   app.use('/api/guru/insight', insightRouter)
+  app.use('/api/guru/moba/results', mobaResultsRouter)
   app.use('/api/siswa', siswaRouter)
   app.use('/api/siswa/player', playerRouter)
   app.use('/api/siswa/toko', tokoRouter)

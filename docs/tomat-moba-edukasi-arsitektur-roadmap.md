@@ -854,6 +854,8 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 - buat checklist observability dan rollback;
 - dokumentasikan cara menjalankan test dan simulasi lokal.
 
+**Status:** selesai dan terverifikasi.
+
 **Kriteria selesai:** mode dapat dinyalakan secara terbatas, hasil tidak menggandakan reward, dan ada cara mematikan fitur tanpa merusak mode TOMAT lain.
 
 ## 14. Urutan aman untuk MVP

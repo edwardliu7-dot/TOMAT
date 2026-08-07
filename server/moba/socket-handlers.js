@@ -7,6 +7,8 @@
 
 import { createMobaMatchManager } from './match-manager.js'
 import { ERROR_CODES, PET_TYPES } from './config.js'
+import { canStudentUseMoba } from './access.js'
+import { createMobaResultStore } from './results.js'
 import { computeHunger, getHungerUntil, skinToPetType } from '../pet-state.js'
 
 const ROOM_PREFIX = 'moba:match:'
@@ -50,6 +52,8 @@ export function createMobaSocketAdapter({
   pool = null,
   getPlayerProfile = null,
   reconnectGraceMs = DEFAULT_RECONNECT_GRACE_MS,
+  resultStore: suppliedResultStore = null,
+  mobaEnv = process.env,
 } = {}) {
   if (!io || typeof io.to !== 'function') {
     throw new TypeError('io is required')
@@ -57,6 +61,9 @@ export function createMobaSocketAdapter({
 
   const reconnectTimers = new Map()
   let adapter
+  const resultStore = suppliedResultStore || (pool
+    ? createMobaResultStore({ pool })
+    : null)
 
   const loadProfile = getPlayerProfile || (async userId => {
     if (!pool) return defaultProfile()
@@ -123,8 +130,17 @@ export function createMobaSocketAdapter({
     io.to(matchRoom).emit(eventName, payload)
   }
 
+  function handleManagerEvent(event, payload = {}) {
+    emitManagerEvent(event, payload)
+    if (event === 'match_finished' && resultStore) {
+      void resultStore.settleMatch(payload).catch(error => {
+        console.error('[moba-results] settlement error:', error)
+      })
+    }
+  }
+
   const manager = suppliedManager || createMobaMatchManager({
-    onEvent: emitManagerEvent,
+    onEvent: handleManagerEvent,
   })
 
   adapter = {
@@ -149,6 +165,21 @@ export function createMobaSocketAdapter({
         error: {
           code: ERROR_CODES.PLAYER_NOT_IN_MATCH,
           message: 'Hanya siswa yang dapat bermain MOBA.',
+        },
+      }, ack)
+      return false
+    }
+    if (!canStudentUseMoba(socket.data.userId, mobaEnv)) {
+      const disabled = ['0', 'false', 'off', 'no'].includes(
+        String(mobaEnv.MOBA_ENABLED ?? 'true').trim().toLowerCase(),
+      )
+      emitError(socket, {
+        ok: false,
+        error: {
+          code: disabled ? ERROR_CODES.MOBA_DISABLED : ERROR_CODES.MOBA_ACCESS_RESTRICTED,
+          message: disabled
+            ? 'Arena MOBA sedang dimatikan sementara.'
+            : 'Akses Arena MOBA belum dibuka untuk akun ini.',
         },
       }, ack)
       return false

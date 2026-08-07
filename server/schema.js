@@ -1143,6 +1143,27 @@ export async function ensureSchema() {
   await pool.query(`ALTER TABLE point_records ADD COLUMN IF NOT EXISTS guru_id text`)
   await pool.query(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'tomat'`)
 
+  // MOBA results are durable, while the realtime match registry remains
+  // in-memory. match_id is the settlement idempotency key for rewards.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS moba_match_results (
+      match_id text PRIMARY KEY,
+      team_size int NOT NULL CHECK (team_size IN (1, 2, 3)),
+      winner text NOT NULL CHECK (winner IN ('teamA', 'teamB', 'draw')),
+      team_a_score int NOT NULL DEFAULT 0 CHECK (team_a_score >= 0),
+      team_b_score int NOT NULL DEFAULT 0 CHECK (team_b_score >= 0),
+      snapshot jsonb NOT NULL,
+      reward_coins int NOT NULL DEFAULT 0 CHECK (reward_coins >= 0),
+      rewarded_player_ids text[] NOT NULL DEFAULT '{}',
+      finished_at timestamptz NOT NULL DEFAULT now(),
+      reward_issued_at timestamptz
+    )
+  `)
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS moba_match_results_finished_idx
+      ON moba_match_results (finished_at DESC)
+  `)
+
   // Hapus student_points jika masih ada (sudah di-rename ke point_records di skema lama)
   await pool.query(`DROP TABLE IF EXISTS student_points CASCADE`).catch(() => {})
 
