@@ -44,4 +44,5 @@
 - [TOMAT reward dan task submission](tomat-reward-task-sync.md) — reward coins+EXP harus dibatch per jawaban dan sesi tugas tetap dipertahankan sampai submit nilai dikonfirmasi server.
 - [TOMAT MOBA concept](tomat-moba-concept.md) — mode multiplayer 2D berdampingan dengan mode individu; format 1v1/2v2/3v3 dan karakter berupa Pet siswa.
 - [TOMAT MOBA lifecycle](tomat-moba-lifecycle.md) — match manager in-memory terpisah dari Socket.io/UI; lifecycle memakai timestamp absolut dan timer injectable untuk test.
+- [TOMAT MOBA question nodes](tomat-moba-question-nodes.md) — node dibuat server-side dengan validasi arena, TTL, jarak interaksi, dan claim sinkron first-come-first-served.
 - [Mockup sandbox icon compatibility](mockup-sandbox-icon-compatibility.md) — cek ekspor lucide-react sebelum memakai ikon baru; gunakan CSS fallback bila ikon tidak tersedia agar preview tidak blank.

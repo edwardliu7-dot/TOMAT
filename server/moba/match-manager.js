@@ -19,6 +19,7 @@ import {
   publicPlayer,
   sanitizeMatchState,
 } from './state.js'
+import { createQuestionNode, distanceBetween } from './nodes.js'
 
 const TEAM_IDS = Object.freeze(['teamA', 'teamB'])
 
@@ -36,6 +37,13 @@ const ERROR_MESSAGES = Object.freeze({
   [ERROR_CODES.PLAYER_NOT_READY]: 'Semua pemain harus siap sebelum pertandingan dimulai.',
   [ERROR_CODES.NOT_LOBBY]: 'Aksi ini hanya dapat dilakukan di lobby.',
   [ERROR_CODES.COUNTDOWN_IN_PROGRESS]: 'Countdown pertandingan sedang berjalan.',
+  [ERROR_CODES.INVALID_DIFFICULTY]: 'Tingkat kesulitan node tidak valid.',
+  [ERROR_CODES.INVALID_SPAWN_POSITION]: 'Tidak ada posisi spawn node yang valid.',
+  [ERROR_CODES.PLAYER_DISCONNECTED]: 'Pemain sedang tidak terhubung.',
+  [ERROR_CODES.PLAYER_STUNNED]: 'Pemain sedang terkena stun.',
+  [ERROR_CODES.QUESTION_ALREADY_ACTIVE]: 'Pemain sudah memiliki node soal aktif.',
+  [ERROR_CODES.NODE_NOT_AVAILABLE]: 'Titik soal sudah diambil atau sudah kedaluwarsa.',
+  [ERROR_CODES.PLAYER_TOO_FAR]: 'Pemain terlalu jauh dari titik soal.',
 })
 
 function ok(data = {}) {
@@ -88,6 +96,17 @@ function clearLifecycleTimers(manager, match) {
   clearTimer(manager, match, 'cleanup')
   // Reserved for the node subsystem added on Day 4.
   clearTimer(manager, match, 'spawn')
+  for (const node of match.activeNodes.values()) {
+    if (node.expiryTimer !== null && node.expiryTimer !== undefined) {
+      manager.clearTimeout(node.expiryTimer)
+      node.expiryTimer = null
+    }
+  }
+}
+
+function isRunningPhase(phase) {
+  return phase === PHASES.RUNNING_OUTER_TOWER ||
+    phase === PHASES.RUNNING_MAIN_BASE
 }
 
 function matchResult(match) {
@@ -123,6 +142,7 @@ export function createMobaMatchManager({
   clearTimeout: clearTimeoutFn = clearTimeout,
   onEvent = null,
   idFactory = null,
+  random = Math.random,
 } = {}) {
   const matches = new Map()
   const manager = {
@@ -340,6 +360,162 @@ export function createMobaMatchManager({
     match.timers.finish = manager.setTimeout(() => {
       finishMatch(match.id, { reason: 'time_expired' })
     }, match.config.durationMs)
+    scheduleNextNodeSpawn(match)
+  }
+
+  function scheduleNextNodeSpawn(match) {
+    if (!isRunningPhase(match.phase)) return
+    clearTimer(manager, match, 'spawn')
+    match.timers.spawn = manager.setTimeout(() => {
+      match.timers.spawn = null
+      if (!isRunningPhase(match.phase)) return
+      spawnNode(match.id)
+      scheduleNextNodeSpawn(match)
+    }, match.config.nodeSpawnIntervalMs)
+  }
+
+  function expireNode(match, nodeId, reason = 'ttl') {
+    const node = match.activeNodes.get(nodeId)
+    if (!node) return fail(ERROR_CODES.NODE_NOT_AVAILABLE)
+    if (node.expiryTimer !== null && node.expiryTimer !== undefined) {
+      manager.clearTimeout(node.expiryTimer)
+      node.expiryTimer = null
+    }
+    node.status = 'expired'
+    node.claimedBy = null
+    match.activeNodes.delete(nodeId)
+    match.eventSeq++
+    emit(match, 'node_expired', {
+      node: {
+        id: node.id,
+        difficulty: node.difficulty,
+        points: node.points,
+        position: { ...node.position },
+        status: node.status,
+        claimedBy: null,
+        spawnedAt: node.spawnedAt,
+        expiresAt: node.expiresAt,
+      },
+      reason,
+      snapshot: sanitizeMatchState(match),
+    })
+    return ok({ nodeId, reason, snapshot: sanitizeMatchState(match) })
+  }
+
+  function scheduleNodeExpiry(match, node) {
+    const delay = Math.max(0, node.expiresAt - now())
+    node.expiryTimer = manager.setTimeout(() => {
+      if (match.activeNodes.has(node.id)) expireNode(match, node.id, 'ttl')
+    }, delay)
+  }
+
+  function spawnNode(matchId, {
+    difficulty = null,
+    position = null,
+    nodeNow = now(),
+  } = {}) {
+    const match = getMatch(matchId)
+    if (!match) return fail(ERROR_CODES.MATCH_NOT_FOUND)
+    if (!isRunningPhase(match.phase)) {
+      return match.phase === PHASES.FINISHED
+        ? fail(ERROR_CODES.MATCH_FINISHED)
+        : fail(ERROR_CODES.INVALID_PHASE)
+    }
+    if (match.activeNodes.size >= match.config.maxActiveNodes) {
+      return fail(ERROR_CODES.NODE_NOT_AVAILABLE, { reason: 'max_active_nodes' })
+    }
+
+    const result = createQuestionNode({
+      match,
+      now: nodeNow,
+      difficulty,
+      position,
+      random,
+      idFactory,
+    })
+    if (!result.ok) return fail(result.code)
+
+    match.activeNodes.set(result.node.id, result.node)
+    match.eventSeq++
+    scheduleNodeExpiry(match, result.node)
+    emit(match, 'node_spawned', {
+      node: {
+        id: result.node.id,
+        difficulty: result.node.difficulty,
+        points: result.node.points,
+        position: { ...result.node.position },
+        status: result.node.status,
+        claimedBy: null,
+        spawnedAt: result.node.spawnedAt,
+        expiresAt: result.node.expiresAt,
+      },
+      snapshot: sanitizeMatchState(match),
+    })
+    return ok({
+      nodeId: result.node.id,
+      node: result.node,
+      snapshot: sanitizeMatchState(match),
+    })
+  }
+
+  function claimNode({
+    matchId,
+    playerId,
+    nodeId,
+    actionId = null,
+  } = {}) {
+    const match = getMatch(matchId)
+    if (!match) return fail(ERROR_CODES.MATCH_NOT_FOUND, { actionId })
+    if (match.phase === PHASES.FINISHED) return fail(ERROR_CODES.MATCH_FINISHED, { actionId })
+    if (!isRunningPhase(match.phase)) return fail(ERROR_CODES.INVALID_PHASE, { actionId })
+
+    const player = match.players.get(playerId)
+    if (!player) return fail(ERROR_CODES.PLAYER_NOT_IN_MATCH, { actionId })
+    if (!player.connected) return fail(ERROR_CODES.PLAYER_DISCONNECTED, { actionId })
+    if (player.stunUntil > now()) return fail(ERROR_CODES.PLAYER_STUNNED, { actionId })
+    if (player.claimedNodeId) return fail(ERROR_CODES.QUESTION_ALREADY_ACTIVE, { actionId })
+
+    const node = match.activeNodes.get(nodeId)
+    if (!node || node.status !== 'available') {
+      return fail(ERROR_CODES.NODE_NOT_AVAILABLE, { actionId })
+    }
+    if (now() >= node.expiresAt) {
+      expireNode(match, node.id, 'ttl')
+      return fail(ERROR_CODES.NODE_NOT_AVAILABLE, { actionId })
+    }
+    if (distanceBetween(player.position, node.position) > match.config.nodeInteractionRadius) {
+      return fail(ERROR_CODES.PLAYER_TOO_FAR, { actionId })
+    }
+
+    // Node claims are synchronous Map operations: the first handler in the
+    // event loop changes available → claimed before another claim can run.
+    node.status = 'claimed'
+    node.claimedBy = player.id
+    player.claimedNodeId = node.id
+    match.eventSeq++
+    emit(match, 'node_claimed', {
+      nodeId: node.id,
+      playerId: player.id,
+      actionId,
+      node: {
+        id: node.id,
+        difficulty: node.difficulty,
+        points: node.points,
+        position: { ...node.position },
+        status: node.status,
+        claimedBy: node.claimedBy,
+        spawnedAt: node.spawnedAt,
+        expiresAt: node.expiresAt,
+      },
+      snapshot: sanitizeMatchState(match),
+    })
+    return ok({
+      actionId,
+      nodeId: node.id,
+      playerId: player.id,
+      node,
+      snapshot: sanitizeMatchState(match),
+    })
   }
 
   function finishMatch(matchId, { reason = 'manual', result = null } = {}) {
@@ -415,6 +591,13 @@ export function createMobaMatchManager({
   manager.finishMatch = finishMatch
   manager.cleanupMatch = cleanupMatch
   manager.leaveMatch = leaveMatch
+  manager.spawnNode = spawnNode
+  manager.expireNode = (matchId, nodeId, reason) => {
+    const match = getMatch(matchId)
+    if (!match) return fail(ERROR_CODES.MATCH_NOT_FOUND)
+    return expireNode(match, nodeId, reason)
+  }
+  manager.claimNode = claimNode
   manager.clearAll = () => {
     for (const match of matches.values()) clearLifecycleTimers(manager, match)
     matches.clear()

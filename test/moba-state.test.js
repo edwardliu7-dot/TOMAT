@@ -338,3 +338,192 @@ test('requires every player to be ready and never affects individual-game state'
   assert.equal(manager.listMatches().some(snapshot => snapshot.id === 'individual-game-room'), false)
   manager.clearAll()
 })
+
+function startRunningMatch(manager, matchId, clock, config = {}) {
+  assert.equal(manager.createMatch({
+    matchId,
+    teamSize: 1,
+    config: { countdownMs: 10, durationMs: 10_000, ...config },
+  }).ok, true)
+  for (const teamId of ['teamA', 'teamB']) {
+    const joined = manager.joinMatch({
+      matchId,
+      playerId: `${matchId}-${teamId}`,
+      userId: `${matchId}-user-${teamId}`,
+      teamId,
+      position: { x: 500, y: 300, lane: 'middle' },
+    })
+    assert.equal(joined.ok, true)
+    assert.equal(manager.setReady({
+      matchId,
+      playerId: joined.player.id,
+    }).ok, true)
+  }
+  return clock.advance(10)
+}
+
+test('spawns bounded nodes and emits a safe node_spawned event', async () => {
+  const clock = new FakeClock(1_000)
+  const events = []
+  const manager = createMobaMatchManager({
+    now: clock.now,
+    setTimeout: clock.setTimeout,
+    clearTimeout: clock.clearTimeout,
+    idFactory: prefix => `${prefix}-safe`,
+    random: () => 0.5,
+    onEvent: (event, payload) => events.push({ event, payload }),
+  })
+
+  await startRunningMatch(manager, 'moba-spawn', clock, {
+    nodeTtlMs: 100,
+    maxActiveNodes: 1,
+  })
+  const spawned = manager.spawnNode('moba-spawn', {
+    difficulty: DIFFICULTIES.MEDIUM,
+    position: { x: 500, y: 200, lane: 'top' },
+  })
+  assert.equal(spawned.ok, true)
+  assert.equal(spawned.node.expiresAt, 1_110)
+  assert.equal(manager.getMatch('moba-spawn').activeNodes.size, 1)
+  assert.equal(events.at(-1).event, 'node_spawned')
+  assert.equal(events.at(-1).payload.node.answer, undefined)
+  assert.equal(events.at(-1).payload.node.correctAnswer, undefined)
+
+  const maxed = manager.spawnNode('moba-spawn', {
+    position: { x: 500, y: 400, lane: 'bottom' },
+  })
+  assert.equal(maxed.ok, false)
+  assert.equal(maxed.error.code, ERROR_CODES.NODE_NOT_AVAILABLE)
+  await clock.advance(99)
+  assert.equal(manager.getMatch('moba-spawn').activeNodes.size, 1)
+  await clock.advance(1)
+  assert.equal(manager.getMatch('moba-spawn').activeNodes.size, 0)
+  assert.equal(events.some(event => event.event === 'node_expired'), true)
+  manager.clearAll()
+})
+
+test('claims a node atomically and rejects a second claim', async () => {
+  const clock = new FakeClock(2_000)
+  const events = []
+  const manager = createMobaMatchManager({
+    now: clock.now,
+    setTimeout: clock.setTimeout,
+    clearTimeout: clock.clearTimeout,
+    idFactory: prefix => `${prefix}-claim`,
+    onEvent: (event, payload) => events.push({ event, payload }),
+  })
+  await startRunningMatch(manager, 'moba-claim', clock)
+  const spawned = manager.spawnNode('moba-claim', {
+    difficulty: DIFFICULTIES.HARD,
+    position: { x: 570, y: 300, lane: 'middle' },
+  })
+  assert.equal(spawned.ok, true)
+
+  const first = manager.claimNode({
+    matchId: 'moba-claim',
+    playerId: 'moba-claim-teamA',
+    nodeId: spawned.nodeId,
+    actionId: 'action-first',
+  })
+  const second = manager.claimNode({
+    matchId: 'moba-claim',
+    playerId: 'moba-claim-teamB',
+    nodeId: spawned.nodeId,
+    actionId: 'action-second',
+  })
+  assert.equal(first.ok, true)
+  assert.equal(second.ok, false)
+  assert.equal(second.error.code, ERROR_CODES.NODE_NOT_AVAILABLE)
+  assert.equal(manager.getMatch('moba-claim').activeNodes.get(spawned.nodeId).claimedBy,
+    'moba-claim-teamA')
+  assert.equal(manager.getMatch('moba-claim').players.get('moba-claim-teamA').claimedNodeId,
+    spawned.nodeId)
+  assert.equal(events.filter(event => event.event === 'node_claimed').length, 1)
+  assert.equal(JSON.stringify(first).includes('correctAnswer'), false)
+  manager.clearAll()
+})
+
+test('rejects claims that are too far away, disconnected, stunned, or expired', async () => {
+  const clock = new FakeClock(3_000)
+  const manager = createMobaMatchManager({
+    now: clock.now,
+    setTimeout: clock.setTimeout,
+    clearTimeout: clock.clearTimeout,
+    idFactory: prefix => `${prefix}-validation`,
+  })
+  await startRunningMatch(manager, 'moba-validation', clock, {
+    durationMs: 100_000,
+    nodeTtlMs: 100,
+  })
+  const match = manager.getMatch('moba-validation')
+  const spawned = manager.spawnNode('moba-validation', {
+    position: { x: 700, y: 300, lane: 'middle' },
+  })
+
+  let rejected = manager.claimNode({
+    matchId: 'moba-validation',
+    playerId: 'moba-validation-teamA',
+    nodeId: spawned.nodeId,
+  })
+  assert.equal(rejected.error.code, ERROR_CODES.PLAYER_TOO_FAR)
+
+  match.players.get('moba-validation-teamA').position = { x: 700, y: 300, lane: 'middle' }
+  match.players.get('moba-validation-teamA').connected = false
+  rejected = manager.claimNode({
+    matchId: 'moba-validation',
+    playerId: 'moba-validation-teamA',
+    nodeId: spawned.nodeId,
+  })
+  assert.equal(rejected.error.code, ERROR_CODES.PLAYER_DISCONNECTED)
+
+  match.players.get('moba-validation-teamA').connected = true
+  match.players.get('moba-validation-teamA').stunUntil = clock.now() + 100
+  rejected = manager.claimNode({
+    matchId: 'moba-validation',
+    playerId: 'moba-validation-teamA',
+    nodeId: spawned.nodeId,
+  })
+  assert.equal(rejected.error.code, ERROR_CODES.PLAYER_STUNNED)
+
+  match.players.get('moba-validation-teamA').stunUntil = 0
+  await clock.advance(match.config.nodeTtlMs)
+  rejected = manager.claimNode({
+    matchId: 'moba-validation',
+    playerId: 'moba-validation-teamA',
+    nodeId: spawned.nodeId,
+  })
+  assert.equal(rejected.error.code, ERROR_CODES.NODE_NOT_AVAILABLE)
+  manager.clearAll()
+})
+
+test('automatically spawns nodes on the running interval and stops after finish', async () => {
+  const clock = new FakeClock(4_000)
+  const events = []
+  const randomValues = [
+    0.1, 0.5, 0.25,
+    0.1, 0.65, 0.75,
+    0.1, 0.35, 0.75,
+  ]
+  let randomIndex = 0
+  const manager = createMobaMatchManager({
+    now: clock.now,
+    setTimeout: clock.setTimeout,
+    clearTimeout: clock.clearTimeout,
+    random: () => randomValues[randomIndex++ % randomValues.length],
+    onEvent: (event, payload) => events.push({ event, payload }),
+  })
+  await startRunningMatch(manager, 'moba-interval', clock, {
+    nodeSpawnIntervalMs: 100,
+    nodeTtlMs: 10_000,
+    maxActiveNodes: 3,
+  })
+  await clock.advance(100)
+  assert.equal(events.filter(event => event.event === 'node_spawned').length, 1)
+  await clock.advance(100)
+  assert.equal(events.filter(event => event.event === 'node_spawned').length, 2)
+  assert.equal(manager.finishMatch('moba-interval').ok, true)
+  const eventCountAtFinish = events.filter(event => event.event === 'node_spawned').length
+  await clock.advance(500)
+  assert.equal(events.filter(event => event.event === 'node_spawned').length, eventCountAtFinish)
+  manager.clearAll()
+})

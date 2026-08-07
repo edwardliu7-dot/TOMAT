@@ -37,7 +37,14 @@ function clonePosition(position, fallback) {
 }
 
 function cloneConfig(config = {}) {
-  return { ...DEFAULT_MOBA_CONFIG, ...config }
+  return {
+    ...DEFAULT_MOBA_CONFIG,
+    ...config,
+    arena: {
+      ...DEFAULT_MOBA_CONFIG.arena,
+      ...(config.arena || {}),
+    },
+  }
 }
 
 function createTeam(id, teamSize, config) {
@@ -244,6 +251,8 @@ export function sanitizeMatchState(match) {
     nodeSpawnIntervalMs: match.config.nodeSpawnIntervalMs,
     nodeTtlMs: match.config.nodeTtlMs,
     maxActiveNodes: match.config.maxActiveNodes,
+    nodeInteractionRadius: match.config.nodeInteractionRadius,
+    arena: { ...match.config.arena },
     towerMaxPoints: match.config.towerMaxPoints,
     baseMaxHp: match.config.baseMaxHp,
     wrongAnswerStunMs: match.config.wrongAnswerStunMs,
