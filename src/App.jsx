@@ -40,6 +40,7 @@ import { DUEL_GAME_KEYS } from './gamesCatalog'
 import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 import TentangScreen from './screens/TentangScreen'
+import MobaScreen from './features/moba/MobaScreen.jsx'
 import OtaUpdateBanner from './components/OtaUpdateBanner'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
 import MissionProgressToast from './components/MissionProgressToast'
@@ -553,6 +554,7 @@ const SCREEN_TITLES = {
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
   'tournament-wait': 'Turnamen',
+  'moba-match': 'Arena MOBA',
 }
 
 // Rendered inside PlayerProvider — safe to call usePlayer().
@@ -693,6 +695,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [duelInviteCode, setDuelInviteCode]         = useState(null)   // auto-join code for LobbyScreen
   const [tokoInitialTab, setTokoInitialTab]         = useState(null)   // pre-select shop tab on open
   const [duelInvitePending, setDuelInvitePending]   = useState(null)   // { id, role, name } — waiting for game pick
+  const [mobaMatchId, setMobaMatchId]               = useState(null)
 
   const { open: whatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew()
 
@@ -719,7 +722,14 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       setPendingGame({ key: route, ...GAME_ROUTES[route] })
       setPendingTaskId(options.taskId || null)
       setHistory(h => [...h, 'modeselect'])
-    } else {
+      return
+    }
+    if (route === 'moba-match') {
+      setMobaMatchId(options.matchId || null)
+      setHistory(h => [...h, route])
+      return
+    }
+    {
       setPendingTaskId(null)
       setHistory(h => [...h, route])
     }
@@ -991,6 +1001,16 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (current === 'boss-raid') {
       return <BossRaidScreen goBack={goBack} />
+    }
+
+    if (current === 'moba-match') {
+      return (
+        <MobaScreen
+          matchId={mobaMatchId}
+          goBack={goBack}
+          debug="auto"
+        />
+      )
     }
 
     if (current === 'tournament-match' && tournamentMatchData) {

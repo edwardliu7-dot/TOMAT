@@ -795,6 +795,8 @@ Setiap bagian di bawah ini adalah **satu sesi harian**. Selesaikan kriteria sele
 
 **Tujuan:** menampilkan state pertandingan dalam peta 2D sederhana.
 
+**Status:** selesai dan terverifikasi.
+
 **Pekerjaan:**
 
 - buat `MobaArena`, `MobaPet`, `MobaNode`, dan `MobaBase`;
