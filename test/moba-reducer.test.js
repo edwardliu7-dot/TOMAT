@@ -98,3 +98,36 @@ test('server snapshot wins over stale event state and question close clears moda
   assert.equal(closed.nodes['node-1'], undefined)
   assert.equal(closed.eventFeed.at(-1).event, 'question_closed')
 })
+
+test('movement and question outcomes expose the correct Pet visual state', () => {
+  const hydrated = mobaReducer(
+    { ...initialMobaState, selfId: 'student-1' },
+    { type: MOBA_ACTIONS.SNAPSHOT, payload: { snapshot } },
+  )
+  const walking = mobaReducer(hydrated, {
+    type: MOBA_ACTIONS.SERVER_EVENT,
+    event: 'player_updated',
+    payload: {
+      actionId: 'move-1',
+      player: {
+        ...snapshot.players[0],
+        position: { x: 140, y: 300, lane: 'middle' },
+      },
+    },
+  })
+  assert.equal(walking.petStates['moba-player:student-1'].state, 'walk')
+
+  const happy = mobaReducer(walking, {
+    type: MOBA_ACTIONS.SERVER_EVENT,
+    event: 'question_closed',
+    payload: { playerId: 'moba-player:student-1', correct: true },
+  })
+  assert.equal(happy.petStates['moba-player:student-1'].state, 'happy')
+
+  const sad = mobaReducer(happy, {
+    type: MOBA_ACTIONS.SERVER_EVENT,
+    event: 'question_closed',
+    payload: { playerId: 'moba-player:student-1', correct: false },
+  })
+  assert.equal(sad.petStates['moba-player:student-1'].state, 'hungry')
+})

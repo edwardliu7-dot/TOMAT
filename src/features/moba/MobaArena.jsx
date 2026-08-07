@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Gem } from 'lucide-react'
 import MobaBase from './MobaBase.jsx'
 import MobaNode from './MobaNode.jsx'
@@ -34,6 +34,124 @@ function distanceBetween(left, right) {
   return Math.hypot(
     Number(left?.x || 0) - Number(right?.x || 0),
     Number(left?.y || 0) - Number(right?.y || 0),
+  )
+}
+
+const MOVE_REPEAT_MS = 65
+const JOYSTICK_RADIUS = 42
+const JOYSTICK_DEAD_ZONE = 0.16
+
+function MoveButton({ direction, label, children, disabled, onMove }) {
+  const repeatRef = useRef(null)
+
+  const stop = () => {
+    if (repeatRef.current) window.clearInterval(repeatRef.current)
+    repeatRef.current = null
+  }
+
+  const start = event => {
+    event.preventDefault()
+    if (disabled) return
+    onMove?.(direction)
+    stop()
+    repeatRef.current = window.setInterval(() => onMove?.(direction), MOVE_REPEAT_MS)
+  }
+
+  useEffect(() => stop, [])
+
+  return (
+    <button
+      type="button"
+      onPointerDown={start}
+      onPointerUp={stop}
+      onPointerCancel={stop}
+      onKeyDown={event => {
+        if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
+          event.preventDefault()
+          onMove?.(direction)
+        }
+      }}
+      disabled={disabled}
+      aria-label={label}
+    >
+      {children}
+    </button>
+  )
+}
+
+function directionFromPointer(event, element) {
+  const rect = element.getBoundingClientRect()
+  const dx = event.clientX - (rect.left + rect.width / 2)
+  const dy = event.clientY - (rect.top + rect.height / 2)
+  const distance = Math.hypot(dx, dy)
+  if (!distance || distance < rect.width * JOYSTICK_DEAD_ZONE) return null
+  const scale = Math.min(1, JOYSTICK_RADIUS / distance)
+  return {
+    x: (dx * scale) / JOYSTICK_RADIUS,
+    y: (dy * scale) / JOYSTICK_RADIUS,
+    distance: Math.min(distance, JOYSTICK_RADIUS),
+  }
+}
+
+function MobaJoystick({ disabled, onMove }) {
+  const baseRef = useRef(null)
+  const repeatRef = useRef(null)
+  const directionRef = useRef(null)
+  const [knob, setKnob] = useState({ x: 0, y: 0 })
+
+  const stop = () => {
+    if (repeatRef.current) window.clearInterval(repeatRef.current)
+    repeatRef.current = null
+    directionRef.current = null
+    setKnob({ x: 0, y: 0 })
+  }
+
+  const update = event => {
+    if (!baseRef.current || disabled) return
+    const direction = directionFromPointer(event, baseRef.current)
+    if (!direction) {
+      directionRef.current = null
+      setKnob({ x: 0, y: 0 })
+      return
+    }
+    directionRef.current = { x: direction.x, y: direction.y }
+    setKnob({
+      x: (direction.x * direction.distance) / JOYSTICK_RADIUS * 42,
+      y: (direction.y * direction.distance) / JOYSTICK_RADIUS * 42,
+    })
+    onMove?.(directionRef.current)
+  }
+
+  const start = event => {
+    event.preventDefault()
+    if (disabled || !baseRef.current) return
+    baseRef.current.setPointerCapture?.(event.pointerId)
+    update(event)
+    if (repeatRef.current) window.clearInterval(repeatRef.current)
+    repeatRef.current = window.setInterval(() => {
+      if (directionRef.current) onMove?.(directionRef.current)
+    }, MOVE_REPEAT_MS)
+  }
+
+  useEffect(() => stop, [])
+
+  return (
+    <div
+      className="moba12-joystick"
+      role="group"
+      aria-label="Analog gerak Pet"
+      ref={baseRef}
+      onPointerDown={start}
+      onPointerMove={update}
+      onPointerUp={stop}
+      onPointerCancel={stop}
+    >
+      <span className="moba12-joystick__ring" />
+      <span
+        className="moba12-joystick__knob"
+        style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }}
+      />
+    </div>
   )
 }
 
@@ -84,13 +202,14 @@ export default function MobaArena({
         </div>
       ))}
       <div className="moba11-arena__center"><Gem size={19} /></div>
-      <div className="moba12-move-pad" aria-label="Kontrol gerak Pet">
-        <button type="button" onClick={() => onMove?.({ x: 0, y: -1 })} disabled={!canAct} aria-label="Gerak ke atas">↑</button>
+      <MobaJoystick disabled={!canAct} onMove={onMove} />
+      <div className="moba12-move-pad" role="group" aria-label="Tombol gerak Pet">
+        <MoveButton direction={{ x: 0, y: -1 }} onMove={onMove} disabled={!canAct} label="Gerak ke atas">↑</MoveButton>
         <div>
-          <button type="button" onClick={() => onMove?.({ x: -1, y: 0 })} disabled={!canAct} aria-label="Gerak ke kiri">←</button>
-          <button type="button" onClick={() => onMove?.({ x: 1, y: 0 })} disabled={!canAct} aria-label="Gerak ke kanan">→</button>
+          <MoveButton direction={{ x: -1, y: 0 }} onMove={onMove} disabled={!canAct} label="Gerak ke kiri">←</MoveButton>
+          <MoveButton direction={{ x: 1, y: 0 }} onMove={onMove} disabled={!canAct} label="Gerak ke kanan">→</MoveButton>
         </div>
-        <button type="button" onClick={() => onMove?.({ x: 0, y: 1 })} disabled={!canAct} aria-label="Gerak ke bawah">↓</button>
+        <MoveButton direction={{ x: 0, y: 1 }} onMove={onMove} disabled={!canAct} label="Gerak ke bawah">↓</MoveButton>
       </div>
     </div>
   )

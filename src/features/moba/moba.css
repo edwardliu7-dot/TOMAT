@@ -233,8 +233,21 @@
 .moba12-deposit-button:disabled { cursor: not-allowed; opacity: .5; }
 .moba12-move-pad { position: absolute; right: 16px; bottom: 16px; z-index: 12; display: grid; justify-items: center; gap: 3px; }
 .moba12-move-pad > div { display: flex; gap: 3px; }
-.moba12-move-pad button { width: 34px; height: 30px; border: 1px solid rgba(25, 60, 70, .3); border-radius: 8px; background: rgba(255, 251, 235, .86); color: #193c46; font-size: 17px; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+.moba12-move-pad button { width: 42px; height: 38px; border: 1px solid rgba(25, 60, 70, .3); border-radius: 8px; background: rgba(255, 251, 235, .9); color: #193c46; font-size: 19px; font-weight: 800; cursor: pointer; touch-action: none; user-select: none; box-shadow: 0 3px 0 rgba(25,60,70,.12); }
 .moba12-move-pad button:disabled { cursor: not-allowed; opacity: .45; }
+.moba12-joystick { display: none; position: absolute; left: 18px; bottom: 18px; z-index: 12; width: 112px; height: 112px; border-radius: 50%; background: rgba(25, 60, 70, .16); border: 2px solid rgba(255, 251, 235, .7); touch-action: none; user-select: none; }
+.moba12-joystick__ring { position: absolute; inset: 17px; border: 2px dashed rgba(255, 251, 235, .76); border-radius: 50%; }
+.moba12-joystick__knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px; border-radius: 50%; background: #193c46; border: 3px solid #fff4c3; box-shadow: 0 4px 10px rgba(25,60,70,.25); pointer-events: none; }
+
+@media (max-width: 1023px) {
+  .moba12-move-pad { display: none; }
+  .moba12-joystick { display: block; }
+  .moba11-arena { min-height: min(570px, calc(100vh - 250px)); }
+}
+
+@media (min-width: 1024px) {
+  .moba12-move-pad { display: grid; }
+}
 
 .moba11-lobby-screen {
   --moba-ink: #193c46;

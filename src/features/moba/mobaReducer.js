@@ -102,6 +102,20 @@ function mergeNode(state, node) {
   }
 }
 
+function setPetVisualState(state, playerId, visualState, durationMs) {
+  if (!playerId) return state
+  return {
+    ...state,
+    petStates: {
+      ...state.petStates,
+      [playerId]: {
+        state: visualState,
+        until: Date.now() + durationMs,
+      },
+    },
+  }
+}
+
 function applyServerEvent(state, event, payload = {}) {
   const snapshot = snapshotPayload(payload)
   let next = snapshot
@@ -144,13 +158,19 @@ function applyServerEvent(state, event, payload = {}) {
       payload.playerId === state.selfId ||
       payload.playerId === state.self?.id ||
       payload.playerId === state.self?.userId
-    return {
+    let result = {
       ...next,
       activeQuestion: null,
       questionResult: isSelfResult ? payload : next.questionResult,
       lastEvent: event,
       eventFeed: addFeed(next, event, payload),
     }
+    if (payload.correct === true) {
+      result = setPetVisualState(result, payload.playerId, 'happy', 1300)
+    } else if (payload.correct === false || payload.timedOut === true) {
+      result = setPetVisualState(result, payload.playerId, 'hungry', 3200)
+    }
+    return result
   }
 
   if (event === 'node_expired') {
@@ -167,7 +187,14 @@ function applyServerEvent(state, event, payload = {}) {
   }
 
   if (event === 'player_updated' || event === 'player_joined' || event === 'player_ready') {
-    return { ...mergePlayer(next, payload.player), lastEvent: event }
+    const merged = mergePlayer(next, payload.player)
+    if (event !== 'player_updated' || !payload.actionId) {
+      return { ...merged, lastEvent: event }
+    }
+    return {
+      ...setPetVisualState(merged, payload.player?.id, 'walk', 240),
+      lastEvent: event,
+    }
   }
 
   if (event === 'player_left') {
@@ -284,5 +311,8 @@ export function mobaReducer(state = initialMobaState, action = {}) {
   }
 }
 
-export const selectMobaPlayers = state => Object.values(state?.players || {})
+export const selectMobaPlayers = state => Object.values(state?.players || {}).map(player => ({
+  ...player,
+  mobaPetState: state?.petStates?.[player.id] || null,
+}))
 export const selectMobaNodes = state => Object.values(state?.nodes || {})
