@@ -181,6 +181,43 @@ function applyServerEvent(state, event, payload = {}) {
     }
   }
 
+  if (event === 'matchmaking_status') {
+    return {
+      ...next,
+      matchmaking: {
+        ...next.matchmaking,
+        ...payload,
+        status: payload.status || 'queued',
+      },
+      lastEvent: event,
+    }
+  }
+
+  if (event === 'matchmaking_found') {
+    return {
+      ...next,
+      matchmaking: {
+        ...next.matchmaking,
+        ...payload,
+        status: 'matched',
+        matchId: payload.matchId || payload.snapshot?.id || null,
+      },
+      lastEvent: event,
+    }
+  }
+
+  if (event === 'matchmaking_error') {
+    return {
+      ...next,
+      matchmaking: {
+        ...next.matchmaking,
+        status: 'error',
+      },
+      lastError: payload,
+      lastEvent: event,
+    }
+  }
+
   if (event === 'match_cleaned') {
     return {
       ...initialMobaState,

@@ -6,7 +6,7 @@
  */
 
 import { createMobaMatchManager } from './match-manager.js'
-import { ERROR_CODES, PET_TYPES } from './config.js'
+import { ERROR_CODES, PET_TYPES, TEAM_SIZES } from './config.js'
 import { canStudentUseMoba } from './access.js'
 import { createMobaResultStore } from './results.js'
 import { computeHunger, getHungerUntil, skinToPetType } from '../pet-state.js'
@@ -60,6 +60,7 @@ export function createMobaSocketAdapter({
   }
 
   const reconnectTimers = new Map()
+  const matchmakingQueues = new Map(TEAM_SIZES.map(teamSize => [teamSize, []]))
   let adapter
   const resultStore = suppliedResultStore || (pool
     ? createMobaResultStore({ pool })
@@ -312,6 +313,198 @@ export function createMobaSocketAdapter({
     return sendSnapshot(socket, matchId, result.player.id, ack)
   }
 
+  function queueFor(teamSize) {
+    return matchmakingQueues.get(teamSize) || null
+  }
+
+  function queueStatus(teamSize, entry, status = 'queued') {
+    const queue = queueFor(teamSize) || []
+    const index = entry ? queue.indexOf(entry) : -1
+    return {
+      ok: true,
+      status,
+      teamSize,
+      position: index >= 0 ? index + 1 : null,
+      playersInQueue: queue.length,
+      playersNeeded: teamSize * 2,
+    }
+  }
+
+  function emitQueueStatus(teamSize) {
+    const queue = queueFor(teamSize) || []
+    queue.forEach(entry => {
+      entry.socket.emit('moba:matchmaking_status', queueStatus(teamSize, entry))
+    })
+  }
+
+  function removeFromMatchmaking(socket) {
+    let removed = false
+    matchmakingQueues.forEach((queue, teamSize) => {
+      const next = queue.filter(entry => {
+        const matches = entry.socket === socket ||
+          String(entry.userId) === String(socket.data.userId)
+        if (matches) removed = true
+        return !matches
+      })
+      matchmakingQueues.set(teamSize, next)
+      if (next.length !== queue.length) emitQueueStatus(teamSize)
+    })
+    return removed
+  }
+
+  function matchSnapshot(matchId) {
+    return manager.listMatches().find(item => item.id === matchId) || null
+  }
+
+  async function formMatchmakingGroup(teamSize, group) {
+    const created = manager.createMatch({ teamSize })
+    if (!created.ok) {
+      group.forEach(entry => entry.socket.emit('moba:matchmaking_error', {
+        code: created.error?.code || 'MATCH_CREATE_FAILED',
+        message: created.error?.message || 'Pertandingan belum dapat dibuat. Coba lagi.',
+      }))
+      return null
+    }
+
+    const joinedPlayers = []
+    for (const entry of group) {
+      const result = manager.joinMatch({
+        matchId: created.matchId,
+        playerId: `moba-player:${entry.userId}`,
+        userId: entry.userId,
+        displayName: entry.socket.data.displayName || entry.socket.data.userName || 'Siswa',
+        petType: entry.profile?.petType || PET_TYPES.TOMI,
+        petSkinId: entry.profile?.petSkinId || 'golden',
+      })
+      if (!result.ok) {
+        manager.cleanupMatch(created.matchId)
+        group.forEach(item => item.socket.emit('moba:matchmaking_error', {
+          code: result.error?.code || 'MATCH_JOIN_FAILED',
+          message: result.error?.message || 'Pemain belum dapat dimasukkan ke arena. Coba lagi.',
+        }))
+        return null
+      }
+      joinedPlayers.push({ entry, player: result.player })
+    }
+
+    // Put every socket in the room before the ready events can start the
+    // countdown. This makes the match found event and the first countdown
+    // snapshot visible to all players, including the last one matched.
+    for (const { entry, player } of joinedPlayers) {
+      await sendSnapshot(entry.socket, created.matchId, player.id)
+    }
+    for (const { player } of joinedPlayers) {
+      const ready = manager.setReady({
+        matchId: created.matchId,
+        playerId: player.id,
+        ready: true,
+      })
+      if (!ready.ok) {
+        manager.cleanupMatch(created.matchId)
+        group.forEach(item => item.socket.emit('moba:matchmaking_error', {
+          code: ready.error?.code || 'MATCH_READY_FAILED',
+          message: ready.error?.message || 'Pertandingan belum dapat dimulai. Coba lagi.',
+        }))
+        return null
+      }
+    }
+
+    const snapshot = matchSnapshot(created.matchId)
+    joinedPlayers.forEach(({ entry, player }) => {
+      entry.socket.emit('moba:matchmaking_found', {
+        matchId: created.matchId,
+        teamSize,
+        playerId: player.id,
+        snapshot,
+      })
+    })
+    return { matchId: created.matchId, snapshot }
+  }
+
+  async function tryMatchmaking(teamSize) {
+    const queue = queueFor(teamSize)
+    if (!queue) return null
+    const groupSize = teamSize * 2
+    let lastMatch = null
+    while (queue.length >= groupSize) {
+      const group = queue.splice(0, groupSize)
+      lastMatch = await formMatchmakingGroup(teamSize, group)
+      emitQueueStatus(teamSize)
+    }
+    return lastMatch
+  }
+
+  async function enterMatchmaking(socket, teamSize, ack) {
+    if (!requireStudent(socket, ack)) return
+    const numericTeamSize = Number(teamSize)
+    const queue = queueFor(numericTeamSize)
+    if (!queue) {
+      return emitError(socket, {
+        ok: false,
+        error: {
+          code: ERROR_CODES.INVALID_TEAM_SIZE,
+          message: 'Format pertandingan hanya 1v1, 2v2, atau 3v3.',
+        },
+      }, ack)
+    }
+
+    const existingMatch = manager.findPlayerMatch({ userId: socket.data.userId })
+    if (existingMatch) {
+      const player = [...existingMatch.players.values()]
+        .find(item => item.userId === socket.data.userId)
+      const result = await sendSnapshot(socket, existingMatch.id, player.id)
+      return safeAck(ack, {
+        ...(result || {}),
+        status: 'matched',
+        matchId: existingMatch.id,
+      })
+    }
+
+    const alreadyQueued = [...matchmakingQueues.values()]
+      .flat()
+      .find(entry => String(entry.userId) === String(socket.data.userId))
+    if (alreadyQueued) {
+      return safeAck(ack, queueStatus(alreadyQueued.teamSize, alreadyQueued))
+    }
+
+    let profile
+    try {
+      profile = await loadProfile(socket.data.userId)
+    } catch (error) {
+      console.error('MOBA matchmaking profile load error:', error)
+      return emitError(socket, {
+        ok: false,
+        error: {
+          code: ERROR_CODES.PLAYER_NOT_IN_MATCH,
+          message: 'Profil Pet belum dapat diperiksa. Coba lagi.',
+        },
+      }, ack)
+    }
+    if (profile?.isDead) {
+      return emitError(socket, {
+        ok: false,
+        error: {
+          code: ERROR_CODES.PLAYER_NOT_IN_MATCH,
+          message: 'Tomi sedang mati. Hidupkan Tomi kembali sebelum bermain MOBA.',
+        },
+      }, ack)
+    }
+
+    const entry = {
+      socket,
+      userId: socket.data.userId,
+      teamSize: numericTeamSize,
+      profile,
+      queuedAt: Date.now(),
+    }
+    queue.push(entry)
+    const status = queueStatus(numericTeamSize, entry)
+    safeAck(ack, status)
+    emitQueueStatus(numericTeamSize)
+    await tryMatchmaking(numericTeamSize)
+    return status
+  }
+
   function handleAction(socket, eventName, payload, ack, action) {
     if (!requireStudent(socket, ack)) return
     const player = currentPlayer(socket)
@@ -335,6 +528,18 @@ export function createMobaSocketAdapter({
   }
 
   function attach(socket) {
+    socket.on('moba:matchmaking_join', (payload = {}, ack) =>
+      enterMatchmaking(socket, payload.teamSize, ack))
+
+    socket.on('moba:matchmaking_cancel', (payload = {}, ack) => {
+      if (!requireStudent(socket, ack)) return
+      const removed = removeFromMatchmaking(socket)
+      return safeAck(ack, {
+        ok: true,
+        status: removed ? 'cancelled' : 'idle',
+      })
+    })
+
     socket.on('moba:create', async ({ teamSize = 1, config = {} } = {}, ack) => {
       if (!requireStudent(socket, ack)) return
       const result = manager.createMatch({ teamSize, config })
@@ -422,6 +627,7 @@ export function createMobaSocketAdapter({
     })
 
     socket.on('disconnect', () => {
+      removeFromMatchmaking(socket)
       const matchId = socket.data.mobaMatchId
       const playerId = socket.data.mobaPlayerId
       const userId = socket.data.userId

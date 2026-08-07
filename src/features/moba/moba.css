@@ -276,6 +276,8 @@
 .moba11-team-options button:disabled { cursor: wait; opacity: .65; }
 .moba11-team-options strong { font-size: 17px; }
 .moba11-team-options span { font-size: 10px; line-height: 1.35; }
+.moba11-team-option__icon { font-size: 22px !important; line-height: 1 !important; }
+.moba11-team-options small { font-size: 10px; line-height: 1.35; }
 .moba11-primary-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
   border: 0; border-radius: 12px; padding: 13px 16px; background: #193c46; color: #fff8dd;
@@ -295,6 +297,34 @@
 .moba11-lobby-alert {
   display: flex; align-items: center; gap: 7px; margin-top: 14px; padding: 11px 12px;
   border: 1px solid #e9b1a1; border-radius: 10px; background: #fff0eb; color: #b34e44; font-size: 11px;
+}
+.moba11-searching-panel {
+  display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid #b8d8cb;
+  border-radius: 13px; background: #e9f6ed;
+}
+.moba11-searching-panel__icon {
+  display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 42px;
+  border-radius: 12px; background: #d4eee0; color: #3f8b60;
+}
+.moba11-searching-panel > div:nth-child(2) { min-width: 0; flex: 1; }
+.moba11-searching-panel strong, .moba11-searching-panel span { display: block; }
+.moba11-searching-panel strong { color: #285f4a; font-size: 12px; }
+.moba11-searching-panel span { margin-top: 4px; color: #648878; font-size: 10px; }
+.moba11-searching-panel > button {
+  display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid #b8d8cb;
+  border-radius: 9px; background: #fff; color: #52706d; cursor: pointer;
+}
+.moba11-how-card { margin-top: 14px; }
+.moba11-how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 17px; }
+.moba11-how-grid div { display: flex; align-items: center; gap: 8px; color: #52706d; }
+.moba11-how-grid span {
+  display: grid; place-items: center; width: 25px; height: 25px; flex: 0 0 25px; border-radius: 50%;
+  background: #dff1e1; color: #3f8b60; font-size: 11px; font-weight: 900;
+}
+.moba11-how-grid p { margin: 0; font-size: 10px; font-weight: 700; line-height: 1.3; }
+.moba11-lobby-note {
+  display: flex; align-items: center; gap: 6px; margin-top: 17px; padding-top: 13px;
+  border-top: 1px solid #e2d3aa; color: #8b8269; font-size: 10px;
 }
 .moba11-room-card { margin-top: 36px; }
 .moba11-room-card h1 { font-size: clamp(24px, 5vw, 34px); }
@@ -326,8 +356,7 @@
   .moba11-lobby-card { padding: 17px; border-radius: 18px; }
   .moba11-team-options { gap: 6px; }
   .moba11-team-options span { font-size: 9px; }
-  .moba11-join-row { flex-direction: column; }
-  .moba11-join-row button { padding: 12px; }
+  .moba11-how-grid { grid-template-columns: 1fr; gap: 10px; }
 }
 
 @media (max-width: 820px) {

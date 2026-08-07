@@ -42,6 +42,9 @@ export const MOBA_SERVER_EVENTS = Object.freeze([
   'tower_destroyed',
   'match_finished',
   'match_cleaned',
+  'matchmaking_status',
+  'matchmaking_found',
+  'matchmaking_error',
 ])
 
 /**
@@ -78,4 +81,12 @@ export const initialMobaState = Object.freeze({
   serverNow: null,
   lastEvent: null,
   lastEventSeq: 0,
+  matchmaking: {
+    status: 'idle',
+    teamSize: null,
+    position: null,
+    playersInQueue: 0,
+    playersNeeded: 0,
+    matchId: null,
+  },
 })

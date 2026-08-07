@@ -239,3 +239,37 @@ test('failed create join does not leave an orphaned match', async () => {
   assert.equal(result.ok, false)
   assert.equal(adapter.manager.listMatches().length, 0)
 })
+
+test('matchmaking automatically pairs two students into one ready match', async () => {
+  const io = createFakeIo()
+  const adapter = createMobaSocketAdapter({
+    io,
+    manager: undefined,
+  })
+  const first = new FakeSocket('student-matchmake-1')
+  const second = new FakeSocket('student-matchmake-2')
+  io.sockets.sockets.set(first.id, first)
+  io.sockets.sockets.set(second.id, second)
+  adapter.attach(first)
+  adapter.attach(second)
+
+  const firstAck = ackResult()
+  await first.trigger('moba:matchmaking_join', { teamSize: 1 }, firstAck.ack)
+  assert.equal((await firstAck.promise).status, 'queued')
+  assert.equal(adapter.manager.listMatches().length, 0)
+
+  const secondAck = ackResult()
+  await second.trigger('moba:matchmaking_join', { teamSize: 1 }, secondAck.ack)
+  assert.equal((await secondAck.promise).status, 'queued')
+
+  const firstFound = first.sent.find(item => item.event === 'moba:matchmaking_found')
+  const secondFound = second.sent.find(item => item.event === 'moba:matchmaking_found')
+  assert.ok(firstFound)
+  assert.ok(secondFound)
+  assert.equal(firstFound.payload.matchId, secondFound.payload.matchId)
+  assert.equal(firstFound.payload.snapshot.players.length, 2)
+  assert.equal(firstFound.payload.snapshot.phase, 'countdown')
+  assert.equal(adapter.manager.listMatches()[0].phase, 'countdown')
+
+  adapter.manager.clearAll()
+})

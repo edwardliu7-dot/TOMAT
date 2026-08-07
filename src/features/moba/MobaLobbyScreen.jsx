@@ -1,223 +1,163 @@
-import React, { useMemo, useState } from 'react'
-import { AlertTriangle, ArrowLeft, Check, Copy, LoaderCircle, LogIn, Radio, Users } from 'lucide-react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { AlertTriangle, ArrowLeft, LoaderCircle, Radio, Search, Shield, Swords, Users, X } from 'lucide-react'
 import { useAuth } from '../../AuthContext.jsx'
 import useMobaSocket from './useMobaSocket.js'
 import './moba.css'
 
 const TEAM_SIZES = [
-  { value: 1, label: '1v1', detail: 'Duel cepat, dua pemain' },
-  { value: 2, label: '2v2', detail: 'Kerja sama berdua' },
-  { value: 3, label: '3v3', detail: 'Tim paling ramai' },
+  { value: 1, label: '1v1', detail: 'Duel cepat', icon: '⚔️' },
+  { value: 2, label: '2v2', detail: 'Kerja sama tim', icon: '🛡️' },
+  { value: 3, label: '3v3', detail: 'Pertarungan tim', icon: '🏆' },
 ]
-
-function copyText(value) {
-  if (!value) return Promise.reject(new Error('Tidak ada ID pertandingan.'))
-  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(value)
-  return Promise.reject(new Error('Clipboard tidak tersedia.'))
-}
-
-function getPlayers(match) {
-  return Array.isArray(match?.players) ? match.players : []
-}
 
 export default function MobaLobbyScreen({ goBack, onEnterArena }) {
   const { user } = useAuth()
   const [teamSize, setTeamSize] = useState(1)
-  const [matchIdInput, setMatchIdInput] = useState('')
-  const [roomId, setRoomId] = useState(null)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
-  const [copied, setCopied] = useState(false)
+  const matchedRef = useRef(null)
 
   const {
     state,
     connected,
-    createMatch,
-    join,
-    ready,
-    leave,
+    findMatch,
+    cancelMatchmaking,
   } = useMobaSocket({
     enabled: true,
     userId: user?.id || user?.userId || null,
-    matchId: roomId,
     debug: 'auto',
   })
 
-  const match = state.match
-  const players = useMemo(() => getPlayers(match), [match])
-  const isLobby = match?.phase === 'lobby'
-  const isFull = match?.teams?.teamA?.playerIds?.length === match?.teamSize &&
-    match?.teams?.teamB?.playerIds?.length === match?.teamSize
-  const selfReady = Boolean(state.self?.ready)
+  const matchmaking = state.matchmaking || {}
+  const isSearching = matchmaking.status === 'queued'
+  const isMatched = matchmaking.status === 'matched' && matchmaking.matchId
+  const selectedTeam = useMemo(
+    () => TEAM_SIZES.find(option => option.value === teamSize) || TEAM_SIZES[0],
+    [teamSize],
+  )
   const errorMessage = state.lastError?.message || notice
+
+  useEffect(() => {
+    if (!isMatched || matchedRef.current === matchmaking.matchId) return
+    matchedRef.current = matchmaking.matchId
+    onEnterArena(matchmaking.matchId)
+  }, [isMatched, matchmaking.matchId, onEnterArena])
 
   const run = async action => {
     setBusy(true)
     setNotice('')
     try {
-      return await action()
+      await action()
     } catch (error) {
-      setNotice(error?.message || 'Aksi MOBA belum berhasil. Coba lagi.')
-      return null
+      setNotice(error?.message || 'Matchmaking belum berhasil. Coba lagi.')
     } finally {
       setBusy(false)
     }
   }
 
-  const handleCreate = () => run(async () => {
-    const result = await createMatch(teamSize)
-    if (result?.matchId) setRoomId(result.matchId)
-    return result
+  const handleFindMatch = () => run(async () => {
+    matchedRef.current = null
+    await findMatch(teamSize)
   })
 
-  const handleJoin = () => run(async () => {
-    const requestedId = matchIdInput.trim()
-    if (!requestedId) {
-      setNotice('Masukkan ID pertandingan dari temanmu.')
-      return null
-    }
-    setRoomId(requestedId)
-    const result = await join(requestedId)
-    if (result?.ok === false) setRoomId(null)
-    return result
+  const handleCancel = () => run(async () => {
+    await cancelMatchmaking()
   })
-
-  const handleReady = () => run(() => ready(!selfReady))
-
-  const handleCopy = () => {
-    copyText(state.matchId || roomId)
-      .then(() => {
-        setCopied(true)
-        window.setTimeout(() => setCopied(false), 1800)
-      })
-      .catch(() => setNotice('ID belum dapat disalin.'))
-  }
 
   const handleBack = () => {
-    if (!roomId) {
-      goBack()
+    if (isSearching) {
+      handleCancel().finally(goBack)
       return
     }
-    // Once countdown/running has started the server intentionally rejects
-    // leaveMatch. The player can still return to the previous screen; the
-    // arena route remains the safe way to rejoin the live match.
-    if (!isLobby) {
-      goBack()
-      return
-    }
-    run(async () => {
-      await leave(roomId)
-      goBack()
-    })
-  }
-
-  if (!match) {
-    return (
-      <main className="moba11-lobby-screen">
-        <div className="moba11-lobby-shell">
-          <button type="button" className="moba11-lobby-back" onClick={goBack}>
-            <ArrowLeft size={16} /> Kembali
-          </button>
-          <section className="moba11-lobby-hero">
-            <div className="moba11-lobby-kicker"><Radio size={14} /> MODE MULTIPLAYER</div>
-            <h1>Arena MOBA</h1>
-            <p>Belajar bersama teman dalam arena 2D non-combat. Kumpulkan gulungan soal, lalu setor ke base timmu.</p>
-          </section>
-
-          <section className="moba11-lobby-card">
-            <div className="moba11-lobby-card__heading">
-              <div><h2>Buat pertandingan</h2><p>Pilih ukuran tim untuk mendapatkan ID pertandingan.</p></div>
-              <Users size={22} />
-            </div>
-            <div className="moba11-team-options">
-              {TEAM_SIZES.map(option => (
-                <button
-                  type="button"
-                  key={option.value}
-                  className={teamSize === option.value ? 'is-selected' : ''}
-                  onClick={() => setTeamSize(option.value)}
-                  disabled={busy}
-                >
-                  <strong>{option.label}</strong>
-                  <span>{option.detail}</span>
-                </button>
-              ))}
-            </div>
-            <button type="button" className="moba11-primary-button" onClick={handleCreate} disabled={busy || !connected}>
-              {busy ? <LoaderCircle size={17} className="moba11-spin" /> : <Radio size={17} />}
-              {connected ? 'Buat arena baru' : 'Menyambungkan…'}
-            </button>
-          </section>
-
-          <section className="moba11-lobby-card moba11-lobby-card--join">
-            <div className="moba11-lobby-card__heading">
-              <div><h2>Gabung pertandingan</h2><p>Tempel ID pertandingan yang dibagikan temanmu.</p></div>
-              <LogIn size={22} />
-            </div>
-            <div className="moba11-join-row">
-              <input
-                value={matchIdInput}
-                onChange={event => setMatchIdInput(event.target.value)}
-                placeholder="Contoh: match-..."
-                aria-label="ID pertandingan"
-                disabled={busy}
-              />
-              <button type="button" onClick={handleJoin} disabled={busy || !connected || !matchIdInput.trim()}>
-                Gabung
-              </button>
-            </div>
-          </section>
-
-          {errorMessage && <div className="moba11-lobby-alert"><AlertTriangle size={16} /> {errorMessage}</div>}
-        </div>
-      </main>
-    )
+    goBack()
   }
 
   return (
     <main className="moba11-lobby-screen">
       <div className="moba11-lobby-shell">
         <button type="button" className="moba11-lobby-back" onClick={handleBack} disabled={busy}>
-          <ArrowLeft size={16} /> Keluar dari lobby
+          <ArrowLeft size={16} /> Kembali
         </button>
-        <section className="moba11-lobby-card moba11-room-card">
-          <div className="moba11-lobby-kicker"><Radio size={14} /> LOBBY SIAP BERMAIN</div>
-          <h1>{match.teamSize}v{match.teamSize} · Menunggu tim lengkap</h1>
-          <p className="moba11-room-help">Bagikan ID ini kepada teman yang akan bermain bersamamu.</p>
-          <div className="moba11-room-id">
-            <code>{state.matchId || roomId}</code>
-            <button type="button" onClick={handleCopy} aria-label="Salin ID pertandingan">
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-              {copied ? 'Tersalin' : 'Salin'}
-            </button>
+
+        <section className="moba11-lobby-hero">
+          <div className="moba11-lobby-kicker"><Radio size={14} /> MATCHMAKING ONLINE</div>
+          <h1>Cari Lawan</h1>
+          <p>
+            Pilih ukuran tim, tekan cari lawan, dan sistem akan otomatis
+            memasangkanmu dengan siswa lain yang sedang menunggu.
+          </p>
+        </section>
+
+        <section className="moba11-lobby-card moba11-matchmaking-card">
+          <div className="moba11-lobby-card__heading">
+            <div>
+              <h2>Mode pertandingan</h2>
+              <p>Seperti matchmaking game favoritmu — tanpa kode ruangan.</p>
+            </div>
+            <Swords size={22} />
           </div>
 
-          <div className="moba11-roster">
-            {players.map(player => (
-              <div className="moba11-roster-player" key={player.id}>
-                <span className="moba11-roster-pet">{player.petType === 'nananaga' ? '🐲' : player.petType === 'monyang' ? '🐒' : player.petType === 'kelinsay' ? '🐰' : '🐹'}</span>
-                <div><strong>{player.displayName || 'Siswa'}</strong><small>{player.teamId === 'teamA' ? 'Tim A' : 'Tim B'} · {player.ready ? 'Siap' : 'Belum siap'}</small></div>
-                {player.ready && <Check size={16} />}
-              </div>
-            ))}
-            {Array.from({ length: Math.max(0, match.teamSize * 2 - players.length) }).map((_, index) => (
-              <div className="moba11-roster-player is-empty" key={`empty-${index}`}>
-                <span className="moba11-roster-pet">?</span><div><strong>Menunggu pemain…</strong><small>Bagikan ID pertandingan</small></div>
-              </div>
+          <div className="moba11-team-options">
+            {TEAM_SIZES.map(option => (
+              <button
+                type="button"
+                key={option.value}
+                className={teamSize === option.value ? 'is-selected' : ''}
+                onClick={() => setTeamSize(option.value)}
+                disabled={busy || isSearching}
+              >
+                <span className="moba11-team-option__icon">{option.icon}</span>
+                <strong>{option.label}</strong>
+                <small>{option.detail}</small>
+              </button>
             ))}
           </div>
 
-          {isLobby ? (
-            <button type="button" className="moba11-primary-button" onClick={handleReady} disabled={busy || !isFull}>
-              {busy ? <LoaderCircle size={17} className="moba11-spin" /> : <Check size={17} />}
-              {selfReady ? 'Batalkan siap' : isFull ? 'Saya siap bermain' : 'Menunggu tim lawan lengkap'}
+          {!isSearching ? (
+            <button
+              type="button"
+              className="moba11-primary-button"
+              onClick={handleFindMatch}
+              disabled={busy || !connected}
+            >
+              {busy || !connected
+                ? <LoaderCircle size={17} className="moba11-spin" />
+                : <Search size={17} />}
+              {!connected ? 'Menyambungkan…' : 'Cari lawan'}
             </button>
           ) : (
-            <button type="button" className="moba11-primary-button" onClick={() => onEnterArena(state.matchId)} disabled={!state.matchId}>
-              <Radio size={17} /> Masuk ke arena
-            </button>
+            <div className="moba11-searching-panel">
+              <div className="moba11-searching-panel__icon"><LoaderCircle size={26} className="moba11-spin" /></div>
+              <div>
+                <strong>Mencari lawan untuk {selectedTeam.label}</strong>
+                <span>
+                  {matchmaking.playersInQueue || 1} dari {matchmaking.playersNeeded || teamSize * 2} pemain siap
+                </span>
+              </div>
+              <button type="button" onClick={handleCancel} disabled={busy} aria-label="Batalkan matchmaking">
+                <X size={18} />
+              </button>
+            </div>
           )}
-          {errorMessage && <div className="moba11-lobby-alert"><AlertTriangle size={16} /> {errorMessage}</div>}
+
+          {errorMessage && (
+            <div className="moba11-lobby-alert">
+              <AlertTriangle size={16} /> {errorMessage}
+            </div>
+          )}
+        </section>
+
+        <section className="moba11-lobby-card moba11-how-card">
+          <div className="moba11-lobby-card__heading">
+            <div><h2>Bagaimana cara bermain?</h2><p>Semua pemain akan masuk otomatis saat tim lengkap.</p></div>
+            <Users size={22} />
+          </div>
+          <div className="moba11-how-grid">
+            <div><span>1</span><p>Pilih mode tim</p></div>
+            <div><span>2</span><p>Tekan cari lawan</p></div>
+            <div><span>3</span><p>Masuk arena otomatis</p></div>
+          </div>
+          <div className="moba11-lobby-note"><Shield size={14} /> Pertandingan tetap non-combat dan fokus pada soal matematika.</div>
         </section>
       </div>
     </main>
