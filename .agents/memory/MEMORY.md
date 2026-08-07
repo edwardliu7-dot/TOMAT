@@ -42,3 +42,4 @@
 - [TOMAT guru session fields](tomat-guru-session-fields.md) — jabatan/kelas_diampu/wali_kelas_kelas selalu di-sync dari DB di setiap /me dan disertakan di response; klien baca dari user.jabatan di AuthContext; fix untuk sesi lama tanpa field ini.
 - [TOMAT BLP notifications cross-module](tomat-blp-notifications.md) — notifications tabel punya kolom source ('tomat'/'blp'); notifyUser() terima source param; BLP submit notif guru, BLP review notif siswa; AppNotificationBell tampilkan pill badge per source.
 - [TOMAT reward dan task submission](tomat-reward-task-sync.md) — reward coins+EXP harus dibatch per jawaban dan sesi tugas tetap dipertahankan sampai submit nilai dikonfirmasi server.
+- [Mockup sandbox icon compatibility](mockup-sandbox-icon-compatibility.md) — cek ekspor lucide-react sebelum memakai ikon baru; gunakan CSS fallback bila ikon tidak tersedia agar preview tidak blank.
