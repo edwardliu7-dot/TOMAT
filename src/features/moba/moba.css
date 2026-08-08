@@ -695,3 +695,142 @@
   .moba-jungle-arena .moba12-joystick,
   .moba-jungle-arena .moba12-move-pad { display: none; }
 }
+
+/*
+ * Full-viewport arena layout.
+ *
+ * The command dashboard is intentionally taken out of document flow so it
+ * cannot reduce the playfield to a second, equally tall panel. The arena is
+ * the sizing context for the board and all world coordinates remain
+ * percentage-based, so enlarging the viewport does not stretch pixel assets.
+ */
+.moba11-screen {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.moba11-shell {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.moba11-game-panel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.moba11-arena {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* Pos Komando becomes a compact, translucent HUD over the upper-left map. */
+.moba11-side-panel {
+  position: absolute;
+  z-index: 24;
+  top: clamp(76px, 8vh, 96px);
+  left: clamp(14px, 2.5vw, 36px);
+  width: min(370px, calc(100% - 28px));
+  max-height: min(20vh, 176px);
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  border-color: rgba(239, 222, 155, .3);
+  border-radius: 14px;
+  background: rgba(6, 39, 44, .72);
+  box-shadow: 0 14px 30px rgba(1, 21, 27, .28);
+  backdrop-filter: blur(12px);
+}
+
+.moba11-side-heading {
+  min-height: 20px;
+}
+
+.moba11-side-heading h2 {
+  color: #fff5cc;
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+
+.moba11-side-heading span,
+.moba11-inventory__title,
+.moba11-feed__title,
+.moba11-feed__empty,
+.moba11-footer-note {
+  color: rgba(229, 232, 190, .78);
+}
+
+.moba11-inventory {
+  min-width: 0;
+  padding: 7px 8px;
+  background: rgba(246, 239, 212, .1);
+  border-color: rgba(226, 211, 170, .2);
+}
+
+.moba11-inventory__title {
+  font-size: 9px;
+}
+
+.moba11-scroll-row {
+  gap: 6px;
+  margin-top: 6px;
+  overflow-x: auto;
+}
+
+.moba11-scroll-card {
+  min-width: 76px;
+  padding: 5px 6px;
+  background: rgba(255, 249, 230, .1);
+  border-color: rgba(234, 214, 164, .22);
+  color: #fff0bd;
+}
+
+.moba11-scroll-card b {
+  font-size: 11px;
+}
+
+.moba11-scroll-card span {
+  margin-top: 1px;
+  font-size: 8px;
+}
+
+.moba11-feed {
+  display: none;
+}
+
+.moba11-sync-button,
+.moba11-footer-note {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .moba11-side-panel {
+    top: 58px;
+    left: 10px;
+    width: min(300px, calc(100% - 20px));
+    max-height: 20vh;
+    padding: 8px 9px;
+  }
+
+  .moba11-side-heading h2 {
+    font-size: 10px;
+  }
+
+  .moba11-inventory {
+    padding: 5px 6px;
+  }
+}
