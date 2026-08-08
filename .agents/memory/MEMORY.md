@@ -51,5 +51,6 @@
 - [TOMAT MOBA Socket contract](tomat-moba-socket-contract.md) — adapter Socket.io hanya menerjemahkan manager; reducer frontend menerima snapshot/event server dan identitas player internal harus dipetakan ke user ID.
 - [TOMAT MOBA release dan settlement](tomat-moba-release.md) — hasil final durable, reward pemenang idempotent, dan rollout dikendalikan env flag/allowlist tanpa mematikan mode individu.
 - [Mockup sandbox icon compatibility](mockup-sandbox-icon-compatibility.md) — cek ekspor lucide-react sebelum memakai ikon baru; gunakan CSS fallback bila ikon tidak tersedia agar preview tidak blank.
+- [Mockup preview verification](mockup-preview-verification.md) — jika proxy utama menampilkan shell TOMAT, verifikasi komponen lewat port workflow sandbox langsung sebelum menyimpulkan iframe rusak.
 - [TOMAT MOBA rollout gate](tomat-moba-rollout-gate.md) — akses demo dikendalikan MOBA_ENABLED + MOBA_ALLOWED_STUDENT_IDS; perubahan environment baru berlaku setelah workflow server direstart.
 - [TOMAT MOBA tile grid](tomat-moba-tile-grid.md) — dunia 8.000×8.000 memakai 32 unit/tile, menghasilkan grid 250×250; movement tetap kontinu dan authoritative.

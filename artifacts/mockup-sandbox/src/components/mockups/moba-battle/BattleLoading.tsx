@@ -1,142 +1,185 @@
-import { useEffect, useState } from "react";
-import { LoaderCircle, LockKeyhole, Swords, Wifi } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Clock3, LockKeyhole, Map, Shield, Sparkles, Wifi, Zap } from "lucide-react";
 import "./battle-loading.css";
+
+type Side = "pijar" | "rona";
 
 type Player = {
   name: string;
   pet: string;
+  skin: string;
+  side: Side;
   tone: string;
-  ready: boolean;
+  icon: string;
+  start: number;
   self?: boolean;
 };
 
-const leftTeam: Player[] = [
-  { name: "Alya", pet: "Tomi", tone: "#f17b5c", ready: true, self: true },
-  { name: "Bimo", pet: "Monyang", tone: "#e6ab42", ready: true },
-  { name: "Salsa", pet: "Kelinsay", tone: "#ef9d81", ready: true },
+const players: Player[] = [
+  { name: "Alya", pet: "Tomi", skin: "Golden", side: "pijar", tone: "#dd7659", icon: "T", start: 42, self: true },
+  { name: "Bimo", pet: "Monyang", skin: "Raja", side: "pijar", tone: "#d59c42", icon: "M", start: 66 },
+  { name: "Salsa", pet: "Kelinsay", skin: "Senja", side: "pijar", tone: "#d96c76", icon: "K", start: 83 },
+  { name: "Nisa", pet: "Kelinsay", skin: "Malam", side: "rona", tone: "#7687db", icon: "K", start: 57 },
+  { name: "Raka", pet: "Nananaga", skin: "Es", side: "rona", tone: "#34a9a0", icon: "N", start: 74 },
+  { name: "Dito", pet: "Tomi", skin: "Void", side: "rona", tone: "#9677cc", icon: "T", start: 91 },
 ];
 
-const rightTeam: Player[] = [
-  { name: "Nisa", pet: "Kelinsay", tone: "#7887dd", ready: true },
-  { name: "Raka", pet: "Nananaga", tone: "#38aaa1", ready: true },
-  { name: "Dito", pet: "Tomi", tone: "#9a7fd3", ready: true },
-];
-
-function PetBadge({ player }: { player: Player }) {
+function PetIcon({ player }: { player: Player }) {
   return (
-    <div className={`battle-pet ${player.self ? "is-self" : ""}`} style={{ "--pet-tone": player.tone } as React.CSSProperties}>
-      <span className="battle-pet__halo" />
-      <span className="battle-pet__ear battle-pet__ear--left" />
-      <span className="battle-pet__ear battle-pet__ear--right" />
-      <span className="battle-pet__face">
-        <i className="battle-pet__eye battle-pet__eye--left" />
-        <i className="battle-pet__eye battle-pet__eye--right" />
-        <b>{player.pet.slice(0, 1)}</b>
+    <div className="loading-pet" style={{ "--pet-tone": player.tone } as React.CSSProperties}>
+      <span className="loading-pet__ring" />
+      <span className="loading-pet__ear loading-pet__ear--left" />
+      <span className="loading-pet__ear loading-pet__ear--right" />
+      <span className="loading-pet__face">
+        <i className="loading-pet__eye loading-pet__eye--left" />
+        <i className="loading-pet__eye loading-pet__eye--right" />
+        <b>{player.icon}</b>
       </span>
-      <span className="battle-pet__spark battle-pet__spark--one">✦</span>
-      <span className="battle-pet__spark battle-pet__spark--two">·</span>
     </div>
   );
 }
 
-function PlayerCard({ player, side }: { player: Player; side: "left" | "right" }) {
+function PlayerRow({ player, progress }: { player: Player; progress: number }) {
+  const isDone = progress >= 100;
   return (
-    <div className={`player-card player-card--${side} ${player.self ? "is-self" : ""}`}>
-      <PetBadge player={player} />
-      <div className="player-card__copy">
-        <strong>{player.name}{player.self ? <em>kamu</em> : null}</strong>
-        <span>{player.pet}</span>
-      </div>
-      <div className={`ready-dot ${player.ready ? "is-ready" : ""}`} aria-label={player.ready ? "Siap" : "Memuat"} />
-    </div>
-  );
-}
-
-function TeamColumn({ team, side, players }: { team: string; side: "left" | "right"; players: Player[] }) {
-  return (
-    <section className={`team-column team-column--${side}`}>
-      <div className="team-column__heading">
+    <div
+      className={`loading-player loading-player--${player.side} ${player.self ? "is-self" : ""} ${isDone ? "is-ready" : ""}`}
+      aria-label={`${player.name}, ${isDone ? "siap" : `memuat ${progress}%`}`}
+    >
+      <div className="loading-player__identity">
+        <PetIcon player={player} />
         <div>
-          <span className="eyebrow">TIM {side === "left" ? "MERAH" : "BIRU"}</span>
-          <h2>{team}</h2>
+          <strong>{player.name}{player.self ? <em>kamu</em> : null}</strong>
+          <span>{player.pet} · {player.skin}</span>
         </div>
-        <span className="team-count">{players.length}/3</span>
       </div>
-      <div className="team-column__players">
-        {players.map((player) => <PlayerCard key={player.name} player={player} side={side} />)}
+      <div className="loading-player__meter">
+        <div className="loading-player__meter-top">
+          <span>{isDone ? "Siap" : "Memuat arena..."}</span>
+          <b>{progress}%</b>
+        </div>
+        <div className="loading-player__track">
+          <i style={{ width: `${progress}%` }} />
+        </div>
       </div>
-      <div className="team-column__line" />
-      <span className="team-column__status">Semua pemain siap</span>
+       <span className={`loading-player__status ${isDone ? "is-done" : ""}`} aria-label={isDone ? "Siap" : "Memuat"}>
+        {isDone ? "✓" : `${progress}`}
+      </span>
+    </div>
+  );
+}
+
+function TeamPanel({ side, progress }: { side: Side; progress: number[] }) {
+  const teamPlayers = players.filter((player) => player.side === side);
+  const average = Math.round(progress.reduce((sum, value) => sum + value, 0) / progress.length);
+  return (
+    <section className={`loading-team loading-team--${side}`}>
+      <header className="loading-team__header">
+        <div>
+          <span className="loading-team__eyebrow">{side === "pijar" ? "TIM MERAH" : "TIM BIRU"}</span>
+          <h2>{side === "pijar" ? "Pijar" : "Rona"}</h2>
+        </div>
+        <span className="loading-team__average">{average}%</span>
+      </header>
+      <div className="loading-team__rows">
+        {teamPlayers.map((player, index) => (
+          <PlayerRow key={player.name} player={player} progress={progress[index]} />
+        ))}
+      </div>
     </section>
   );
 }
 
 export function BattleLoading() {
-  const [progress, setProgress] = useState(67);
-  const [pulse, setPulse] = useState(false);
+  const [progress, setProgress] = useState(players.map((player) => player.start));
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setProgress((value) => (value >= 96 ? 67 : value + 1));
-      setPulse((value) => !value);
-    }, 1100);
+      setProgress((current) => current.map((value, index) => {
+        const step = index === 0 ? 3 : index % 2 === 0 ? 2 : 1;
+        return Math.min(100, value + step);
+      }));
+    }, 820);
     return () => window.clearInterval(timer);
   }, []);
 
+  const loadedCount = progress.filter((value) => value >= 100).length;
+  const allLoaded = loadedCount === players.length;
+  const overall = useMemo(
+    () => Math.round(progress.reduce((sum, value) => sum + value, 0) / progress.length),
+    [progress],
+  );
+
   return (
     <main className="battle-loading">
-      <div className="battle-loading__grain" />
-      <div className="battle-loading__glow battle-loading__glow--left" />
-      <div className="battle-loading__glow battle-loading__glow--right" />
-      <div className="battle-loading__grid" />
-
-      <header className="battle-header">
-        <div className="battle-brand">
-          <div className="battle-brand__mark">T</div>
+      <div className="battle-loading__topline" />
+      <header className="loading-header">
+        <div className="loading-brand">
+          <div className="loading-brand__mark">T</div>
           <div>
-            <strong>SMARTISA</strong>
-            <span>TOMAT · ARENA</span>
+            <strong>TOMAT</strong>
+            <span>ARENA BATTLE</span>
           </div>
         </div>
-        <div className="battle-connection"><Wifi size={13} /> KONEKSI AMAN</div>
-        <div className="battle-header__mode"><span>MODE</span><b>3 V 3</b></div>
+        <div className="loading-header__match">
+          <span>MATCH DITEMUKAN</span>
+          <b>HUTAN · 3V3</b>
+        </div>
+        <div className="loading-network"><Wifi size={13} /> ONLINE</div>
       </header>
 
-      <div className="battle-content">
-        <div className="battle-kicker"><span /> MATCH DITEMUKAN <span /></div>
-        <h1>SIAPKAN PETMU</h1>
-        <p className="battle-subtitle">Pertempuran matematika akan segera dimulai</p>
-
-        <div className="battle-versus">
-          <TeamColumn team="Pijar" side="left" players={leftTeam} />
-          <div className="versus-core">
-            <div className="versus-core__ring versus-core__ring--outer" />
-            <div className="versus-core__ring versus-core__ring--inner" />
-            <div className="versus-core__mark"><Swords size={22} /></div>
-            <span className="versus-core__text">VS</span>
+      <div className="loading-content">
+        <div className="loading-title">
+          <span className="loading-title__line" />
+          <div>
+            <span className="loading-title__eyebrow">MEMASUKI PERTEMPURAN</span>
+            <h1>Memuat arena</h1>
           </div>
-          <TeamColumn team="Rona" side="right" players={rightTeam} />
+          <span className="loading-title__line loading-title__line--right" />
         </div>
 
-        <div className="battle-progress">
-          <div className="battle-progress__top">
-            <span><LoaderCircle size={14} className={pulse ? "is-pulsing" : ""} /> MENYIAPKAN ARENA</span>
-            <b>{progress}%</b>
+        <div className="loading-stage">
+          <TeamPanel side="pijar" progress={progress.slice(0, 3)} />
+          <div className="loading-vs">
+            <div className="loading-vs__orbit loading-vs__orbit--outer" />
+            <div className="loading-vs__orbit loading-vs__orbit--inner" />
+            <div className="loading-vs__circle">
+              <span>VS</span>
+              <small>3V3</small>
+            </div>
+            <div className="loading-vs__arena">
+              <span><Map size={11} /> HUTAN LUMUT</span>
+              <span><Zap size={10} /> 3 LANE</span>
+            </div>
+            <span className="loading-vs__label">TIM LAWAN</span>
           </div>
-          <div className="battle-progress__track"><i style={{ width: `${progress}%` }} /></div>
-          <div className="battle-progress__meta"><span>Memuat arena hutan</span><span>80.000 × 80.000</span></div>
+          <TeamPanel side="rona" progress={progress.slice(3)} />
         </div>
 
-        <div className="battle-tip">
-          <LockKeyhole size={14} />
-          <span><b>Tips arena:</b> jawab soal dengan benar untuk mengumpulkan gulungan dan hancurkan markas lawan.</span>
+        <div className="loading-summary" aria-live="polite">
+          <div className="loading-summary__copy">
+            <LockKeyhole size={15} />
+            <div>
+              <strong>{allLoaded ? "Semua pemain siap" : "Arena terkunci"}</strong>
+              <span>{allLoaded ? "Pertempuran dimulai..." : "Tunggu semua pemain selesai memuat arena"}</span>
+            </div>
+          </div>
+          <div className="loading-summary__overall">
+            <span><Shield size={13} /> {loadedCount}/{players.length} SIAP</span>
+            <b>{overall}%</b>
+          </div>
+        </div>
+        <div className="loading-overall-track"><i style={{ width: `${overall}%` }} /></div>
+        <div className="loading-meta">
+          <span><Clock3 size={12} /> PERTANDINGAN DIMULAI OTOMATIS</span>
+          <span><Sparkles size={12} /> SEMUA PET TERKUNCI SAAT MASUK</span>
         </div>
       </div>
 
-      <footer className="battle-footer">
+      <footer className="loading-footer">
         <span>Jangan tutup halaman ini</span>
-        <span className="battle-footer__dots"><i /><i /><i /></span>
-        <span>Pet-mu sedang memasang perlengkapan</span>
+        <span className="loading-footer__center">Arena akan dimulai otomatis saat semua pemain mencapai 100%</span>
+        <span>80.000 × 80.000 · TILE 16</span>
       </footer>
     </main>
   );
