@@ -295,7 +295,9 @@ export default function MobaArena({
             <MoveButton direction={{ x: 0, y: 1 }} onMove={onMove} disabled={!canAct} label="Gerak ke bawah">↓</MoveButton>
           </div>
         </div>
-        <div className="moba-jungle-hint"><Sparkles size={12} /> Jelajahi Hutan Angka dan ambil gulungan soal</div>
+        <div className="moba-jungle-hint" role="status" aria-live="polite">
+          <Sparkles size={12} /> {self?.displayName || 'Pet'} bergerak mengikuti analog
+        </div>
         <MiniMap
           compact
           arena={arena}
