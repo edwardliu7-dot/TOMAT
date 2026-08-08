@@ -358,7 +358,13 @@ export function createMobaMatchManager({
       distanceBetween(candidate, other.position) < match.config.playerCollisionRadius * 2)
     if (collision) return fail(ERROR_CODES.MOVE_COLLISION, { actionId })
 
-    candidate.lane = candidate.y < 230 ? 'top' : candidate.y > 370 ? 'bottom' : 'middle'
+    const arenaHeight = match.config.arena.maxY - match.config.arena.minY
+    const laneThird = arenaHeight / 3
+    candidate.lane = candidate.y < match.config.arena.minY + laneThird
+      ? 'top'
+      : candidate.y >= match.config.arena.minY + laneThird * 2
+        ? 'bottom'
+        : 'middle'
     player.position = candidate
     player.lastInputAt = now()
     match.eventSeq++

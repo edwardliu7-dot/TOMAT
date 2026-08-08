@@ -9,6 +9,7 @@
 export const MOBA_MODE = 'tomat-moba'
 
 export const TEAM_SIZES = Object.freeze([1, 2, 3])
+export const MOBA_ARENA_SIZE = 8_000
 
 export const PHASES = Object.freeze({
   LOBBY: 'lobby',
@@ -96,10 +97,14 @@ export const DEFAULT_MOBA_CONFIG = Object.freeze({
   depositInteractionRadius: 110,
   playerCollisionRadius: 28,
   arena: Object.freeze({
-    minX: 80,
-    maxX: 920,
-    minY: 80,
-    maxY: 520,
+    // The gameplay world uses a square 8,000 × 8,000 coordinate space.
+    // The client maps these coordinates into its responsive viewport, so
+    // pixel-art assets keep their intended visual scale instead of stretching
+    // to fill an arbitrarily large DOM canvas.
+    minX: 0,
+    maxX: MOBA_ARENA_SIZE,
+    minY: 0,
+    maxY: MOBA_ARENA_SIZE,
     nodeSafeRadius: 44,
     playerSafeRadius: 56,
     baseSafeRadius: 100,
@@ -115,8 +120,8 @@ export const DEFAULT_MOBA_CONFIG = Object.freeze({
 })
 
 export const DEFAULT_POSITION_BY_TEAM = Object.freeze({
-  teamA: Object.freeze({ x: 120, y: 300, lane: 'middle' }),
-  teamB: Object.freeze({ x: 880, y: 300, lane: 'middle' }),
+  teamA: Object.freeze({ x: 320, y: MOBA_ARENA_SIZE / 2, lane: 'middle' }),
+  teamB: Object.freeze({ x: MOBA_ARENA_SIZE - 320, y: MOBA_ARENA_SIZE / 2, lane: 'middle' }),
 })
 
 export function isValidTeamSize(teamSize) {

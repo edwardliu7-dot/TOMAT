@@ -108,7 +108,7 @@ test('creates a player with a pet loadout and safe defaults', () => {
     now: 5000,
   })
 
-  assert.deepEqual(player.position, { x: 880, y: 300, lane: 'middle' })
+  assert.deepEqual(player.position, { x: 7680, y: 4000, lane: 'middle' })
   assert.equal(player.lastInputAt, 5000)
   assert.equal(player.questionSession, null)
   assert.deepEqual(player.scrolls, [])
@@ -186,7 +186,7 @@ test('snapshot is detached from the live state', () => {
   snapshot.activeNodes[0].position.x = 777
   snapshot.teams.teamA.playerIds.push('another-player')
 
-  assert.equal(match.players.get(player.id).position.x, 120)
+  assert.equal(match.players.get(player.id).position.x, 320)
   assert.deepEqual(match.players.get(player.id).scrolls, [])
   assert.equal(match.activeNodes.get('node-copy').position.x, 200)
   assert.deepEqual(match.teams.teamA.playerIds, [player.id])
@@ -794,7 +794,7 @@ test('answer and deposit retries are idempotent and never duplicate rewards', as
   assert.equal(answerRetry.duplicate, true)
   assert.equal(player.scrolls.length, 1)
 
-  player.position = { x: 880, y: 300, lane: 'middle' }
+  player.position = { x: 7680, y: 4000, lane: 'middle' }
   const depositPayload = {
     matchId: 'moba-idempotent',
     playerId: player.id,
@@ -1025,7 +1025,7 @@ test('server-authoritative movement ignores client coordinates and enforces spee
   })
   assert.equal(tooSoon.error.code, ERROR_CODES.MOVE_RATE_LIMITED)
 
-  player.position = { x: 920, y: 300, lane: 'middle' }
+  player.position = { x: 7995, y: 4000, lane: 'middle' }
   await clock.advance(100)
   const outOfBounds = manager.movePlayer({
     matchId: 'moba-movement',
@@ -1034,7 +1034,7 @@ test('server-authoritative movement ignores client coordinates and enforces spee
     direction: { x: 1, y: 0 },
   })
   assert.equal(outOfBounds.error.code, ERROR_CODES.MOVE_OUT_OF_BOUNDS)
-  assert.equal(player.position.x, 920)
+  assert.equal(player.position.x, 7995)
 
   player.position = { x: 600, y: 300, lane: 'middle' }
   await clock.advance(100)
@@ -1132,7 +1132,7 @@ test('deposits score the attacking team, destroy tower once, then damage the ene
   }
 
   await earnScroll('tower')
-  player.position = { x: 880, y: 300, lane: 'middle' }
+  player.position = { x: 7680, y: 4000, lane: 'middle' }
   const first = manager.depositScroll({
     matchId: 'moba-scoring',
     playerId: player.id,
@@ -1159,7 +1159,7 @@ test('deposits score the attacking team, destroy tower once, then damage the ene
   assert.equal(repeated.error.code, ERROR_CODES.SCROLL_NOT_OWNED)
 
   await earnScroll('base')
-  player.position = { x: 880, y: 300, lane: 'middle' }
+  player.position = { x: 7680, y: 4000, lane: 'middle' }
   const second = manager.depositScroll({
     matchId: 'moba-scoring',
     playerId: player.id,

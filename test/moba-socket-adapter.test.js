@@ -180,7 +180,7 @@ test('question result stays private while opponents receive only the snapshot', 
   await waitForPhase(adapter.manager, matchId, 'running_outer_tower')
 
   const spawned = adapter.manager.spawnNode(matchId, {
-    position: { x: 300, y: 300, lane: 'middle' },
+    position: { x: 500, y: 4000, lane: 'middle' },
   })
   assert.equal(spawned.ok, true)
   const claimed = ackResult()

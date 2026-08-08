@@ -4,7 +4,7 @@ import MobaBase from './MobaBase.jsx'
 import MobaNode from './MobaNode.jsx'
 import MobaPet from './MobaPet.jsx'
 
-const DEFAULT_ARENA = { minX: 80, maxX: 920, minY: 80, maxY: 520 }
+const DEFAULT_ARENA = { minX: 0, maxX: 8000, minY: 0, maxY: 8000 }
 
 function getArenaBounds(arena = {}) {
   const minX = Number.isFinite(Number(arena.minX)) ? Number(arena.minX) : DEFAULT_ARENA.minX
@@ -232,7 +232,9 @@ export default function MobaArena({
   const cameraStyle = {
     '--moba-camera-x': `${(50 - cameraTargetX) * 0.78}%`,
     '--moba-camera-y': `${(50 - cameraTargetY) * 0.78}%`,
-    '--moba-camera-zoom': 1.16,
+    // Keep the wider battlefield visible instead of zooming into the old
+    // compact play area. The camera still follows the Pet at the edges.
+    '--moba-camera-zoom': 1.04,
   }
 
   return (
@@ -256,11 +258,32 @@ export default function MobaArena({
           <span className="moba-jungle-lane-label moba-jungle-lane-label--top">Lajur utara</span>
           <span className="moba-jungle-lane-label moba-jungle-lane-label--middle">Lajur tengah</span>
           <span className="moba-jungle-lane-label moba-jungle-lane-label--bottom">Lajur selatan</span>
-          <img className="moba-jungle-brush moba-jungle-brush--1" src="/moba-arena/moba-tree-spring.png" alt="" />
-          <img className="moba-jungle-brush moba-jungle-brush--2" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
-          <img className="moba-jungle-brush moba-jungle-brush--3" src="/moba-arena/moba-tree-spring.png" alt="" />
-          <img className="moba-jungle-brush moba-jungle-brush--4" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
-          <img className="moba-jungle-brush moba-jungle-brush--5" src="/moba-arena/moba-tree-spring.png" alt="" />
+          <div className="moba-jungle-decor moba-jungle-decor--trees" aria-hidden="true">
+            <img className="moba-jungle-brush moba-jungle-brush--1" src="/moba-arena/moba-tree-spring.png" alt="" />
+            <img className="moba-jungle-brush moba-jungle-brush--2" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
+            <img className="moba-jungle-brush moba-jungle-brush--3" src="/moba-arena/moba-tree-spring.png" alt="" />
+            <img className="moba-jungle-brush moba-jungle-brush--4" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
+            <img className="moba-jungle-brush moba-jungle-brush--5" src="/moba-arena/moba-tree-spring.png" alt="" />
+            <img className="moba-jungle-brush moba-jungle-brush--6" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
+            <img className="moba-jungle-brush moba-jungle-brush--7" src="/moba-arena/moba-tree-spring.png" alt="" />
+            <img className="moba-jungle-brush moba-jungle-brush--8" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
+          </div>
+          <div className="moba-jungle-decor moba-jungle-decor--rocks" aria-hidden="true">
+            <img className="moba-jungle-rock moba-jungle-rock--1" src="/moba-arena/FG_Grounds.png" alt="" />
+            <img className="moba-jungle-rock moba-jungle-rock--2" src="/moba-arena/FG_Grounds.png" alt="" />
+            <img className="moba-jungle-rock moba-jungle-rock--3" src="/moba-arena/FG_Grounds.png" alt="" />
+            <img className="moba-jungle-rock moba-jungle-rock--4" src="/moba-arena/FG_Grounds.png" alt="" />
+            <img className="moba-jungle-rock moba-jungle-rock--5" src="/moba-arena/FG_Grounds.png" alt="" />
+            <img className="moba-jungle-rock moba-jungle-rock--6" src="/moba-arena/FG_Grounds.png" alt="" />
+          </div>
+          <div className="moba-jungle-decor moba-jungle-decor--relics" aria-hidden="true">
+            <img className="moba-jungle-relic moba-jungle-relic--1" src="/moba-arena/FG_Crystal_Blue_1.png" alt="" />
+            <img className="moba-jungle-relic moba-jungle-relic--2" src="/moba-arena/FG_Crystal_Gold_1.png" alt="" />
+            <img className="moba-jungle-relic moba-jungle-relic--3" src="/moba-arena/FG_Treasure_Big.png" alt="" />
+            <img className="moba-jungle-relic moba-jungle-relic--4" src="/moba-arena/FG_Treasure_Small_1.png" alt="" />
+            <img className="moba-jungle-relic moba-jungle-relic--5" src="/moba-arena/FG_Crystal_Blue_1.png" alt="" />
+            <img className="moba-jungle-relic moba-jungle-relic--6" src="/moba-arena/FG_Treasure_Small_1.png" alt="" />
+          </div>
           <div className="moba-jungle-bridge" aria-label="Jembatan tengah" />
           <MobaBase team={match?.teams?.teamA} side="left" />
           <MobaBase team={match?.teams?.teamB} side="right" />

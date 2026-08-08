@@ -432,7 +432,7 @@
 }
 .moba-jungle-board {
   position: absolute;
-  inset: 4% 7%;
+  inset: 2.5% 3%;
   overflow: hidden;
   border: 1px solid rgba(203,227,164,.22);
   border-radius: 2.2%;
@@ -478,6 +478,7 @@
     linear-gradient(135deg, rgba(170, 213, 128, .08) 25%, transparent 25%),
     url('/moba-arena/moba-grass-tile-spring.png');
   background-size: auto, auto, 64px 64px, 32px 32px;
+  background-position: center, center, 0 0, 0 0;
   image-rendering: pixelated;
   opacity: .98;
 }
@@ -526,11 +527,36 @@
 .moba-jungle-brush--3 { left: 39%; top: 9%; transform: scale(.7); }
 .moba-jungle-brush--4 { right: 11%; top: 14%; animation-delay: 2s; }
 .moba-jungle-brush--5 { right: 13%; top: 73%; transform: scale(1.1); }
+.moba-jungle-brush--6 { left: 28%; top: 24%; transform: scale(.78); animation-delay: .7s; }
+.moba-jungle-brush--7 { left: 57%; top: 76%; transform: scale(.9); animation-delay: 1.8s; }
+.moba-jungle-brush--8 { right: 27%; top: 22%; transform: scale(.72); animation-delay: 2.5s; }
 .moba-jungle-rock { z-index: 4; width: clamp(44px, 5vw, 78px); height: clamp(38px, 4vw, 64px); }
 .moba-jungle-rock--1 { left: 28%; top: 34%; transform: rotate(-10deg); }
 .moba-jungle-rock--2 { left: 32%; top: 39%; transform: rotate(18deg) scale(.65); }
 .moba-jungle-rock--3 { right: 26%; top: 33%; transform: rotate(13deg); }
 .moba-jungle-rock--4 { right: 22%; top: 39%; transform: scale(.7); }
+.moba-jungle-rock--5 { left: 19%; top: 48%; transform: rotate(-18deg) scale(.74); }
+.moba-jungle-rock--6 { right: 18%; top: 56%; transform: rotate(22deg) scale(.82); }
+.moba-jungle-decor { position: absolute; inset: 0; pointer-events: none; }
+.moba-jungle-decor--trees { z-index: 3; }
+.moba-jungle-decor--rocks { z-index: 4; }
+.moba-jungle-decor--relics { z-index: 5; }
+.moba-jungle-relic {
+  position: absolute;
+  width: clamp(28px, 3.6vw, 58px);
+  height: clamp(24px, 3vw, 48px);
+  object-fit: contain;
+  image-rendering: pixelated;
+  opacity: .78;
+  filter: drop-shadow(0 7px 4px rgba(2, 34, 36, .4));
+  animation: moba-jungle-relic-glow 3.2s ease-in-out infinite;
+}
+.moba-jungle-relic--1 { left: 23%; top: 19%; }
+.moba-jungle-relic--2 { left: 45%; top: 18%; animation-delay: .8s; }
+.moba-jungle-relic--3 { left: 48%; top: 78%; transform: scale(.84); animation-delay: 1.4s; }
+.moba-jungle-relic--4 { right: 31%; top: 62%; transform: scale(.8); animation-delay: 2s; }
+.moba-jungle-relic--5 { right: 22%; top: 27%; transform: scale(.72); animation-delay: 2.4s; }
+.moba-jungle-relic--6 { left: 13%; top: 57%; transform: scale(.76); animation-delay: 1.1s; }
 .moba-jungle-bridge {
   position: absolute;
   z-index: 7;
@@ -662,8 +688,9 @@
 @keyframes moba-jungle-sway { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(2deg) translateY(-2px); } }
 @keyframes moba-jungle-pulse { 0%, 100% { box-shadow: 0 8px 12px rgba(3,31,34,.34); } 50% { box-shadow: 0 8px 18px rgba(229,191,92,.45); } }
 @keyframes moba-jungle-float { 0%, 100% { transform: translate(-50%, -50%); } 50% { transform: translate(-50%, calc(-50% - 3px)); } }
+@keyframes moba-jungle-relic-glow { 0%, 100% { opacity: .64; } 50% { opacity: .92; } }
 @media (max-width: 700px) {
-  .moba-jungle-board { inset: 8% 1% 3%; }
+  .moba-jungle-board { inset: 5% .5% 2%; }
   .moba-jungle-brand { top: 14px; left: 14px; }
   .moba-jungle-brand > span:last-child, .moba-jungle-time { display: none; }
   .moba-jungle-score { top: 6px; gap: 8px; padding: 7px 9px; }
