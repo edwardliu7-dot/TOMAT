@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { TopBar, PlayerHeader } from '../components/shared'
 import { GAMES_CATALOG } from '../gamesCatalog'
+import VideoMateriPanel from '../components/VideoMateriPanel'
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -64,6 +65,7 @@ export default function Ipa7ZoneScreen({ navigate, goBack }) {
         <div style={{ padding: '0 16px 40px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
           <div style={{ fontSize: 12, color: ACCENT, fontWeight: 600, marginBottom: 4 }}>KELAS 7 · {TOTAL} GAME IPA</div>
           <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 4 }}>Jelajahi dunia IPA lewat minigame seru!</div>
+          <VideoMateriPanel grade={7} subject="ipa" selectedBab={selectedBab} accent={ACCENT} />
           {BABS.map(bab => (
             <div key={bab.id}>
               <div style={{ marginTop: 20, marginBottom: 12 }}>
@@ -89,6 +91,7 @@ export default function Ipa7ZoneScreen({ navigate, goBack }) {
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, color: ACCENT, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>KELAS 7 · {TOTAL} GAME IPA</div>
           <div style={{ fontSize: 13, color: '#94A3B8', marginTop: 2 }}>Jelajahi dunia IPA lewat minigame seru!</div>
+          <VideoMateriPanel grade={7} subject="ipa" selectedBab={selectedBab} accent={ACCENT} />
         </div>
         <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
           <div style={{ width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>

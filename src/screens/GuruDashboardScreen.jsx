@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { connectSocket, getSocket } from '../socket'
 import { useAuth } from '../AuthContext'
 import { GAMES_CATALOG, GRADE_BAB_LABELS, getBabsForGrade } from '../gamesCatalog'
+import { VideoFrame } from '../components/VideoMateriPanel'
 
 const KELAS_PREFIX_TO_GRADE = { VII: 7, VIII: 8, IX: 9 }
 function kelasToGrade(kelas) {
@@ -85,6 +86,7 @@ const labelStyle = {
 const TABS = [
   { id: 'home',    label: '🏠', text: 'Beranda' },
   { id: 'tugas',   label: '📋', text: 'Tugas' },
+  { id: 'video',   label: '🎬', text: 'Video Materi' },
   { id: 'hafalan', label: '🧮', text: 'Hafalan' },
   { id: 'nilai',   label: '📊', text: 'Nilai' },
   { id: 'siswa',   label: '👥', text: 'Siswa' },
@@ -95,7 +97,284 @@ const TABS = [
 ]
 
 // Tabs that only guru mapel terdaftar may access
-const MANAGEMENT_TAB_IDS = new Set(['tugas', 'hafalan', 'kunci', 'raid', 'turnamen'])
+const MANAGEMENT_TAB_IDS = new Set(['tugas', 'video', 'hafalan', 'kunci', 'raid', 'turnamen'])
+
+const IPA_BAB_LABELS = {
+  7: { I: 'BAB I: Besaran dan Pengukuran', II: 'BAB II: Zat dan Perubahannya', III: 'BAB III: Suhu, Pemuaian, dan Kalor', IV: 'BAB IV: Gaya dan Gerak' },
+  8: { I: 'BAB I: Pengenalan Sel', II: 'BAB II: Pencernaan & Peredaran Darah', III: 'BAB III: Pernapasan & Ekskresi' },
+  9: { I: 'BAB I: Sistem Koordinasi & Homeostasis', II: 'BAB II: Zat Adiktif & Psikotropika', III: 'BAB III: Sistem Reproduksi' },
+}
+
+const VIDEO_SUBJECTS = [
+  { value: 'matematika', label: 'Matematika' },
+  { value: 'ipa', label: 'IPA' },
+]
+
+function getVideoBabLabels(grade, subject) {
+  return subject === 'ipa' ? (IPA_BAB_LABELS[grade] || {}) : (GRADE_BAB_LABELS[grade] || {})
+}
+
+function emptyVideoForm(kelasDiampu) {
+  const kelas = kelasDiampu[0] || ''
+  const grade = kelasToGrade(kelas)
+  const bab = Object.keys(getVideoBabLabels(grade, 'matematika'))[0] || ''
+  return { kelas, subject: 'matematika', bab, title: '', description: '', youtubeUrl: '' }
+}
+
+function VideoMateriTab({ kelasDiampu }) {
+  const [videos, setVideos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState(() => emptyVideoForm(kelasDiampu))
+  const [editingId, setEditingId] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [filterSubject, setFilterSubject] = useState('all')
+  const [filterKelas, setFilterKelas] = useState('all')
+
+  const grade = kelasToGrade(form.kelas)
+  const babLabels = getVideoBabLabels(grade, form.subject)
+  const visibleVideos = videos.filter(video => (
+    (filterSubject === 'all' || video.subject === filterSubject)
+    && (filterKelas === 'all' || video.kelas === filterKelas)
+  ))
+  const confirmTarget = videos.find(video => video.id === confirmDeleteId)
+
+  const refresh = useCallback(async () => {
+    try {
+      const data = await apiCall('/api/guru/video-materi')
+      setVideos(data.videos || [])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  useEffect(() => {
+    const firstBab = Object.keys(babLabels)[0] || ''
+    if (!babLabels[form.bab]) {
+      setForm(current => ({ ...current, bab: firstBab }))
+    }
+  }, [form.bab, babLabels])
+
+  const updateField = (name, value) => setForm(current => ({ ...current, [name]: value }))
+
+  const resetForm = () => {
+    setEditingId(null)
+    setForm(emptyVideoForm(kelasDiampu))
+  }
+
+  const submit = async event => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const data = await apiCall(
+        editingId ? `/api/guru/video-materi/${editingId}` : '/api/guru/video-materi',
+        { method: editingId ? 'PATCH' : 'POST', body: form },
+      )
+      if (editingId) {
+        setVideos(current => current.map(video => video.id === editingId ? data.video : video))
+      } else {
+        setVideos(current => [data.video, ...current])
+      }
+      resetForm()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const editVideo = video => {
+    setEditingId(video.id)
+    setForm({
+      kelas: video.kelas,
+      subject: video.subject,
+      bab: video.bab,
+      title: video.title,
+      description: video.description || '',
+      youtubeUrl: video.youtubeUrl || `https://www.youtube.com/watch?v=${video.youtubeVideoId}`,
+    })
+    setError('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const deleteVideo = async () => {
+    if (!confirmDeleteId) return
+    setDeleting(true)
+    setError('')
+    try {
+      await apiCall(`/api/guru/video-materi/${confirmDeleteId}`, { method: 'DELETE' })
+      setVideos(current => current.filter(video => video.id !== confirmDeleteId))
+      if (editingId === confirmDeleteId) resetForm()
+      setConfirmDeleteId(null)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {confirmTarget && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', padding: 20,
+        }} onClick={() => !deleting && setConfirmDeleteId(null)}>
+          <div style={{
+            width: '100%', maxWidth: 380, padding: 24, borderRadius: 20,
+            background: '#111827', border: '1px solid rgba(239,68,68,0.3)',
+          }} onClick={event => event.stopPropagation()}>
+            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 10 }}>🗑️</div>
+            <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, textAlign: 'center' }}>Hapus video materi?</div>
+            <div style={{ color: '#94A3B8', fontSize: 12, lineHeight: 1.5, textAlign: 'center', margin: '8px 0 20px' }}>
+              “{confirmTarget.title}” tidak akan tampil lagi untuk siswa kelas {confirmTarget.kelas}.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" onClick={() => setConfirmDeleteId(null)} disabled={deleting} style={{ ...secondaryButtonStyle, flex: 1 }}>Batal</button>
+              <button type="button" onClick={deleteVideo} disabled={deleting} style={{ ...dangerButtonStyle, flex: 1 }}>{deleting ? 'Menghapus…' : 'Hapus'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Section style={{ borderColor: editingId ? 'rgba(103,232,249,0.28)' : 'rgba(159,227,189,0.16)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+          <div style={{ fontSize: 28 }}>🎬</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: '#fff', fontSize: 16, fontWeight: 800 }}>{editingId ? 'Edit Video Materi' : 'Tambah Video Materi'}</div>
+            <div style={{ color: '#64748B', fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>
+              Video akan tampil pada zona siswa sesuai kelas, mapel, dan BAB yang dipilih.
+            </div>
+          </div>
+          {editingId && <button type="button" onClick={resetForm} style={linkButtonStyle}>Batal edit</button>}
+        </div>
+
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
+            <div>
+              <div style={labelStyle}>Kelas</div>
+              <select value={form.kelas} onChange={event => updateField('kelas', event.target.value)} style={inputStyle} required>
+                {kelasDiampu.length === 0 && <option value="">Belum ada kelas</option>}
+                {kelasDiampu.map(kelas => <option key={kelas} value={kelas}>{kelas}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>Mata Pelajaran</div>
+              <select value={form.subject} onChange={event => updateField('subject', event.target.value)} style={inputStyle} required>
+                {VIDEO_SUBJECTS.map(subject => <option key={subject.value} value={subject.value}>{subject.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>BAB</div>
+              <select value={form.bab} onChange={event => updateField('bab', event.target.value)} style={inputStyle} required>
+                {Object.entries(babLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <div style={labelStyle}>Judul Video</div>
+            <input value={form.title} onChange={event => updateField('title', event.target.value)} maxLength={255} placeholder="Contoh: Memahami Bilangan Bulat" style={inputStyle} required />
+          </div>
+          <div>
+            <div style={labelStyle}>Link YouTube</div>
+            <input type="url" value={form.youtubeUrl} onChange={event => updateField('youtubeUrl', event.target.value)} placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX" style={inputStyle} required />
+            <div style={{ color: '#64748B', fontSize: 11, marginTop: 5 }}>Gunakan link YouTube biasa, Shorts, atau link pendek youtu.be. ID video akan divalidasi server.</div>
+          </div>
+          <div>
+            <div style={labelStyle}>Deskripsi <span style={{ color: '#475569', fontWeight: 400, letterSpacing: 0, textTransform: 'none' }}>(opsional)</span></div>
+            <textarea value={form.description} onChange={event => updateField('description', event.target.value)} maxLength={2000} rows={3} placeholder="Keterangan singkat untuk siswa…" style={{ ...inputStyle, resize: 'vertical' }} />
+          </div>
+          {error && <div style={{ color: '#FCA5A5', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: '9px 12px', fontSize: 12 }}>{error}</div>}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button type="submit" disabled={saving || !form.kelas} style={{ ...primaryButtonStyle, opacity: saving || !form.kelas ? 0.55 : 1 }}>
+              {saving ? 'Menyimpan…' : editingId ? '✏️ Simpan Perubahan' : '＋ Tambah Video'}
+            </button>
+          </div>
+        </form>
+      </Section>
+
+      <Section>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, flex: 1 }}>Video yang Saya Kelola</div>
+          <select value={filterKelas} onChange={event => setFilterKelas(event.target.value)} style={{ ...smallSelectStyle, minWidth: 150 }}>
+            <option value="all">Semua kelas</option>
+            {kelasDiampu.map(kelas => <option key={kelas} value={kelas}>{kelas}</option>)}
+          </select>
+          <select value={filterSubject} onChange={event => setFilterSubject(event.target.value)} style={smallSelectStyle}>
+            <option value="all">Semua mapel</option>
+            {VIDEO_SUBJECTS.map(subject => <option key={subject.value} value={subject.value}>{subject.label}</option>)}
+          </select>
+        </div>
+
+        {loading ? (
+          <div style={{ color: '#64748B', fontSize: 12, padding: '18px 0' }}>Memuat video materi…</div>
+        ) : visibleVideos.length === 0 ? (
+          <div style={{ color: '#64748B', fontSize: 12, lineHeight: 1.6, padding: '20px 0', textAlign: 'center' }}>
+            Belum ada video yang cocok dengan filter ini.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 12 }}>
+            {visibleVideos.map(video => (
+              <article key={video.id} style={{ background: '#0D1117', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+                <VideoFrame video={video} compact />
+                <div style={{ padding: 12 }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 7 }}>
+                    <span style={videoPillStyle}>{video.subject === 'ipa' ? 'IPA' : 'MATEMATIKA'}</span>
+                    <span style={{ ...videoPillStyle, color: '#A78BFA', background: 'rgba(167,139,250,0.12)' }}>KELAS {video.grade}</span>
+                  </div>
+                  <div style={{ color: '#fff', fontSize: 13, fontWeight: 800, lineHeight: 1.35 }}>{video.title}</div>
+                  <div style={{ color: '#67E8F9', fontSize: 10, fontWeight: 700, marginTop: 5 }}>{getVideoBabLabels(video.grade, video.subject)[video.bab] || `BAB ${video.bab}`}</div>
+                  <div style={{ color: '#64748B', fontSize: 11, marginTop: 3 }}>{video.kelas}</div>
+                  {video.description && <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 8 }}>{video.description}</div>}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <button type="button" onClick={() => editVideo(video)} style={{ ...secondaryButtonStyle, flex: 1 }}>✏️ Edit</button>
+                    <button type="button" onClick={() => setConfirmDeleteId(video.id)} style={{ ...dangerButtonStyle, flex: 1 }}>🗑 Hapus</button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </Section>
+    </div>
+  )
+}
+
+const primaryButtonStyle = {
+  background: 'linear-gradient(135deg,#34D399,#059669)', color: '#042f2e',
+  border: 'none', borderRadius: 11, padding: '11px 16px', fontSize: 12,
+  fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+}
+const secondaryButtonStyle = {
+  background: 'rgba(255,255,255,0.06)', color: '#CBD5E1',
+  border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9, padding: '9px 10px',
+  fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+}
+const dangerButtonStyle = {
+  background: 'rgba(239,68,68,0.12)', color: '#F87171',
+  border: '1px solid rgba(239,68,68,0.25)', borderRadius: 9, padding: '9px 10px',
+  fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+}
+const linkButtonStyle = {
+  background: 'none', border: 'none', color: '#67E8F9',
+  fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+}
+const smallSelectStyle = {
+  background: '#0D1117', color: '#CBD5E1', border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 9, padding: '8px 10px', fontSize: 11, fontFamily: 'inherit',
+}
+const videoPillStyle = {
+  color: '#34D399', background: 'rgba(52,211,153,0.12)',
+  borderRadius: 99, padding: '4px 7px', fontSize: 9, fontWeight: 800,
+}
 
 function Section({ children, style = {} }) {
   return (
@@ -2768,6 +3047,7 @@ function MenuBtn({ label, onClick, danger }) {
 const DESKTOP_TABS = [
   { id: 'home',       icon: '🏠', text: 'Beranda' },
   { id: 'tugas',      icon: '📋', text: 'Kelola Tugas' },
+  { id: 'video',      icon: '🎬', text: 'Video Materi' },
   { id: 'siswa',      icon: '👥', text: 'Pantau Kelas' },
   { id: 'nilai',      icon: '📊', text: 'Nilai Siswa' },
   { id: 'insight',    icon: '🎮', text: 'Insight Siswa' },
@@ -2803,6 +3083,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
       const nextTab = {
         guruDashboard: 'home',
         guruTugas: 'tugas',
+        guruVideo: 'video',
         guruPantau: 'siswa',
         guruNilai: 'nilai',
         guruHafalan: 'hafalan',
@@ -2859,6 +3140,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
     <>
       {tab === 'home'       && <GuruHomeTab kelasDiampu={kelasDiampu} user={user} logout={logout} onPlayGames={onPlayGames} onGoProfile={() => setView('profile')} onSelectTab={selectTab} hideHeader={!isDesktop} hasMateriTerdaftar={hasMateriTerdaftar} />}
       {tab === 'tugas'      && hasMateriTerdaftar && <TugasTab kelasDiampu={kelasDiampu} />}
+      {tab === 'video'      && hasMateriTerdaftar && <VideoMateriTab kelasDiampu={kelasDiampu} />}
       {tab === 'hafalan'    && hasMateriTerdaftar && <GuruHafalanScreen />}
       {tab === 'nilai'      && <NilaiTab onProfileClick={publicProfile.openProfile} />}
       {tab === 'siswa'      && <SiswaTab onProfileClick={publicProfile.openProfile} />}
@@ -2876,6 +3158,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
     { id: 'siswa',      icon: '👥', label: 'Siswa' },
   ]
   const MORE_TABS_ALL = [
+    { id: 'video',    icon: '🎬', label: 'Video Materi' },
     { id: 'hafalan',  icon: '🧮', label: 'Hafalan' },
     { id: 'nilai',    icon: '📊', label: 'Nilai' },
     { id: 'kunci',    icon: '🔒', label: 'Kunci Bab' },

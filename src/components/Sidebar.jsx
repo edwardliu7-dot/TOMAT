@@ -33,6 +33,7 @@ const SISWA_NAV = (zoneKey) => [
 const GURU_NAV_FULL = [
   { key: 'guruDashboard',  emoji: '🏠', label: 'Dashboard' },
   { key: 'guruTugas',      emoji: '📋', label: 'Tugas' },
+  { key: 'guruVideo',      emoji: '🎬', label: 'Video Materi' },
   { key: 'guruPantau',     emoji: '👥', label: 'Pantau Kelas' },
   { key: 'guruNilai',      emoji: '📊', label: 'Nilai Siswa' },
   { key: 'guruHafalan',    emoji: '🎯', label: 'Hafalan' },
@@ -93,6 +94,7 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
     if (user?.role !== 'guru') return undefined
     const tabToKey = {
       tugas: 'guruTugas',
+      video: 'guruVideo',
       hafalan: 'guruHafalan',
       nilai: 'guruNilai',
       siswa: 'guruPantau',

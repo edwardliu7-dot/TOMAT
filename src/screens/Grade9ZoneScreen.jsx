@@ -4,6 +4,7 @@ import { useTask, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { useBabLock } from '../BabLockContext'
 import { GRADE_BAB_LABELS } from '../gamesCatalog'
 import { useBossRaid } from '../hooks/useBossRaid'
+import VideoMateriPanel from '../components/VideoMateriPanel'
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -115,6 +116,7 @@ export default function Grade9ZoneScreen({ navigate, goBack }) {
           <BossAlert />
           <div style={{ fontSize: 12, color: ACCENT, fontWeight: 600, marginBottom: 4 }}>KELAS 9 · 17 MISI</div>
           <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 4 }}>Pilih misi dan selesaikan tantangan matematika!</div>
+          <VideoMateriPanel grade={9} subject="matematika" selectedBab={selectedBab} accent={ACCENT} />
           {BABS.map(bab => (
             <div key={bab.id}>
               <div style={{ marginTop: 20, marginBottom: 12 }}>
@@ -147,6 +149,7 @@ export default function Grade9ZoneScreen({ navigate, goBack }) {
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, color: ACCENT, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>KELAS 9 · 17 MISI</div>
           <div style={{ fontSize: 13, color: '#94A3B8', marginTop: 2 }}>Pilih misi dan selesaikan tantangan matematika!</div>
+          <VideoMateriPanel grade={9} subject="matematika" selectedBab={selectedBab} accent={ACCENT} />
         </div>
 
         <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>

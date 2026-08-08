@@ -890,6 +890,29 @@ export async function ensureSchema() {
     )
   `)
 
+  // Video materi TOMAT — link YouTube per kelas, mapel, dan BAB.
+  // Dipisah dari tabel GURU/BLP agar data TOMAT tidak mengubah modul eksternal.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tomat_video_materi (
+      id               SERIAL PRIMARY KEY,
+      guru_id          text NOT NULL REFERENCES gurus(id) ON DELETE CASCADE,
+      kelas            VARCHAR(50) NOT NULL,
+      grade            INT NOT NULL CHECK (grade IN (7, 8, 9)),
+      subject          VARCHAR(20) NOT NULL CHECK (subject IN ('matematika', 'ipa')),
+      bab              VARCHAR(10) NOT NULL,
+      title            VARCHAR(255) NOT NULL,
+      description      TEXT,
+      youtube_url      TEXT NOT NULL,
+      youtube_video_id VARCHAR(11) NOT NULL,
+      created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS tomat_video_materi_siswa_idx
+      ON tomat_video_materi (kelas, grade, subject, bab, created_at DESC)
+  `)
+
   // Feedback guru ke pengembang aplikasi
   await pool.query(`
     CREATE TABLE IF NOT EXISTS feedback (
