@@ -1,0 +1,61 @@
+# Prompt 1: Perbaikan Bug Tileset Latar Belakang (Prioritas Utama)
+
+Ini adalah langkah teknis paling krusial. Kita perlu memastikan sistem tiling hanya menampilkan satu tile rumput, bukan seluruh lembar tileset.
+
+**Tujuan:** Memperbaiki sistem rendering latar belakang.
+
+**Target:** Gambar map latar belakang yang kacau di `image_0.png`.
+
+**Instruksi:**
+
+> Generate an image that corrects the rendering of the background tileset in the MOBA arena shown in image_0.png. Instead of the current messy view where whole tileset sheets are repeating, the background map must be clean and clearly rendered with correctly scaled, single tiled grass-and-tree tiles (e.g., individual 32x32 pixel tiles or similar) forming a vast, uniform green forest map. The chaotic overlapping of whole sheets must be eliminated. The river (the diagonal teal element) must remain, as well as all character sprites (Alya, Bimo, etc.), all UI elements (Scoreboard, Minimap, Analog, etc.), and their positions exactly as they appear in image_0.png. The river remains solid teal for now, but the ground map is clean. All player names, base labels, and scores remain.
+
+## Prompt 2: Menjadikan Sungai Terlihat Alami dan Menyesuaikan Layering
+
+Sekarang map sudah bersih, kita ubah sungai menjadi air yang sebenarnya dan memastikan karakter tidak "tenggelam" di bawahnya.
+
+**Tujuan:** Mengubah blok biru pekat menjadi air transparan dan mengatur z-index.
+
+**Target:** Sungai teal yang pekat dan memastikan karakter di atasnya.
+
+**Instruksi:**
+
+> Generate an image, building upon the corrected clean map from image_1.png. The solid diagonal teal river element is now made semi-transparent, with an opacity of approximately 60% (e.g., using RGBA 0, 153, 180, 0.6). This makes the cleaned grass tiles below it visible through the water. All character sprites (Alya, Bimo, and the Raka player) are placed on a higher layering level (higher z-index) so they clearly walk *over* the water or on the central diagonal bridge. The central bridge structure should be reinforced with clearer wood and stone textures to appear solid. All player sprites are detailed and sharp. All UI elements remain in place, appearing on the top-most layer, unaffected by the river or character sprites.
+
+## Prompt 3: Meningkatkan Teks, Keterbacaan, dan Detail Kosmetik Dasar
+
+Membuat teks "pop" dari latar belakang map yang rumit.
+
+**Tujuan:** Menambahkan bayangan teks (text-shadow) dan detail kecil pada ikon.
+
+**Target:** Semua teks nama pemain, poin, dan base.
+
+**Instruksi:**
+
+> Generate an image based on the river-corrected map from image_2.png. All text elements on the main arena map—including player names ("Alya", "Bimo", "Raka"), base labels ("BASE PIJAR", "BASE RONA"), and point totals ("86 PIJAR", "71 RONA")—must have a subtle but distinct dark gray or black text-shadow added for enhanced readability against the detailed background (CSS: text-shadow: 1px 1px 2px rgba(0,0,0,0.8)). The base icons (the red and blue diamonds) should have a gentle, pulsing glow effect to make them feel active. All other UI elements are retained in their current style.
+
+## Prompt 4: Menata Ulang Layout HUD (Minimap, Scoreboard, Analog)
+
+Menyesuaikan proporsi dan margin agar UI terlihat serasi dan tidak menumpuk.
+
+**Tujuan:** Memperbaiki layout, margin, dan posisi analog.
+
+**Target:** Minimap, Scoreboard, dan Analog Controller.
+
+**Instruksi:**
+
+> Generate an image based on image_3.png, with all text readability improvements. The layout of the HUD (Heads-Up Display) is optimized. The top-center Scoreboard ("86 PIJAR vs RONA 71") is centered perfectly and raised slightly higher. The top-right Minimap is retained but scaled down slightly to maintain a consistent margin (spacing) from the top and right edges of the screen, matching the spacing from the other HUD elements. The bottom-right Analog Controller is made larger and shifted further to the left and up, creating more space and ensuring it is not overlapping the "Made with Replit" badge or any other element. The analog's position should be comfortable for a player on a touchscreen. All other character and map elements are preserved.
+
+## Prompt 5: Menyempurnakan Konsistensi dan Detail Kosmetik Akhir
+
+Langkah akhir untuk memoles UI agar benar-benar seragam dan profesional.
+
+**Tujuan:** Menjadikan bentuk tombol konsisten, memperhalus notifikasi bawah.
+
+**Target:** Tombol speaker, notifikasi bawah, dan detail akhir.
+
+**Instruksi:**
+
+> Generate a final image based on the optimized layout of image_4.png. The speaker mute button below the minimap is changed from a square shape to a perfect circle (border-radius: 50%), matching the round design language of the analog and scoreboard elements. The bottom-center notification pill ("Alya bergerak mengikuti analog") is redesigned with a cleaner, semi-transparent dark pill shape that perfectly matches the styling of the main scoreboard pill. It is raised slightly with additional margin at the bottom for better visual separation. The base labels "BASE PIJAR" and "BASE RONA" have a small, stylized gem-cutting texture on the text itself, suggesting value. All character sprites, river, and map details are finalized. The lighting across the map is slightly improved to create depth. All elements from the initial design are retained but polished. The "Made with Replit" badge is shifted into a less intrusive corner.
+
+Dengan mengikuti langkah-langkah ini secara berurutan, kamu dapat mengubah desain dasar menjadi UI MOBA yang benar-benar profesional.
