@@ -231,6 +231,7 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     // Tournament notifications can be sent before a student opens a match,
     // so keep the authenticated user id on the socket for server-side lookup.
     socket.data.userId = user.id
+    socket.data.username = user.username || null
     socket.data.role = user.role
     socket.data.displayName = user.name || user.username || 'Siswa'
     moba.attach(socket)

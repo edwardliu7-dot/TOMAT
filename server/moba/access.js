@@ -18,11 +18,22 @@ export function getMobaAllowlist(env = process.env) {
     .filter(Boolean)
 }
 
-export function isMobaStudentAllowed(userId, env = process.env) {
-  const allowlist = getMobaAllowlist(env)
-  return allowlist.length === 0 || allowlist.includes(String(userId))
+function getIdentityValues(identity) {
+  if (identity && typeof identity === 'object') {
+    return [identity.id, identity.userId, identity.username]
+      .filter(value => value !== null && value !== undefined && String(value).trim())
+      .map(value => String(value).trim())
+  }
+  if (identity === null || identity === undefined) return []
+  return [String(identity).trim()].filter(Boolean)
 }
 
-export function canStudentUseMoba(userId, env = process.env) {
-  return isMobaEnabled(env) && isMobaStudentAllowed(userId, env)
+export function isMobaStudentAllowed(identity, env = process.env) {
+  const allowlist = getMobaAllowlist(env)
+  const identityValues = getIdentityValues(identity)
+  return allowlist.length === 0 || identityValues.some(value => allowlist.includes(value))
+}
+
+export function canStudentUseMoba(identity, env = process.env) {
+  return isMobaEnabled(env) && isMobaStudentAllowed(identity, env)
 }

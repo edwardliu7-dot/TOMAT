@@ -287,6 +287,10 @@ function PetWidget({ pet, onHungryClick }) {
 
   const onPointerUp = useCallback((e) => {
     e.stopPropagation()
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    }
+    e.currentTarget.blur?.()
     if (longPressRef.current) {
       clearTimeout(longPressRef.current)
       longPressRef.current = null
@@ -294,6 +298,17 @@ function PetWidget({ pet, onHungryClick }) {
       triggerInteraction('happy', 1800)
     }
   }, [triggerInteraction, pet.skin])
+
+  const clearPointerInteraction = useCallback((e) => {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current)
+      longPressRef.current = null
+    }
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    }
+    e.currentTarget.blur?.()
+  }, [])
 
   const mirrorX = dir === -1
   const anim    = STATE_ANIMS[petState] || STATE_ANIMS.idle
@@ -303,8 +318,14 @@ function PetWidget({ pet, onHungryClick }) {
     <>
       <style>{PET_CSS}{FLOAT_CSS}</style>
       <div
+        className="tomat-floating-pet"
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
+        onPointerCancel={clearPointerInteraction}
+        onPointerLeave={clearPointerInteraction}
+        onFocus={(e) => e.currentTarget.blur()}
+        onContextMenu={(e) => e.preventDefault()}
+        onDragStart={(e) => e.preventDefault()}
         style={{
           position:         'fixed',
           left:             `calc(${xFrac * 100}vw)`,
@@ -315,6 +336,11 @@ function PetWidget({ pet, onHungryClick }) {
           cursor:           'pointer',
           userSelect:       'none',
           WebkitUserSelect: 'none',
+           WebkitTapHighlightColor: 'transparent',
+           WebkitTouchCallout: 'none',
+           WebkitFocusRingColor: 'transparent',
+           outline:           'none',
+           boxShadow:         'none',
           touchAction:      'none',
           willChange:       'left, top',
         }}
@@ -374,6 +400,27 @@ function PetWidget({ pet, onHungryClick }) {
 }
 
 const FLOAT_CSS = `
+.tomat-floating-pet,
+.tomat-floating-pet * {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-focus-ring-color: transparent !important;
+}
+.tomat-floating-pet:focus,
+.tomat-floating-pet:focus-visible,
+.tomat-floating-pet *:focus,
+.tomat-floating-pet *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.tomat-floating-pet svg,
+.tomat-floating-pet [data-raw-image] {
+  pointer-events: none;
+}
 @keyframes tomi-bubble-pop {
   0%   { transform: translateX(-50%) scale(0.5); opacity: 0; }
   70%  { transform: translateX(-50%) scale(1.1); opacity: 1; }

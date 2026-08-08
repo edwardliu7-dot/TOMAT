@@ -170,7 +170,10 @@ export function createMobaSocketAdapter({
       }, ack)
       return false
     }
-    if (!canStudentUseMoba(socket.data.userId, mobaEnv)) {
+    if (!canStudentUseMoba({
+      id: socket.data.userId,
+      username: socket.data.username,
+    }, mobaEnv)) {
       const disabled = ['0', 'false', 'off', 'no'].includes(
         String(mobaEnv.MOBA_ENABLED ?? 'true').trim().toLowerCase(),
       )
