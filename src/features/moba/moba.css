@@ -477,7 +477,7 @@
     radial-gradient(circle at 82% 76%, rgba(4, 46, 47, .18), transparent 34%),
     linear-gradient(135deg, rgba(170, 213, 128, .08) 25%, transparent 25%),
     url('/moba-arena/moba-grass-tile-spring.png');
-  background-size: auto, auto, 64px 64px, 32px 32px;
+  background-size: auto, auto, 64px 64px, var(--moba-tile-size, 32px) var(--moba-tile-size, 32px);
   background-position: center, center, 0 0, 0 0;
   image-rendering: pixelated;
   opacity: .98;
@@ -487,7 +487,7 @@
   z-index: 1;
   inset: 0;
   background-image: linear-gradient(rgba(153,214,167,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(153,214,167,.09) 1px, transparent 1px);
-  background-size: clamp(36px, 4vw, 70px);
+  background-size: var(--moba-tile-size, 32px) var(--moba-tile-size, 32px);
   mask-image: radial-gradient(ellipse, #000 35%, transparent 90%);
 }
 .moba-jungle-lane {

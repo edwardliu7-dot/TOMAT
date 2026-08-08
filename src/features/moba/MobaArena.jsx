@@ -4,7 +4,15 @@ import MobaBase from './MobaBase.jsx'
 import MobaNode from './MobaNode.jsx'
 import MobaPet from './MobaPet.jsx'
 
-const DEFAULT_ARENA = { minX: 0, maxX: 8000, minY: 0, maxY: 8000 }
+const DEFAULT_ARENA = {
+  minX: 0,
+  maxX: 8000,
+  minY: 0,
+  maxY: 8000,
+  tileSize: 32,
+  columns: 250,
+  rows: 250,
+}
 
 function getArenaBounds(arena = {}) {
   const minX = Number.isFinite(Number(arena.minX)) ? Number(arena.minX) : DEFAULT_ARENA.minX
@@ -216,6 +224,13 @@ export default function MobaArena({
   const [mapOpen, setMapOpen] = useState(false)
   const [muted, setMuted] = useState(false)
   const bounds = getArenaBounds(arena)
+  const tileSize = Number(arena.tileSize) > 0 ? Number(arena.tileSize) : 32
+  const tileColumns = Number(arena.columns) > 0
+    ? Number(arena.columns)
+    : Math.round((bounds.maxX - bounds.minX) / tileSize)
+  const tileRows = Number(arena.rows) > 0
+    ? Number(arena.rows)
+    : Math.round((bounds.maxY - bounds.minY) / tileSize)
   const selfX = Number(self?.position?.x)
   const selfY = Number(self?.position?.y)
   const selfXPercent = Number.isFinite(selfX)
@@ -247,9 +262,20 @@ export default function MobaArena({
       data-arena-max-x={getArenaBounds(arena).maxX}
       data-arena-min-y={getArenaBounds(arena).minY}
       data-arena-max-y={getArenaBounds(arena).maxY}
+      data-tile-size={tileSize}
+      data-tile-columns={tileColumns}
+      data-tile-rows={tileRows}
     >
       <div className="moba-jungle-board">
-        <div className="moba-jungle-board__world" style={cameraStyle}>
+          <div
+            className="moba-jungle-board__world"
+            style={{
+              ...cameraStyle,
+              '--moba-tile-size': `${tileSize}px`,
+              '--moba-tile-columns': tileColumns,
+              '--moba-tile-rows': tileRows,
+            }}
+          >
           <div className="moba-jungle-terrain" aria-hidden="true" />
           <div className="moba-jungle-river" aria-hidden="true" />
           <div className="moba-jungle-grid" />

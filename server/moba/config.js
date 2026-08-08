@@ -10,6 +10,10 @@ export const MOBA_MODE = 'tomat-moba'
 
 export const TEAM_SIZES = Object.freeze([1, 2, 3])
 export const MOBA_ARENA_SIZE = 8_000
+// The arena keeps continuous server-authoritative movement, while this grid
+// gives tileset/rendering a stable world scale.
+export const MOBA_TILE_SIZE = 32
+export const MOBA_ARENA_TILES = MOBA_ARENA_SIZE / MOBA_TILE_SIZE
 
 export const PHASES = Object.freeze({
   LOBBY: 'lobby',
@@ -105,6 +109,10 @@ export const DEFAULT_MOBA_CONFIG = Object.freeze({
     maxX: MOBA_ARENA_SIZE,
     minY: 0,
     maxY: MOBA_ARENA_SIZE,
+    // One tileset cell represents 32 world units: 250 × 250 cells.
+    tileSize: MOBA_TILE_SIZE,
+    columns: MOBA_ARENA_TILES,
+    rows: MOBA_ARENA_TILES,
     nodeSafeRadius: 44,
     playerSafeRadius: 56,
     baseSafeRadius: 100,

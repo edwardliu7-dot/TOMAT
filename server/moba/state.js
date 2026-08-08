@@ -37,12 +37,13 @@ function clonePosition(position, fallback) {
 }
 
 function cloneConfig(config = {}) {
+  const arenaOverrides = config.arena || {}
   return {
     ...DEFAULT_MOBA_CONFIG,
     ...config,
     arena: {
       ...DEFAULT_MOBA_CONFIG.arena,
-      ...(config.arena || {}),
+      ...arenaOverrides,
     },
   }
 }
@@ -267,7 +268,14 @@ export function sanitizeMatchState(match) {
     depositInteractionRadius: match.config.depositInteractionRadius,
     playerCollisionRadius: match.config.playerCollisionRadius,
     tomiDepositMultiplier: match.config.tomiDepositMultiplier,
-    arena: { ...match.config.arena },
+    arena: {
+      ...match.config.arena,
+      // Keep the grid contract explicit in every snapshot so the renderer
+      // does not need to infer tiles from the viewport size.
+      tileSize: match.config.arena.tileSize,
+      columns: match.config.arena.columns,
+      rows: match.config.arena.rows,
+    },
     towerMaxPoints: match.config.towerMaxPoints,
     baseMaxHp: match.config.baseMaxHp,
     wrongAnswerStunMs: match.config.wrongAnswerStunMs,

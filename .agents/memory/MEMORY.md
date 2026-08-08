@@ -52,3 +52,4 @@
 - [TOMAT MOBA release dan settlement](tomat-moba-release.md) — hasil final durable, reward pemenang idempotent, dan rollout dikendalikan env flag/allowlist tanpa mematikan mode individu.
 - [Mockup sandbox icon compatibility](mockup-sandbox-icon-compatibility.md) — cek ekspor lucide-react sebelum memakai ikon baru; gunakan CSS fallback bila ikon tidak tersedia agar preview tidak blank.
 - [TOMAT MOBA rollout gate](tomat-moba-rollout-gate.md) — akses demo dikendalikan MOBA_ENABLED + MOBA_ALLOWED_STUDENT_IDS; perubahan environment baru berlaku setelah workflow server direstart.
+- [TOMAT MOBA tile grid](tomat-moba-tile-grid.md) — dunia 8.000×8.000 memakai 32 unit/tile, menghasilkan grid 250×250; movement tetap kontinu dan authoritative.

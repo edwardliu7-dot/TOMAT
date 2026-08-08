@@ -4,6 +4,9 @@ import {
   DEFAULT_MOBA_CONFIG,
   DIFFICULTIES,
   ERROR_CODES,
+  MOBA_ARENA_SIZE,
+  MOBA_ARENA_TILES,
+  MOBA_TILE_SIZE,
   PHASES,
   PET_TYPES,
   TEAM_SIZES,
@@ -67,6 +70,22 @@ test('creates the default 1v1 match state with isolated team structures', () => 
   assert.equal(match.mode, 'tomat-moba')
   assert.equal(match.teamSize, 1)
   assert.equal(match.phase, PHASES.LOBBY)
+  assert.equal(MOBA_ARENA_SIZE, 8000)
+  assert.equal(MOBA_TILE_SIZE, 32)
+  assert.equal(MOBA_ARENA_TILES, 250)
+  assert.deepEqual(match.config.arena, {
+    minX: 0,
+    maxX: 8000,
+    minY: 0,
+    maxY: 8000,
+    tileSize: 32,
+    columns: 250,
+    rows: 250,
+    nodeSafeRadius: 44,
+    playerSafeRadius: 56,
+    baseSafeRadius: 100,
+    maxSpawnAttempts: 100,
+  })
   assert.equal(match.createdAt, 1234)
   assert.equal(match.startedAt, null)
   assert.equal(match.endsAt, null)
@@ -155,6 +174,9 @@ test('sanitizes nodes and omits server-only question answers', () => {
   const snapshot = sanitizeMatchState(match)
   const serialized = JSON.stringify(snapshot)
 
+  assert.equal(snapshot.config.arena.tileSize, 32)
+  assert.equal(snapshot.config.arena.columns, 250)
+  assert.equal(snapshot.config.arena.rows, 250)
   assert.equal(snapshot.questions, undefined)
   assert.equal(snapshot.timers, undefined)
   assert.equal(snapshot.players[0].questionSession, undefined)
