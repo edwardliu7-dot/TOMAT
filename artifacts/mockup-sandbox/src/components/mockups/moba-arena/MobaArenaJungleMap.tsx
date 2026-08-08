@@ -1,11 +1,6 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
   CircleHelp,
-  Compass,
   Gem,
   Map,
   ScrollText,
@@ -56,6 +51,64 @@ function MiniMap({ onClose }: { onClose: () => void }) {
   );
 }
 
+function AnalogStick({ onMove, onRelease }: { onMove: (x: number, y: number) => void; onRelease: () => void }) {
+  const padRef = useRef<HTMLDivElement>(null);
+  const activePointer = useRef<number | null>(null);
+  const [knob, setKnob] = useState({ x: 0, y: 0 });
+
+  const updateStick = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const pad = padRef.current;
+    if (!pad) return;
+    const bounds = pad.getBoundingClientRect();
+    const radius = Math.max(1, Math.min(bounds.width, bounds.height) / 2 - 25);
+    const rawX = event.clientX - (bounds.left + bounds.width / 2);
+    const rawY = event.clientY - (bounds.top + bounds.height / 2);
+    const distance = Math.hypot(rawX, rawY);
+    const scale = distance > radius ? radius / distance : 1;
+    const x = rawX * scale;
+    const y = rawY * scale;
+    setKnob({ x, y });
+    onMove(x / radius, y / radius);
+  };
+
+  const releaseStick = () => {
+    if (activePointer.current !== null) {
+      try { padRef.current?.releasePointerCapture(activePointer.current); } catch { /* already released */ }
+    }
+    activePointer.current = null;
+    setKnob({ x: 0, y: 0 });
+    onRelease();
+  };
+
+  return (
+    <div
+      ref={padRef}
+      className="j-analog"
+      aria-label="Kontrol analog gerak"
+      onPointerDown={(event) => {
+        activePointer.current = event.pointerId;
+        padRef.current?.setPointerCapture(event.pointerId);
+        updateStick(event);
+      }}
+      onPointerMove={(event) => {
+        if (activePointer.current === event.pointerId) updateStick(event);
+      }}
+      onPointerUp={releaseStick}
+      onPointerCancel={releaseStick}
+    >
+      <span className="j-analog-ring ring-one" />
+      <span className="j-analog-ring ring-two" />
+      <span className="j-analog-dot dot-top" />
+      <span className="j-analog-dot dot-right" />
+      <span className="j-analog-dot dot-bottom" />
+      <span className="j-analog-dot dot-left" />
+      <span className="j-analog-knob" style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}>
+        <span />
+      </span>
+    </div>
+  );
+}
+
 export function MobaArenaJungleMap() {
   const [seconds, setSeconds] = useState(7 * 60 + 42);
   const [score, setScore] = useState(86);
@@ -92,9 +145,10 @@ export function MobaArenaJungleMap() {
     setNotice(`Benar! Gulungan ${selected.label} ikut Alya pulang`);
     setSelected(null);
   };
-  const step = (direction: string) => {
-    setMove(direction);
-    setNotice(`Alya bergerak ke ${direction}`);
+  const moveAnalog = (x: number, y: number) => {
+    if (Math.hypot(x, y) < 0.12) return;
+    setMove("bergerak");
+    setNotice("Alya bergerak mengikuti analog");
   };
 
   return (
@@ -123,6 +177,18 @@ export function MobaArenaJungleMap() {
         @keyframes j-water{0%,100%{margin-left:0;opacity:.86}50%{margin-left:1.5%;opacity:1}}@keyframes j-sway{0%,100%{transform:rotate(0)}50%{transform:rotate(2deg) translateY(-2px)}}@keyframes j-pulse{0%,100%{box-shadow:0 8px 12px rgba(3,31,34,.34)}50%{box-shadow:0 8px 18px rgba(229,191,92,.45)}}@keyframes j-float{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,calc(-50% - 3px))}}@keyframes j-walk{from{transform:rotate(-2deg) translateX(-1px)}to{transform:rotate(2deg) translateX(1px)}}
         @media(max-width:700px){.j-board{inset:8% 1% 3%;transform:none}.j-brand-copy,.j-time,.j-toast{display:none}.j-brand{top:14px;left:14px}.j-match{top:13px;gap:8px;padding:7px 9px}.j-minimap{top:68px;right:14px;width:132px;height:94px}.j-sound{top:75px;right:155px}.j-actions{right:12px;bottom:14px;gap:5px}.j-pad{width:98px;height:98px}.j-base{transform:scale(.7)}.j-base.pijar{left:-2%}.j-base.rona{right:-2%}.j-node{transform:translate(-50%,-50%) scale(.85)}.j-pet{transform:translate(-50%,-50%) scale(.82)}.j-map-pop{top:168px;right:14px;width:245px}}
       `}</style>
+      <style>{`
+        .j-analog{position:relative;width:132px;height:132px;touch-action:none;user-select:none;border:1px solid rgba(239,222,155,.32);border-radius:50%;background:radial-gradient(circle at 34% 27%,rgba(46,117,109,.82),rgba(4,38,43,.86) 62%);box-shadow:inset 0 0 0 9px rgba(5,31,36,.34),0 7px 16px rgba(1,26,30,.28);cursor:grab}
+        .j-analog:active{cursor:grabbing;background:radial-gradient(circle at 34% 27%,rgba(60,137,124,.92),rgba(4,38,43,.9) 62%)}
+        .j-analog-ring{position:absolute;left:50%;top:50%;border:1px solid rgba(239,222,155,.2);border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+        .j-analog-ring.ring-one{width:86px;height:86px}.j-analog-ring.ring-two{width:52px;height:52px;border-color:rgba(239,222,155,.13)}
+        .j-analog-dot{position:absolute;width:4px;height:4px;border-radius:50%;background:#e6c872;opacity:.65;pointer-events:none}
+        .j-analog-dot.dot-top{left:50%;top:10px;transform:translateX(-50%)}.j-analog-dot.dot-right{right:10px;top:50%;transform:translateY(-50%)}
+        .j-analog-dot.dot-bottom{left:50%;bottom:10px;transform:translateX(-50%)}.j-analog-dot.dot-left{left:10px;top:50%;transform:translateY(-50%)}
+        .j-analog-knob{position:absolute;left:50%;top:50%;width:54px;height:54px;border:2px solid #ffe6a5;border-radius:50%;background:radial-gradient(circle at 32% 25%,#ffb98a,#d96d58 58%,#8e4b4c);box-shadow:0 7px 0 rgba(3,28,33,.42),inset 0 4px 8px rgba(255,240,180,.24);pointer-events:none;transition:transform .12s ease-out}
+        .j-analog-knob span{position:absolute;left:50%;top:50%;width:13px;height:13px;border:2px solid rgba(255,240,180,.7);border-radius:50%;transform:translate(-50%,-50%)}
+        @media(max-width:700px){.j-analog{width:106px;height:106px}.j-analog-ring.ring-one{width:70px;height:70px}.j-analog-ring.ring-two{width:42px;height:42px}.j-analog-knob{width:44px;height:44px}.j-analog-dot.dot-top{top:8px}.j-analog-dot.dot-right{right:8px}.j-analog-dot.dot-bottom{bottom:8px}.j-analog-dot.dot-left{left:8px}}
+      `}</style>
       <section className="j-world" aria-label="Peta hutan TOMAT">
         <div className="j-board"><div className="j-grid" /><div className="j-lane a" /><div className="j-lane b" /><div className="j-lane c" /><span className="j-lane-label jl-a">LAJUR UTARA</span><span className="j-lane-label jl-b">LAJUR TENGAH</span><span className="j-lane-label jl-c">LAJUR SELATAN</span>
           <span className="j-brush b1" /><span className="j-brush b2" /><span className="j-brush b3" /><span className="j-brush b4" /><span className="j-brush b5" /><span className="j-brush b6" />
@@ -138,7 +204,7 @@ export function MobaArenaJungleMap() {
         <div className="j-match"><span className="j-team-score pijar"><b>{score}</b>Pijar</span><span className="j-vs">VS</span><span className="j-team-score rona">Rona<b>71</b></span></div><div className="j-time">{time}</div>
         <div className="j-minimap" aria-label="Minimap"><span className="j-mini-dot md1" /><span className="j-mini-dot md2" /><span className="j-mini-dot md3" /><label>POSISI PET</label></div>
         <button className="j-icon-btn j-sound" onClick={() => { setMuted((v) => !v); setNotice(muted ? "Suara arena dinyalakan" : "Suara arena dimatikan"); }} aria-label={muted ? "Nyalakan suara" : "Matikan suara"}>{muted ? <VolumeX size={15} /> : <Volume2 size={15} />}</button>
-        <div className="j-actions"><button className="j-icon-btn" onClick={() => setMapOpen((v) => !v)} aria-label="Buka peta"><Map size={16} /></button><div className="j-pad" aria-label="Kontrol gerak"><button onClick={() => step("atas")} aria-label="Gerak atas"><ArrowUp size={16} /></button><button onClick={() => step("kiri")} aria-label="Gerak kiri"><ArrowLeft size={16} /></button><button onClick={() => step("diam")} aria-label="Berhenti"><Compass size={17} /></button><button onClick={() => step("kanan")} aria-label="Gerak kanan"><ArrowRight size={16} /></button><button onClick={() => step("bawah")} aria-label="Gerak bawah"><ArrowDown size={16} /></button></div></div>
+         <div className="j-actions"><button className="j-icon-btn" onClick={() => setMapOpen((v) => !v)} aria-label="Buka peta"><Map size={16} /></button><AnalogStick onMove={moveAnalog} onRelease={() => setMove("diam")} /></div>
         <div className="j-toast"><Sparkles size={12} />{notice}{move !== "diam" && ` · ${move}`}</div>
         {mapOpen && <MiniMap onClose={() => setMapOpen(false)} />}
         {selected && <div className="j-question"><button className="close" onClick={() => setSelected(null)} aria-label="Tutup soal"><X size={15} /></button><small>Node soal · +{selected.points} poin</small><h2>{selected.label}</h2><p>Jawab dengan benar untuk mengubah node ini menjadi gulungan yang bisa dibawa Alya ke Base Pijar.</p><button className="j-answer" onClick={answer}>Jawab benar dan ambil gulungan</button></div>}
