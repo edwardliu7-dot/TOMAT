@@ -215,6 +215,7 @@ export default function MobaArena({
     >
       <div className="moba-jungle-board">
         <div className="moba-jungle-terrain" aria-hidden="true" />
+        <div className="moba-jungle-river" aria-hidden="true" />
         <div className="moba-jungle-grid" />
         <div className="moba-jungle-lane moba-jungle-lane--top" />
         <div className="moba-jungle-lane moba-jungle-lane--middle" />
@@ -227,22 +228,23 @@ export default function MobaArena({
         <img className="moba-jungle-brush moba-jungle-brush--3" src="/moba-arena/moba-tree-spring.png" alt="" />
         <img className="moba-jungle-brush moba-jungle-brush--4" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
         <img className="moba-jungle-brush moba-jungle-brush--5" src="/moba-arena/moba-tree-spring.png" alt="" />
-      <MobaBase team={match?.teams?.teamA} side="left" />
-      <MobaBase team={match?.teams?.teamB} side="right" />
-      {nodes.map(node => (
-        <MobaNode
-          key={node.id}
-          node={node}
-          style={toPosition(node.position, arena)}
-          isNearby={Boolean(self && distanceBetween(self.position, node.position) <= interactionRadius)}
-          onClaim={onClaimNode}
-        />
-      ))}
-      {players.map(player => (
-        <div key={player.id} className="moba11-positioned" style={toPosition(player.position, arena)}>
-          <MobaPet player={player} isSelf={player.id === selfId || player.userId === selfId} />
-        </div>
-      ))}
+        <div className="moba-jungle-bridge" aria-label="Jembatan tengah" />
+        <MobaBase team={match?.teams?.teamA} side="left" />
+        <MobaBase team={match?.teams?.teamB} side="right" />
+        {nodes.map(node => (
+          <MobaNode
+            key={node.id}
+            node={node}
+            style={toPosition(node.position, arena)}
+            isNearby={Boolean(self && distanceBetween(self.position, node.position) <= interactionRadius)}
+            onClaim={onClaimNode}
+          />
+        ))}
+        {players.map(player => (
+          <div key={player.id} className="moba11-positioned" style={toPosition(player.position, arena)}>
+            <MobaPet player={player} isSelf={player.id === selfId || player.userId === selfId} />
+          </div>
+        ))}
         <div className="moba11-arena__center"><Gem size={19} /></div>
       </div>
       <div className="moba-jungle-hud" aria-label="Kontrol arena">
