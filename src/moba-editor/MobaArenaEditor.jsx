@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './moba-arena-editor.css'
 
 const GRID_SIZE = 20
+const ARENA_TILE_SIZE = 16
+const ARENA_TILES = 1250
 const LAYOUT_STORAGE_KEY = 'smartisa-hidden-moba-arena-layout'
 
 function formatBytes(bytes) {
@@ -305,7 +307,7 @@ export default function MobaArenaEditor() {
               <h2>Untitled battlefield <span>· Draft</span></h2>
             </div>
             <div className="moba-editor__coordinates">
-              <span><i className="moba-editor__legend moba-editor__legend--grid" />20 × 20 grid</span>
+              <span><i className="moba-editor__legend moba-editor__legend--grid" />20 × 20 preview · tile {ARENA_TILE_SIZE}px · {ARENA_TILES} × {ARENA_TILES}</span>
               <span><i className="moba-editor__legend moba-editor__legend--active" />{placements.length} placed</span>
             </div>
           </div>
@@ -318,7 +320,7 @@ export default function MobaArenaEditor() {
               <div className="moba-editor__ruler moba-editor__ruler--left" aria-hidden="true">
                 {Array.from({ length: GRID_SIZE }, (_, index) => <span key={index}>{String.fromCharCode(65 + index)}</span>)}
               </div>
-              <div className="moba-editor__grid" role="grid" aria-label="20 kali 20 arena grid">
+              <div className="moba-editor__grid" role="grid" aria-label={`Preview 20 kali 20 untuk arena ${ARENA_TILES} kali ${ARENA_TILES} tile`}>
                 {Array.from({ length: GRID_SIZE * GRID_SIZE }, (_, index) => {
                   const row = Math.floor(index / GRID_SIZE)
                   const column = index % GRID_SIZE

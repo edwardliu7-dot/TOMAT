@@ -6,12 +6,12 @@ import MobaPet from './MobaPet.jsx'
 
 const DEFAULT_ARENA = {
   minX: 0,
-  maxX: 8000,
+  maxX: 20000,
   minY: 0,
-  maxY: 8000,
-  tileSize: 32,
-  columns: 250,
-  rows: 250,
+  maxY: 20000,
+  tileSize: 16,
+  columns: 1250,
+  rows: 1250,
 }
 
 function getArenaBounds(arena = {}) {
@@ -224,7 +224,7 @@ export default function MobaArena({
   const [mapOpen, setMapOpen] = useState(false)
   const [muted, setMuted] = useState(false)
   const bounds = getArenaBounds(arena)
-  const tileSize = Number(arena.tileSize) > 0 ? Number(arena.tileSize) : 32
+  const tileSize = Number(arena.tileSize) > 0 ? Number(arena.tileSize) : 16
   const tileColumns = Number(arena.columns) > 0
     ? Number(arena.columns)
     : Math.round((bounds.maxX - bounds.minX) / tileSize)

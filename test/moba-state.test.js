@@ -70,17 +70,17 @@ test('creates the default 1v1 match state with isolated team structures', () => 
   assert.equal(match.mode, 'tomat-moba')
   assert.equal(match.teamSize, 1)
   assert.equal(match.phase, PHASES.LOBBY)
-  assert.equal(MOBA_ARENA_SIZE, 8000)
-  assert.equal(MOBA_TILE_SIZE, 32)
-  assert.equal(MOBA_ARENA_TILES, 250)
+  assert.equal(MOBA_ARENA_SIZE, 20000)
+  assert.equal(MOBA_TILE_SIZE, 16)
+  assert.equal(MOBA_ARENA_TILES, 1250)
   assert.deepEqual(match.config.arena, {
     minX: 0,
-    maxX: 8000,
+    maxX: 20000,
     minY: 0,
-    maxY: 8000,
-    tileSize: 32,
-    columns: 250,
-    rows: 250,
+    maxY: 20000,
+    tileSize: 16,
+    columns: 1250,
+    rows: 1250,
     nodeSafeRadius: 44,
     playerSafeRadius: 56,
     baseSafeRadius: 100,
@@ -127,7 +127,7 @@ test('creates a player with a pet loadout and safe defaults', () => {
     now: 5000,
   })
 
-  assert.deepEqual(player.position, { x: 7680, y: 4000, lane: 'middle' })
+  assert.deepEqual(player.position, { x: 19680, y: 10000, lane: 'middle' })
   assert.equal(player.lastInputAt, 5000)
   assert.equal(player.questionSession, null)
   assert.deepEqual(player.scrolls, [])
@@ -174,9 +174,9 @@ test('sanitizes nodes and omits server-only question answers', () => {
   const snapshot = sanitizeMatchState(match)
   const serialized = JSON.stringify(snapshot)
 
-  assert.equal(snapshot.config.arena.tileSize, 32)
-  assert.equal(snapshot.config.arena.columns, 250)
-  assert.equal(snapshot.config.arena.rows, 250)
+  assert.equal(snapshot.config.arena.tileSize, 16)
+  assert.equal(snapshot.config.arena.columns, 1250)
+  assert.equal(snapshot.config.arena.rows, 1250)
   assert.equal(snapshot.questions, undefined)
   assert.equal(snapshot.timers, undefined)
   assert.equal(snapshot.players[0].questionSession, undefined)
@@ -816,7 +816,7 @@ test('answer and deposit retries are idempotent and never duplicate rewards', as
   assert.equal(answerRetry.duplicate, true)
   assert.equal(player.scrolls.length, 1)
 
-  player.position = { x: 7680, y: 4000, lane: 'middle' }
+  player.position = { x: 19680, y: 10000, lane: 'middle' }
   const depositPayload = {
     matchId: 'moba-idempotent',
     playerId: player.id,
@@ -1047,7 +1047,7 @@ test('server-authoritative movement ignores client coordinates and enforces spee
   })
   assert.equal(tooSoon.error.code, ERROR_CODES.MOVE_RATE_LIMITED)
 
-  player.position = { x: 7995, y: 4000, lane: 'middle' }
+  player.position = { x: 19995, y: 10000, lane: 'middle' }
   await clock.advance(100)
   const outOfBounds = manager.movePlayer({
     matchId: 'moba-movement',
@@ -1056,7 +1056,7 @@ test('server-authoritative movement ignores client coordinates and enforces spee
     direction: { x: 1, y: 0 },
   })
   assert.equal(outOfBounds.error.code, ERROR_CODES.MOVE_OUT_OF_BOUNDS)
-  assert.equal(player.position.x, 7995)
+  assert.equal(player.position.x, 19995)
 
   player.position = { x: 600, y: 300, lane: 'middle' }
   await clock.advance(100)
@@ -1154,7 +1154,7 @@ test('deposits score the attacking team, destroy tower once, then damage the ene
   }
 
   await earnScroll('tower')
-  player.position = { x: 7680, y: 4000, lane: 'middle' }
+  player.position = { x: 19680, y: 10000, lane: 'middle' }
   const first = manager.depositScroll({
     matchId: 'moba-scoring',
     playerId: player.id,
@@ -1181,7 +1181,7 @@ test('deposits score the attacking team, destroy tower once, then damage the ene
   assert.equal(repeated.error.code, ERROR_CODES.SCROLL_NOT_OWNED)
 
   await earnScroll('base')
-  player.position = { x: 7680, y: 4000, lane: 'middle' }
+  player.position = { x: 19680, y: 10000, lane: 'middle' }
   const second = manager.depositScroll({
     matchId: 'moba-scoring',
     playerId: player.id,

@@ -9,10 +9,10 @@
 export const MOBA_MODE = 'tomat-moba'
 
 export const TEAM_SIZES = Object.freeze([1, 2, 3])
-export const MOBA_ARENA_SIZE = 8_000
+export const MOBA_ARENA_SIZE = 20_000
 // The arena keeps continuous server-authoritative movement, while this grid
 // gives tileset/rendering a stable world scale.
-export const MOBA_TILE_SIZE = 32
+export const MOBA_TILE_SIZE = 16
 export const MOBA_ARENA_TILES = MOBA_ARENA_SIZE / MOBA_TILE_SIZE
 
 export const PHASES = Object.freeze({
@@ -101,7 +101,7 @@ export const DEFAULT_MOBA_CONFIG = Object.freeze({
   depositInteractionRadius: 110,
   playerCollisionRadius: 28,
   arena: Object.freeze({
-    // The gameplay world uses a square 8,000 × 8,000 coordinate space.
+    // The gameplay world uses a square 20,000 × 20,000 coordinate space.
     // The client maps these coordinates into its responsive viewport, so
     // pixel-art assets keep their intended visual scale instead of stretching
     // to fill an arbitrarily large DOM canvas.
@@ -109,7 +109,7 @@ export const DEFAULT_MOBA_CONFIG = Object.freeze({
     maxX: MOBA_ARENA_SIZE,
     minY: 0,
     maxY: MOBA_ARENA_SIZE,
-    // One tileset cell represents 32 world units: 250 × 250 cells.
+    // One tileset cell represents 16 world units: 1,250 × 1,250 cells.
     tileSize: MOBA_TILE_SIZE,
     columns: MOBA_ARENA_TILES,
     rows: MOBA_ARENA_TILES,

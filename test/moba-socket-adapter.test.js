@@ -78,6 +78,10 @@ test('adapter gives two sockets the same snapshot and reconnect preserves state'
   const adapter = createMobaSocketAdapter({
     io,
     reconnectGraceMs: 5,
+    mobaEnv: {
+      MOBA_ENABLED: 'true',
+      MOBA_ALLOWED_STUDENT_IDS: '',
+    },
   })
   const first = new FakeSocket('student-1')
   io.sockets.sockets.set(first.id, first)
@@ -147,7 +151,13 @@ test('adapter gives two sockets the same snapshot and reconnect preserves state'
 
 test('question result stays private while opponents receive only the snapshot', async () => {
   const io = createFakeIo()
-  const adapter = createMobaSocketAdapter({ io })
+  const adapter = createMobaSocketAdapter({
+    io,
+    mobaEnv: {
+      MOBA_ENABLED: 'true',
+      MOBA_ALLOWED_STUDENT_IDS: '',
+    },
+  })
   const first = new FakeSocket('student-1')
   io.sockets.sockets.set(first.id, first)
   adapter.attach(first)
@@ -227,6 +237,10 @@ test('failed create join does not leave an orphaned match', async () => {
   const adapter = createMobaSocketAdapter({
     io,
     getPlayerProfile: async () => ({ petType: 'tomi', petSkinId: 'golden', isDead: true }),
+    mobaEnv: {
+      MOBA_ENABLED: 'true',
+      MOBA_ALLOWED_STUDENT_IDS: '',
+    },
   })
   const socket = new FakeSocket('student-dead')
   io.sockets.sockets.set(socket.id, socket)
@@ -245,6 +259,10 @@ test('matchmaking automatically pairs two students into one ready match', async 
   const adapter = createMobaSocketAdapter({
     io,
     manager: undefined,
+    mobaEnv: {
+      MOBA_ENABLED: 'true',
+      MOBA_ALLOWED_STUDENT_IDS: '',
+    },
   })
   const first = new FakeSocket('student-matchmake-1')
   const second = new FakeSocket('student-matchmake-2')
