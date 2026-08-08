@@ -6,12 +6,12 @@ import MobaPet from './MobaPet.jsx'
 
 const DEFAULT_ARENA = {
   minX: 0,
-  maxX: 20000,
+  maxX: 80000,
   minY: 0,
-  maxY: 20000,
+  maxY: 80000,
   tileSize: 16,
-  columns: 1250,
-  rows: 1250,
+  columns: 5000,
+  rows: 5000,
 }
 
 function getArenaBounds(arena = {}) {
