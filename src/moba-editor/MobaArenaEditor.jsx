@@ -41,6 +41,12 @@ export default function MobaArenaEditor() {
   const [dragOverCell, setDragOverCell] = useState(null)
   const fileInputRef = useRef(null)
 
+  // New state for save/load
+  const [lastSavedArenaId, setLastSavedArenaId] = useState(null)
+  const [myArenas, setMyArenas] = useState([])
+  const [showArenaList, setShowArenaList] = useState(false)
+  const [loadingArenas, setLoadingArenas] = useState(false)
+
   const assetById = useMemo(
     () => new Map(assets.map(asset => [asset.id, asset])),
     [assets],
@@ -118,6 +124,97 @@ export default function MobaArenaEditor() {
       showNotice('error', error.message || 'Upload asset gagal.')
     } finally {
       setUploading(false)
+    }
+  }
+
+  // Build config from editor state
+  function buildArenaConfig() {
+    return {
+      meta: {
+        tileSize: ARENA_TILE_SIZE,
+        columns: ARENA_TILES,
+        gridPreviewSize: GRID_SIZE,
+      },
+      placements,
+      assets: assets.map(a => ({ id: a.id, url: a.url, filename: a.filename })),
+    }
+  }
+
+  async function saveArenaAs(name) {
+    try {
+      const config = buildArenaConfig()
+      const res = await fetch('/api/guru/moba/arenas', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, config }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan arena')
+      setLastSavedArenaId(data.id)
+      showNotice('success', `Arena tersimpan (id: ${data.id})`)
+      return data.id
+    } catch (err) {
+      showNotice('error', err.message || 'Gagal menyimpan arena')
+      throw err
+    }
+  }
+
+  async function updateArena(id) {
+    try {
+      const config = buildArenaConfig()
+      const res = await fetch(`/api/guru/moba/arenas/${encodeURIComponent(id)}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: null, config }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal memperbarui arena')
+      showNotice('success', 'Arena diperbarui.')
+    } catch (err) {
+      showNotice('error', err.message || 'Gagal memperbarui arena')
+      throw err
+    }
+  }
+
+  async function handleSaveClick() {
+    if (!lastSavedArenaId) {
+      const name = window.prompt('Nama arena (mis. Arena Kelas 7):', 'Arena Guru')
+      if (!name) return
+      await saveArenaAs(name)
+    } else {
+      await updateArena(lastSavedArenaId)
+    }
+  }
+
+  async function fetchMyArenas() {
+    setLoadingArenas(true)
+    try {
+      const res = await fetch('/api/guru/moba/arenas', { credentials: 'include' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal memuat daftar arena')
+      setMyArenas(data.arenas || [])
+    } catch (err) {
+      showNotice('error', err.message || 'Gagal memuat daftar arena')
+    } finally {
+      setLoadingArenas(false)
+    }
+  }
+
+  async function loadArena(id) {
+    try {
+      const res = await fetch(`/api/guru/moba/arenas/${encodeURIComponent(id)}`, { credentials: 'include' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal memuat arena')
+      const cfg = data.arena.config || {}
+      setPlacements(cfg.placements || [])
+      // optionally merge assets listed in config to sidebar assets
+      showNotice('success', 'Arena dimuat.')
+      setLastSavedArenaId(data.arena.id)
+      setShowArenaList(false)
+    } catch (err) {
+      showNotice('error', err.message || 'Gagal memuat arena')
     }
   }
 
@@ -214,6 +311,8 @@ export default function MobaArenaEditor() {
         <div className="moba-editor__top-actions">
           <span className="moba-editor__status"><i /> LOCAL WORKSPACE</span>
           <button className="moba-editor__ghost-button" type="button" onClick={resetSelection}>Reset pilihan</button>
+          <button className="moba-editor__ghost-button" type="button" onClick={handleSaveClick} title="Simpan layout ke database">Simpan ke DB</button>
+          <button className="moba-editor__ghost-button" type="button" onClick={() => { fetchMyArenas(); setShowArenaList(true) }}>Daftar Arena</button>
           <button className="moba-editor__clear-button" type="button" onClick={clearArena}>Clear arena</button>
         </div>
       </header>
@@ -385,6 +484,37 @@ export default function MobaArenaEditor() {
           </div>
         </section>
       </div>
+
+      {showArenaList && (
+        <div className="moba-editor__modal">
+          <div className="moba-editor__modal-content">
+            <header style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <h3>Daftar Arena</h3>
+              <button onClick={() => setShowArenaList(false)}>✕</button>
+            </header>
+            <div className="moba-editor__arena-list" style={{marginTop: 12}}>
+              {loadingArenas && <div>Memuat…</div>}
+              {!loadingArenas && myArenas.map(a => (
+                <div key={a.id} style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 8, borderBottom: '1px solid rgba(255,255,255,0.03)'}}>
+                  <div>
+                    <strong>{a.name || a.id}</strong>
+                    <div style={{fontSize: 11, color: '#6b8596'}}>{new Date(a.updated_at).toLocaleString()}</div>
+                  </div>
+                  <div style={{display: 'flex', gap: 8}}>
+                    <button onClick={() => loadArena(a.id)}>Muat</button>
+                    <button onClick={async () => {
+                      if (!window.confirm('Hapus arena?')) return
+                      await fetch(`/api/guru/moba/arenas/${encodeURIComponent(a.id)}`, { method: 'DELETE', credentials: 'include' })
+                      fetchMyArenas()
+                    }}>Hapus</button>
+                  </div>
+                </div>
+              ))}
+              {!loadingArenas && myArenas.length === 0 && <div style={{padding: 12}}>Belum ada arena tersimpan.</div>}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
