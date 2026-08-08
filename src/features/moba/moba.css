@@ -460,14 +460,14 @@
 .moba-jungle-terrain {
   position: absolute;
   z-index: 0;
-  inset: -18%;
-  width: 136%;
-  height: 136%;
-  object-fit: cover;
+  inset: 0;
+  background-color: #2c895e;
+  background-image:
+    linear-gradient(135deg, rgba(170, 213, 128, .08) 25%, transparent 25%),
+    url('/moba-arena/moba-grass-tile-spring.png');
+  background-size: 64px 64px, 32px 32px;
   image-rendering: pixelated;
-  opacity: .18;
-  mix-blend-mode: screen;
-  filter: saturate(1.3) hue-rotate(8deg);
+  opacity: .98;
 }
 .moba-jungle-grid {
   position: absolute;
@@ -507,7 +507,7 @@
   image-rendering: pixelated;
   filter: drop-shadow(0 9px 4px rgba(2,34,36,.42));
 }
-.moba-jungle-brush { width: clamp(74px, 9vw, 145px); height: clamp(48px, 5vw, 82px); animation: moba-jungle-sway 4s ease-in-out infinite; }
+.moba-jungle-brush { width: clamp(52px, 6vw, 78px); height: clamp(52px, 6vw, 78px); animation: moba-jungle-sway 4s ease-in-out infinite; }
 .moba-jungle-brush--1 { left: 10%; top: 15%; }
 .moba-jungle-brush--2 { left: 16%; top: 70%; animation-delay: 1.3s; }
 .moba-jungle-brush--3 { left: 39%; top: 9%; transform: scale(.7); }
@@ -573,7 +573,7 @@
 .moba-jungle-map-pop header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; font-size: 11px; font-weight: 700; }
 .moba-jungle-map-pop header span { display: flex; gap: 6px; align-items: center; }
 .moba-jungle-map-pop header button { display: grid; place-items: center; border: 0; background: none; color: #d6d3a5; cursor: pointer; }
-.moba-jungle-map-large { position: relative; height: 155px; overflow: hidden; border-radius: 9px; background: #245e4e url('/moba-arena/FG_Grasslands_Spring.png') center / 256px 256px; image-rendering: pixelated; }
+.moba-jungle-map-large { position: relative; height: 155px; overflow: hidden; border-radius: 9px; background-color: #2c895e; background-image: url('/moba-arena/moba-grass-tile-spring.png'); background-size: 32px 32px; image-rendering: pixelated; }
 .moba-jungle-map-large::before { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(190,214,145,.14), rgba(9,47,48,.18)); }
 .moba-jungle-map-river { position: absolute; inset: -20% 41%; transform: rotate(16deg); background: #38969b; clip-path: polygon(30% 0, 72% 0, 100% 100%, 0 100%); }
 .moba-jungle-map-base { position: absolute; z-index: 2; width: 19px; height: 19px; border: 2px solid #ffecb4; border-radius: 50%; }

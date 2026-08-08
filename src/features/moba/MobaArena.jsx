@@ -214,7 +214,7 @@ export default function MobaArena({
       data-arena-max-y={getArenaBounds(arena).maxY}
     >
       <div className="moba-jungle-board">
-        <img className="moba-jungle-terrain" src="/moba-arena/FG_Grasslands_Spring.png" alt="" />
+        <div className="moba-jungle-terrain" aria-hidden="true" />
         <div className="moba-jungle-grid" />
         <div className="moba-jungle-lane moba-jungle-lane--top" />
         <div className="moba-jungle-lane moba-jungle-lane--middle" />
@@ -222,15 +222,11 @@ export default function MobaArena({
         <span className="moba-jungle-lane-label moba-jungle-lane-label--top">Lajur utara</span>
         <span className="moba-jungle-lane-label moba-jungle-lane-label--middle">Lajur tengah</span>
         <span className="moba-jungle-lane-label moba-jungle-lane-label--bottom">Lajur selatan</span>
-        <img className="moba-jungle-brush moba-jungle-brush--1" src="/moba-arena/FG_Grass_Spring.png" alt="" />
-        <img className="moba-jungle-brush moba-jungle-brush--2" src="/moba-arena/FG_Grass_Summer.png" alt="" />
-        <img className="moba-jungle-brush moba-jungle-brush--3" src="/moba-arena/FG_Grass_Spring.png" alt="" />
-        <img className="moba-jungle-brush moba-jungle-brush--4" src="/moba-arena/FG_Grass_Summer.png" alt="" />
-        <img className="moba-jungle-brush moba-jungle-brush--5" src="/moba-arena/FG_Grass_Spring.png" alt="" />
-        <img className="moba-jungle-rock moba-jungle-rock--1" src="/moba-arena/FG_Grounds.png" alt="" />
-        <img className="moba-jungle-rock moba-jungle-rock--2" src="/moba-arena/FG_Grounds.png" alt="" />
-        <img className="moba-jungle-rock moba-jungle-rock--3" src="/moba-arena/FG_Grounds.png" alt="" />
-        <img className="moba-jungle-rock moba-jungle-rock--4" src="/moba-arena/FG_Grounds.png" alt="" />
+        <img className="moba-jungle-brush moba-jungle-brush--1" src="/moba-arena/moba-tree-spring.png" alt="" />
+        <img className="moba-jungle-brush moba-jungle-brush--2" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
+        <img className="moba-jungle-brush moba-jungle-brush--3" src="/moba-arena/moba-tree-spring.png" alt="" />
+        <img className="moba-jungle-brush moba-jungle-brush--4" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
+        <img className="moba-jungle-brush moba-jungle-brush--5" src="/moba-arena/moba-tree-spring.png" alt="" />
       <MobaBase team={match?.teams?.teamA} side="left" />
       <MobaBase team={match?.teams?.teamB} side="right" />
       {nodes.map(node => (
