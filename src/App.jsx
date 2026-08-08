@@ -69,6 +69,9 @@ const DUEL_INVITE_GAMES = [
   { key: 'scanner',     emoji: '💎', name: 'Scanner Prima' },
 ]
 
+// MOBA sementara disembunyikan dari siswa sampai mode pengembangan ini siap.
+const MOBA_ENABLED = false
+
 // Toast shown when Nananaga's wrong-answer immunity activates during duel/tournament/survival.
 // Listens for the 'nananaga-shield' CustomEvent dispatched by useSurvival and the duel/
 // tournament screen handlers. Auto-dismisses after 2.5 s.
@@ -719,6 +722,9 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   //    the Temporal Dead Zone when referenced in dependency arrays. ──────────
   // Push a new route onto the stack
   const navigate = useCallback((route, options = {}) => {
+    if (!MOBA_ENABLED && (route === 'moba-lobby' || route === 'moba-match')) {
+      return
+    }
     if (GAME_ROUTES[route]) {
       // Intercept: show mode select before any game
       setPendingGame({ key: route, ...GAME_ROUTES[route] })

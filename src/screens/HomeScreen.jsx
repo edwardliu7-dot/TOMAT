@@ -187,7 +187,6 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
   }
 
   const quickLinks = [
-    { id: 'moba-lobby', icon: '⚔️', label: 'Arena MOBA', sub: 'Main bersama teman', accent: '#F97316' },
     { id: 'hafalan', icon: '🧮', label: 'Hafalan', sub: 'Flash Card & Kuis', accent: '#818cf8' },
     { id: 'latihan-ujian', icon: '📝', label: 'Latihan Ujian', sub: 'UN & TKA', accent: '#C084FC' },
     { id: 'grades', icon: '📊', label: 'Nilai & Tugas', sub: `${grades.length} nilai tersimpan`, accent: '#818CF8' },
