@@ -157,6 +157,10 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
   const nextTask = pendingTasks[0] || null
   const firstName = (user?.name || player?.name || 'Pelajar').split(' ')[0]
   const photoUrl = user?.photoUrl ?? user?.photo_url
+  const canUseDemoMoba = user?.role === 'siswa' && (
+    ['tomat-demo', 'tomat-demo-2'].includes(String(user.id)) ||
+    ['tomat', 'tomat2'].includes(String(user.username).toLowerCase())
+  )
 
   useEffect(() => {
     if (!notice) return undefined
@@ -187,6 +191,9 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
   }
 
   const quickLinks = [
+    ...(canUseDemoMoba
+      ? [{ id: 'moba-lobby', icon: '⚔️', label: 'Arena MOBA', sub: 'Duel belajar bersama', accent: '#F97316' }]
+      : []),
     { id: 'hafalan', icon: '🧮', label: 'Hafalan', sub: 'Flash Card & Kuis', accent: '#818cf8' },
     { id: 'latihan-ujian', icon: '📝', label: 'Latihan Ujian', sub: 'UN & TKA', accent: '#C084FC' },
     { id: 'grades', icon: '📊', label: 'Nilai & Tugas', sub: `${grades.length} nilai tersimpan`, accent: '#818CF8' },

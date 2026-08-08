@@ -69,8 +69,16 @@ const DUEL_INVITE_GAMES = [
   { key: 'scanner',     emoji: '💎', name: 'Scanner Prima' },
 ]
 
-// MOBA sementara disembunyikan dari siswa sampai mode pengembangan ini siap.
-const MOBA_ENABLED = false
+// MOBA rollout terbatas untuk dua akun demo sampai mode production-ready.
+const MOBA_TEST_ACCOUNT_IDS = new Set(['tomat-demo', 'tomat-demo-2'])
+const MOBA_TEST_ACCOUNT_USERNAMES = new Set(['tomat', 'tomat2'])
+
+function canUseDemoMoba(user) {
+  return user?.role === 'siswa' && (
+    MOBA_TEST_ACCOUNT_IDS.has(String(user.id)) ||
+    MOBA_TEST_ACCOUNT_USERNAMES.has(String(user.username).toLowerCase())
+  )
+}
 
 // Toast shown when Nananaga's wrong-answer immunity activates during duel/tournament/survival.
 // Listens for the 'nananaga-shield' CustomEvent dispatched by useSurvival and the duel/
@@ -722,7 +730,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   //    the Temporal Dead Zone when referenced in dependency arrays. ──────────
   // Push a new route onto the stack
   const navigate = useCallback((route, options = {}) => {
-    if (!MOBA_ENABLED && (route === 'moba-lobby' || route === 'moba-match')) {
+    if ((route === 'moba-lobby' || route === 'moba-match') && !canUseDemoMoba(user)) {
       return
     }
     if (GAME_ROUTES[route]) {
@@ -741,7 +749,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       setPendingTaskId(null)
       setHistory(h => [...h, route])
     }
-  }, [])
+  }, [user])
 
   const goBack = useCallback(() => {
     setHistory(h => h.length > 1 ? h.slice(0, -1) : h)

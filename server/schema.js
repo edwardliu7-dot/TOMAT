@@ -482,8 +482,25 @@ export async function ensureSchema() {
       is_test_account = true
   `)
   await pool.query(`
+    insert into students
+      (id, username, name, password, kelas, email, whatsapp, is_test_account)
+    values
+      ('tomat-demo-2', 'tomat2', 'TOMAT Demo 2', '1234', 'IX Al Khawarizmi',
+       'tomat-demo-2@tomat.local', '0000000001', true)
+    on conflict (id) do update set
+      username = excluded.username,
+      name = excluded.name,
+      password = excluded.password,
+      kelas = 'IX Al Khawarizmi',
+      email = excluded.email,
+      whatsapp = excluded.whatsapp,
+      is_test_account = true
+  `)
+  await pool.query(`
     insert into student_inventory (student_id, item_id)
-    select 'tomat-demo', id from shop_items
+    select demo_accounts.student_id, shop_items.id
+    from (values ('tomat-demo'), ('tomat-demo-2')) as demo_accounts(student_id)
+    cross join shop_items
     on conflict (student_id, item_id) do nothing
   `)
   await pool.query(`
@@ -492,7 +509,7 @@ export async function ensureSchema() {
         equipped_bingkai  = coalesce(nullif(equipped_bingkai, ''),  'bingkai_aurum_sovereign'),
         equipped_spanduk  = coalesce(nullif(equipped_spanduk, ''),  'spanduk_celestia_relic'),
         equipped_pet_skin = coalesce(nullif(equipped_pet_skin, ''), 'pet_skin_void')
-    where id = 'tomat-demo'
+    where id in ('tomat-demo', 'tomat-demo-2')
   `)
 
   // ── Event mission progress ──────────────────────────────────────────────────

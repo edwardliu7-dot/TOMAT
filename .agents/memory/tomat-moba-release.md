@@ -9,4 +9,4 @@ MOBA memisahkan state realtime in-memory dari hasil final durable. Settlement me
 
 **How to apply:** Pertahankan tabel hasil sebagai audit/idempotensi walau fitur dimatikan. Gunakan kill switch akses MOBA tanpa memutus Socket.io global, dan pantau settlement gagal atau hasil tanpa timestamp reward.
 
-Untuk sementara MOBA berada dalam status pengembangan: default server dan environment harus `MOBA_ENABLED=false`, sementara entry point siswa disembunyikan dari UI. Kode, hasil pertandingan, dan Socket.io tetap dipertahankan untuk pengembangan berikutnya.
+MOBA saat ini aktif untuk rollout terbatas pada akun demo `tomat-demo` dan `tomat-demo-2` melalui `MOBA_ENABLED=true` dan allowlist ID; entry point siswa tetap tersembunyi untuk akun lain. Kode, hasil pertandingan, dan Socket.io tetap dipertahankan untuk pengembangan berikutnya.
