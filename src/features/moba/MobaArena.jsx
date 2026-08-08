@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Gem } from 'lucide-react'
+import { Gem, Map, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
 import MobaBase from './MobaBase.jsx'
 import MobaNode from './MobaNode.jsx'
 import MobaPet from './MobaPet.jsx'
@@ -155,6 +155,38 @@ function MobaJoystick({ disabled, onMove }) {
   )
 }
 
+function MiniMap({ arena, players, nodes, selfId, onClose }) {
+  return (
+    <div className="moba-jungle-map-pop">
+      <header>
+        <span><Map size={14} /> Peta arena</span>
+        <button type="button" onClick={onClose} aria-label="Tutup peta"><X size={14} /></button>
+      </header>
+      <div className="moba-jungle-map-large">
+        <i className="moba-jungle-map-river" />
+        <i className="moba-jungle-map-base moba-jungle-map-base--a" />
+        <i className="moba-jungle-map-base moba-jungle-map-base--b" />
+        {nodes.map(node => (
+          <i className="moba-jungle-map-node" key={node.id} style={toPosition(node.position, arena)} />
+        ))}
+        {players.map(player => (
+          <i
+            className={`moba-jungle-map-player ${player.id === selfId || player.userId === selfId ? 'is-self' : ''}`}
+            key={player.id}
+            style={toPosition(player.position, arena)}
+          />
+        ))}
+      </div>
+      <small>Gulungan tersebar di jalur hutan</small>
+    </div>
+  )
+}
+
+function formatArenaTime(remainingMs) {
+  const totalSeconds = Math.max(0, Math.ceil(Number(remainingMs || 0) / 1000))
+  return `${String(Math.floor(totalSeconds / 60)).padStart(2, '0')}:${String(totalSeconds % 60).padStart(2, '0')}`
+}
+
 export default function MobaArena({
   match,
   players = [],
@@ -163,14 +195,17 @@ export default function MobaArena({
   onClaimNode,
   onMove,
   canAct = false,
+  remainingMs = 0,
 }) {
   const arena = match?.config?.arena || DEFAULT_ARENA
   const self = players.find(player => player.id === selfId || player.userId === selfId)
   const interactionRadius = Number(match?.config?.nodeInteractionRadius) || 72
+  const [mapOpen, setMapOpen] = useState(false)
+  const [muted, setMuted] = useState(false)
 
   return (
     <div
-      className="moba11-arena"
+      className="moba11-arena moba-jungle-arena"
       role="img"
       aria-label="Arena pertandingan dua sisi TOMAT"
       data-arena-min-x={getArenaBounds(arena).minX}
@@ -178,13 +213,24 @@ export default function MobaArena({
       data-arena-min-y={getArenaBounds(arena).minY}
       data-arena-max-y={getArenaBounds(arena).maxY}
     >
-      <div className="moba11-river" />
-      <div className="moba11-lane moba11-lane--top" />
-      <div className="moba11-lane moba11-lane--middle" />
-      <div className="moba11-lane moba11-lane--bottom" />
-      <span className="moba11-lane-label moba11-lane-label--top">Lajur atas</span>
-      <span className="moba11-lane-label moba11-lane-label--middle">Lajur tengah</span>
-      <span className="moba11-lane-label moba11-lane-label--bottom">Lajur bawah</span>
+      <div className="moba-jungle-board">
+        <img className="moba-jungle-terrain" src="/moba-arena/FG_Grasslands_Spring.png" alt="" />
+        <div className="moba-jungle-grid" />
+        <div className="moba-jungle-lane moba-jungle-lane--top" />
+        <div className="moba-jungle-lane moba-jungle-lane--middle" />
+        <div className="moba-jungle-lane moba-jungle-lane--bottom" />
+        <span className="moba-jungle-lane-label moba-jungle-lane-label--top">Lajur utara</span>
+        <span className="moba-jungle-lane-label moba-jungle-lane-label--middle">Lajur tengah</span>
+        <span className="moba-jungle-lane-label moba-jungle-lane-label--bottom">Lajur selatan</span>
+        <img className="moba-jungle-brush moba-jungle-brush--1" src="/moba-arena/FG_Grass_Spring.png" alt="" />
+        <img className="moba-jungle-brush moba-jungle-brush--2" src="/moba-arena/FG_Grass_Summer.png" alt="" />
+        <img className="moba-jungle-brush moba-jungle-brush--3" src="/moba-arena/FG_Grass_Spring.png" alt="" />
+        <img className="moba-jungle-brush moba-jungle-brush--4" src="/moba-arena/FG_Grass_Summer.png" alt="" />
+        <img className="moba-jungle-brush moba-jungle-brush--5" src="/moba-arena/FG_Grass_Spring.png" alt="" />
+        <img className="moba-jungle-rock moba-jungle-rock--1" src="/moba-arena/FG_Grounds.png" alt="" />
+        <img className="moba-jungle-rock moba-jungle-rock--2" src="/moba-arena/FG_Grounds.png" alt="" />
+        <img className="moba-jungle-rock moba-jungle-rock--3" src="/moba-arena/FG_Grounds.png" alt="" />
+        <img className="moba-jungle-rock moba-jungle-rock--4" src="/moba-arena/FG_Grounds.png" alt="" />
       <MobaBase team={match?.teams?.teamA} side="left" />
       <MobaBase team={match?.teams?.teamB} side="right" />
       {nodes.map(node => (
@@ -201,15 +247,52 @@ export default function MobaArena({
           <MobaPet player={player} isSelf={player.id === selfId || player.userId === selfId} />
         </div>
       ))}
-      <div className="moba11-arena__center"><Gem size={19} /></div>
-      <MobaJoystick disabled={!canAct} onMove={onMove} />
-      <div className="moba12-move-pad" role="group" aria-label="Tombol gerak Pet">
-        <MoveButton direction={{ x: 0, y: -1 }} onMove={onMove} disabled={!canAct} label="Gerak ke atas">↑</MoveButton>
-        <div>
-          <MoveButton direction={{ x: -1, y: 0 }} onMove={onMove} disabled={!canAct} label="Gerak ke kiri">←</MoveButton>
-          <MoveButton direction={{ x: 1, y: 0 }} onMove={onMove} disabled={!canAct} label="Gerak ke kanan">→</MoveButton>
+        <div className="moba11-arena__center"><Gem size={19} /></div>
+      </div>
+      <div className="moba-jungle-hud" aria-label="Kontrol arena">
+        <div className="moba-jungle-brand">
+          <span className="moba-jungle-brand__mark">T</span>
+          <span><strong>TOMAT</strong><small>Arena belajar</small></span>
         </div>
-        <MoveButton direction={{ x: 0, y: 1 }} onMove={onMove} disabled={!canAct} label="Gerak ke bawah">↓</MoveButton>
+        <div className="moba-jungle-score">
+          <span className="moba-jungle-team-score moba-jungle-team-score--a">
+            <b>{match?.teams?.teamA?.score || 0}</b>{match?.teams?.teamA?.name || 'Tim A'}
+          </span>
+          <span className="moba-jungle-vs">VS</span>
+          <span className="moba-jungle-team-score moba-jungle-team-score--b">
+            {match?.teams?.teamB?.name || 'Tim B'}<b>{match?.teams?.teamB?.score || 0}</b>
+          </span>
+        </div>
+        <div className="moba-jungle-time">{match?.endsAt ? formatArenaTime(remainingMs) : '--:--'}</div>
+        <button
+          type="button"
+          className="moba-jungle-icon-button moba-jungle-sound"
+          onClick={() => setMuted(value => !value)}
+          aria-label={muted ? 'Nyalakan suara arena' : 'Matikan suara arena'}
+        >
+          {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+        </button>
+        <div className="moba-jungle-actions">
+          <button
+            type="button"
+            className="moba-jungle-icon-button"
+            onClick={() => setMapOpen(value => !value)}
+            aria-label={mapOpen ? 'Tutup peta arena' : 'Buka peta arena'}
+          >
+            <Map size={16} />
+          </button>
+          <MobaJoystick disabled={!canAct} onMove={onMove} />
+          <div className="moba12-move-pad" role="group" aria-label="Tombol gerak Pet">
+            <MoveButton direction={{ x: 0, y: -1 }} onMove={onMove} disabled={!canAct} label="Gerak ke atas">↑</MoveButton>
+            <div>
+              <MoveButton direction={{ x: -1, y: 0 }} onMove={onMove} disabled={!canAct} label="Gerak ke kiri">←</MoveButton>
+              <MoveButton direction={{ x: 1, y: 0 }} onMove={onMove} disabled={!canAct} label="Gerak ke kanan">→</MoveButton>
+            </div>
+            <MoveButton direction={{ x: 0, y: 1 }} onMove={onMove} disabled={!canAct} label="Gerak ke bawah">↓</MoveButton>
+          </div>
+        </div>
+        <div className="moba-jungle-hint"><Sparkles size={12} /> Jelajahi Hutan Angka dan ambil gulungan soal</div>
+        {mapOpen && <MiniMap arena={arena} players={players} nodes={nodes} selfId={selfId} onClose={() => setMapOpen(false)} />}
       </div>
     </div>
   )
