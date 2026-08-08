@@ -155,12 +155,18 @@ function MobaJoystick({ disabled, onMove }) {
   )
 }
 
-function MiniMap({ arena, players, nodes, selfId, onClose }) {
+function MiniMap({ arena, players, nodes, selfId, onClose, compact = false }) {
   return (
-    <div className="moba-jungle-map-pop">
+    <div className={`moba-jungle-map-pop${compact ? ' is-persistent' : ''}`}>
       <header>
         <span><Map size={14} /> Peta arena</span>
-        <button type="button" onClick={onClose} aria-label="Tutup peta"><X size={14} /></button>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={compact ? 'Perbesar peta arena' : 'Tutup peta'}
+        >
+          {compact ? <Map size={13} /> : <X size={14} />}
+        </button>
       </header>
       <div className="moba-jungle-map-large">
         <i className="moba-jungle-map-river" />
@@ -290,6 +296,14 @@ export default function MobaArena({
           </div>
         </div>
         <div className="moba-jungle-hint"><Sparkles size={12} /> Jelajahi Hutan Angka dan ambil gulungan soal</div>
+        <MiniMap
+          compact
+          arena={arena}
+          players={players}
+          nodes={nodes}
+          selfId={selfId}
+          onClose={() => setMapOpen(true)}
+        />
         {mapOpen && <MiniMap arena={arena} players={players} nodes={nodes} selfId={selfId} onClose={() => setMapOpen(false)} />}
       </div>
     </div>
