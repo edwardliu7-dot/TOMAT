@@ -37,7 +37,11 @@ function distanceBetween(left, right) {
   )
 }
 
-const MOVE_REPEAT_MS = 65
+// The server accepts movement no more often than movementMinIntervalMs
+// (40ms by default). Keep a little headroom so pointer events and network
+// jitter cannot turn a continuous analog gesture into a stream of rejected
+// MOVE_RATE_LIMITED actions.
+const MOVE_REPEAT_MS = 80
 const JOYSTICK_RADIUS = 42
 const JOYSTICK_DEAD_ZONE = 0.16
 
@@ -119,7 +123,6 @@ function MobaJoystick({ disabled, onMove }) {
       x: (direction.x * direction.distance) / JOYSTICK_RADIUS * 42,
       y: (direction.y * direction.distance) / JOYSTICK_RADIUS * 42,
     })
-    onMove?.(directionRef.current)
   }
 
   const start = event => {
@@ -127,6 +130,10 @@ function MobaJoystick({ disabled, onMove }) {
     if (disabled || !baseRef.current) return
     baseRef.current.setPointerCapture?.(event.pointerId)
     update(event)
+    // Send immediately once, then let the interval below own the stream.
+    // PointerMove must only update the latest direction; sending from both
+    // paths floods the server and makes the Pet appear stuck on touch devices.
+    if (directionRef.current) onMove?.(directionRef.current)
     if (repeatRef.current) window.clearInterval(repeatRef.current)
     repeatRef.current = window.setInterval(() => {
       if (directionRef.current) onMove?.(directionRef.current)
@@ -208,6 +215,20 @@ export default function MobaArena({
   const interactionRadius = Number(match?.config?.nodeInteractionRadius) || 72
   const [mapOpen, setMapOpen] = useState(false)
   const [muted, setMuted] = useState(false)
+  const bounds = getArenaBounds(arena)
+  const selfX = Number(self?.position?.x)
+  const selfY = Number(self?.position?.y)
+  const selfXPercent = Number.isFinite(selfX)
+    ? Math.max(0, Math.min(100, ((selfX - bounds.minX) / (bounds.maxX - bounds.minX)) * 100))
+    : 50
+  const selfYPercent = Number.isFinite(selfY)
+    ? Math.max(0, Math.min(100, ((selfY - bounds.minY) / (bounds.maxY - bounds.minY)) * 100))
+    : 50
+  const cameraStyle = {
+    '--moba-camera-x': `${(50 - selfXPercent) * 1.22}%`,
+    '--moba-camera-y': `${(50 - selfYPercent) * 1.22}%`,
+    '--moba-camera-zoom': 1.22,
+  }
 
   return (
     <div
@@ -220,38 +241,40 @@ export default function MobaArena({
       data-arena-max-y={getArenaBounds(arena).maxY}
     >
       <div className="moba-jungle-board">
-        <div className="moba-jungle-terrain" aria-hidden="true" />
-        <div className="moba-jungle-river" aria-hidden="true" />
-        <div className="moba-jungle-grid" />
-        <div className="moba-jungle-lane moba-jungle-lane--top" />
-        <div className="moba-jungle-lane moba-jungle-lane--middle" />
-        <div className="moba-jungle-lane moba-jungle-lane--bottom" />
-        <span className="moba-jungle-lane-label moba-jungle-lane-label--top">Lajur utara</span>
-        <span className="moba-jungle-lane-label moba-jungle-lane-label--middle">Lajur tengah</span>
-        <span className="moba-jungle-lane-label moba-jungle-lane-label--bottom">Lajur selatan</span>
-        <img className="moba-jungle-brush moba-jungle-brush--1" src="/moba-arena/moba-tree-spring.png" alt="" />
-        <img className="moba-jungle-brush moba-jungle-brush--2" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
-        <img className="moba-jungle-brush moba-jungle-brush--3" src="/moba-arena/moba-tree-spring.png" alt="" />
-        <img className="moba-jungle-brush moba-jungle-brush--4" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
-        <img className="moba-jungle-brush moba-jungle-brush--5" src="/moba-arena/moba-tree-spring.png" alt="" />
-        <div className="moba-jungle-bridge" aria-label="Jembatan tengah" />
-        <MobaBase team={match?.teams?.teamA} side="left" />
-        <MobaBase team={match?.teams?.teamB} side="right" />
-        {nodes.map(node => (
-          <MobaNode
-            key={node.id}
-            node={node}
-            style={toPosition(node.position, arena)}
-            isNearby={Boolean(self && distanceBetween(self.position, node.position) <= interactionRadius)}
-            onClaim={onClaimNode}
-          />
-        ))}
-        {players.map(player => (
-          <div key={player.id} className="moba11-positioned" style={toPosition(player.position, arena)}>
-            <MobaPet player={player} isSelf={player.id === selfId || player.userId === selfId} />
-          </div>
-        ))}
-        <div className="moba11-arena__center"><Gem size={19} /></div>
+        <div className="moba-jungle-board__world" style={cameraStyle}>
+          <div className="moba-jungle-terrain" aria-hidden="true" />
+          <div className="moba-jungle-river" aria-hidden="true" />
+          <div className="moba-jungle-grid" />
+          <div className="moba-jungle-lane moba-jungle-lane--top" />
+          <div className="moba-jungle-lane moba-jungle-lane--middle" />
+          <div className="moba-jungle-lane moba-jungle-lane--bottom" />
+          <span className="moba-jungle-lane-label moba-jungle-lane-label--top">Lajur utara</span>
+          <span className="moba-jungle-lane-label moba-jungle-lane-label--middle">Lajur tengah</span>
+          <span className="moba-jungle-lane-label moba-jungle-lane-label--bottom">Lajur selatan</span>
+          <img className="moba-jungle-brush moba-jungle-brush--1" src="/moba-arena/moba-tree-spring.png" alt="" />
+          <img className="moba-jungle-brush moba-jungle-brush--2" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
+          <img className="moba-jungle-brush moba-jungle-brush--3" src="/moba-arena/moba-tree-spring.png" alt="" />
+          <img className="moba-jungle-brush moba-jungle-brush--4" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
+          <img className="moba-jungle-brush moba-jungle-brush--5" src="/moba-arena/moba-tree-spring.png" alt="" />
+          <div className="moba-jungle-bridge" aria-label="Jembatan tengah" />
+          <MobaBase team={match?.teams?.teamA} side="left" />
+          <MobaBase team={match?.teams?.teamB} side="right" />
+          {nodes.map(node => (
+            <MobaNode
+              key={node.id}
+              node={node}
+              style={toPosition(node.position, arena)}
+              isNearby={Boolean(self && distanceBetween(self.position, node.position) <= interactionRadius)}
+              onClaim={onClaimNode}
+            />
+          ))}
+          {players.map(player => (
+            <div key={player.id} className="moba11-positioned" style={toPosition(player.position, arena)}>
+              <MobaPet player={player} isSelf={player.id === selfId || player.userId === selfId} />
+            </div>
+          ))}
+          <div className="moba11-arena__center"><Gem size={19} /></div>
+        </div>
       </div>
       <div className="moba-jungle-hud" aria-label="Kontrol arena">
         <div className="moba-jungle-brand">

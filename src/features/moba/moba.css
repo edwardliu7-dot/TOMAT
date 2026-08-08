@@ -231,7 +231,7 @@
 .moba12-result > button { margin-left: auto; border: 0; background: transparent; color: #8c8269; cursor: pointer; }
 .moba12-deposit-button { display: block; width: 100%; margin-top: 8px; border: 1px solid #d7b56a; border-radius: 7px; padding: 5px 3px; background: #ffe8a8; color: #785526; font-size: 9px; font-weight: 800; cursor: pointer; }
 .moba12-deposit-button:disabled { cursor: not-allowed; opacity: .5; }
-.moba12-move-pad { position: absolute; right: 16px; bottom: 16px; z-index: 12; display: grid; justify-items: center; gap: 3px; }
+.moba12-move-pad { position: absolute; right: 16px; bottom: 16px; z-index: 12; display: none; justify-items: center; gap: 3px; }
 .moba12-move-pad > div { display: flex; gap: 3px; }
 .moba12-move-pad button { width: 42px; height: 38px; border: 1px solid rgba(25, 60, 70, .3); border-radius: 8px; background: rgba(255, 251, 235, .9); color: #193c46; font-size: 19px; font-weight: 800; cursor: pointer; touch-action: none; user-select: none; box-shadow: 0 3px 0 rgba(25,60,70,.12); }
 .moba12-move-pad button:disabled { cursor: not-allowed; opacity: .45; }
@@ -240,13 +240,8 @@
 .moba12-joystick__knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px; border-radius: 50%; background: #193c46; border: 3px solid #fff4c3; box-shadow: 0 4px 10px rgba(25,60,70,.25); pointer-events: none; }
 
 @media (max-width: 1023px) {
-  .moba12-move-pad { display: none; }
   .moba12-joystick { display: block; }
   .moba11-arena { min-height: min(570px, calc(100vh - 250px)); }
-}
-
-@media (min-width: 1024px) {
-  .moba12-move-pad { display: grid; }
 }
 
 .moba11-lobby-screen {
@@ -441,8 +436,18 @@
   overflow: hidden;
   border: 1px solid rgba(203,227,164,.22);
   border-radius: 2.2%;
-  transform: perspective(1000px) rotateX(5deg) rotateZ(-1deg);
   box-shadow: 0 0 0 24px rgba(4,32,39,.13), 0 30px 90px rgba(0,10,16,.48);
+  background: linear-gradient(135deg, rgba(16,71,55,.82), rgba(22,90,66,.72));
+}
+.moba-jungle-board__world {
+  position: absolute;
+  inset: 0;
+  transform:
+    translate(var(--moba-camera-x, 0%), var(--moba-camera-y, 0%))
+    perspective(1000px) rotateX(5deg) rotateZ(-1deg)
+    scale(var(--moba-camera-zoom, 1));
+  transform-origin: center;
+  transition: transform .18s ease-out;
   background: linear-gradient(135deg, rgba(16,71,55,.82), rgba(22,90,66,.72));
 }
 .moba-jungle-river {
@@ -559,14 +564,14 @@
 }
 .moba-jungle-bridge::before { top: -9px; }
 .moba-jungle-bridge::after { bottom: -9px; }
-.moba-jungle-board > .moba11-base { top: 42%; z-index: 8; width: 132px; filter: drop-shadow(0 8px 7px rgba(1,22,28,.45)); }
-.moba-jungle-board > .moba11-base--left { left: 2%; }
-.moba-jungle-board > .moba11-base--right { right: 2%; }
-.moba-jungle-board > .moba11-base .moba11-base__glow { width: 108px; height: 108px; left: 8px; top: 8px; border: 2px solid rgba(248,225,142,.45); background: transparent; filter: none; box-shadow: 0 0 0 12px rgba(239,211,126,.08); animation: moba-jungle-base-glow 2.8s ease-in-out infinite; }
-.moba-jungle-board > .moba11-base .moba11-base__icon { width: 58px; height: 58px; border: 3px solid #ffe9a9; background: #da6e55; transform: rotate(45deg); border-radius: 15px 15px 5px 15px; animation: moba-jungle-base-icon-glow 2.8s ease-in-out infinite; }
-.moba-jungle-board > .moba11-base .moba11-base__icon svg { transform: rotate(-45deg); }
-.moba-jungle-board > .moba11-base--right .moba11-base__icon { background: #637ad0; border-radius: 15px 5px 15px 15px; }
-.moba-jungle-board > .moba11-base .moba11-base__title {
+.moba-jungle-board__world > .moba11-base { top: 42%; z-index: 8; width: 132px; filter: drop-shadow(0 8px 7px rgba(1,22,28,.45)); }
+.moba-jungle-board__world > .moba11-base--left { left: 2%; }
+.moba-jungle-board__world > .moba11-base--right { right: 2%; }
+.moba-jungle-board__world > .moba11-base .moba11-base__glow { width: 108px; height: 108px; left: 8px; top: 8px; border: 2px solid rgba(248,225,142,.45); background: transparent; filter: none; box-shadow: 0 0 0 12px rgba(239,211,126,.08); animation: moba-jungle-base-glow 2.8s ease-in-out infinite; }
+.moba-jungle-board__world > .moba11-base .moba11-base__icon { width: 58px; height: 58px; border: 3px solid #ffe9a9; background: #da6e55; transform: rotate(45deg); border-radius: 15px 15px 5px 15px; animation: moba-jungle-base-icon-glow 2.8s ease-in-out infinite; }
+.moba-jungle-board__world > .moba11-base .moba11-base__icon svg { transform: rotate(-45deg); }
+.moba-jungle-board__world > .moba11-base--right .moba11-base__icon { background: #637ad0; border-radius: 15px 5px 15px 15px; }
+.moba-jungle-board__world > .moba11-base .moba11-base__title {
   margin-top: 14px;
   color: #fff5cc;
   font: 700 10px 'Space Mono', monospace;
@@ -578,21 +583,21 @@
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-.moba-jungle-board > .moba11-base .moba11-base__score { margin-top: 4px; color: #d5d4a2; font: 700 9px 'Space Mono', monospace; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
-.moba-jungle-board > .moba11-base .moba11-base__score small { display: none; }
-.moba-jungle-board > .moba11-base .moba11-base__bar-label { margin-top: 7px; color: #d5d4a2; font: 700 9px 'Space Mono', monospace; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
-.moba-jungle-board > .moba11-base .moba11-base__bar-label b { color: #eb7c5b; }
-.moba-jungle-board > .moba11-base .moba11-base__bar { width: 86px; height: 4px; margin: 4px auto 0; background: rgba(250,229,157,.28); }
-.moba-jungle-board > .moba11-base--right .moba11-base__bar i { background: #7789dc; }
-.moba-jungle-board > .moba11-node { width: 58px; height: 58px; z-index: 8; color: #fff5cc; border: 3px solid #cceaa1; background: radial-gradient(circle, rgba(30,100,74,.94), rgba(11,50,51,.84)); box-shadow: 0 8px 12px rgba(3,31,34,.34); animation: moba-jungle-pulse 2.4s ease-in-out infinite; }
-.moba-jungle-board > .moba11-node--medium { border-color: #ffe5a2; }
-.moba-jungle-board > .moba11-node--hard { border-color: #a9d9ef; background: radial-gradient(circle, rgba(35,106,130,.94), rgba(11,50,61,.84)); }
-.moba-jungle-board > .moba11-node--claimed { opacity: .32; filter: grayscale(1); animation: none; }
-.moba-jungle-board > .moba11-node img { width: 54px; height: 22px; object-fit: contain; image-rendering: pixelated; }
-.moba-jungle-board > .moba11-node b { position: absolute; top: 3px; right: -19px; font: 700 9px 'Space Mono', monospace; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
-.moba-jungle-board > .moba11-node span { position: absolute; top: 62px; color: #fff5cc; font: 700 8px 'Space Mono', monospace; text-shadow: 0 2px 4px #0a3439; }
-.moba-jungle-board > .moba11-node em { bottom: -25px; background: rgba(7,40,44,.86); color: #ffc08c; }
-.moba-jungle-board > .moba11-positioned { z-index: 12; }
+.moba-jungle-board__world > .moba11-base .moba11-base__score { margin-top: 4px; color: #d5d4a2; font: 700 9px 'Space Mono', monospace; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
+.moba-jungle-board__world > .moba11-base .moba11-base__score small { display: none; }
+.moba-jungle-board__world > .moba11-base .moba11-base__bar-label { margin-top: 7px; color: #d5d4a2; font: 700 9px 'Space Mono', monospace; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
+.moba-jungle-board__world > .moba11-base .moba11-base__bar-label b { color: #eb7c5b; }
+.moba-jungle-board__world > .moba11-base .moba11-base__bar { width: 86px; height: 4px; margin: 4px auto 0; background: rgba(250,229,157,.28); }
+.moba-jungle-board__world > .moba11-base--right .moba11-base__bar i { background: #7789dc; }
+.moba-jungle-board__world > .moba11-node { width: 58px; height: 58px; z-index: 8; color: #fff5cc; border: 3px solid #cceaa1; background: radial-gradient(circle, rgba(30,100,74,.94), rgba(11,50,51,.84)); box-shadow: 0 8px 12px rgba(3,31,34,.34); animation: moba-jungle-pulse 2.4s ease-in-out infinite; }
+.moba-jungle-board__world > .moba11-node--medium { border-color: #ffe5a2; }
+.moba-jungle-board__world > .moba11-node--hard { border-color: #a9d9ef; background: radial-gradient(circle, rgba(35,106,130,.94), rgba(11,50,61,.84)); }
+.moba-jungle-board__world > .moba11-node--claimed { opacity: .32; filter: grayscale(1); animation: none; }
+.moba-jungle-board__world > .moba11-node img { width: 54px; height: 22px; object-fit: contain; image-rendering: pixelated; }
+.moba-jungle-board__world > .moba11-node b { position: absolute; top: 3px; right: -19px; font: 700 9px 'Space Mono', monospace; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
+.moba-jungle-board__world > .moba11-node span { position: absolute; top: 62px; color: #fff5cc; font: 700 8px 'Space Mono', monospace; text-shadow: 0 2px 4px #0a3439; }
+.moba-jungle-board__world > .moba11-node em { bottom: -25px; background: rgba(7,40,44,.86); color: #ffc08c; }
+.moba-jungle-board__world > .moba11-positioned { z-index: 12; }
 .moba-jungle-board .moba11-pet { min-width: 72px; animation: moba-jungle-float 3s ease-in-out infinite; }
 .moba-jungle-board .moba11-pet__sprite { filter: drop-shadow(0 5px 4px rgba(3, 24, 28, .45)); }
 .moba-jungle-board .moba11-pet__name { position: relative; z-index: 3; display: inline-flex; gap: 4px; padding: 3px 6px; color: #fff5cd; background: rgba(7,40,44,.78); border: 1px solid rgba(243,225,158,.42); border-radius: 5px; font-size: 9px; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
@@ -658,13 +663,12 @@
 @keyframes moba-jungle-pulse { 0%, 100% { box-shadow: 0 8px 12px rgba(3,31,34,.34); } 50% { box-shadow: 0 8px 18px rgba(229,191,92,.45); } }
 @keyframes moba-jungle-float { 0%, 100% { transform: translate(-50%, -50%); } 50% { transform: translate(-50%, calc(-50% - 3px)); } }
 @media (max-width: 700px) {
-  .moba-jungle-board { inset: 8% 1% 3%; transform: none; }
+  .moba-jungle-board { inset: 8% 1% 3%; }
   .moba-jungle-brand { top: 14px; left: 14px; }
   .moba-jungle-brand > span:last-child, .moba-jungle-time { display: none; }
   .moba-jungle-score { top: 6px; gap: 8px; padding: 7px 9px; }
   .moba-jungle-sound { top: 182px; right: 14px; }
   .moba-jungle-actions { right: 82px; bottom: 56px; gap: 7px; }
-  .moba-jungle-actions .moba12-move-pad { display: none; }
   .moba-jungle-arena .moba12-joystick { width: 148px; height: 148px; }
   .moba-jungle-arena .moba12-joystick__knob { width: 48px; height: 48px; margin: -24px; }
   .moba-jungle-map-pop { top: 62px; right: 14px; width: min(225px, calc(100% - 28px)); }
@@ -673,4 +677,21 @@
   .moba-jungle-map-pop.is-persistent .moba-jungle-map-large { height: 84px; }
   .moba-jungle-hint { bottom: 19px; max-width: calc(100% - 28px); overflow: hidden; padding: 8px 12px; font-size: 9px; text-overflow: ellipsis; }
   .moba11-game-panel__note, .moba11-game-panel__status { display: none; }
+}
+
+/*
+ * Input is split by form factor:
+ * - phone/tablet: analog only
+ * - PC: keyboard arrows/WASD only, with no on-screen movement control
+ *
+ * These final rules also override the more-specific jungle skin styles above.
+ */
+@media (max-width: 1023px) {
+  .moba-jungle-arena .moba12-joystick { display: grid; }
+  .moba-jungle-arena .moba12-move-pad { display: none; }
+}
+
+@media (min-width: 1024px) {
+  .moba-jungle-arena .moba12-joystick,
+  .moba-jungle-arena .moba12-move-pad { display: none; }
 }
