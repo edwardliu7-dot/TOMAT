@@ -232,9 +232,10 @@ export default function MobaArena({
   const cameraStyle = {
     '--moba-camera-x': `${(50 - cameraTargetX) * 0.78}%`,
     '--moba-camera-y': `${(50 - cameraTargetY) * 0.78}%`,
-    // Keep the wider battlefield visible instead of zooming into the old
-    // compact play area. The camera still follows the Pet at the edges.
-    '--moba-camera-zoom': 1.04,
+    // Keep the same visual asset scale as the previous arena. The world
+    // coordinate space is larger, but Pet, node, base, and tileset assets
+    // should not shrink just because the map gained more room.
+    '--moba-camera-zoom': 1.16,
   }
 
   return (
