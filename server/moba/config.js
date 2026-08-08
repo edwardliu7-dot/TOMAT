@@ -87,6 +87,10 @@ export const DEFAULT_MOBA_CONFIG = Object.freeze({
   actionIdTtlMs: 60_000,
   movementSpeed: 240,
   movementMinIntervalMs: 40,
+  // Movement is input-driven, not idle-time-driven. Without a cap, the first
+  // input after the lobby countdown would spend all elapsed lobby time in one
+  // step and often jump straight out of the arena.
+  movementMaxDeltaMs: 120,
   maxActiveNodes: 12,
   nodeInteractionRadius: 72,
   depositInteractionRadius: 110,

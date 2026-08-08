@@ -1057,6 +1057,39 @@ test('server-authoritative movement ignores client coordinates and enforces spee
   manager.clearAll()
 })
 
+test('movement does not spend lobby/countdown idle time on the first input', async () => {
+  const clock = new FakeClock(20_000)
+  const manager = createMobaMatchManager({
+    now: clock.now,
+    setTimeout: clock.setTimeout,
+    clearTimeout: clock.clearTimeout,
+  })
+  await startRunningMatch(manager, 'moba-first-input', clock, {
+    movementSpeed: 100,
+    movementMaxDeltaMs: 120,
+    durationMs: 20_000,
+  })
+
+  const match = manager.getMatch('moba-first-input')
+  const player = match.players.get('moba-first-input-teamA')
+  const opponent = match.players.get('moba-first-input-teamB')
+  opponent.position = { x: 800, y: 300, lane: 'middle' }
+  // Simulate a student waiting several seconds after the match starts before
+  // pressing a direction. The first accepted move must remain a small step.
+  await clock.advance(5_000)
+  const moved = manager.movePlayer({
+    matchId: match.id,
+    playerId: player.id,
+    actionId: 'first-input-after-idle',
+    direction: { x: 0, y: 1 },
+  })
+
+  assert.equal(moved.ok, true)
+  assert.equal(moved.position.x, 500)
+  assert.equal(moved.position.y, 312)
+  manager.clearAll()
+})
+
 test('deposits score the attacking team, destroy tower once, then damage the enemy base', async () => {
   const clock = new FakeClock(12_000)
   const manager = createQuestionManager(clock, () => ({

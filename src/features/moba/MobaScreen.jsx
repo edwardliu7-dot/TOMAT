@@ -8,6 +8,22 @@ import MobaHud from './MobaHud.jsx'
 import MobaQuestionModal, { MobaQuestionResult } from './MobaQuestionModal.jsx'
 import './moba.css'
 
+const KEY_MOVE_REPEAT_MS = 80
+const KEYBOARD_DIRECTIONS = Object.freeze({
+  ArrowUp: { x: 0, y: -1 },
+  w: { x: 0, y: -1 },
+  W: { x: 0, y: -1 },
+  ArrowDown: { x: 0, y: 1 },
+  s: { x: 0, y: 1 },
+  S: { x: 0, y: 1 },
+  ArrowLeft: { x: -1, y: 0 },
+  a: { x: -1, y: 0 },
+  A: { x: -1, y: 0 },
+  ArrowRight: { x: 1, y: 0 },
+  d: { x: 1, y: 0 },
+  D: { x: 1, y: 0 },
+})
+
 function useServerRemaining(match, serverNow) {
   const [clientNow, setClientNow] = useState(() => Date.now())
   const syncRef = useRef(null)
@@ -70,28 +86,52 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
   }, [canAct, move])
 
   useEffect(() => {
-    const onKeyDown = event => {
-      const directions = {
-        ArrowUp: { x: 0, y: -1 },
-        w: { x: 0, y: -1 },
-        W: { x: 0, y: -1 },
-        ArrowDown: { x: 0, y: 1 },
-        s: { x: 0, y: 1 },
-        S: { x: 0, y: 1 },
-        ArrowLeft: { x: -1, y: 0 },
-        a: { x: -1, y: 0 },
-        A: { x: -1, y: 0 },
-        ArrowRight: { x: 1, y: 0 },
-        d: { x: 1, y: 0 },
-        D: { x: 1, y: 0 },
-      }
-      const direction = directions[event.key]
-      if (!direction || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
-      event.preventDefault()
-      sendMove(direction)
+    const heldDirections = new Map()
+    let repeatTimer = null
+
+    const stopRepeating = () => {
+      heldDirections.clear()
+      if (repeatTimer) window.clearInterval(repeatTimer)
+      repeatTimer = null
     }
+
+    const sendHeldMoves = () => {
+      heldDirections.forEach(direction => sendMove(direction))
+    }
+
+    const onKeyDown = event => {
+      const direction = KEYBOARD_DIRECTIONS[event.key]
+      if (!direction ||
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        event.target?.isContentEditable) return
+      event.preventDefault()
+      if (heldDirections.has(event.key)) return
+      heldDirections.set(event.key, direction)
+      sendMove(direction)
+      if (!repeatTimer) {
+        repeatTimer = window.setInterval(sendHeldMoves, KEY_MOVE_REPEAT_MS)
+      }
+    }
+
+    const onKeyUp = event => {
+      if (!KEYBOARD_DIRECTIONS[event.key]) return
+      heldDirections.delete(event.key)
+      if (!heldDirections.size) {
+        if (repeatTimer) window.clearInterval(repeatTimer)
+        repeatTimer = null
+      }
+    }
+
     window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', stopRepeating)
+    return () => {
+      stopRepeating()
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', stopRepeating)
+    }
   }, [sendMove])
 
   useEffect(() => {

@@ -261,6 +261,7 @@ export function sanitizeMatchState(match) {
     actionIdTtlMs: match.config.actionIdTtlMs,
     movementSpeed: match.config.movementSpeed,
     movementMinIntervalMs: match.config.movementMinIntervalMs,
+    movementMaxDeltaMs: match.config.movementMaxDeltaMs,
     maxActiveNodes: match.config.maxActiveNodes,
     nodeInteractionRadius: match.config.nodeInteractionRadius,
     depositInteractionRadius: match.config.depositInteractionRadius,

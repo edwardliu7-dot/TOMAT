@@ -334,7 +334,16 @@ export function createMobaMatchManager({
 
     // clientPosition is intentionally ignored. The authoritative position is
     // derived from the last accepted server position and server elapsed time.
-    const maxDistance = movementSpeed(player, match) * elapsedMs / 1000
+    // A player only moves when an input is received. Do not convert time spent
+    // idle in the lobby/countdown (or a delayed network packet) into one huge
+    // movement step that can immediately hit the opposite arena boundary.
+    const movementDeltaMs = Math.min(
+      elapsedMs,
+      Number(match.config.movementMaxDeltaMs) > 0
+        ? Number(match.config.movementMaxDeltaMs)
+        : elapsedMs,
+    )
+    const maxDistance = movementSpeed(player, match) * movementDeltaMs / 1000
     const candidate = {
       x: player.position.x + normalized.x * maxDistance,
       y: player.position.y + normalized.y * maxDistance,

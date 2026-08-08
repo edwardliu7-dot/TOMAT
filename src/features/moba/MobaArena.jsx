@@ -224,10 +224,15 @@ export default function MobaArena({
   const selfYPercent = Number.isFinite(selfY)
     ? Math.max(0, Math.min(100, ((selfY - bounds.minY) / (bounds.maxY - bounds.minY)) * 100))
     : 50
+  // Keep a camera dead-zone so the Pet visibly travels through the arena
+  // instead of being perfectly pinned to the center on every server update.
+  // Once it reaches the edge of the zone, the world follows it smoothly.
+  const cameraTargetX = Math.max(35, Math.min(65, selfXPercent))
+  const cameraTargetY = Math.max(35, Math.min(65, selfYPercent))
   const cameraStyle = {
-    '--moba-camera-x': `${(50 - selfXPercent) * 1.22}%`,
-    '--moba-camera-y': `${(50 - selfYPercent) * 1.22}%`,
-    '--moba-camera-zoom': 1.22,
+    '--moba-camera-x': `${(50 - cameraTargetX) * 0.78}%`,
+    '--moba-camera-y': `${(50 - cameraTargetY) * 0.78}%`,
+    '--moba-camera-zoom': 1.16,
   }
 
   return (
