@@ -522,6 +522,32 @@ export async function ensureSchema() {
       on event_mission_progress (student_id);
   `)
 
+  // ── Self-healing: re-grant mission reward items that were skipped ──────────
+  // Earlier versions of claimMissionReward silently skipped the inventory
+  // insert when the shop item wasn't seeded yet, but still set reward_claimed_at.
+  // This migration finds affected rows and grants the missing items now.
+  // Hardcoded to avoid a circular import (event-missions.js imports pool).
+  const missionRewards = [
+    { missionId: 'kemerdekaan_1', itemId: 'bingkai_kemerdekaan' },
+    { missionId: 'kemerdekaan_2', itemId: 'spanduk_kemerdekaan' },
+    { missionId: 'kemerdekaan_3', itemId: 'pet_kelinsay_merahputih' },
+  ]
+  for (const { missionId, itemId } of missionRewards) {
+    const { rowCount } = await pool.query(`
+      insert into student_inventory (student_id, item_id)
+      select emp.student_id, $1
+      from event_mission_progress emp
+      where emp.mission_id = $2
+        and emp.reward_claimed_at is not null
+        and not exists (
+          select 1 from student_inventory si
+          where si.student_id = emp.student_id and si.item_id = $1
+        )
+      on conflict (student_id, item_id) do nothing
+    `, [itemId, missionId])
+    if (rowCount > 0) console.log(`[schema] mission reward repair: granted ${itemId} to ${rowCount} student(s)`)
+  }
+
   // Tournament history — one row per finished/cancelled tournament
   await pool.query(`
     create table if not exists tournament_history (

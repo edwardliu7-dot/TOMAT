@@ -301,8 +301,18 @@ export function mobaReducer(state = initialMobaState, action = {}) {
           ? null
           : state.lastError,
       }
-    case MOBA_ACTIONS.SNAPSHOT:
-      return applyServerEvent(state, 'state_snapshot', action.payload)
+    case MOBA_ACTIONS.SNAPSHOT: {
+      const nextState = applyServerEvent(state, 'state_snapshot', action.payload)
+      // Ack-triggered snapshots (from claim_node, move, etc.) race with the
+      // question_opened event on the same TCP stream.  The event usually arrives
+      // before the ack, so by the time the ack runs, activeQuestion is already
+      // set.  Preserve it — the server will clear it via question_closed.
+      // Server-broadcast state_snapshot events (reconnect path) go through
+      // MOBA_ACTIONS.SERVER_EVENT and deliberately DO clear activeQuestion.
+      return (state.activeQuestion && !nextState.activeQuestion)
+        ? { ...nextState, activeQuestion: state.activeQuestion }
+        : nextState
+    }
     case MOBA_ACTIONS.SERVER_EVENT:
       return applyServerEvent(state, action.event, action.payload)
     case MOBA_ACTIONS.ERROR:
