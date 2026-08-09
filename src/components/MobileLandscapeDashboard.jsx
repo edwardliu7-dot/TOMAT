@@ -1,63 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import PetSVG, { getPetName } from './PetSVG'
 import { UserAvatar } from './shared'
+import SeasonalEventBanner from './SeasonalEventBanner'
 
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('id-ID')
 }
 
-function useLandscapeViewport() {
-  const getState = () => window.innerWidth > window.innerHeight && window.innerWidth >= 620
-  const [landscape, setLandscape] = useState(getState)
-
-  useEffect(() => {
-    const update = () => setLandscape(getState())
-    window.addEventListener('resize', update)
-    window.addEventListener('orientationchange', update)
-    return () => {
-      window.removeEventListener('resize', update)
-      window.removeEventListener('orientationchange', update)
-    }
-  }, [])
-
-  return landscape
-}
-
-function RotateDevice() {
-  return (
-    <main className="landscape-rotate-screen">
-      <style>{styles}</style>
-      <div className="landscape-rotate-orbit landscape-rotate-orbit--one" />
-      <div className="landscape-rotate-orbit landscape-rotate-orbit--two" />
-      <div className="landscape-rotate-mark">T</div>
-      <div className="landscape-rotate-phone">
-        <span />
-        <div><b>+</b><b>−</b><b>×</b></div>
-      </div>
-      <div className="landscape-rotate-arrow">↻</div>
-      <p className="landscape-kicker">TOMAT · PETUALANGAN BELAJAR</p>
-      <h1>Putar perangkat<br />ke lanskap</h1>
-      <p className="landscape-rotate-copy">
-        Dunia TOMI menunggu di layar lebar. Miringkan perangkatmu untuk masuk ke cockpit permainan.
-      </p>
-      <div className="landscape-rotate-dots"><i /><i /><i /></div>
-    </main>
-  )
-}
-
-function ResourcePill({ icon, value, tone = '' }) {
-  return <span className={`landscape-resource ${tone}`}><b>{icon}</b>{value}</span>
-}
-
-function ActionButton({ icon, label, note, tone, selected, onClick }) {
-  return (
-    <button type="button" className={`landscape-action ${tone} ${selected ? 'is-selected' : ''}`} onClick={onClick}>
-      <span>{icon}</span>
-      <div><strong>{label}</strong><small>{note}</small></div>
-    </button>
-  )
-}
-
+// ── ZonaDashboard ─────────────────────────────────────────────────────────────
+// Layout: ZONA ATAS (header bar) + 3 kolom utama (kiri/tengah/kanan)
+// Responsif: desktop landscape, mobile landscape, portrait (stack)
+// ─────────────────────────────────────────────────────────────────────────────
 export default function MobileLandscapeDashboard({
   user,
   player,
@@ -70,654 +23,410 @@ export default function MobileLandscapeDashboard({
   canUseDemoMoba,
   navigate,
   openPetShop,
+  openEventShop,
 }) {
-  const landscape = useLandscapeViewport()
   const [notice, setNotice] = useState('')
-  const [selectedAction, setSelectedAction] = useState('Misi')
-  const [notifications, setNotifications] = useState(pendingTaskCount)
-  const [arenaEntered, setArenaEntered] = useState(false)
+  const [petFed, setPetFed] = useState(false)
 
-  useEffect(() => setNotifications(pendingTaskCount), [pendingTaskCount])
+  const toast = msg => { setNotice(msg); window.setTimeout(() => setNotice(''), 2400) }
 
-  const toast = message => {
-    setNotice(message)
-    window.setTimeout(() => setNotice(''), 2400)
+  // Derived values
+  const levelProgress = Math.min(100, Math.round((Number(player?.exp || 0) / Math.max(Number(player?.maxExp || 1000), 1)) * 100))
+  const petState = pet?.isDead ? 'dead' : pet?.isStarving ? 'hungry' : 'idle'
+  const petName = getPetName(pet?.skin || 'golden')
+  const hungerPct = pet?.isDead ? 0 : Math.min(100, pet?.hunger ?? 100)
+  const hungerColor = hungerPct > 60 ? '#5dcaa5' : hungerPct > 30 ? '#fac775' : '#f0997b'
+
+  // User grade zone
+  const gradeNum = parseInt(user?.kelas?.match(/\d+/)?.[0] || '7')
+  const mathZoneId = gradeNum === 9 ? 'grade9' : gradeNum === 8 ? 'grade8' : 'grade7'
+  const ipaZoneId  = gradeNum === 9 ? 'ipa9'   : gradeNum === 8 ? 'ipa8'   : 'ipa7'
+
+  const handleFeed = () => {
+    if (pet?.isDead) { openPetShop?.(); return }
+    setPetFed(true)
+    toast('Tomi makan! 🎉')
+    fetch('/api/siswa/pet/feed', { method: 'POST', credentials: 'include' }).catch(() => {})
+    window.setTimeout(() => setPetFed(false), 1200)
   }
 
-  const firstZone = zones.find(zone => !zone.locked)
-  const levelProgress = Math.min(100, Math.round((Number(player.exp || 0) / Math.max(Number(player.maxExp || 100), 1)) * 100))
-  const petState = pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'
-  const petStatus = pet.isDead ? 'Perlu dihidupkan kembali' : pet.isStarving ? 'Sedang lapar' : 'Siap menjelajah'
-  const missionTitle = nextTask?.gameName || firstZone?.title || 'Mulai petualanganmu'
-  const missionDescription = nextTask
-    ? `Selesaikan ${nextTask.totalQuestions || 5} soal untuk mendapatkan nilai dari gurumu.`
-    : 'Pilih zona petualangan dan kumpulkan pengalaman baru hari ini.'
+  const RIGHT_ZONES = [
+    { id: mathZoneId, bg: 'linear-gradient(160deg,#4a3fa8,#3c3489)', shadow: 'rgba(60,52,137,0.45)', icon: '➕', title: 'Zona Matematika', sub: `Kelas ${gradeNum}`, textColor: '#eeedfe', subColor: '#cecbf6' },
+    { id: ipaZoneId,  bg: 'linear-gradient(160deg,#0d6b55,#085041)', shadow: 'rgba(8,80,65,0.45)',   icon: '🧪', title: 'Zona IPA',        sub: `Kelas ${gradeNum}`, textColor: '#e1f5ee', subColor: '#9fe1cb' },
+    { id: 'arena',    bg: 'linear-gradient(160deg,#8c3518,#712b13)', shadow: 'rgba(113,43,19,0.5)', icon: '⚔️', title: 'Arena Tanding',  sub: 'Duel · Boss · MOBA', textColor: '#faece7', subColor: '#f5c4b3', badge: 'LIVE' },
+  ]
 
-  const openMission = () => {
-    if (nextTask) {
-      navigate(nextTask.gameKey, { taskId: nextTask.id })
-      return
-    }
-    if (firstZone) navigate(firstZone.id)
-  }
-
-  const openArena = () => {
-    if (!canUseDemoMoba) {
-      toast('Arena MOBA sedang dibuka terbatas untuk akun demo.')
-      return
-    }
-    setArenaEntered(value => !value)
-    navigate('moba-lobby')
-  }
-
-  const selectAction = (label, action, note) => {
-    setSelectedAction(label)
-    action()
-    if (note) toast(note)
-  }
-
-  if (!landscape) return <RotateDevice />
+  const NAV_ITEMS = [
+    { icon: '🛒', label: 'Toko',    id: 'toko' },
+    { icon: '🏅', label: 'Lencana', id: 'lencana' },
+    { icon: '👑', label: 'Rank',    id: 'papanperingkat' },
+    { icon: '👤', label: 'Profil',  id: 'profile' },
+  ]
 
   return (
-    <main className="landscape-dashboard">
-      <style>{styles}</style>
-      <div className="landscape-world-image" />
-      <div className="landscape-world-wash" />
-      <div className="landscape-world-grid" />
+    <div className="zd-root">
+      <style>{CSS}</style>
 
-      <header className="landscape-topbar">
-        <div className="landscape-brand">
-          <span>T</span>
-          <div><strong>TOMAT</strong><small>SMARTISA · PETUALANGAN BELAJAR</small></div>
+      {/* Wallpaper layers */}
+      <div className="zd-bg-img" />
+      <div className="zd-bg-wash" />
+
+      {/* ── ZONA ATAS ─────────────────────────────── */}
+      <header className="zd-topbar">
+        {/* Avatar + Nama */}
+        <div className="zd-identity">
+          <UserAvatar user={user} size={30} />
+          <div>
+            <div className="zd-name">{firstName || user?.name || 'Siswa'}</div>
+            <div className="zd-sub-row">
+              <span className="zd-level-badge">Lv {player?.level ?? 1}</span>
+              <span className="zd-rank-label">Penjelajah Pijar</span>
+            </div>
+          </div>
         </div>
-        <div className="landscape-resources">
-          <ResourcePill icon="🪙" value={formatNumber(player.coins)} tone="gold" />
-          <ResourcePill icon="⚡" value={`Lv ${player.level}`} tone="mint" />
-          <button type="button" onClick={() => { setNotifications(0); toast('Semua notifikasi sudah dibaca') }} aria-label="Notifikasi" className="landscape-icon-button">
-            🔔{notifications > 0 && <b>{notifications}</b>}
-          </button>
-          <button type="button" onClick={() => toast('Pengaturan cockpit dibuka')} aria-label="Pengaturan" className="landscape-icon-button">⚙</button>
+
+        {/* XP bar */}
+        <div className="zd-xp-wrap">
+          <div className="zd-xp-labels">
+            <span>XP</span>
+            <span style={{ color: '#5dcaa5' }}>{formatNumber(player?.exp)} / {formatNumber(player?.maxExp || 1000)}</span>
+          </div>
+          <div className="zd-xp-track"><div className="zd-xp-fill" style={{ width: `${levelProgress}%` }} /></div>
+        </div>
+
+        {/* Coins + utils */}
+        <div className="zd-top-right">
+          <div className="zd-coin-pill">🪙 {formatNumber(player?.coins)}</div>
+          <div className="zd-icon-btn" onClick={() => navigate('grades')} title="Nilai">📊</div>
+          <div className="zd-icon-btn" onClick={() => navigate('profile')} title="Profil">⚙️</div>
         </div>
       </header>
 
-      <section className="landscape-profile-card">
-        <UserAvatar user={user} size={54} />
-        <div className="landscape-profile-copy">
-          <small>PEMAIN AKTIF</small>
-          <h2>{firstName}</h2>
-          <span>Penjelajah Pijar <strong>LV. {String(player.level).padStart(2, '0')}</strong></span>
+      {/* ── KONTEN UTAMA 3 KOLOM ──────────────────── */}
+      <div className="zd-body">
+
+        {/* ZONA KIRI */}
+        <div className="zd-col-left">
+          {/* Event banner (if active) */}
+          <div className="zd-event-slot">
+            <SeasonalEventBanner onOpenEventShop={openEventShop} />
+          </div>
+
+          {/* Tugas aktif */}
+          <div className="zd-task-card">
+            <div className="zd-eyebrow green">TUGAS AKTIF</div>
+            {nextTask ? (
+              <>
+                <div className="zd-task-title">{nextTask.gameName || 'Tugas'}</div>
+                <div className="zd-task-sub">Kerjakan sebelum batas waktu</div>
+                <div className="zd-bar-wrap">
+                  <div className="zd-bar-fill" style={{ width: '20%', background: '#5dcaa5' }} />
+                </div>
+                <div className="zd-task-note">0 / {nextTask.totalQuestions || 5} soal</div>
+                <button className="zd-task-btn" onClick={() => navigate(nextTask.gameKey, { taskId: nextTask.id })}>Kerjakan ›</button>
+              </>
+            ) : (
+              <>
+                <div className="zd-task-title">Masuk Zona</div>
+                <div className="zd-task-sub">Pilih zona & mulai belajar</div>
+                <div className="zd-bar-wrap"><div className="zd-bar-fill" style={{ width: '0%', background: '#5dcaa5' }} /></div>
+                <button className="zd-task-btn" onClick={() => navigate(mathZoneId)}>Mulai ›</button>
+              </>
+            )}
+          </div>
+
+          {/* Quick links row */}
+          <div className="zd-quick-row">
+            <div className="zd-quick-chip" onClick={() => navigate('hafalan')}>📖 <span>Hafalan</span></div>
+            <div className="zd-quick-chip accent" onClick={() => navigate('latihan-ujian')}>✏️ <span>Ujian</span></div>
+            <div className="zd-quick-chip" onClick={() => navigate('komunikasi')}>💬 <span>Chat</span></div>
+          </div>
         </div>
-        <div className="landscape-level-track">
-          <div><span>PROGRES LEVEL</span><b>{formatNumber(player.exp)} / {formatNumber(player.maxExp)} XP</b></div>
-          <i><em style={{ width: `${levelProgress}%` }} /></i>
+
+        {/* ZONA TENGAH */}
+        <div className="zd-col-center">
+          {/* Pet area */}
+          <div className="zd-pet-area">
+            <div className="zd-welcome">Selamat datang, {firstName}!</div>
+
+            <div className="zd-pet-stage">
+              <div className="zd-pet-shadow" />
+              <div className={`zd-pet-sprite ${petFed ? 'zd-pet-fed' : ''}`}>
+                <PetSVG skinId={pet?.skin || 'golden'} state={petState} size={110} />
+              </div>
+            </div>
+
+            <div className="zd-pet-name">{petName}</div>
+
+            {/* Hunger bar */}
+            <div className="zd-hunger-card">
+              <div className="zd-hunger-labels">
+                <span>Lapar</span>
+                <span style={{ color: hungerColor }}>{hungerPct}%</span>
+              </div>
+              <div className="zd-bar-wrap">
+                <div className="zd-bar-fill" style={{ width: `${hungerPct}%`, background: `linear-gradient(90deg,${hungerColor},${hungerColor}88)` }} />
+              </div>
+            </div>
+
+            {/* Pet actions */}
+            <div className="zd-pet-actions">
+              <button className="zd-feed-btn" onClick={handleFeed}>
+                {pet?.isDead ? '💊 Hidupkan' : '🍖 Beri Makan'}
+              </button>
+              <button className="zd-shop-btn" onClick={() => navigate('toko')}>🛍</button>
+            </div>
+          </div>
+
+          {/* Bottom nav bar */}
+          <div className="zd-bottom-bar">
+            <div className="zd-chat-preview" onClick={() => navigate('komunikasi')}>
+              <span>💬</span>
+              <span className="zd-chat-text">Chat kelas...</span>
+              {pendingTaskCount > 0 && <div className="zd-badge">{pendingTaskCount}</div>}
+            </div>
+            {NAV_ITEMS.map(n => (
+              <div key={n.id} className="zd-nav-item" onClick={() => navigate(n.id)}>
+                <span className="zd-nav-icon">{n.icon}</span>
+                <span className="zd-nav-label">{n.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </section>
 
-      <section className="landscape-mission-card">
-        <div className="landscape-eyebrow">✦ {nextTask ? 'TUGAS AKTIF' : 'MISI YANG DITUNGGU TOMI'}</div>
-        <h1>{missionTitle}</h1>
-        <p>{missionDescription}</p>
-        <div className="landscape-mission-progress">
-          <span>{nextTask ? `${nextTask.totalQuestions || 5} tantangan` : 'Misi baru tersedia'}</span>
-          <strong>{nextTask ? `+${(nextTask.totalQuestions || 5) * 10} EXP` : '+40 EXP'}</strong>
-          <i><em style={{ width: nextTask ? '18%' : '0%' }} /></i>
+        {/* ZONA KANAN — 3 pintu */}
+        <div className="zd-col-right">
+          {RIGHT_ZONES.map(z => (
+            <div key={z.id} className="zd-door" style={{ background: z.bg, boxShadow: `0 3px 10px ${z.shadow}` }} onClick={() => navigate(z.id)}>
+              {z.badge && <div className="zd-door-badge">{z.badge}</div>}
+              <div className="zd-door-shimmer" />
+              <span className="zd-door-icon">{z.icon}</span>
+              <div>
+                <div className="zd-door-title" style={{ color: z.textColor }}>{z.title}</div>
+                <div className="zd-door-sub" style={{ color: z.subColor }}>{z.sub}</div>
+                <div className="zd-door-cta" style={{ color: z.textColor }}>▶ Masuk</div>
+              </div>
+            </div>
+          ))}
         </div>
-        <button type="button" onClick={openMission}>LANJUTKAN MISI <b>›</b></button>
-      </section>
-
-      <section className="landscape-pet-stage" aria-label={`${getPetName(pet.skin || 'golden')} ${petStatus}`}>
-        <div className="landscape-sun-ring" />
-        <div className="landscape-pet-glow" />
-        <div className="landscape-pet-sprite"><PetSVG skinId={pet.skin || 'golden'} state={petState} size={220} /></div>
-        <div className="landscape-pet-caption"><strong>{getPetName(pet.skin || 'golden').toUpperCase()}</strong><small>{petStatus}</small></div>
-        <span className="landscape-pet-chip landscape-pet-chip--energy">♥ {pet.isDead ? '0' : pet.hunger}% energi</span>
-        <span className="landscape-pet-chip landscape-pet-chip--ready">✦ {pet.isDead ? 'butuh bantuan' : 'siap menjelajah'}</span>
-      </section>
-
-      <aside className="landscape-action-rail">
-        <div className="landscape-rail-label">AKSI CEPAT</div>
-        <ActionButton icon="🧭" label="Misi" note={`${pendingTaskCount} aktif`} tone="coral" selected={selectedAction === 'Misi'} onClick={() => selectAction('Misi', openMission)} />
-        <ActionButton icon="♛" label="Peringkat" note="Lihat kelas" tone="violet" selected={selectedAction === 'Peringkat'} onClick={() => selectAction('Peringkat', () => navigate('papanperingkat'))} />
-        <ActionButton icon="🛡" label="Koleksi" note={`${grades.length} nilai tersimpan`} tone="teal" selected={selectedAction === 'Koleksi'} onClick={() => selectAction('Koleksi', () => navigate('toko'))} />
-        <ActionButton icon="💬" label="Teman" note="Chat guru" tone="gold" selected={selectedAction === 'Teman'} onClick={() => selectAction('Teman', () => navigate('komunikasi'))} />
-      </aside>
-
-      <div className="landscape-arena-wrap">
-        <button type="button" className={`landscape-arena-cta ${arenaEntered ? 'is-entered' : ''}`} onClick={openArena}>
-          <span>{canUseDemoMoba ? '⚔️' : '🚀'}</span>
-          <div><small>{canUseDemoMoba ? 'TANTANGAN HARI INI' : 'JALUR BELAJAR'}</small><strong>{canUseDemoMoba ? 'MASUK ARENA' : 'MULAI MISI'}</strong></div>
-          <b>›</b>
-        </button>
-        {!canUseDemoMoba && <small className="landscape-arena-note">Arena MOBA segera hadir</small>}
       </div>
 
-      <button type="button" className="landscape-profile-link" onClick={() => navigate('profile')}>
-        <UserAvatar user={user} size={30} /><span>Profil</span>
-      </button>
-
-      {pet.isDead && (
-        <button type="button" className="landscape-pet-action" onClick={openPetShop}>HIDUPKAN TOMI</button>
-      )}
-      {notice && <div className="landscape-toast">✦ {notice}<button type="button" onClick={() => setNotice('')}>×</button></div>}
-    </main>
+      {/* Toast */}
+      {notice && <div className="zd-toast">✦ {notice}</div>}
+    </div>
   )
 }
 
-const styles = `
-  .landscape-dashboard,
-  .landscape-rotate-screen {
-    box-sizing: border-box;
-    min-height: 100dvh;
-    width: 100%;
-    overflow: hidden;
-    font-family: "DM Sans", "Avenir Next", system-ui, sans-serif;
-  }
-  .landscape-dashboard *,
-  .landscape-rotate-screen * { box-sizing: border-box; }
-  .landscape-dashboard {
+// ── CSS ───────────────────────────────────────────────────────────────────────
+const CSS = `
+  .zd-root {
     position: relative;
-    isolation: isolate;
-    background: #153e49;
-    color: #fff6d8;
+    width: 100%;
+    min-height: 100dvh;
+    background: #12172b;
+    color: #f2ede3;
+    font-family: "DM Sans", system-ui, sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
   }
-  .landscape-world-image {
+  .zd-root * { box-sizing: border-box; }
+
+  /* ── Wallpaper ── */
+  .zd-bg-img {
     position: absolute;
     inset: 0;
-    z-index: -3;
-    background: url("/wallpaper-dashboard.png") center 30% / cover no-repeat;
-    filter: saturate(1.05) contrast(1.06) brightness(0.88);
-  }
-  .landscape-world-wash {
-    position: absolute;
-    inset: 0;
-    z-index: -2;
-    background:
-      linear-gradient(90deg, rgba(10,8,22,.95) 0%, rgba(18,12,36,.82) 26%, rgba(28,16,40,.28) 60%, rgba(14,10,30,.80) 100%),
-      linear-gradient(0deg, rgba(8,6,20,.92), transparent 52%, rgba(20,10,30,.30));
-  }
-  .landscape-world-grid {
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    opacity: .17;
-    background-image: linear-gradient(rgba(222,225,175,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(222,225,175,.3) 1px, transparent 1px);
-    background-size: 44px 44px;
-    mask-image: linear-gradient(90deg, #000, transparent 86%);
+    z-index: 0;
+    background: url("/wallpaper-dashboard.png") center 72% / cover no-repeat;
+    filter: saturate(1.05) contrast(1.06) brightness(0.82);
     pointer-events: none;
   }
-  .landscape-topbar {
+  .zd-bg-wash {
     position: absolute;
-    z-index: 5;
-    top: 4.2%;
-    left: 3.5%;
-    right: 3.5%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .landscape-brand { display: flex; align-items: center; gap: 10px; }
-  .landscape-brand > span,
-  .landscape-rotate-mark {
-    display: grid;
-    place-items: center;
-    width: 39px;
-    height: 39px;
-    border-radius: 13px 13px 13px 4px;
-    background: #eb765c;
-    color: #fff1c6;
-    font: 800 20px "Space Mono", monospace;
-    box-shadow: 4px 5px 0 rgba(8,30,39,.3);
-  }
-  .landscape-brand strong { display: block; letter-spacing: .2em; font-size: 15px; }
-  .landscape-brand small {
-    display: block;
-    margin-top: 2px;
-    color: #bcd0b5;
-    font: 700 7px "Space Mono", monospace;
-    letter-spacing: .08em;
-  }
-  .landscape-resources { display: flex; align-items: center; gap: 8px; }
-  .landscape-resource,
-  .landscape-icon-button {
-    height: 34px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 11px;
-    border: 1px solid rgba(251,226,160,.25);
-    border-radius: 10px;
-    background: rgba(12,46,57,.72);
-    color: #f9dc91;
-    font: 700 10px "Space Mono", monospace;
-    backdrop-filter: blur(9px);
-  }
-  .landscape-resource.mint { color: #8fe1c8; }
-  .landscape-icon-button {
-    position: relative;
-    width: 35px;
-    padding: 0;
-    justify-content: center;
-    color: #e4e7c0;
-    cursor: pointer;
-  }
-  .landscape-icon-button:hover { background: #327b78; transform: translateY(-2px); }
-  .landscape-icon-button > b {
-    position: absolute;
-    top: -5px;
-    right: -3px;
-    display: grid;
-    place-items: center;
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    background: #ee775c;
-    color: #fff3cf;
-    font-size: 8px;
-  }
-  .landscape-profile-card {
-    position: absolute;
-    z-index: 4;
-    top: 16%;
-    left: 3.5%;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: min(31vw, 355px);
-    padding: 14px;
-    border: 1px solid rgba(255,225,159,.3);
-    border-radius: 15px;
-    background: rgba(12,43,52,.78);
-    box-shadow: 0 15px 30px rgba(2,25,35,.3);
-    backdrop-filter: blur(12px);
-  }
-  .landscape-profile-copy { min-width: 88px; }
-  .landscape-profile-copy small,
-  .landscape-level-track span {
-    color: #aec9b3;
-    font: 700 8px "Space Mono", monospace;
-    letter-spacing: .1em;
-  }
-  .landscape-profile-copy h2 { margin: 3px 0; font-size: 15px; }
-  .landscape-profile-copy > span { color: #c6d7c1; font-size: 10px; }
-  .landscape-profile-copy strong {
-    margin-left: 4px;
-    padding: 3px 5px;
-    border-radius: 4px;
-    background: #e6af5b;
-    color: #4e3641;
-    font: 700 8px "Space Mono", monospace;
-  }
-  .landscape-level-track { flex: 1; align-self: flex-end; }
-  .landscape-level-track > div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-  }
-  .landscape-level-track b {
-    color: #f0cf87;
-    font: 700 8px "Space Mono", monospace;
-    white-space: nowrap;
-  }
-  .landscape-level-track > i,
-  .landscape-mission-progress > i {
-    display: block;
-    height: 5px;
-    margin-top: 6px;
-    overflow: hidden;
-    border-radius: 99px;
-    background: rgba(232,220,170,.2);
-  }
-  .landscape-level-track em,
-  .landscape-mission-progress em {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: #e9a85b;
-  }
-  .landscape-mission-card {
-    position: absolute;
-    z-index: 4;
-    bottom: 15%;
-    left: 3.5%;
-    width: min(32vw, 365px);
-    padding: 16px 17px;
-    border: 1px solid rgba(255,220,151,.35);
-    border-radius: 17px;
-    background: linear-gradient(135deg, rgba(22,71,72,.9), rgba(14,45,59,.86));
-    box-shadow: 0 18px 38px rgba(3,27,37,.33);
-    backdrop-filter: blur(10px);
-  }
-  .landscape-mission-card::after {
-    content: "";
-    position: absolute;
-    top: -27px;
-    right: -25px;
-    width: 100px;
-    height: 100px;
-    border: 13px solid rgba(232,172,101,.1);
-    border-radius: 50%;
-  }
-  .landscape-eyebrow {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: #f4c570;
-    font: 700 8px "Space Mono", monospace;
-    letter-spacing: .1em;
-  }
-  .landscape-mission-card h1 {
-    margin: 9px 0 5px;
-    font-size: clamp(18px, 2.2vw, 27px);
-    line-height: 1.04;
-    letter-spacing: -.04em;
-  }
-  .landscape-mission-card p {
-    max-width: 270px;
-    margin: 0;
-    color: #c4d1bb;
-    font-size: 10px;
-    line-height: 1.45;
-  }
-  .landscape-mission-progress {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 13px;
-    color: #b8cdb5;
-    font-size: 9px;
-  }
-  .landscape-mission-progress strong { color: #f1b980; font: 700 9px "Space Mono", monospace; }
-  .landscape-mission-progress > i { position: absolute; right: 0; bottom: -9px; left: 0; }
-  .landscape-mission-progress em { background: #e98368; }
-  .landscape-mission-card > button {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    margin-top: 21px;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: #fff0bd;
-    cursor: pointer;
-    font: 800 9px "Space Mono", monospace;
-  }
-  .landscape-mission-card > button:hover { color: #ffad89; gap: 7px; }
-  .landscape-pet-stage {
-    position: absolute;
-    z-index: 3;
-    top: 21%;
-    right: 24%;
-    bottom: 10%;
-    left: 36%;
-    display: grid;
-    place-items: center;
-  }
-  .landscape-sun-ring {
-    position: absolute;
-    width: min(35vw, 390px);
-    height: min(35vw, 390px);
-    border: 1px solid rgba(255,218,151,.3);
-    border-radius: 50%;
-    box-shadow: 0 0 0 24px rgba(255,208,135,.06), 0 0 0 54px rgba(255,208,135,.04);
-  }
-  .landscape-pet-glow {
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    background: rgba(239,131,100,.22);
-    filter: blur(35px);
-    animation: landscape-breathe 4s ease-in-out infinite;
-  }
-  .landscape-pet-sprite {
-    position: relative;
+    inset: 0;
     z-index: 1;
-    animation: landscape-float 4s ease-in-out infinite;
-    filter: drop-shadow(0 14px 0 rgba(12,43,49,.27));
+    background:
+      linear-gradient(90deg, rgba(10,8,22,.96) 0%, rgba(18,12,36,.84) 24%, rgba(28,16,40,.22) 58%, rgba(14,10,30,.85) 100%),
+      linear-gradient(0deg, rgba(8,6,20,.94), transparent 50%, rgba(20,10,30,.28));
+    pointer-events: none;
   }
-  .landscape-pet-caption {
-    position: absolute;
-    bottom: 1%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  .landscape-pet-caption strong {
-    color: #ffe6a7;
-    font: 800 17px "Space Mono", monospace;
-    letter-spacing: .18em;
-  }
-  .landscape-pet-caption small { color: #bdd0b8; font-size: 9px; }
-  .landscape-pet-chip {
-    position: absolute;
+
+  /* ── Top bar ── */
+  .zd-topbar {
+    position: relative;
+    z-index: 10;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 9px;
-    border: 1px solid rgba(255,227,161,.28);
-    border-radius: 999px;
-    background: rgba(13,49,59,.74);
-    color: #e8dbad;
-    font: 700 9px "Space Mono", monospace;
-    backdrop-filter: blur(9px);
+    justify-content: space-between;
+    padding: 8px 14px 6px;
+    border-bottom: 0.5px solid #1e2644;
+    flex-shrink: 0;
+    gap: 10px;
   }
-  .landscape-pet-chip--energy { top: 32%; right: 3%; color: #ffb69a; }
-  .landscape-pet-chip--ready { bottom: 24%; left: 3%; color: #9ddfca; }
-  .landscape-action-rail {
-    position: absolute;
-    z-index: 4;
-    top: 22%;
-    right: 3.5%;
-    bottom: 14%;
-    display: flex;
-    flex-direction: column;
+  .zd-identity { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .zd-name { color: #f2ede3; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; }
+  .zd-sub-row { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+  .zd-level-badge { background: #3c3489; border-radius: 3px; padding: 1px 5px; color: #cecbf6; font-size: 8px; font-weight: 700; }
+  .zd-rank-label { color: #5a6180; font-size: 8px; }
+  .zd-xp-wrap { flex: 1; max-width: 200px; margin: 0 10px; }
+  .zd-xp-labels { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 8px; color: #5a6180; }
+  .zd-xp-track { height: 4px; background: #1c2340; border-radius: 2px; overflow: hidden; }
+  .zd-xp-fill { height: 4px; background: linear-gradient(90deg,#5dcaa5,#3aaa85); border-radius: 2px; transition: width .5s; }
+  .zd-top-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .zd-coin-pill { background: #1c2340; border: 0.5px solid #313a5c; border-radius: 7px; padding: 4px 9px; color: #fac775; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 3px; }
+  .zd-icon-btn { background: #1c2340; border: 0.5px solid #313a5c; border-radius: 7px; width: 28px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; transition: background .15s; }
+  .zd-icon-btn:hover { background: #2a3158; }
+
+  /* ── Body 3 cols ── */
+  .zd-body {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 148px 1fr 162px;
     gap: 8px;
-    width: 156px;
+    padding: 8px 12px 10px;
+    min-height: 0;
   }
-  .landscape-rail-label {
-    margin-bottom: 2px;
-    color: #d3d7b1;
-    font: 700 8px "Space Mono", monospace;
-    letter-spacing: .15em;
+
+  /* ── Left col ── */
+  .zd-col-left { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .zd-event-slot > * { font-size: 9px !important; border-radius: 9px !important; margin: 0 !important; }
+  .zd-task-card {
+    background: rgba(28,35,64,0.82);
+    border: 0.5px solid #313a5c;
+    border-radius: 10px;
+    padding: 9px 10px;
+    flex: 1;
+    min-height: 0;
+    backdrop-filter: blur(8px);
   }
-  .landscape-action {
+  .zd-eyebrow { font-size: 7.5px; font-weight: 700; letter-spacing: 0.8px; margin-bottom: 4px; }
+  .zd-eyebrow.green { color: #5dcaa5; }
+  .zd-task-title { color: #f2ede3; font-size: 11px; font-weight: 600; line-height: 1.3; }
+  .zd-task-sub { color: #8b8f9e; font-size: 8px; margin-top: 2px; }
+  .zd-bar-wrap { height: 3px; background: #2a3158; border-radius: 2px; margin: 5px 0 2px; overflow: hidden; }
+  .zd-bar-fill { height: 3px; border-radius: 2px; transition: width .4s; }
+  .zd-task-note { color: #5a6180; font-size: 7.5px; }
+  .zd-task-btn { margin-top: 7px; padding: 4px 10px; background: linear-gradient(135deg,#e2653f,#c94f2d); border: none; border-radius: 6px; color: #fff; font-size: 9px; font-weight: 700; cursor: pointer; }
+  .zd-quick-row { display: flex; gap: 5px; flex-shrink: 0; }
+  .zd-quick-chip { flex: 1; background: rgba(28,35,64,0.82); border: 0.5px solid #313a5c; border-radius: 8px; padding: 5px 6px; display: flex; align-items: center; gap: 4px; font-size: 9px; color: #c9cdd8; cursor: pointer; white-space: nowrap; overflow: hidden; backdrop-filter: blur(6px); }
+  .zd-quick-chip span { overflow: hidden; text-overflow: ellipsis; }
+  .zd-quick-chip:hover { background: #2a3158; }
+  .zd-quick-chip.accent { background: linear-gradient(135deg,rgba(26,58,42,0.9),rgba(15,42,30,0.9)); border-color: #2a5040; color: #5dcaa5; }
+
+  /* ── Center col ── */
+  .zd-col-center { display: flex; flex-direction: column; gap: 6px; min-height: 0; min-width: 0; }
+  .zd-pet-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 0; }
+  .zd-welcome { color: #8b8f9e; font-size: 9px; flex-shrink: 0; }
+  .zd-pet-stage { position: relative; flex-shrink: 0; }
+  .zd-pet-shadow {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 12px;
+    background: radial-gradient(ellipse, rgba(240,153,123,0.28) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .zd-pet-sprite { animation: zd-float 3.5s ease-in-out infinite; filter: drop-shadow(0 8px 0 rgba(12,8,25,0.35)); }
+  .zd-pet-sprite.zd-pet-fed { animation: zd-fed .4s ease-out; }
+  .zd-pet-name { color: #f2ede3; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .zd-hunger-card { width: 88%; background: rgba(28,35,64,0.75); border-radius: 7px; padding: 5px 8px; flex-shrink: 0; backdrop-filter: blur(6px); }
+  .zd-hunger-labels { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 7.5px; color: #5a6180; }
+  .zd-pet-actions { display: flex; gap: 5px; width: 88%; flex-shrink: 0; }
+  .zd-feed-btn { flex: 1; background: linear-gradient(135deg,#e2653f,#c94f2d); border: none; border-radius: 7px; padding: 5px 0; color: #fff; font-size: 9px; font-weight: 700; cursor: pointer; }
+  .zd-shop-btn { background: rgba(28,35,64,0.82); border: 0.5px solid #313a5c; border-radius: 7px; padding: 5px 10px; color: #8b8f9e; font-size: 14px; cursor: pointer; }
+
+  /* Bottom bar */
+  .zd-bottom-bar { display: flex; gap: 5px; flex-shrink: 0; }
+  .zd-chat-preview { flex: 1; background: rgba(28,35,64,0.85); border: 0.5px solid #313a5c; border-radius: 8px; padding: 5px 8px; display: flex; align-items: center; gap: 5px; cursor: pointer; min-width: 0; backdrop-filter: blur(6px); }
+  .zd-chat-text { color: #5a6180; font-size: 9px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .zd-badge { background: #e2653f; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 7px; font-weight: 700; flex-shrink: 0; }
+  .zd-nav-item { background: rgba(28,35,64,0.85); border: 0.5px solid #313a5c; border-radius: 8px; padding: 5px 7px; min-width: 34px; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer; backdrop-filter: blur(6px); flex-shrink: 0; }
+  .zd-nav-item:hover { background: #2a3158; }
+  .zd-nav-icon { font-size: 14px; }
+  .zd-nav-label { color: #5a6180; font-size: 7px; }
+
+  /* ── Right col — 3 doors ── */
+  .zd-col-right { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .zd-door {
+    flex: 1;
+    border-radius: 10px;
+    padding: 9px 11px;
     display: flex;
     align-items: center;
     gap: 9px;
-    padding: 9px;
-    border: 1px solid rgba(242,222,162,.18);
-    border-radius: 12px;
-    background: rgba(11,44,55,.72);
-    color: #e8e5c7;
-    text-align: left;
     cursor: pointer;
-    backdrop-filter: blur(9px);
-    transition: .2s;
+    position: relative;
+    overflow: hidden;
+    transition: transform .15s, filter .15s;
   }
-  .landscape-action:hover,
-  .landscape-action.is-selected { transform: translateX(-4px); border-color: rgba(255,196,125,.7); background: rgba(43,94,91,.87); }
-  .landscape-action > span {
-    display: grid;
-    place-items: center;
-    width: 31px;
-    height: 31px;
-    border-radius: 9px;
-    font-size: 16px;
-  }
-  .landscape-action.coral > span { background: rgba(231,117,91,.25); color: #ffa489; }
-  .landscape-action.violet > span { background: rgba(128,116,201,.28); color: #c2b9ff; }
-  .landscape-action.teal > span { background: rgba(75,184,163,.25); color: #91e4c8; }
-  .landscape-action.gold > span { background: rgba(228,178,83,.23); color: #f3cf86; }
-  .landscape-action strong,
-  .landscape-action small { display: block; }
-  .landscape-action strong { font-size: 10px; }
-  .landscape-action small { margin-top: 2px; color: #a7c1b1; font-size: 8px; }
-  .landscape-arena-wrap {
-    position: absolute;
-    z-index: 5;
-    right: 3.5%;
-    bottom: 10%;
-  }
-  .landscape-arena-cta {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    min-width: 205px;
-    padding: 10px 12px;
-    border: 1px solid #ffd994;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #eb765d, #ce5d5c);
-    color: #fff3cc;
-    box-shadow: 0 10px 0 rgba(104,48,56,.38), 0 18px 30px rgba(7,28,37,.35);
-    cursor: pointer;
-    transition: .2s;
-  }
-  .landscape-arena-cta:hover { transform: translateY(-4px); filter: saturate(1.12); }
-  .landscape-arena-cta.is-entered { background: linear-gradient(135deg, #398e88, #27736f); }
-  .landscape-arena-cta > span {
-    display: grid;
-    place-items: center;
-    width: 37px;
-    height: 37px;
-    border-radius: 10px;
-    background: rgba(255,244,197,.2);
-    font-size: 19px;
-  }
-  .landscape-arena-cta small,
-  .landscape-arena-cta strong { display: block; text-align: left; }
-  .landscape-arena-cta small { color: #ffe2a7; font: 700 7px "Space Mono", monospace; letter-spacing: .08em; }
-  .landscape-arena-cta strong { margin-top: 2px; font: 800 15px "Space Mono", monospace; }
-  .landscape-arena-cta > b { margin-left: auto; font-size: 20px; }
-  .landscape-arena-note { display: block; margin-top: 8px; color: #d7c58c; text-align: right; font-size: 9px; }
-  .landscape-profile-link {
-    position: absolute;
-    z-index: 6;
-    right: 3.5%;
-    bottom: 3%;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: #d3d7b1;
-    cursor: pointer;
-    font: 700 9px "Space Mono", monospace;
-  }
-  .landscape-pet-action {
-    position: absolute;
-    z-index: 7;
-    bottom: 3%;
-    left: 36%;
-    padding: 7px 10px;
-    border: 1px solid rgba(255,210,125,.5);
-    border-radius: 9px;
-    background: rgba(176,81,73,.8);
-    color: #fff0bd;
-    cursor: pointer;
-    font: 800 8px "Space Mono", monospace;
-  }
-  .landscape-toast {
-    position: absolute;
-    z-index: 20;
+  .zd-door:hover { transform: translateX(-3px); filter: brightness(1.08); }
+  .zd-door-shimmer { position: absolute; top: -20px; right: -20px; width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.06); pointer-events: none; }
+  .zd-door-badge { position: absolute; top: 5px; right: 7px; background: #f0997b; border-radius: 3px; padding: 1px 5px; color: #4a1b0c; font-size: 7px; font-weight: 700; }
+  .zd-door-icon { font-size: 22px; flex-shrink: 0; }
+  .zd-door-title { font-size: 10.5px; font-weight: 700; line-height: 1.2; }
+  .zd-door-sub { font-size: 8.5px; margin-top: 2px; opacity: 0.8; }
+  .zd-door-cta { margin-top: 5px; background: rgba(255,255,255,0.14); border-radius: 4px; padding: 2px 8px; display: inline-block; font-size: 8px; font-weight: 700; }
+
+  /* ── Toast ── */
+  .zd-toast {
+    position: fixed;
     bottom: 5%;
     left: 50%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 13px;
-    border: 1px solid rgba(255,224,157,.35);
+    transform: translateX(-50%);
+    z-index: 99;
+    background: rgba(10,8,25,0.92);
+    border: 0.5px solid rgba(255,224,157,.35);
     border-radius: 999px;
-    background: rgba(10,42,52,.92);
+    padding: 9px 16px;
     color: #f7e8bb;
     font-size: 10px;
-    box-shadow: 0 12px 27px rgba(1,23,31,.35);
-    transform: translateX(-50%);
+    backdrop-filter: blur(10px);
+    white-space: nowrap;
   }
-  .landscape-toast button { padding: 0; border: 0; background: none; color: #a8c6b6; cursor: pointer; font-size: 15px; }
-  .landscape-rotate-screen {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100dvh;
-    overflow: hidden;
-    background: #103e49;
-    color: #fff4d1;
-    text-align: center;
+
+  /* ── Keyframes ── */
+  @keyframes zd-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @keyframes zd-fed { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+
+  /* ── Desktop (>= 1024px) ── */
+  @media (min-width: 1024px) {
+    .zd-body { grid-template-columns: 200px 1fr 200px; gap: 14px; padding: 12px 20px 16px; }
+    .zd-topbar { padding: 10px 20px 8px; }
+    .zd-xp-wrap { max-width: 280px; }
+    .zd-door-icon { font-size: 26px; }
+    .zd-door-title { font-size: 12px; }
+    .zd-task-title { font-size: 13px; }
   }
-  .landscape-rotate-screen::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    opacity: .22;
-    background-image: radial-gradient(#f6d78d 1px, transparent 1px);
-    background-size: 22px 22px;
+
+  /* ── Compact landscape (height < 430px) ── */
+  @media (max-height: 430px) {
+    .zd-welcome { display: none; }
+    .zd-hunger-card { padding: 3px 7px; }
+    .zd-pet-name { font-size: 9px; }
   }
-  .landscape-rotate-orbit { position: absolute; border: 1px solid rgba(248,203,131,.22); border-radius: 50%; }
-  .landscape-rotate-orbit--one { top: -80px; right: -100px; width: 290px; height: 290px; }
-  .landscape-rotate-orbit--two { bottom: -70px; left: -90px; width: 230px; height: 230px; border-color: rgba(109,213,183,.2); }
-  .landscape-rotate-mark { position: absolute; top: 8%; left: 8%; }
-  .landscape-rotate-phone {
-    position: relative;
-    width: 98px;
-    height: 166px;
-    margin-bottom: 22px;
-    border: 3px solid #ffda98;
-    border-radius: 18px;
-    background: #1d6b70;
-    box-shadow: 11px 12px 0 rgba(5,29,39,.26);
-    transform: rotate(-18deg);
-    animation: landscape-tilt 3.4s ease-in-out infinite;
-  }
-  .landscape-rotate-phone > span { position: absolute; top: 8px; left: 35px; width: 25px; height: 5px; border-radius: 9px; background: #ffda98; }
-  .landscape-rotate-phone > div {
-    position: absolute;
-    inset: 25px 9px 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 11px;
-    border-radius: 10px;
-    background: linear-gradient(#46a99a, #2e7978);
-    color: #fbd68c;
-    font: 700 19px "Space Mono", monospace;
-  }
-  .landscape-rotate-arrow { position: absolute; top: 38%; right: 22%; color: #e9866b; font-size: 32px; animation: landscape-arrow 1.5s ease-in-out infinite; }
-  .landscape-kicker { margin: 0; color: #83d0b2; font: 700 8px "Space Mono", monospace; letter-spacing: .18em; }
-  .landscape-rotate-screen h1 { margin: 8px 0; font-size: clamp(26px, 8vw, 40px); line-height: 1.01; letter-spacing: -.05em; }
-  .landscape-rotate-copy { max-width: 270px; margin: 0; color: #bbd2bc; font-size: 12px; line-height: 1.45; }
-  .landscape-rotate-dots { display: flex; gap: 5px; margin-top: 20px; }
-  .landscape-rotate-dots i { width: 5px; height: 5px; border-radius: 50%; background: #edaa69; }
-  .landscape-rotate-dots i:nth-child(2) { background: #e77b62; }
-  .landscape-rotate-dots i:nth-child(3) { background: #68c4ac; }
-  @keyframes landscape-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-  @keyframes landscape-breathe { 0%,100% { transform: scale(.9); opacity: .65; } 50% { transform: scale(1.08); opacity: 1; } }
-  @keyframes landscape-tilt { 0%,100% { transform: rotate(-18deg) translateY(0); } 50% { transform: rotate(-18deg) translateY(-7px); } }
-  @keyframes landscape-arrow { 0%,100% { transform: rotate(0) translateX(0); } 50% { transform: rotate(90deg) translateX(5px); } }
-  @media (max-width: 860px) and (orientation: landscape) {
-    .landscape-topbar { top: 3%; left: 2.5%; right: 2.5%; }
-    .landscape-brand small { display: none; }
-    .landscape-resource { padding: 0 7px; }
-    .landscape-profile-card { top: 14%; left: 2.5%; width: 33vw; transform: scale(.88); transform-origin: left top; }
-    .landscape-mission-card { bottom: 12%; left: 2.5%; width: 34vw; transform: scale(.88); transform-origin: left bottom; }
-    .landscape-pet-stage { top: 18%; right: 22%; bottom: 7%; left: 34%; }
-    .landscape-action-rail { top: 17%; right: 2.5%; bottom: 12%; width: 130px; gap: 5px; }
-    .landscape-action { padding: 7px; }
-    .landscape-action > span { width: 27px; height: 27px; }
-    .landscape-arena-wrap { right: 2.5%; bottom: 6%; }
-    .landscape-profile-link { right: 2.5%; bottom: 1.5%; }
-    .landscape-pet-chip--ready { display: none; }
-  }
-  @media (max-height: 430px) and (orientation: landscape) {
-    .landscape-pet-sprite { transform: scale(.78); }
-    .landscape-pet-caption { bottom: -2%; }
-    .landscape-mission-card { padding: 12px 14px; }
-    .landscape-mission-card p { display: none; }
-    .landscape-mission-card > button { margin-top: 15px; }
+
+  /* ── Portrait mobile — stack vertically ── */
+  @media (max-width: 619px), (orientation: portrait) and (max-width: 900px) {
+    .zd-body {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto;
+      overflow-y: auto;
+      padding: 8px 12px 80px;
+      gap: 10px;
+    }
+    .zd-col-left { order: 2; }
+    .zd-col-center { order: 1; }
+    .zd-col-right { order: 3; flex-direction: row; }
+    .zd-door { flex: 1; flex-direction: column; text-align: center; padding: 10px 6px; gap: 4px; }
+    .zd-door-icon { font-size: 20px; }
+    .zd-door-title { font-size: 9px; }
+    .zd-door-sub, .zd-door-cta { display: none; }
+    .zd-bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(18,23,43,0.96); border-top: 0.5px solid #1e2644; padding: 6px 12px; z-index: 50; backdrop-filter: blur(10px); }
+    .zd-xp-wrap { display: none; }
   }
 `

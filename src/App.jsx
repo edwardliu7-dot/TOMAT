@@ -1152,15 +1152,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               <NananagaShieldToast />
               {/* Mission toasts + claim modal — inside PlayerProvider via MissionBridge */}
               <MissionBridge />
-              {/* Tomi stays out of the answer area during live matches. The
-                  arena has interactive sliders/buttons and the pet's fixed
-                  overlay must never intercept those interactions. */}
-              {current !== 'duel-katak' && current !== 'tournament-match' && (
-                <FloatingPet onHungryClick={() => {
-                  setTokoInitialTab('pet_skin')
-                  navigate('toko')
-                }} />
-              )}
+              {/* FloatingPet removed — pet now lives in the dashboard stage only */}
               {/* Tournament match notification banner */}
               {tournamentBanner && (
                 <TournamentNotificationBanner

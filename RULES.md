@@ -65,24 +65,43 @@
 │   ├── AuthContext.jsx        # user session (guru/siswa), login/logout
 │   ├── PetContext.jsx         # pet state, feed, equip, revivePet()
 │   ├── TaskContext.jsx        # Tugas aktif, bab-lock, task guard
+│   ├── hooks/
+│   │   └── useLandscapeMobile.js  # Deteksi landscape mobile (width>height && 620≤w<1024)
 │   ├── components/
-│   │   ├── shared.jsx         # Komponen UI reusable (lihat §6)
-│   │   ├── AppShell.jsx       # Shell navigasi utama (header mobile + sidebar)
-│   │   ├── AppSwitcher.jsx    # Tab TOMAT / BLP / GURU — buka URL eksternal
-│   │   ├── IframeAppShell.jsx # Overlay pembuka app eksternal (web: iframe; APK: Capacitor Browser)
-│   │   ├── FloatingPet.jsx    # Widget pet mengambang
-│   │   ├── TaskGuard.jsx      # Paksa siswa selesaikan tugas aktif
-│   │   ├── TaskOverlay.jsx    # Overlay saat tugas sedang berlangsung
-│   │   ├── TomiSprite.jsx     # Sprite pet Tomi
-│   │   ├── KelinsaySprite.jsx # Sprite pet Kelinsay
-│   │   ├── MonyangSprite.jsx  # Sprite pet Monyang
-│   │   ├── NananagaSprite.jsx # Sprite pet Nananaga (sheet khusus)
-│   │   ├── KomodihSprite.jsx  # Sprite pet KomoDIH (sheet khusus)
-│   │   └── WhatsNewModal.jsx  # Modal "What's New" (ditampilkan sekali per versi)
-│   ├── screens/               # Layar-layar utama aplikasi
+│   │   ├── shared.jsx                  # Komponen UI reusable (lihat §6)
+│   │   ├── AppShell.jsx                # Shell navigasi utama (header mobile + sidebar)
+│   │   ├── AppSwitcher.jsx             # Tab TOMAT / BLP / GURU — buka URL eksternal
+│   │   ├── IframeAppShell.jsx          # Overlay pembuka app eksternal (web: iframe; APK: Capacitor Browser)
+│   │   ├── MobileLandscapeDashboard.jsx# ZonaDashboard siswa 3-kolom (lihat §20)
+│   │   ├── FloatingPet.jsx             # Widget pet mengambang (TIDAK dirender, hanya import tetap ada)
+│   │   ├── SeasonalEventBanner.jsx     # Banner event musiman — ditampilkan di ZonaDashboard
+│   │   ├── TaskGuard.jsx               # Paksa siswa selesaikan tugas aktif
+│   │   ├── TaskOverlay.jsx             # Overlay saat tugas sedang berlangsung
+│   │   ├── TomiSprite.jsx              # Sprite pet Tomi
+│   │   ├── KelinsaySprite.jsx          # Sprite pet Kelinsay
+│   │   ├── MonyangSprite.jsx           # Sprite pet Monyang
+│   │   ├── NananagaSprite.jsx          # Sprite pet Nananaga (sheet khusus)
+│   │   ├── KomodihSprite.jsx           # Sprite pet KomoDIH (sheet khusus)
+│   │   └── WhatsNewModal.jsx           # Modal "What's New" (ditampilkan sekali per versi)
+│   ├── screens/
+│   │   ├── landscape/         # Layar landscape siswa (semua file baru, lihat §20)
+│   │   │   ├── LandscapeArena.jsx
+│   │   │   ├── LandscapeNilaiTugas.jsx
+│   │   │   ├── LandscapeLeaderboard.jsx
+│   │   │   ├── LandscapeZonaMap.jsx
+│   │   │   ├── LandscapeZonaIPA.jsx
+│   │   │   ├── LandscapeLencana.jsx
+│   │   │   ├── LandscapeProfil.jsx
+│   │   │   ├── LandscapeChat.jsx
+│   │   │   ├── LandscapeHafalan.jsx
+│   │   │   ├── LandscapeLatihanUjian.jsx
+│   │   │   └── LandscapeTokoScreen.jsx
+│   │   └── ...                # Layar-layar utama lainnya
 │   └── minigames/             # Semua file game (lihat §7)
 │
-├── public/                    # Aset statis (sprite sheet, banner, dll)
+├── public/
+│   ├── wallpaper-dashboard.png  # Wallpaper Negeri Tomat (fantasy RPG) — background ZonaDashboard
+│   └── ...                      # Sprite sheet, banner, aset statis lainnya
 ├── artifacts/mockup-sandbox/  # Sandbox desain (Vite terpisah, BUKAN bagian app utama)
 └── RULES.md                   # ← File ini
 ```
@@ -162,6 +181,14 @@
 - Untuk pindah layar: `push('NamaScreen', propsOpsional)`.
 - Untuk kembali: `pop()` atau `goBack` prop yang diteruskan ke setiap screen.
 - Setiap screen baru harus didaftarkan di switch/map di `App.jsx`.
+- Route `arena` terdaftar dan menampilkan `LandscapeArena.jsx` (4 mode: Duel, Turnamen, Boss Raid, MOBA).
+
+### Landscape Router (Siswa)
+- Di `renderScreen()` dalam `App.jsx`, terdapat **landscape router block** yang dieksekusi sebelum routing utama.
+- Jika `isLandscapeMobile && !guruMode && user?.role === 'siswa'` dan screen aktif ada di `landscapeMap`, tampilkan versi landscape screen tersebut.
+- `landscapeMap` memetakan 11 route ke komponen `src/screens/landscape/Landscape*.jsx`.
+- **Game routes (`GAME_ROUTES`)** di-bypass landscape router — dihandle lebih awal sebelum blok landscape.
+- `isLandscapeMobile` berasal dari hook `useLandscapeMobile` (`width > height && width ≥ 620 && width < 1024`).
 
 ### Context — Hierarki & Tanggung Jawab
 | Context | Tanggung Jawab | Jangan Duplikat |
@@ -293,7 +320,7 @@ Setelah membuat file game, daftarkan di:
 - **KomoDIH:** pet dasar mandiri kategori langka dengan ID `pet_komodih`; memakai hunger key `komodih`, memberi `+15% EXP` dan `+10% durasi makanan`, tanpa bonus koin atau immunity.
 - Kemampuan pet hanya boleh memengaruhi reward yang sudah ditentukan sistem (misalnya multiplier EXP atau durasi makanan); pet tidak boleh memberi jawaban atau mengubah skor akademik secara langsung.
 - **Nananaga immunity:** Tidak diimplementasikan di file game — ditangani oleh `useSurvival` via CustomEvent `'nananaga-shield'`.
-- `FloatingPet` tidak boleh dirender selama route `duel-katak` atau `tournament-match`; pet tidak boleh menangkap pointer event di area jawaban siswa.
+- `FloatingPet` **TIDAK dirender di manapun** — dihapus dari `App.jsx`. Pet hanya hidup di dalam ZonaDashboard (`MobileLandscapeDashboard`). Jangan kembalikan render `FloatingPet` ke `App.jsx` tanpa konfirmasi eksplisit.
 
 ---
 
@@ -337,20 +364,23 @@ Setelah membuat file game, daftarkan di:
 ### Modul yang Ada — Cek Sebelum Membuat Ulang
 | Fitur | File Utama | Catatan |
 |-------|-----------|---------|
+| Dashboard Siswa (ZonaDashboard) | `src/components/MobileLandscapeDashboard.jsx` | Layout 3-kolom universal (semua device). Lihat §20 |
 | Tugas / Assignment | `server/guru.js`, `server/siswa.js`, `TaskContext.jsx` | |
 | Nilai / Scoring | `server/player.js`, `TaskResultScreen.jsx` | |
-| Toko | `server/toko.js`, `ShopScreen.jsx` | |
-| Pet | `server/pet.js`, `PetContext.jsx`, `FloatingPet.jsx` | |
+| Toko | `server/toko.js`, `ShopScreen.jsx`, `LandscapeTokoScreen.jsx` | |
+| Pet | `server/pet.js`, `PetContext.jsx` | `FloatingPet.jsx` ada tapi tidak dirender |
+| Arena (hub) | `src/screens/landscape/LandscapeArena.jsx` | 4 mode: Duel, Turnamen, Boss Raid, MOBA |
 | Duel | `server/multiplayer.js`, `DuelKatakScreen.jsx`, `LobbyScreen.jsx` | |
 | Boss Raid | `server/boss-state.js`, `BossRaidScreen.jsx` | |
 | Turnamen | `server/tournament-*.js`, `TournamentMatchScreen.jsx` | |
-| Leaderboard | `server/papan-peringkat.js`, `LeaderboardScreen.jsx` | |
-| Chat/Forum (siswa) | `server/komunikasi.js`, `CommunicationScreen.jsx` | **Hanya siswa & sisi siswa.** Guru tidak punya tab Chat di TOMAT — guru balas dari GuruEOB5 |
+| Leaderboard | `server/papan-peringkat.js`, `LeaderboardScreen.jsx`, `LandscapeLeaderboard.jsx` | |
+| Chat/Forum (siswa) | `server/komunikasi.js`, `CommunicationScreen.jsx`, `LandscapeChat.jsx` | **Hanya siswa & sisi siswa.** Guru tidak punya tab Chat di TOMAT — guru balas dari GuruEOB5 |
 | Notifikasi | `server/notifications.js`, `AppNotificationBell` di `shared.jsx` | Mendukung field `source`: `'tomat'` atau `'blp'` — tampil sebagai pill badge di bell |
-| Hafalan | `server/hafalan-*.js`, `HafalanScreen.jsx` | |
+| Hafalan | `server/hafalan-*.js`, `HafalanScreen.jsx`, `LandscapeHafalan.jsx` | |
+| Latihan Ujian | `src/screens/LatihanUjianScreen.jsx`, `LandscapeLatihanUjian.jsx` | Soal di `src/data/soalUjian.js` (ekspor `PAKET_UJIAN`) |
 | Event Misi | `server/event-missions*.js` | |
-| Badges | `server/lencana.js`, `BadgesScreen.jsx` | |
-| Profil | `server/auth.js`, `ProfileScreen.jsx` | |
+| Badges | `server/lencana.js`, `BadgesScreen.jsx`, `LandscapeLencana.jsx` | |
+| Profil | `server/auth.js`, `ProfileScreen.jsx`, `LandscapeProfil.jsx` | |
 | What's New Modal | `WhatsNewModal.jsx`, `src/version.js` | |
 
 ---
@@ -517,4 +547,65 @@ GURU dan TOMAT menggunakan **satu Neon database yang sama**. Tabel yang di-manag
 
 ---
 
-*Terakhir diperbarui: 6 Agustus 2026 — §17 & §18 ditulis ulang: BLP Harian dan GURU/EOB5 kini aplikasi terpisah (tidak lagi embedded di TOMAT). Tidak ada lagi `server/blp/`, `server/eob5/`, `src/screens/blp/`, `src/screens/eob5/`. Akses via AppSwitcher → IframeAppShell → Capacitor Browser (APK) atau iframe/window.open (web). §19 diperbarui: dokumentasi IframeAppShell + aturan import statis `@capacitor/browser`. §2 diperbarui: tambah `AppSwitcher.jsx` dan `IframeAppShell.jsx` ke daftar komponen. Update file ini setiap kali ada perubahan arsitektur signifikan.*
+---
+
+## 20. ZonaDashboard — Beranda Siswa Baru
+
+> `src/components/MobileLandscapeDashboard.jsx` adalah **beranda universal** siswa TOMAT. File ini menggantikan desain lama dan berlaku untuk **semua device** (desktop, mobile landscape, portrait).
+
+### Layout
+```
+┌──────────────────────── ZONA ATAS (header bar) ───────────────────────────┐
+│  Avatar + Nama │    XP Bar (flex-grow)    │  Koin  🔔  ⚙️              │
+├──────────────────┬─────────────────────────┬──────────────────────────────┤
+│  ZONA KIRI       │     ZONA TENGAH          │  ZONA KANAN                  │
+│  - Event Banner  │  - Sapaan               │  - ➕ Zona Matematika        │
+│  - Tugas Aktif   │  - Pet (PetSVG)         │  - 🧪 Zona IPA              │
+│  - Quick Links   │  - Hunger bar           │  - ⚔️ Arena Tanding (LIVE)  │
+│                  │  - Feed / Shop btn      │                               │
+│                  │  ─────────────────────  │                               │
+│                  │  Chat preview + nav bar  │                               │
+└──────────────────┴─────────────────────────┴──────────────────────────────┘
+```
+
+### Aturan Penting
+- **`HomeScreen.jsx`** tidak lagi mengecek `isDesktop` untuk siswa — kondisinya hanya `!guruMode && user?.role === 'siswa'`. Seluruh siswa langsung mendapat `MobileLandscapeDashboard`.
+- **Background:** `public/wallpaper-dashboard.png` — `center 72% / cover` + dark gradient wash. Jangan ganti nilai `72%` tanpa cek visual; nilai ini mengekspos cobblestone plaza di bawah pet.
+- **Pet:** dirender via `<PetSVG size={110} />` di dalam dashboard. `FloatingPet` tidak dirender.
+- **SeasonalEventBanner:** dirender di zona kiri, di atas task card. Prop: `onOpenEventShop`.
+- **Arena button:** selalu `navigate('arena')` — tidak perlu cek `canUseDemoMoba` lagi.
+- **Zona Kanan (3 pintu):** grade zone ditentukan dari `user.kelas` (parse angka 7/8/9) → ID zone `grade7/8/9` dan `ipa7/8/9`.
+- **Responsive:**
+  - Desktop (≥1024px): kolom lebih lebar (200px kiri/kanan).
+  - Landscape compact (height < 430px): sapaan dan beberapa elemen disembunyikan.
+  - Portrait mobile: stack vertikal; bottom nav bar fixed di bawah.
+
+### Context & Data yang Dipakai
+| Prop | Sumber |
+|------|--------|
+| `player.coins`, `player.level`, `player.exp` | `PlayerContext` via `HomeScreen` |
+| `pet.skin`, `pet.hunger`, `pet.isDead` | `PetContext` via `HomeScreen` |
+| `nextTask` | `TaskContext` |
+| `pendingTaskCount` | `TaskContext` |
+| `user` | `AuthContext` |
+
+### Landscape Screens (src/screens/landscape/)
+Ke-11 screen landscape hanya dipakai saat `isLandscapeMobile = true` (hook `useLandscapeMobile`). Di desktop, route normal (non-landscape) digunakan.
+
+| Route | Komponen Landscape |
+|-------|--------------------|
+| `grades` | `LandscapeNilaiTugas.jsx` |
+| `papanperingkat` | `LandscapeLeaderboard.jsx` |
+| `arena` | `LandscapeArena.jsx` |
+| `grade7/8/9` | `LandscapeZonaMap.jsx` |
+| `ipa7/8/9` | `LandscapeZonaIPA.jsx` |
+| `lencana` | `LandscapeLencana.jsx` |
+| `profile` | `LandscapeProfil.jsx` |
+| `komunikasi` | `LandscapeChat.jsx` |
+| `hafalan` | `LandscapeHafalan.jsx` |
+| `latihan-ujian` | `LandscapeLatihanUjian.jsx` |
+| `toko` | `LandscapeTokoScreen.jsx` |
+
+---
+
+*Terakhir diperbarui: 9 Agustus 2026 — §20 ditambahkan: ZonaDashboard (beranda siswa 3-kolom universal). §5 diperbarui: landscape router + route `arena`. §9 diperbarui: FloatingPet dihapus dari render. §12 diperbarui: tabel fitur mencakup semua landscape screens. §2 diperbarui: struktur folder `src/hooks/`, `src/screens/landscape/`, `public/wallpaper-dashboard.png`, catatan FloatingPet. Update file ini setiap kali ada perubahan arsitektur signifikan.*

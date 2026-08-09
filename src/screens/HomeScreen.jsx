@@ -203,7 +203,8 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
     { id: 'lencana', icon: '🏅', label: 'Lencana', sub: 'Koleksimu', accent: '#FB923C' },
   ]
 
-  if (!isDesktop && !guruMode && user?.role === 'siswa') {
+  // New universal dashboard — shown on ALL devices for siswa (desktop + mobile landscape + portrait)
+  if (!guruMode && user?.role === 'siswa') {
     return (
       <MobileLandscapeDashboard
         user={user}
@@ -217,6 +218,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
         canUseDemoMoba={canUseDemoMoba}
         navigate={navigate}
         openPetShop={openPetShop}
+        openEventShop={openEventShop}
       />
     )
   }
