@@ -24,6 +24,10 @@ export function publicQuestion(question) {
     prompt: question.prompt,
     options: Array.isArray(question.options) ? [...question.options] : [],
     difficulty: question.difficulty,
+    // gameKey is safe to expose — it identifies the mini-game type only,
+    // not the correct answer.
+    gameKey: question.gameKey || null,
+    gameLabel: question.gameLabel || null,
   }
   // Deliberately build a whitelist: answer/correctAnswer never cross this
   // boundary, even if a future generator adds both fields.
@@ -122,6 +126,8 @@ export function createCurriculumQuestionGenerator(gameKeys = []) {
       prompt: question.text || question.prompt || gameKey,
       options,
       answer: String(correct),
+      gameKey,                          // propagated to publicQuestion
+      gameLabel: tournamentQ.gameLabel, // human-readable name from generator
     }
   }
 }

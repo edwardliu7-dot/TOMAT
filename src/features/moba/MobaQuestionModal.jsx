@@ -1,5 +1,58 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Clock3, LoaderCircle, Shield, Sparkles, X } from 'lucide-react'
+import { Check, Clock3, LoaderCircle, Shield, X } from 'lucide-react'
+
+// ── Game identity map (mirroring App.jsx GAME_MAP but as plain static data) ──
+// Used to give each question a themed look without importing heavy components.
+const GAME_INFO = {
+  // Grade 7
+  katak:         { label: 'Katak Pelompat',              emoji: '🐸', color: '#22c55e' },
+  termometer:    { label: 'Termometer Ajaib',            emoji: '🌡️', color: '#f97316' },
+  pabrikrobot:   { label: 'Pabrik Robot',                emoji: '🤖', color: '#6366f1' },
+  gembok:        { label: 'Gembok Roda Gigi',            emoji: '🔒', color: '#eab308' },
+  mercusuar:     { label: 'Sinyal Mercusuar',            emoji: '🏮', color: '#f59e0b' },
+  sporajamur:    { label: 'Spora Jamur',                 emoji: '🍄', color: '#84cc16' },
+  scanner:       { label: 'Scanner Batu Permata',        emoji: '💎', color: '#06b6d4' },
+  // Grade 8 BAB I – Bilangan Berpangkat
+  g8selramuan:   { label: 'Penggandaan Sel Ramuan',      emoji: '🧪', color: '#a855f7' },
+  g8racunminiatur:{ label: 'Ekstraksi Racun Miniatur',   emoji: '☠️', color: '#ef4444' },
+  g8kristal:     { label: 'Pemisahan Elemen Kristal',    emoji: '💎', color: '#06b6d4' },
+  g8fusienergi:  { label: 'Fusi Energi Alkemis',         emoji: '⚗️', color: '#f59e0b' },
+  g8mantraakar:  { label: 'Penyederhanaan Mantra Akar',  emoji: '✨', color: '#a78bfa' },
+  g8geolog:      { label: 'Ekspedisi Geolog Kerajaan',   emoji: '⛏️', color: '#78716c' },
+  // Grade 8 BAB II – Teorema Pythagoras
+  g8trebuchet:   { label: 'Bidikan Tepat Trebuchet',     emoji: '⚔️', color: '#dc2626' },
+  g8perisai:     { label: 'Restorasi Perisai Kerajaan',  emoji: '🛡️', color: '#2563eb' },
+  g8hartakarun:  { label: 'Harta Karun di Sudut Ruangan',emoji: '💰', color: '#d97706' },
+  g8inspeksisudut:{ label: 'Inspeksi Sudut Menara',      emoji: '🗼', color: '#64748b' },
+  g8petaradar:   { label: 'Peta Radar Pengintai',        emoji: '📡', color: '#0ea5e9' },
+  g8taligantung: { label: 'Misi Penyelamatan Tali Gantung',emoji: '🪢', color: '#65a30d' },
+  // Grade 8 BAB III – Persamaan Linear
+  g8gerbanglogika:{ label: 'Teka-Teki Gerbang Logika',  emoji: '🚪', color: '#7c3aed' },
+  g8katrol:      { label: 'Katrol Penyeimbang Jembatan', emoji: '⚙️', color: '#475569' },
+  g8gulungan:    { label: 'Penerjemah Gulungan Kuno',    emoji: '📜', color: '#92400e' },
+  g8keretakuda:  { label: 'Kapasitas Kereta Kuda',       emoji: '🐴', color: '#854d0e' },
+  // Grade 9 BAB I – SPLDV
+  g9manifest:    { label: 'Manifest Kargo Alien',        emoji: '📦', color: '#4f46e5' },
+  g9plotrute:    { label: 'Plotting Rute Grafik',        emoji: '🗺️', color: '#16a34a' },
+  g9interseksi:  { label: 'Interseksi Radar Sinyal',     emoji: '📡', color: '#0891b2' },
+  g9konsol:      { label: 'Dekripsi Konsol Komputer',    emoji: '💻', color: '#6d28d9' },
+  g9pasargalaksi:{ label: 'Barter Di Pasar Galaksi',    emoji: '👽', color: '#15803d' },
+  // Grade 9 BAB II – Lingkaran
+  g9kalibrasirada:{ label: 'Kalibrasi Jangkauan Radar', emoji: '🎯', color: '#b91c1c' },
+  g9orbit:       { label: 'Kalkulasi Orbit Satelit',     emoji: '🛰️', color: '#1d4ed8' },
+  g9shieldgaya:  { label: 'Medan Gaya Shield Pelindung', emoji: '🛡️', color: '#0f766e' },
+  g9laserjuring: { label: 'Tembakan Laser Sektor',       emoji: '⚡', color: '#ca8a04' },
+  g9asteroid:    { label: 'Jalur Pintas Sabuk Asteroid', emoji: '☄️', color: '#9333ea' },
+  // Grade 9 BAB III – Bangun Ruang
+  g9boksbaterai: { label: 'Optimalisasi Boks Baterai',   emoji: '🔋', color: '#16a34a' },
+  g9refraktor:   { label: 'Refraktor Kristal Energi',    emoji: '💎', color: '#0284c7' },
+}
+
+const DEFAULT_GAME_INFO = { label: 'Soal Arena', emoji: '🎮', color: '#6366f1' }
+
+function getGameInfo(gameKey) {
+  return (gameKey && GAME_INFO[gameKey]) || DEFAULT_GAME_INFO
+}
 
 function formatQuestionTime(remainingMs) {
   const seconds = Math.max(0, Math.ceil(remainingMs / 1000))
@@ -16,6 +69,7 @@ export default function MobaQuestionModal({
   const [selectedAnswer, setSelectedAnswer] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const question = questionState?.question
+  const gameInfo = getGameInfo(question?.gameKey)
 
   useEffect(() => {
     setSelectedAnswer('')
@@ -60,6 +114,10 @@ export default function MobaQuestionModal({
 
   if (!questionState || !question) return null
 
+  const accentColor = gameInfo.color
+  const pct = Math.min(1, remainingMs / (questionState.expiresAt - (sync?.serverNow ?? estimatedServerNow - remainingMs)))
+  const timerUrgent = remainingMs <= 5000
+
   return (
     <div className="moba12-modal-layer" role="presentation">
       <section
@@ -67,18 +125,36 @@ export default function MobaQuestionModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="moba12-question-title"
+        style={{ '--moba-accent': accentColor }}
       >
-        <div className="moba12-modal-kicker">
-          <span><Sparkles size={14} /> Node {question.difficulty || 'soal'}</span>
-          <span className={`moba12-question-timer ${remainingMs <= 5000 ? 'is-urgent' : ''}`}>
-            <Clock3 size={14} /> {isExpired ? 'Waktu habis' : formatQuestionTime(remainingMs)}
-          </span>
+        {/* ── Game identity header ─────────────────────────────────────── */}
+        <div className="moba12-game-header">
+          <div className="moba12-game-badge" style={{ background: accentColor + '22', borderColor: accentColor + '55' }}>
+            <span className="moba12-game-emoji">{gameInfo.emoji}</span>
+            <span className="moba12-game-label" style={{ color: accentColor }}>{question.gameLabel || gameInfo.label}</span>
+          </div>
+          <div className={`moba12-question-timer ${timerUrgent ? 'is-urgent' : ''}`}>
+            <Clock3 size={13} />
+            {isExpired ? 'Waktu habis' : formatQuestionTime(remainingMs)}
+          </div>
         </div>
-        <h2 id="moba12-question-title">{question.prompt}</h2>
-        <p className="moba12-modal-help">
-          Jawab sebelum waktu habis. Hasil dan hadiah ditentukan server.
-        </p>
 
+        {/* ── Timer bar ────────────────────────────────────────────────── */}
+        <div className="moba12-timer-track">
+          <div
+            className="moba12-timer-fill"
+            style={{
+              width: `${Math.max(0, pct * 100)}%`,
+              background: timerUrgent ? '#ef4444' : accentColor,
+              transition: 'width 0.25s linear, background 0.5s',
+            }}
+          />
+        </div>
+
+        {/* ── Question prompt ──────────────────────────────────────────── */}
+        <h2 id="moba12-question-title" className="moba12-prompt">{question.prompt}</h2>
+
+        {/* ── Answer options ───────────────────────────────────────────── */}
         <form onSubmit={submit}>
           {options.length ? (
             <div className="moba12-answer-options">
@@ -92,8 +168,15 @@ export default function MobaQuestionModal({
                     key={`${value}-${index}`}
                     onClick={() => setSelectedAnswer(value)}
                     disabled={isDisabled}
+                    style={isSelected ? {
+                      background: accentColor + '22',
+                      borderColor: accentColor,
+                      color: accentColor,
+                    } : undefined}
                   >
-                    <span>{String.fromCharCode(65 + index)}</span>
+                    <span className="moba12-option-letter"
+                      style={isSelected ? { background: accentColor, color: '#fff' } : undefined}
+                    >{String.fromCharCode(65 + index)}</span>
                     {value}
                   </button>
                 )
@@ -109,15 +192,18 @@ export default function MobaQuestionModal({
               autoFocus
             />
           )}
+
           <button
             className="moba12-submit-answer"
             type="submit"
             disabled={isDisabled || selectedAnswer === ''}
+            style={{ background: accentColor }}
           >
             {submitting ? <LoaderCircle size={17} className="moba11-spin" /> : <Check size={17} />}
             {submitting ? 'Memeriksa…' : isExpired ? 'Waktu habis' : 'Kirim jawaban'}
           </button>
         </form>
+
         <div className="moba12-modal-note">
           <Shield size={13} /> Jawaban benar tidak dikirim ke lawan.
         </div>

@@ -363,6 +363,22 @@ export function createMobaSocketAdapter({
     return manager.listMatches().find(item => item.id === matchId) || null
   }
 
+  /**
+   * Maps each tournament game key to the BAB (chapter) it belongs to.
+   * Used to filter keys when a guru has locked a bab for the class grade.
+   */
+  const GAME_KEY_TO_BAB = {
+    // Grade 7
+    katak: 'BAB I', termometer: 'BAB I', pabrikrobot: 'BAB I', scanner: 'BAB I',
+    gembok: 'BAB II', mercusuar: 'BAB II',
+    sporajamur: 'BAB III',
+    // Grade 8
+    g8selramuan: 'BAB I', g8racunminiatur: 'BAB I', g8kristal: 'BAB I',
+    g8fusienergi: 'BAB I', g8mantraakar: 'BAB I', g8geolog: 'BAB I',
+    g8trebuchet: 'BAB II', g8perisai: 'BAB II', g8hartakarun: 'BAB II',
+    g8inspeksisudut: 'BAB II', g8petaradar: 'BAB II', g8taligantung: 'BAB II',
+  }
+
   /** Maps a grade number to the tournament game keys appropriate for that grade. */
   function getGameKeysForGrade(grade) {
     const g8Keys = SUPPORTED_TOURNAMENT_GAMES.filter(k => k.startsWith('g8'))
@@ -397,9 +413,33 @@ export function createMobaSocketAdapter({
     }
 
     // ── 2. Build curriculum question generator for the lowest grade ───────────
+    //      Filter out game keys whose BAB is locked for that grade.
     let questionGeneratorOverride = null
     try {
-      const gameKeys = getGameKeysForGrade(lowestGrade)
+      let gameKeys = getGameKeysForGrade(lowestGrade)
+
+      // Query locked babs so we can exclude their game keys
+      if (pool && gameKeys.length > 0) {
+        try {
+          const { rows: lockRows } = await pool.query(
+            'SELECT bab FROM bab_locks WHERE grade = $1 AND locked = true',
+            [lowestGrade],
+          )
+          if (lockRows.length > 0) {
+            const lockedBabs = new Set(lockRows.map(r => r.bab))
+            const filtered = gameKeys.filter(k => {
+              const bab = GAME_KEY_TO_BAB[k]
+              return !bab || !lockedBabs.has(bab)
+            })
+            // Only apply filter when at least one key survives (safety fallback)
+            if (filtered.length > 0) gameKeys = filtered
+            console.log(`[moba] grade ${lowestGrade} locked babs: [${[...lockedBabs].join(', ')}] → ${gameKeys.length} keys`)
+          }
+        } catch (lockErr) {
+          console.error('[moba] bab-lock query error:', lockErr.message)
+        }
+      }
+
       if (gameKeys.length > 0) {
         questionGeneratorOverride = createCurriculumQuestionGenerator(gameKeys)
       }
