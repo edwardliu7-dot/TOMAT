@@ -55,3 +55,4 @@
 - [TOMAT MOBA rollout gate](tomat-moba-rollout-gate.md) — akses demo dikendalikan MOBA_ENABLED + MOBA_ALLOWED_STUDENT_IDS; perubahan environment baru berlaku setelah workflow server direstart.
 - [TOMAT MOBA tile grid](tomat-moba-tile-grid.md) — dunia 8.000×8.000 memakai 32 unit/tile, menghasilkan grid 250×250; movement tetap kontinu dan authoritative.
 - [Personal AI Development Studio](personal-ai-development-studio.md) — rancangan alat coding pribadi lokal dengan GitHub, AI Gateway multi-provider, Build/Design Mode, preview, secret terenkripsi, dan checkpoint.
+- [TOMAT landscape router](tomat-landscape-router.md) — central landscape router di App.jsx + 11 komponen di src/screens/landscape/; hook useLandscapeMobile di src/hooks/; konteks dari src/AuthContext|TaskContext|PlayerContext (player.coins, bukan CoinContext); soal ujian di src/data/soalUjian.js (bukan latihanUjian).

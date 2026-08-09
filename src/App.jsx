@@ -48,6 +48,18 @@ import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
 import { startBgm, stopBgm } from './bgm'
+import { useLandscapeMobile } from './hooks/useLandscapeMobile'
+import LandscapeArena from './screens/landscape/LandscapeArena'
+import LandscapeNilaiTugas from './screens/landscape/LandscapeNilaiTugas'
+import LandscapeLeaderboard from './screens/landscape/LandscapeLeaderboard'
+import LandscapeZonaMap from './screens/landscape/LandscapeZonaMap'
+import LandscapeZonaIPA from './screens/landscape/LandscapeZonaIPA'
+import LandscapeLencana from './screens/landscape/LandscapeLencana'
+import LandscapeProfil from './screens/landscape/LandscapeProfil'
+import LandscapeChat from './screens/landscape/LandscapeChat'
+import LandscapeHafalan from './screens/landscape/LandscapeHafalan'
+import LandscapeLatihanUjian from './screens/landscape/LandscapeLatihanUjian'
+import LandscapeTokoScreen from './screens/landscape/LandscapeTokoScreen'
 import {
   requestNotificationPermission,
   createNotificationChannels,
@@ -548,6 +560,7 @@ const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grad
 
 const SCREEN_TITLES = {
   home: 'Beranda',
+  arena: 'Arena Tanding',
   grade7: 'Zona Kelas 7',
   grade8: 'Zona Kelas 8',
   grade9: 'Zona Kelas 9',
@@ -617,6 +630,7 @@ function MissionBridge() {
 // teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const { user, logout, dailyBonus, dismissDailyBonus } = useAuth()
+  const isLandscapeMobile = useLandscapeMobile()
 
   // Set data-tema on <html> so GameThemeStyles can target structural elements only.
   // During Kemerdekaan event (Jul 15–Aug 31) tema_merahputih overrides the user's
@@ -919,6 +933,36 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
   // Render the current screen
   const renderScreen = () => {
+    // ── Landscape mobile override (non-guru siswa only) ───────────────────────
+    // When on a phone/tablet in landscape, swap standard screens for their
+    // optimised landscape variants. Games, duel/tournament, and immersive
+    // screens are intentionally excluded and fall through to the normal router.
+    if (isLandscapeMobile && !guruMode && user?.role === 'siswa') {
+      const landscapeMap = {
+        arena:         <LandscapeArena    navigate={navigate} goBack={goBack} canUseDemoMoba={canUseDemoMoba(user)} />,
+        grades:        <LandscapeNilaiTugas navigate={navigate} goBack={goBack} />,
+        papanperingkat:<LandscapeLeaderboard goBack={goBack} />,
+        grade7:        <LandscapeZonaMap navigate={navigate} goBack={goBack} grade={7} />,
+        grade8:        <LandscapeZonaMap navigate={navigate} goBack={goBack} grade={8} />,
+        grade9:        <LandscapeZonaMap navigate={navigate} goBack={goBack} grade={9} />,
+        ipa7:          <LandscapeZonaIPA navigate={navigate} goBack={goBack} />,
+        ipa8:          <LandscapeZonaIPA navigate={navigate} goBack={goBack} />,
+        ipa9:          <LandscapeZonaIPA navigate={navigate} goBack={goBack} />,
+        lencana:       <LandscapeLencana goBack={goBack} />,
+        profile:       <LandscapeProfil  navigate={navigate} goBack={goBack} />,
+        komunikasi:    <LandscapeChat    navigate={navigate} goBack={goBack} initialTarget={komunikasiTarget} />,
+        hafalan:       <LandscapeHafalan goBack={goBack} />,
+        'latihan-ujian':<LandscapeLatihanUjian goBack={goBack} />,
+        toko:          <LandscapeTokoScreen goBack={() => { setTokoInitialTab(null); goBack() }} />,
+      }
+      if (landscapeMap[current]) return landscapeMap[current]
+    }
+
+    // ── Arena screen (landscape entry point, also usable on desktop) ──────────
+    if (current === 'arena') {
+      return <LandscapeArena navigate={navigate} goBack={goBack} canUseDemoMoba={canUseDemoMoba(user)} />
+    }
+
     if (current === 'public-profile' && publicProfileData) {
       return (
         <PublicProfileScreen
