@@ -173,7 +173,7 @@ function MobaJoystick({ disabled, onMove }) {
   )
 }
 
-function MiniMap({ arena, players, nodes, selfId, onClose, compact = false, flip = false }) {
+function MiniMap({ arena, players, nodes, depositZones = [], selfId, onClose, compact = false, flip = false }) {
   return (
     <div className={`moba-jungle-map-pop${compact ? ' is-persistent' : ''}`}>
       <header>
@@ -207,6 +207,15 @@ function MiniMap({ arena, players, nodes, selfId, onClose, compact = false, flip
         </svg>
         <i className="moba-jungle-map-base moba-jungle-map-base--a" />
         <i className="moba-jungle-map-base moba-jungle-map-base--b" />
+        {/* Deposit zone markers on minimap */}
+        {depositZones.map(z => (
+          <i
+            key={`mm-dz-${z.id}`}
+            className={`moba-jungle-map-zone ${z.team === 'teamA' ? 'is-a' : 'is-b'}`}
+            style={toPosition(z, arena, flip)}
+            title={z.id}
+          />
+        ))}
         {nodes.map(node => (
           <i className="moba-jungle-map-node" key={node.id} style={toPosition(node.position, arena, flip)} />
         ))}
@@ -437,35 +446,50 @@ export default function MobaArena({
           <img className="moba-jungle-relic" style={{ left:'82%', top:'38%', animationDelay:'2.8s'   }} src="/moba-arena/FG_Crystal_Gold_1.png"    alt="" />
           <img className="moba-jungle-relic" style={{ left:'82%', top:'61%', animationDelay:'1.1s'   }} src="/moba-arena/FG_Treasure_Small_1.png"  alt="" />
 
-          {/* ── Deposit boxes (6 total: 3 per team)
-           * Positions converted from user Cartesian (origin bottom-left):
-           *   server_x = user_x,  server_y = 80000 − user_y
-           *
-           * Top lane  A-side turret : user (4000,68000)  → server (4000,12000)
-           * Top lane  B-side turret : user (12000,76000) → server (12000,4000)
-           * Mid lane  A-side turret : user (36000,36000) → server (36000,44000)
-           * Bottom lane A-side turret: user (68000,4000) → server (68000,76000)
-           * Bottom lane B-side turret: user (76000,12000)→ server (76000,68000)
-           * Mid lane  B-side turret : user (44000,44000) → server (44000,36000)
-           */}
-          {[
-            { id:'az-1',   team:'teamA', x:  4_000, y: 12_000 },
-            { id:'az-2',   team:'teamA', x: 12_000, y:  4_000 },
-            { id:'az-ctr', team:'teamA', x: 36_000, y: 44_000 },
-            { id:'bz-1',   team:'teamB', x: 68_000, y: 76_000 },
-            { id:'bz-2',   team:'teamB', x: 76_000, y: 68_000 },
-            { id:'bz-ctr', team:'teamB', x: 44_000, y: 36_000 },
-          ].map(z => {
-            const pts = match?.teams?.[z.team]?.score || 0
-            const cls = z.team === 'teamA' ? 'moba-deposit-box--a' : 'moba-deposit-box--b'
-            return (
-              <div key={z.id} className={`moba-deposit-box ${cls}`}
-                style={toPosition(z, arena, isFlipped)} title={z.id}>
-                <span className="moba-deposit-box__icon">📚</span>
-                <span className="moba-deposit-box__pts">{pts}</span>
-              </div>
-            )
-          })}
+          {/* ── Deposit zones — driven by match.config.depositZones from server ── */}
+          {(() => {
+            const zones = match?.config?.depositZones || []
+            const boxFills = match?.depositBoxes || []
+            const selfTeam = self?.teamId
+            const hasScrolls = Boolean(self?.scrolls?.length)
+            const boxCapacity = match?.config?.boxCapacity ?? 100
+
+            return zones.map(z => {
+              const boxState = boxFills.find(b => b.id === z.id)
+              const fill = boxState?.fill ?? 0
+              const completed = boxState?.completedBoxes ?? 0
+              const isMine = z.team === selfTeam
+              const teamCls = z.team === 'teamA' ? 'moba-deposit-box--a' : 'moba-deposit-box--b'
+              const mineCls = isMine ? 'moba-deposit-box--mine' : 'moba-deposit-box--enemy'
+              const pulseCls = isMine && hasScrolls ? 'moba-deposit-box--pulsing' : ''
+              const fillPct = Math.min(100, Math.round((fill / boxCapacity) * 100))
+
+              return (
+                <div
+                  key={z.id}
+                  className={`moba-deposit-box ${teamCls} ${mineCls} ${pulseCls}`}
+                  style={toPosition(z, arena, isFlipped)}
+                  title={isMine ? `Zona setormu — ${fill}/${boxCapacity}` : `Zona lawan (${z.team})`}
+                >
+                  {isMine && hasScrolls && (
+                    <span className="moba-deposit-box__arrow" aria-hidden="true">▼</span>
+                  )}
+                  <span className="moba-deposit-box__icon">{isMine ? '📦' : '🏛️'}</span>
+                  {isMine && (
+                    <>
+                      <div className="moba-deposit-box__bar" aria-hidden="true">
+                        <div className="moba-deposit-box__fill" style={{ width: `${fillPct}%` }} />
+                      </div>
+                      <span className="moba-deposit-box__pts">
+                        {fill}<span style={{ opacity: .55 }}>/{boxCapacity}</span>
+                        {completed > 0 && <span className="moba-deposit-box__done">×{completed}</span>}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )
+            })
+          })()}
 
           {/* ── Base libraries ─────────────────────────────────── */}
           {/* user A=(4000,4000) → server (4000,76000); user B=(76000,76000) → server (76000,4000) */}
@@ -555,12 +579,24 @@ export default function MobaArena({
         <div className="moba-jungle-hint" role="status" aria-live="polite">
           <Sparkles size={12} /> {self?.displayName || 'Pet'} bergerak mengikuti analog
         </div>
-        <MiniMap
-          compact flip={isFlipped}
-          arena={arena} players={players} nodes={nodes} selfId={selfId}
-          onClose={() => setMapOpen(true)}
-        />
-        {mapOpen && <MiniMap arena={arena} players={players} nodes={nodes} selfId={selfId} flip={isFlipped} onClose={() => setMapOpen(false)} />}
+        {(() => {
+          const depositZones = match?.config?.depositZones || []
+          return (
+            <>
+              <MiniMap
+                compact flip={isFlipped}
+                arena={arena} players={players} nodes={nodes} depositZones={depositZones} selfId={selfId}
+                onClose={() => setMapOpen(true)}
+              />
+              {mapOpen && (
+                <MiniMap
+                  arena={arena} players={players} nodes={nodes} depositZones={depositZones} selfId={selfId} flip={isFlipped}
+                  onClose={() => setMapOpen(false)}
+                />
+              )}
+            </>
+          )
+        })()}
       </div>
     </div>
   )

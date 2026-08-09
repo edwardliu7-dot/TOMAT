@@ -291,6 +291,7 @@ export function sanitizeMatchState(match) {
     wrongAnswerStunMs: match.config.wrongAnswerStunMs,
     baseScrollCapacity: match.config.baseScrollCapacity,
     monyangScrollCapacity: match.config.monyangScrollCapacity,
+    boxCapacity: match.config.boxCapacity,
     // Static zone positions exposed to client so it can compute auto-deposit proximity.
     depositZones: DEPOSIT_ZONES.filter(z => !z.isLibrary).map(z => ({
       id: z.id,
