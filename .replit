@@ -56,4 +56,3 @@ timeoutMs = 120000
 APP_DOWNLOAD_URL = ""
 MIN_APP_VERSION_CODE = "1"
 MOBA_ENABLED = "true"
-MOBA_ALLOWED_STUDENT_IDS = "tomat-demo,tomat-demo-2"

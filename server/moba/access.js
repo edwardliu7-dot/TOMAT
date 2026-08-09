@@ -7,7 +7,7 @@
 
 export function isMobaEnabled(env = process.env) {
   return !['0', 'false', 'off', 'no'].includes(
-    String(env.MOBA_ENABLED ?? 'false').trim().toLowerCase(),
+    String(env.MOBA_ENABLED ?? 'true').trim().toLowerCase(),
   )
 }
 
