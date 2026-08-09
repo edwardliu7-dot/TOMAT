@@ -42,7 +42,7 @@ export const EVENT_MISSIONS = [
     accent: '#E11D48',
     goal: 17,
     unit: 'jawaban benar',
-    rewardItemId: null,
+    rewardItemId: 'bingkai_kemerdekaan',
     requires: [],
   },
   {
@@ -54,7 +54,7 @@ export const EVENT_MISSIONS = [
     accent: '#E11D48',
     goal: 8,
     unit: 'kemenangan duel',
-    rewardItemId: null,
+    rewardItemId: 'spanduk_kemerdekaan',
     requires: [],
   },
   {

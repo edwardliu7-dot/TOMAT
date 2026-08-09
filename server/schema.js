@@ -332,6 +332,39 @@ export async function ensureSchema() {
 
   // Seed shop items (idempotent upsert so copy/pricing tweaks can ship via redeploy).
   const shopItems = [
+    ['bingkai_neon',   'bingkai', 'Neon Cyber',   500,  { image: '/bingkai-neon.png',   border: '#34D399', mixBlend: 'screen', spread: 0.25 }, 1],
+    ['bingkai_api',    'bingkai', 'Api Abadi',    800,  { image: '/bingkai-api.png',    border: '#F87171', mixBlend: 'screen', spread: 0.30 }, 2],
+    ['bingkai_es',     'bingkai', 'Ice Crystal',  1200, { image: '/bingkai-es.png',     border: '#67E8F9', mixBlend: 'screen', spread: 0.30 }, 3],
+    ['bingkai_sakura', 'bingkai', 'Sakura Petal', 950,  { image: '/bingkai-sakura.png', border: '#F9A8D4', mixBlend: 'screen', spread: 0.38 }, 4],
+    ['bingkai_emas', 'bingkai', 'Golden Halo', 2000, { image: '/bingkai-emas.png', border: '#EAB308', mixBlend: 'screen', spread: 0.32, glow: true }, 5],
+    ['bingkai_void', 'bingkai', 'Void King', 3000, { image: '/bingkai-void-king.png', border: '#A855F7', mixBlend: 'screen', spread: 0.30, glow: true }, 6],
+    ['bingkai_aurum_sovereign', 'bingkai', 'Aurum Sovereign', 12000, {
+      image: '/bingkai-aurum-sovereign.png', border: '#D4AF37', mixBlend: 'screen', spread: 0.30, glow: true, limited: true, edition: '01 / 25',
+      description: 'Warisan mahkota bagi penguasa rasio.', luxury: 'aurum'
+    }, 7],
+    ['bingkai_void_monarch', 'bingkai', 'Void Monarch', 18000, {
+      image: '/bingkai-void-monarch.png', border: '#6366F1', mixBlend: 'screen', spread: 0.30, glow: true, limited: true, edition: '03 / 13',
+      description: 'Akuisisi langka dari singgasana kehampaan.', luxury: 'void'
+    }, 8],
+    ['bingkai_petal_rose', 'bingkai', 'Petal Rose', 600, {
+      image: '/petal-rose.png', border: '#F9A8D4', style: 'solid',
+      description: 'Mahkota kelopak mawar yang lembut dan elegan.'
+    }, 9],
+    ['bingkai_garuda', 'bingkai', 'Garuda Agung', 4500, {
+      image: '/garuda.gif', border: '#F59E0B', style: 'solid', glow: true,
+      description: 'Bingkai animasi Garuda — simbol keagungan dan semangat juang.'
+    }, 10],
+    ['spanduk_galaksi', 'spanduk', 'Galaksi', 1000, { gradient: 'linear-gradient(90deg,#312e81,#581c87,#000)' }, 1],
+    ['spanduk_hutan', 'spanduk', 'Hutan Ajaib', 1200, { gradient: 'linear-gradient(90deg,#064e3b,#134e4a)' }, 2],
+    ['spanduk_retro', 'spanduk', 'Retro 8-bit', 2500, { gradient: 'linear-gradient(90deg,#374151,#111827)' }, 3],
+    ['spanduk_celestia_relic', 'spanduk', 'Celestia Relic', 22000, {
+      gradient: 'linear-gradient(115deg,#020617,#172554 48%,#e0f2fe)', limited: true, edition: '07 / 12',
+      description: 'Artefak kosmik untuk kolektor yang tak tersentuh.', luxury: 'celestia'
+    }, 4],
+    ['spanduk_royal_mathematician', 'spanduk', 'Royal Mathematician', 15000, {
+      gradient: 'linear-gradient(115deg,#17120c,#45351b 48%,#d4af37)', limited: true, edition: '02 / 20',
+      description: 'Dekrit mahaguru bagi penakluk anatomi angka.', luxury: 'royal'
+    }, 5],
     // Pet skins — purchasable once, stored in student_inventory
     ['pet_skin_silver', 'pet_skin', 'Silver Fluff',   800,  { tier: 'premium',   desc: 'Bulu perak berkilau. Menunjukkan siswa aktif dan rajin mengumpulkan koin.' }, 1],
     ['pet_skin_cosmic', 'pet_skin', 'Cosmic Fluff',  3500,  { tier: 'langka', desc: 'Bulu ungu-biru galaksi dengan bintang berkelip di rosette.' }, 2],
@@ -374,6 +407,18 @@ export async function ensureSchema() {
     ['tema_void',  'tema', 'Void',          8000, { accent: '#a855f7', gradient: 'linear-gradient(135deg,#000000,#0d0014)', swatches: ['#000000','#0d0014','#a855f7','#ec4899'], glow: true, limited: true, edition: 'LIMITED', description: 'Hitam pekat, aksen ungu neon, partikel void.' }, 5],
     // ── Seasonal event items ───────────────────────────────────────────────────
     // Kemerdekaan RI (July 15 – Aug 31)
+    ['bingkai_kemerdekaan', 'bingkai', 'Bingkai 17 Agustus', 0, {
+      image: '/hutri81.png', border: '#E11D48', mixBlend: 'screen', spread: 0.30, glow: true,
+      sparkle: 'merahputih', eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
+      description: 'Bingkai merah-putih semangat kemerdekaan Indonesia.',
+      missionOnly: true, missionId: 'kemerdekaan_1',
+    }, 50],
+    ['spanduk_kemerdekaan', 'spanduk', 'Spanduk 17 Agustus', 0, {
+      image: '/81spanduk.png', gradient: 'linear-gradient(90deg,#1a0009,#7f0018,#2d0004)',
+      eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
+      description: 'Spanduk merah membara semangat kemerdekaan Indonesia.',
+      missionOnly: true, missionId: 'kemerdekaan_2',
+    }, 51],
     ['pet_kelinsay_merahputih', 'pet_skin', 'Kelinsay Merah Putih', 0, {
       tier: 'langka', baseAnimal: 'kelinci', prerequisitePetId: 'pet_kelinsay',
       eventSlug: 'kemerdekaan', limited: true, edition: 'EVENT 2026',
@@ -400,14 +445,7 @@ export async function ensureSchema() {
       'tema_nusantara',
       'bingkai_halloween', 'tema_halloween', 'pet_kelinsay_labu',
       'bingkai_natal',     'tema_natal',     'pet_skin_natal',
-      'bingkai_neon', 'bingkai_api', 'bingkai_es', 'bingkai_sakura',
-      'bingkai_emas', 'bingkai_void', 'bingkai_aurum_sovereign',
-      'bingkai_void_monarch', 'bingkai_petal_rose', 'bingkai_garuda',
-      'bingkai_kemerdekaan', 'bingkai_ramadan',
-      'spanduk_galaksi', 'spanduk_hutan', 'spanduk_retro',
-      'spanduk_celestia_relic', 'spanduk_royal_mathematician',
-      'spanduk_kemerdekaan', 'spanduk_ramadan',
-      'pet_skin_ramadan'
+      'bingkai_ramadan',   'spanduk_ramadan','pet_skin_ramadan'
     )
   `)
 
