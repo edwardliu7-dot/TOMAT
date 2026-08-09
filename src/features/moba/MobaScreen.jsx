@@ -160,6 +160,29 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
     claimNode({ nodeId: node.id }).catch(() => {})
   }
 
+  // Auto-claim: when player walks onto a node, trigger claim without manual click.
+  // Uses a ref so rapid position updates don't fire duplicate requests.
+  const lastAutoClaimedRef = React.useRef(null)
+  const self = state.self
+  const arena = state.match?.config?.arena || {}
+  const interactionRadius = Number(state.match?.config?.nodeInteractionRadius) || 3000
+  React.useEffect(() => {
+    if (!canAct) return
+    const selfPos = self?.position
+    if (!selfPos) return
+    const nearby = nodes.find(node =>
+      node.status === 'available' &&
+      Math.hypot(
+        Number(node.position?.x) - Number(selfPos.x),
+        Number(node.position?.y) - Number(selfPos.y),
+      ) <= interactionRadius
+    )
+    if (!nearby) return
+    if (lastAutoClaimedRef.current === nearby.id) return   // already sent
+    lastAutoClaimedRef.current = nearby.id
+    claimNode({ nodeId: nearby.id }).catch(() => {})
+  }, [canAct, self?.position?.x, self?.position?.y, nodes, interactionRadius, claimNode])
+
   const handleAnswer = payload => answerQuestion(payload)
 
   const handleDeposit = scroll => {

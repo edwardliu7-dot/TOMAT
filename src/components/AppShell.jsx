@@ -296,16 +296,21 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
       {showNav && !isImmersiveStudentHome && (
         <nav className="appshell-bottom-nav">
           {[
-            ['home',          '🏠', 'Beranda'],
-            [zoneId,          '🗺️', 'Zona'],
-            ['toko',          '🛒', 'Toko'],
-            ['papanperingkat','🏆', 'Peringkat'],
-            ['profile',       '👤', 'Profil'],
+            ['home',          '🏠',        'Beranda'],
+            [zoneId,          '/arena.png', 'Zona'],
+            ['toko',          '/toko.png',  'Toko'],
+            ['papanperingkat','/rank.png',  'Peringkat'],
+            ['profile',       '👤',        'Profil'],
           ].map(([id, icon, label]) => {
             const active = (label === 'Zona' ? isZoneActive : id === currentScreen)
             return (
               <button type="button" key={label} className={active ? 'is-active' : ''} onClick={() => navigate(id)}>
-                <span>{icon}</span><small>{label}</small>
+                <span>
+                  {icon.startsWith('/')
+                    ? <img src={icon} alt="" style={{ width: 20, height: 20, objectFit: 'contain', display: 'block' }} />
+                    : icon}
+                </span>
+                <small>{label}</small>
               </button>
             )
           })}

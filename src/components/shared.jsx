@@ -968,7 +968,7 @@ export function AppNotificationBell({ onCommunicationClick }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        📣
+        <img src="/notif.png" alt="" style={{ width: 18, height: 18, objectFit: 'contain', display: 'block' }} />
         {appNotifications.unreadCount > 0 && (
           <span style={{
             position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18,

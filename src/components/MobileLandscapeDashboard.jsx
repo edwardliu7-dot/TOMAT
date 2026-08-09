@@ -101,15 +101,15 @@ export default function MobileLandscapeDashboard({
   const RIGHT_ZONES = [
     { id: mathZoneId, bg: 'linear-gradient(160deg,#4a3fa8,#3c3489)', shadow: 'rgba(60,52,137,0.45)', icon: '➕', title: 'Zona Matematika', sub: `Kelas ${gradeNum}`, textColor: '#eeedfe', subColor: '#cecbf6' },
     { id: ipaZoneId,  bg: 'linear-gradient(160deg,#0d6b55,#085041)', shadow: 'rgba(8,80,65,0.45)',   icon: '🧪', title: 'Zona IPA',        sub: `Kelas ${gradeNum}`, textColor: '#e1f5ee', subColor: '#9fe1cb' },
-    { id: 'arena',    bg: 'linear-gradient(160deg,#8c3518,#712b13)', shadow: 'rgba(113,43,19,0.5)', icon: '⚔️', title: 'Arena Tanding',  sub: 'Duel · Boss · MOBA', textColor: '#faece7', subColor: '#f5c4b3', badge: 'LIVE' },
+    { id: 'arena',    bg: 'linear-gradient(160deg,#8c3518,#712b13)', shadow: 'rgba(113,43,19,0.5)', icon: '/arena.png', title: 'Arena Tanding',  sub: 'Duel · Boss · MOBA', textColor: '#faece7', subColor: '#f5c4b3', badge: 'LIVE' },
   ]
 
   // Bottom nav items — Profil replaced by BLP
   const NAV_ITEMS = [
-    { icon: '🛒', label: 'Toko',    id: 'toko' },
-    { icon: '🏅', label: 'Lencana', id: 'lencana' },
-    { icon: '👑', label: 'Rank',    id: 'papanperingkat' },
-    { icon: '📚', label: 'BLP',     id: 'blp' },
+    { icon: '/toko.png',    label: 'Toko',    id: 'toko' },
+    { icon: '/lencana.png', label: 'Lencana', id: 'lencana' },
+    { icon: '/rank.png',    label: 'Rank',    id: 'papanperingkat' },
+    { icon: '/blp.png',     label: 'BLP',     id: 'blp' },
   ]
 
   return (
@@ -147,7 +147,9 @@ export default function MobileLandscapeDashboard({
         <div className="zd-top-right">
           <div className="zd-coin-pill">🪙 {formatNumber(player?.coins)}</div>
           <AppNotificationBell onCommunicationClick={() => navigate('komunikasi')} />
-          <div className="zd-icon-btn" onClick={() => navigate('grades')} title="Nilai">📊</div>
+          <div className="zd-icon-btn" onClick={() => navigate('grades')} title="Nilai">
+            <img src="/nilai.png" alt="Nilai" style={{ width: 16, height: 16, objectFit: 'contain', display: 'block' }} />
+          </div>
         </div>
       </header>
 
@@ -228,7 +230,17 @@ export default function MobileLandscapeDashboard({
                 style={{ cursor: pet?.isDead ? 'not-allowed' : 'pointer', userSelect:'none', WebkitUserSelect:'none' }}
                 title={pet?.isDead ? 'Pet mati' : 'Tap untuk happy, tahan untuk tidur 😴'}
               >
-                <PetSVG skinId={pet?.skin || 'golden'} state={pet?.isDead ? 'dead' : pet?.isStarving ? 'hungry' : petAction === 'happy' ? 'happy' : 'idle'} size={110} />
+                <PetSVG
+                  skinId={pet?.skin || 'golden'}
+                  state={
+                    pet?.isDead                           ? 'dead'
+                    : (pet?.isStarving || hungerPct < 30) ? 'hungry'
+                    : petAction === 'sleep'               ? 'sleeping'
+                    : petAction === 'happy'               ? 'happy'
+                    : 'idle'
+                  }
+                  size={110}
+                />
                 {petAction === 'sleep' && !pet?.isDead && (
                   <div className="zd-pet-zzz" aria-hidden>
                     <span style={{ animationDelay:'0s' }}>z</span>
@@ -271,7 +283,11 @@ export default function MobileLandscapeDashboard({
 
             {NAV_ITEMS.map(n => (
               <div key={n.id} className="zd-nav-item" onClick={() => handleNav(n.id)}>
-                <span className="zd-nav-icon">{n.icon}</span>
+                <span className="zd-nav-icon">
+                  {n.icon.startsWith('/')
+                    ? <img src={n.icon} alt="" style={{ width: 18, height: 18, objectFit: 'contain', display: 'block' }} />
+                    : n.icon}
+                </span>
                 <span className="zd-nav-label">{n.label}</span>
               </div>
             ))}
@@ -284,7 +300,11 @@ export default function MobileLandscapeDashboard({
             <div key={z.id} className="zd-door" style={{ background: z.bg, boxShadow: `0 3px 10px ${z.shadow}` }} onClick={() => navigate(z.id)}>
               {z.badge && <div className="zd-door-badge">{z.badge}</div>}
               <div className="zd-door-shimmer" />
-              <span className="zd-door-icon">{z.icon}</span>
+              <span className="zd-door-icon">
+                {typeof z.icon === 'string' && z.icon.startsWith('/')
+                  ? <img src={z.icon} alt="" style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }} />
+                  : z.icon}
+              </span>
               <div>
                 <div className="zd-door-title" style={{ color: z.textColor }}>{z.title}</div>
                 <div className="zd-door-sub" style={{ color: z.subColor }}>{z.sub}</div>

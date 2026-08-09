@@ -20,13 +20,13 @@ function getZoneKey(user) {
 }
 
 const SISWA_NAV = (zoneKey) => [
-  { key: 'home',          emoji: '🏠', label: 'Beranda' },
-  { key: zoneKey,         emoji: '🎮', label: 'Zona Belajar' },
-  { key: 'grades',        emoji: '📊', label: 'Nilai & Tugas' },
-  { key: 'papanperingkat',emoji: '🏆', label: 'Papan Peringkat' },
-  { key: 'toko',          emoji: '🛒', label: 'Toko' },
-  { key: 'lencana',       emoji: '🏅', label: 'Lencana' },
-  { key: 'komunikasi',    emoji: '💬', label: 'Chat' },
+  { key: 'home',          emoji: '🏠',          label: 'Beranda' },
+  { key: zoneKey,         emoji: '/arena.png',   label: 'Zona Belajar' },
+  { key: 'grades',        emoji: '/nilai.png',   label: 'Nilai & Tugas' },
+  { key: 'papanperingkat',emoji: '/rank.png',    label: 'Papan Peringkat' },
+  { key: 'toko',          emoji: '/toko.png',    label: 'Toko' },
+  { key: 'lencana',       emoji: '/lencana.png', label: 'Lencana' },
+  { key: 'komunikasi',    emoji: '💬',           label: 'Chat' },
 ]
 
 // Full nav for guru mapel terdaftar (jabatan=guru_mapel + has subjects entry)
@@ -74,7 +74,9 @@ function NavItem({ item, isActive, onClick }) {
         transition: 'background 0.15s, color 0.15s',
       }}
     >
-      <span style={{ fontSize: 16, lineHeight: 1 }}>{item.emoji}</span>
+      {item.emoji.startsWith('/')
+        ? <img src={item.emoji} alt="" style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }} />
+        : <span style={{ fontSize: 16, lineHeight: 1 }}>{item.emoji}</span>}
       <span>{item.label}</span>
     </button>
   )
