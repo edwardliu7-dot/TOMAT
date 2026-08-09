@@ -297,7 +297,7 @@ export default function MobaArena({
   const cameraStyle = {
     '--moba-camera-x': `${(50 - cameraTargetX) * 0.78}%`,
     '--moba-camera-y': `${(50 - cameraTargetY) * 0.78}%`,
-    '--moba-camera-zoom': 0.58,
+    '--moba-camera-zoom': 0.80,
   }
 
   return (
