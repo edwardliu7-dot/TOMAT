@@ -224,17 +224,16 @@ const styles = `
     position: absolute;
     inset: 0;
     z-index: -3;
-    background: url("/OIP_(1)_1786204149155.webp") center / cover no-repeat;
-    filter: saturate(.82) contrast(1.08);
-    transform: scale(1.08);
+    background: url("/wallpaper-dashboard.png") center 30% / cover no-repeat;
+    filter: saturate(1.05) contrast(1.06) brightness(0.88);
   }
   .landscape-world-wash {
     position: absolute;
     inset: 0;
     z-index: -2;
     background:
-      linear-gradient(90deg, rgba(11,35,48,.96) 0%, rgba(14,47,57,.80) 28%, rgba(19,68,73,.30) 63%, rgba(12,31,46,.78) 100%),
-      linear-gradient(0deg, rgba(8,28,40,.86), transparent 54%, rgba(13,39,56,.34));
+      linear-gradient(90deg, rgba(10,8,22,.95) 0%, rgba(18,12,36,.82) 26%, rgba(28,16,40,.28) 60%, rgba(14,10,30,.80) 100%),
+      linear-gradient(0deg, rgba(8,6,20,.92), transparent 52%, rgba(20,10,30,.30));
   }
   .landscape-world-grid {
     position: absolute;
