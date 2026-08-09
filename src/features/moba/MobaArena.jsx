@@ -274,24 +274,25 @@ export default function MobaArena({
     : Math.round((bounds.maxY - bounds.minY) / tileSize)
   const selfX = Number(self?.position?.x)
   const selfY = Number(self?.position?.y)
-  const selfXPercent = Number.isFinite(selfX)
+  const selfXRaw = Number.isFinite(selfX)
     ? Math.max(0, Math.min(100, ((selfX - bounds.minX) / (bounds.maxX - bounds.minX)) * 100))
     : 50
-  const selfYPercent = Number.isFinite(selfY)
+  const selfYRaw = Number.isFinite(selfY)
     ? Math.max(0, Math.min(100, ((selfY - bounds.minY) / (bounds.maxY - bounds.minY)) * 100))
     : 50
+  // Team B sees the world flipped 180°, so the camera must track the flipped position.
+  // Without this, Team B's camera chases the wrong corner of the world.
+  const selfXPercent = isFlipped ? 100 - selfXRaw : selfXRaw
+  const selfYPercent = isFlipped ? 100 - selfYRaw : selfYRaw
+
   // Keep a camera dead-zone so the Pet visibly travels through the arena
   // instead of being perfectly pinned to the center on every server update.
-  // Once it reaches the edge of the zone, the world follows it smoothly.
   const cameraTargetX = Math.max(35, Math.min(65, selfXPercent))
   const cameraTargetY = Math.max(35, Math.min(65, selfYPercent))
   const cameraStyle = {
     '--moba-camera-x': `${(50 - cameraTargetX) * 0.78}%`,
     '--moba-camera-y': `${(50 - cameraTargetY) * 0.78}%`,
-    // Keep the same visual asset scale as the previous arena. The world
-    // coordinate space is larger, but Pet, node, base, and tileset assets
-    // should not shrink just because the map gained more room.
-    '--moba-camera-zoom': 1.16,
+    '--moba-camera-zoom': 0.58,
   }
 
   return (
