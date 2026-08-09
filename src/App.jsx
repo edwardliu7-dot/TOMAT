@@ -1,6 +1,5 @@
 import React, { useState, useCallback, Component, Suspense, useEffect, useRef } from 'react'
 import { PetProvider } from './PetContext'
-import FloatingPet from './components/FloatingPet'
 import { PlayerProvider, usePlayer } from './PlayerContext'
 import { TaskProvider, useTask } from './TaskContext'
 import { BabLockProvider } from './BabLockContext'

@@ -318,20 +318,24 @@ const CSS = `
 
   /* ── Center col ── */
   .zd-col-center { display: flex; flex-direction: column; gap: 6px; min-height: 0; min-width: 0; }
-  .zd-pet-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 0; }
-  .zd-welcome { color: #8b8f9e; font-size: 9px; flex-shrink: 0; }
-  .zd-pet-stage { position: relative; flex-shrink: 0; }
-  .zd-pet-shadow {
-    position: absolute;
-    bottom: -6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 70px;
-    height: 12px;
-    background: radial-gradient(ellipse, rgba(240,153,123,0.28) 0%, transparent 70%);
-    border-radius: 50%;
+  .zd-pet-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 4px; gap: 4px; min-height: 0; }
+  .zd-welcome { color: #8b8f9e; font-size: 9px; flex-shrink: 0; margin-bottom: auto; margin-top: 4px; }
+  .zd-pet-stage {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
-  .zd-pet-sprite { animation: zd-float 3.5s ease-in-out infinite; filter: drop-shadow(0 8px 0 rgba(12,8,25,0.35)); }
+  .zd-pet-shadow {
+    width: 72px;
+    height: 10px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.38) 0%, transparent 70%);
+    border-radius: 50%;
+    margin-top: -4px; /* tucked under the pet's feet */
+    flex-shrink: 0;
+  }
+  .zd-pet-sprite { filter: drop-shadow(0 4px 4px rgba(12,8,25,0.28)); }
   .zd-pet-sprite.zd-pet-fed { animation: zd-fed .4s ease-out; }
   .zd-pet-name { color: #f2ede3; font-size: 11px; font-weight: 600; flex-shrink: 0; }
   .zd-hunger-card { width: 88%; background: rgba(28,35,64,0.75); border-radius: 7px; padding: 5px 8px; flex-shrink: 0; backdrop-filter: blur(6px); }
@@ -390,7 +394,6 @@ const CSS = `
   }
 
   /* ── Keyframes ── */
-  @keyframes zd-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
   @keyframes zd-fed { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
 
   /* ── Desktop (>= 1024px) ── */

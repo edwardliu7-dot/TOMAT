@@ -71,6 +71,9 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
     }
   }, [currentScreen, isDesktop])
 
+  // ZonaDashboard adalah fullscreen — semua nav/chrome disembunyikan untuk siswa di home (semua device)
+  const isZonaDashboard = currentScreen === 'home' && user?.role === 'siswa'
+
   const activeModule = currentScreen?.startsWith('blp-') ? 'blp'
     : currentScreen?.startsWith('eob5-') ? 'eob5'
     : 'tomat'
@@ -83,7 +86,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
   const moduleAccent = activeModule === 'blp' ? '#10b981'
     : activeModule === 'eob5' ? '#f59e0b'
     : '#6366f1'
-  const isImmersiveStudentHome = isMobileStudentHome
+  const isImmersiveStudentHome = isMobileStudentHome || isZonaDashboard
 
   const isGuru = user?.role === 'guru'
 
@@ -139,18 +142,21 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
           .with-sidebar.with-module-header { padding-top: calc(100px + env(safe-area-inset-top, 0px)); }
         }
       `}</style>
-      <Sidebar
-        user={user}
-        navigate={navigate}
-        currentScreen={currentScreen}
-        onLogout={onLogout}
-      />
+      {/* Sidebar disembunyikan saat ZonaDashboard aktif — dashboard punya nav sendiri */}
+      {!isZonaDashboard && (
+        <Sidebar
+          user={user}
+          navigate={navigate}
+          currentScreen={currentScreen}
+          onLogout={onLogout}
+        />
+      )}
       {/* When showing BLP/EOB5 modules, the TOMAT sidebar is hidden but the
           CSS var still adds 220 px of margin-left. Override it to 0 so those
           modules' own sidebars fill the full viewport width. */}
       <div
         className={`with-sidebar${showNav && !isImmersiveStudentHome ? ' with-nav' : ''}${!isDesktop && onSwitchModule && !isImmersiveStudentHome ? ' with-module-header' : ''}${isLandscapeHome ? ' with-landscape-home' : ''}`}
-        style={isDesktop && activeModule !== 'tomat' ? { marginLeft: 0 } : undefined}
+        style={isDesktop && (activeModule !== 'tomat' || isZonaDashboard) ? { marginLeft: 0 } : undefined}
       >
         {children}
       </div>
@@ -305,8 +311,8 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
         </nav>
       )}
 
-      {/* Desktop: App Switcher tetap sebagai floating bar di bawah */}
-      {isDesktop && user && onSwitchModule && (
+      {/* Desktop: App Switcher — disembunyikan saat ZonaDashboard aktif */}
+      {isDesktop && user && onSwitchModule && !isZonaDashboard && (
         <div style={{
           position: 'fixed',
           bottom: 14,
