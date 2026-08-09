@@ -71,8 +71,9 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
     }
   }, [currentScreen, isDesktop])
 
-  // ZonaDashboard adalah fullscreen — semua nav/chrome disembunyikan untuk siswa di home (semua device)
-  const isZonaDashboard = currentScreen === 'home' && user?.role === 'siswa'
+  // Siswa selalu fullscreen — semua chrome AppShell disembunyikan untuk SEMUA screen siswa
+  // Setiap screen siswa memiliki tombol back/nav sendiri (TopBar, ZonaDashboard, dll.)
+  const isZonaDashboard = user?.role === 'siswa'
 
   const activeModule = currentScreen?.startsWith('blp-') ? 'blp'
     : currentScreen?.startsWith('eob5-') ? 'eob5'

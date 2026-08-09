@@ -47,7 +47,6 @@ import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
 import { startBgm, stopBgm } from './bgm'
-import { useLandscapeMobile } from './hooks/useLandscapeMobile'
 import LandscapeArena from './screens/landscape/LandscapeArena'
 import LandscapeNilaiTugas from './screens/landscape/LandscapeNilaiTugas'
 import LandscapeLeaderboard from './screens/landscape/LandscapeLeaderboard'
@@ -629,8 +628,6 @@ function MissionBridge() {
 // teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const { user, logout, dailyBonus, dismissDailyBonus } = useAuth()
-  const isLandscapeMobile = useLandscapeMobile()
-
   // Set data-tema on <html> so GameThemeStyles can target structural elements only.
   // During Kemerdekaan event (Jul 15–Aug 31) tema_merahputih overrides the user's
   // equipped theme automatically and reverts when the event window closes.
@@ -932,11 +929,11 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
   // Render the current screen
   const renderScreen = () => {
-    // ── Landscape mobile override (non-guru siswa only) ───────────────────────
-    // When on a phone/tablet in landscape, swap standard screens for their
-    // optimised landscape variants. Games, duel/tournament, and immersive
-    // screens are intentionally excluded and fall through to the normal router.
-    if (isLandscapeMobile && !guruMode && user?.role === 'siswa') {
+    // ── Landscape screen router (ALL siswa, ALL devices) ──────────────────────
+    // Every siswa screen uses the fullscreen landscape variant regardless of
+    // device size. Games, duel/tournament, and immersive screens are excluded
+    // and fall through to the normal router below.
+    if (!guruMode && user?.role === 'siswa') {
       const landscapeMap = {
         arena:         <LandscapeArena    navigate={navigate} goBack={goBack} canUseDemoMoba={canUseDemoMoba(user)} />,
         grades:        <LandscapeNilaiTugas navigate={navigate} goBack={goBack} />,
@@ -1132,6 +1129,24 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           <BabLockProvider>
             <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout} onSwitchModule={handleSwitchModule} onOpenApp={openIframeApp}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
+              {/* Global responsive scaling for all siswa fullscreen screens */}
+              {user?.role === 'siswa' && !guruMode && (
+                <style>{`
+                  /* Remove any residual AppShell spacing for siswa */
+                  .with-sidebar { margin-left: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
+                  /* Viewport-fluid font sizes — landscape screen roots inherit these */
+                  :root {
+                    --ls-text-xs:  clamp(7px,  1.0vmin, 10px);
+                    --ls-text-sm:  clamp(9px,  1.3vmin, 13px);
+                    --ls-text-md:  clamp(11px, 1.6vmin, 16px);
+                    --ls-text-lg:  clamp(13px, 2.0vmin, 20px);
+                    --ls-text-xl:  clamp(16px, 2.4vmin, 26px);
+                    --ls-gap:      clamp(5px,  1.0vmin, 12px);
+                    --ls-pad:      clamp(8px,  1.4vmin, 16px);
+                    --ls-radius:   clamp(8px,  1.2vmin, 14px);
+                  }
+                `}</style>
+              )}
               {/* Inject CSS that filters ONLY structural nav/chrome elements.
                   Seasonal override (tema_merahputih during Jul 15–Aug 31) takes
                   priority over the user's own equipped theme. */}

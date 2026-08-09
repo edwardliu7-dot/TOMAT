@@ -183,12 +183,13 @@
 - Setiap screen baru harus didaftarkan di switch/map di `App.jsx`.
 - Route `arena` terdaftar dan menampilkan `LandscapeArena.jsx` (4 mode: Duel, Turnamen, Boss Raid, MOBA).
 
-### Landscape Router (Siswa)
+### Landscape Router (Siswa — semua device)
 - Di `renderScreen()` dalam `App.jsx`, terdapat **landscape router block** yang dieksekusi sebelum routing utama.
-- Jika `isLandscapeMobile && !guruMode && user?.role === 'siswa'` dan screen aktif ada di `landscapeMap`, tampilkan versi landscape screen tersebut.
+- Kondisi: `!guruMode && user?.role === 'siswa'` — berlaku untuk **semua device** (desktop, mobile landscape, portrait).
 - `landscapeMap` memetakan 11 route ke komponen `src/screens/landscape/Landscape*.jsx`.
-- **Game routes (`GAME_ROUTES`)** di-bypass landscape router — dihandle lebih awal sebelum blok landscape.
-- `isLandscapeMobile` berasal dari hook `useLandscapeMobile` (`width > height && width ≥ 620 && width < 1024`).
+- **Game routes (`GAME_ROUTES`)** dan screen immersive (duel, tournament, boss-raid, moba) di-bypass landscape router — mereka tidak ada di `landscapeMap` sehingga fall-through ke routing normal.
+- `useLandscapeMobile` hook **tidak lagi digunakan di App.jsx** — dihapus dari import dan variable. Hook masih ada di `src/hooks/` untuk referensi, tapi tidak aktif.
+- Semua AppShell chrome (sidebar, AppSwitcher, mobile header, bottom nav) disembunyikan untuk seluruh siswa via `isZonaDashboard = user?.role === 'siswa'` di `AppShell.jsx`.
 
 ### Context — Hierarki & Tanggung Jawab
 | Context | Tanggung Jawab | Jangan Duplikat |
@@ -571,9 +572,11 @@ GURU dan TOMAT menggunakan **satu Neon database yang sama**. Tabel yang di-manag
 ### Aturan Penting
 - **`HomeScreen.jsx`** tidak lagi mengecek `isDesktop` untuk siswa — kondisinya hanya `!guruMode && user?.role === 'siswa'`. Seluruh siswa langsung mendapat `MobileLandscapeDashboard`.
 - **Background:** `public/wallpaper-dashboard.png` — `center 72% / cover` + dark gradient wash. Jangan ganti nilai `72%` tanpa cek visual; nilai ini mengekspos cobblestone plaza di bawah pet.
-- **Pet:** dirender via `<PetSVG size={110} />` di dalam dashboard. `FloatingPet` tidak dirender.
+- **Pet:** dirender via `<PetSVG size={110} />` di dalam dashboard, tanpa animasi float (grounded). `FloatingPet` tidak dirender.
 - **SeasonalEventBanner:** dirender di zona kiri, di atas task card. Prop: `onOpenEventShop`.
 - **Arena button:** selalu `navigate('arena')` — tidak perlu cek `canUseDemoMoba` lagi.
+- **AppShell chrome:** `isZonaDashboard = user?.role === 'siswa'` — sidebar, AppSwitcher, mobile header, bottom nav SEMUA disembunyikan untuk siswa di SEMUA screen (bukan hanya home).
+- **Landscape router universal:** `App.jsx` landscape router block tidak lagi gated oleh `isLandscapeMobile` — berlaku untuk semua device. `useLandscapeMobile` hook tidak dipakai di `App.jsx`. CSS responsive variables (`--ls-text-*`, `--ls-gap`, dll.) diinjeksi di App.jsx wrapper untuk siswa.
 - **Zona Kanan (3 pintu):** grade zone ditentukan dari `user.kelas` (parse angka 7/8/9) → ID zone `grade7/8/9` dan `ipa7/8/9`.
 - **Responsive:**
   - Desktop (≥1024px): kolom lebih lebar (200px kiri/kanan).
