@@ -34,13 +34,19 @@ async function apiCall(path, options = {}) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [checking, setChecking] = useState(true)
+  const [dailyBonus, setDailyBonus] = useState(null)
 
   useEffect(() => {
     let mounted = true
     // Never leave the app behind the splash screen forever when the database
     // or the session store is temporarily unavailable.
     apiCall('/me', { timeoutMs: 8000 })
-      .then(data => setUser(data.user))
+      .then(data => {
+        if (mounted) {
+          setUser(data.user)
+          if (data.dailyBonus) setDailyBonus(data.dailyBonus)
+        }
+      })
       .catch(() => {
         if (mounted) setUser(null)
       })
@@ -55,6 +61,7 @@ export function AuthProvider({ children }) {
     resetSocket()
     const data = await apiCall('/login', { method: 'POST', body: { role, username, password } })
     setUser(data.user)
+    if (data.dailyBonus) setDailyBonus(data.dailyBonus)
     return data.user
   }, [])
 
@@ -78,8 +85,10 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  const dismissDailyBonus = useCallback(() => setDailyBonus(null), [])
+
   return (
-    <AuthContext.Provider value={{ user, checking, login, logout, updateProfile, refreshMe }}>
+    <AuthContext.Provider value={{ user, checking, login, logout, updateProfile, refreshMe, dailyBonus, dismissDailyBonus }}>
       {children}
     </AuthContext.Provider>
   )

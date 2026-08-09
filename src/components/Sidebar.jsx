@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import logo from '../assets/logo.png'
 import { getGradeNumber } from '../kelasUtils'
 import { UserAvatar } from './shared'
+import AudioPanel from './AudioPanel'
 
 // Screens where sidebar is shown
 const SAFE_SCREENS = new Set([
@@ -19,18 +20,20 @@ function getZoneKey(user) {
 }
 
 const SISWA_NAV = (zoneKey) => [
-  { key: 'home',          emoji: '🏠', label: 'Beranda' },
-  { key: zoneKey,         emoji: '🎮', label: 'Zona Belajar' },
-  { key: 'grades',        emoji: '📊', label: 'Nilai & Tugas' },
-  { key: 'papanperingkat',emoji: '🏆', label: 'Papan Peringkat' },
-  { key: 'toko',          emoji: '🛒', label: 'Toko' },
-  { key: 'lencana',       emoji: '🏅', label: 'Lencana' },
-  { key: 'komunikasi',    emoji: '💬', label: 'Chat' },
+  { key: 'home',          emoji: '🏠',          label: 'Beranda' },
+  { key: zoneKey,         emoji: '/arena.png',   label: 'Zona Belajar' },
+  { key: 'grades',        emoji: '/nilai.png',   label: 'Nilai & Tugas' },
+  { key: 'papanperingkat',emoji: '/rank.png',    label: 'Papan Peringkat' },
+  { key: 'toko',          emoji: '/toko.png',    label: 'Toko' },
+  { key: 'lencana',       emoji: '/lencana.png', label: 'Lencana' },
+  { key: 'komunikasi',    emoji: '💬',           label: 'Chat' },
 ]
 
-const GURU_NAV = [
+// Full nav for guru mapel terdaftar (jabatan=guru_mapel + has subjects entry)
+const GURU_NAV_FULL = [
   { key: 'guruDashboard',  emoji: '🏠', label: 'Dashboard' },
   { key: 'guruTugas',      emoji: '📋', label: 'Tugas' },
+  { key: 'guruVideo',      emoji: '🎬', label: 'Video Materi' },
   { key: 'guruPantau',     emoji: '👥', label: 'Pantau Kelas' },
   { key: 'guruNilai',      emoji: '📊', label: 'Nilai Siswa' },
   { key: 'guruHafalan',    emoji: '🎯', label: 'Hafalan' },
@@ -38,7 +41,16 @@ const GURU_NAV = [
   { key: 'guruRaid',       emoji: '⚔️', label: 'Boss Raid' },
   { key: 'guruTurnamen',   emoji: '🏆', label: 'Turnamen' },
   { key: 'guruKunci',      emoji: '🔒', label: 'Kunci Bab' },
-  { key: 'guruKomunikasi', emoji: '💬', label: 'Komunikasi' },
+  { key: 'guruMengajar',   emoji: '🖥️', label: 'Mode Mengajar' },
+]
+
+// Read-only nav for guru without a registered Matematika subject
+const GURU_NAV_READONLY = [
+  { key: 'guruDashboard',  emoji: '🏠', label: 'Dashboard' },
+  { key: 'guruPantau',     emoji: '👥', label: 'Pantau Kelas' },
+  { key: 'guruNilai',      emoji: '📊', label: 'Nilai Siswa' },
+  { key: 'guruInsight',    emoji: '🎮', label: 'Insight Siswa' },
+  { key: 'guruMengajar',   emoji: '🖥️', label: 'Mode Mengajar' },
 ]
 
 function NavItem({ item, isActive, onClick }) {
@@ -62,7 +74,9 @@ function NavItem({ item, isActive, onClick }) {
         transition: 'background 0.15s, color 0.15s',
       }}
     >
-      <span style={{ fontSize: 16, lineHeight: 1 }}>{item.emoji}</span>
+      {item.emoji.startsWith('/')
+        ? <img src={item.emoji} alt="" style={{ width: 18, height: 18, objectFit: 'contain', flexShrink: 0 }} />
+        : <span style={{ fontSize: 16, lineHeight: 1 }}>{item.emoji}</span>}
       <span>{item.label}</span>
     </button>
   )
@@ -82,9 +96,9 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
     if (user?.role !== 'guru') return undefined
     const tabToKey = {
       tugas: 'guruTugas',
+      video: 'guruVideo',
       hafalan: 'guruHafalan',
       nilai: 'guruNilai',
-      komunikasi: 'guruKomunikasi',
       siswa: 'guruPantau',
       kunci: 'guruKunci',
       raid: 'guruRaid',
@@ -106,7 +120,7 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
 
   const isGuru = user.role === 'guru'
   const zoneKey = getZoneKey(user)
-  const navItems = isGuru ? GURU_NAV : SISWA_NAV(zoneKey)
+  const navItems = isGuru ? (user.hasMateriTerdaftar ? GURU_NAV_FULL : GURU_NAV_READONLY) : SISWA_NAV(zoneKey)
 
   const handleNav = (key) => {
     // Guru tab items dispatch custom events; main screens use navigate
@@ -119,7 +133,7 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
   }
 
   return (
-    <div style={{
+    <div className="tomat-sidebar" style={{
       position: 'fixed', top: 0, left: 0,
       width: 220, height: '100vh',
       background: '#111318',
@@ -131,10 +145,10 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 4, marginBottom: 20 }}>
-        <img src={logo} alt="TOMAT" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover' }} />
+        <img src={logo} alt="SMARTISA" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover' }} />
         <div>
-          <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', fontStyle: 'italic' }}>TOMAT</div>
-          <div style={{ fontSize: 9, color: '#475569', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>Tantangan Otak Mat.</div>
+          <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', fontStyle: 'italic' }}>SMARTISA</div>
+          <div style={{ fontSize: 9, color: '#475569', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>Mendidik Anak TISA</div>
         </div>
       </div>
 
@@ -182,6 +196,19 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
             onClick={handleNav}
           />
         )}
+        {/* Audio panel */}
+        <AudioPanel
+          placement="up-left"
+          buttonStyle={{
+            height: 44, padding: '0 16px', borderRadius: 10,
+            display: 'flex', alignItems: 'center', gap: 12,
+            width: '100%', border: 'none', cursor: 'pointer', textAlign: 'left',
+            fontFamily: 'inherit', fontSize: 14,
+            background: 'transparent',
+            color: '#94A3B8',
+            fontWeight: 400,
+          }}
+        />
         <button
           onClick={onLogout}
           style={{

@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { usePlayer } from '../PlayerContext'
 import { useAuth } from '../AuthContext'
 import { useTask, TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
@@ -39,12 +40,76 @@ export function TopBar({ title, onBack, accentColor = '#67E8F9', rightElement })
   )
 }
 
+// Sparkle particles that orbit within the ring band of an image frame (epic tier).
+function EpicFrameSparkles({ size, photoSize, color }) {
+  React.useEffect(() => { ensureLuxuryStyles() }, [])
+  const ringR = (size / 2 + photoSize / 2) / 2
+  const COUNT = 7
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 4 }}>
+      {/* Primary orbit ring */}
+      <div style={{ position: 'absolute', inset: 0, animation: 'tomat-spin-cw 10s linear infinite' }}>
+        {Array.from({ length: COUNT }).map((_, i) => {
+          const angleDeg = (i / COUNT) * 360
+          const rad = angleDeg * Math.PI / 180
+          const cx = size / 2 + ringR * Math.sin(rad) - 2
+          const cy = size / 2 - ringR * Math.cos(rad) - 2
+          const delay = `${((i / COUNT) * 1.8).toFixed(2)}s`
+          return (
+            <div key={i} style={{
+              position: 'absolute',
+              left: cx, top: cy,
+              width: Math.max(3, Math.round(size * 0.04)),
+              height: Math.max(3, Math.round(size * 0.04)),
+              borderRadius: '50%',
+              background: color,
+              boxShadow: `0 0 ${Math.round(size * 0.06)}px ${color}, 0 0 ${Math.round(size * 0.03)}px ${color}99`,
+              animation: `tomat-sparkle-fade 1.8s ease-in-out ${delay} infinite`,
+            }} />
+          )
+        })}
+      </div>
+      {/* Counter-orbit ring (fewer, larger dots) */}
+      <div style={{ position: 'absolute', inset: 0, animation: 'tomat-spin-ccw 16s linear infinite' }}>
+        {Array.from({ length: 4 }).map((_, i) => {
+          const angleDeg = (i / 4) * 360 + 22
+          const rad = angleDeg * Math.PI / 180
+          const cx = size / 2 + ringR * Math.sin(rad) - 3
+          const cy = size / 2 - ringR * Math.cos(rad) - 3
+          const delay = `${((i / 4) * 2.4).toFixed(2)}s`
+          return (
+            <div key={i} style={{
+              position: 'absolute',
+              left: cx, top: cy,
+              width: Math.max(4, Math.round(size * 0.055)),
+              height: Math.max(4, Math.round(size * 0.055)),
+              borderRadius: '50%',
+              background: `${color}cc`,
+              boxShadow: `0 0 ${Math.round(size * 0.09)}px ${color}dd`,
+              animation: `tomat-sparkle-fade 2.4s ease-in-out ${delay} infinite`,
+            }} />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// Default bingkai untuk semua akun guru — ditampilkan jika guru tidak pasang bingkai lain.
+const GURU_DEFAULT_BINGKAI = { image: '/guru.png', spread: 0.28, mixBlend: 'normal' }
+
+function resolveUserBingkai(user, bingkaiId) {
+  if (bingkaiId) return BINGKAI_VISUALS[bingkaiId] ?? null
+  if (user?.role === 'guru') return GURU_DEFAULT_BINGKAI
+  return null
+}
+
 // WhatsApp-style public user identity: photo/initial inside the equipped frame.
 // Accepts both API snake_case fields and the AuthContext camelCase fields.
 export function UserAvatar({ user, size = 40, onClick, title }) {
   const photoUrl = user?.photoUrl ?? user?.photo_url
   const bingkaiId = user?.equippedBingkai ?? user?.equipped_bingkai
-  const bingkai = bingkaiId ? BINGKAI_VISUALS[bingkaiId] : null
+  const bingkai = resolveUserBingkai(user, bingkaiId)
   const initial = (user?.name || '?')[0]?.toUpperCase()
   const [imageFailed, setImageFailed] = React.useState(false)
   React.useEffect(() => { setImageFailed(false) }, [photoUrl])
@@ -56,6 +121,14 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
   const spreadFactor = useImageFrame ? (bingkai.spread ?? 0.45) : 0
   const innerRatio = useImageFrame ? 1 / (1 + 2 * spreadFactor) : 1
   const photoSize = Math.round(size * innerRatio)
+  // Tier-based effects for image frames
+  const isEpic = useImageFrame && Boolean(bingkai?.limited)
+  const isRare = useImageFrame && Boolean(bingkai?.glow) && !isEpic
+  const frameGlow = isEpic
+    ? `drop-shadow(0 0 ${Math.round(size * 0.16)}px ${bingkai.border}ee) drop-shadow(0 0 ${Math.round(size * 0.07)}px ${bingkai.border}88)`
+    : isRare
+      ? `drop-shadow(0 0 ${Math.round(size * 0.10)}px ${bingkai.border}cc)`
+      : 'none'
   const avatarDiv = (
     <div style={{
       width: photoSize, height: photoSize,
@@ -100,17 +173,28 @@ export function UserAvatar({ user, size = 40, onClick, title }) {
       alignItems: 'center',
       justifyContent: 'center',
     }}>
+      {/* Epic: animated glow pulse layer behind frame */}
+      {isEpic && (
+        <div style={{
+          position: 'absolute', inset: 0, borderRadius: '50%',
+          boxShadow: `0 0 ${Math.round(size * 0.25)}px ${bingkai.border}55`,
+          animation: 'tomat-frame-glow-pulse 2.4s ease-in-out infinite',
+          pointerEvents: 'none', zIndex: 0,
+        }} />
+      )}
       {avatarDiv}
+      {/* Sparkle overlay for epic frames */}
+      {isEpic && <EpicFrameSparkles size={size} photoSize={photoSize} color={bingkai.border} />}
       <img src={bingkai.image} alt="" aria-hidden="true" style={{
         position: 'absolute',
         inset: 0,
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: 3,
+        zIndex: 5,
         objectFit: 'contain',
         mixBlendMode: bingkai.mixBlend ?? 'normal',
-        filter: bingkai.glow ? `drop-shadow(0 0 ${Math.round(size * 0.1)}px ${bingkai.border}bb)` : 'none',
+        filter: frameGlow,
       }} />
     </div>
   ) : avatarDiv
@@ -167,6 +251,8 @@ const LUXURY_KEYFRAMES = `
 @keyframes tomat-float-a  { 0%,100% { transform:translateY(0px) } 50% { transform:translateY(-6px) } }
 @keyframes tomat-float-b  { 0%,100% { transform:translateY(0px) } 50% { transform:translateY(5px) } }
 @keyframes tomat-shimmer  { 0% { left:-60% } 100% { left:160% } }
+@keyframes tomat-sparkle-fade { 0%,100% { opacity:0; transform:scale(0.4) } 45%,55% { opacity:1; transform:scale(1) } }
+@keyframes tomat-frame-glow-pulse { 0%,100% { opacity:0.55 } 50% { opacity:1 } }
 `
 let _luxuryStyleInjected = false
 export function ensureLuxuryStyles() {
@@ -184,6 +270,8 @@ export function ProfileBanner({ user, height = 92 }) {
   if (!spanduk) return null
   const isCelestia = spanduk.luxury === 'celestia'
   const isRoyal = spanduk.luxury === 'royal'
+  const isEpic = isCelestia || isRoyal
+  React.useEffect(() => { if (isEpic) ensureLuxuryStyles() }, [isEpic])
   return (
     <div
       aria-label={`Spanduk ${spandukId}`}
@@ -193,15 +281,18 @@ export function ProfileBanner({ user, height = 92 }) {
         borderRadius: 18,
         overflow: 'hidden',
         position: 'relative',
-        background: spanduk.gradient,
-        border: `1px solid ${isRoyal ? 'rgba(212,175,55,0.5)' : isCelestia ? 'rgba(147,197,253,0.42)' : 'rgba(255,255,255,0.12)'}`,
+        background: spanduk.image
+          ? `url(${spanduk.image}) right center / auto 100% no-repeat, ${spanduk.gradient}`
+          : spanduk.gradient,
+        border: `1px solid ${isRoyal ? 'rgba(212,175,55,0.55)' : isCelestia ? 'rgba(147,197,253,0.50)' : 'rgba(255,255,255,0.12)'}`,
         boxShadow: isRoyal
-          ? '0 0 28px rgba(212,175,55,0.16)'
+          ? '0 0 0 1px rgba(212,175,55,0.18), 0 0 32px rgba(212,175,55,0.30), 0 4px 50px rgba(212,175,55,0.14)'
           : isCelestia
-            ? '0 0 28px rgba(96,165,250,0.16)'
+            ? '0 0 0 1px rgba(96,165,250,0.18), 0 0 32px rgba(96,165,250,0.30), 0 4px 50px rgba(96,165,250,0.14)'
             : 'none',
       }}
     >
+      {/* Glow overlay */}
       <div style={{
         position: 'absolute', inset: 0,
         background: isCelestia
@@ -209,12 +300,22 @@ export function ProfileBanner({ user, height = 92 }) {
           : isRoyal
             ? 'radial-gradient(circle at 50% 0%, rgba(212,175,55,0.2), transparent 45%), linear-gradient(90deg, transparent, rgba(212,175,55,0.08), transparent)'
             : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)',
+        pointerEvents: 'none',
       }} />
+      {/* Epic sparkle particles */}
+      {isEpic && (
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          <BannerSparkles color={isCelestia ? '#93c5fd' : '#d4af37'} count={12} />
+        </div>
+      )}
+      {/* Inner border inset */}
       <div style={{
         position: 'absolute', inset: 12,
         border: `1px solid ${isRoyal ? 'rgba(212,175,55,0.28)' : isCelestia ? 'rgba(147,197,253,0.24)' : 'rgba(255,255,255,0.12)'}`,
         borderRadius: 12,
+        pointerEvents: 'none',
       }} />
+      {/* Label */}
       <div style={{
         position: 'absolute', left: 18, bottom: 12,
         color: isRoyal ? '#f5e7b2' : isCelestia ? '#dbeafe' : '#fff',
@@ -223,6 +324,7 @@ export function ProfileBanner({ user, height = 92 }) {
       }}>
         {isRoyal ? 'Royal Mathematician' : isCelestia ? 'Celestia Relic' : 'Spanduk Profil'}
       </div>
+      {/* Decorative icon */}
       <div style={{
         position: 'absolute', right: 18, top: 12,
         color: isRoyal ? '#d4af37' : isCelestia ? '#93c5fd' : '#cbd5e1',
@@ -234,9 +336,18 @@ export function ProfileBanner({ user, height = 92 }) {
   )
 }
 
-// Avatar wrapped with animated luxury frame rings (for Aurum/Void Monarch).
+// Avatar wrapped with animated luxury frame rings.
+// When bingkai has an image, delegates to UserAvatar (which handles tier effects).
+// Falls back to the old CSS-ring approach for any non-image luxury frame.
 export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
   React.useEffect(() => { ensureLuxuryStyles() }, [])
+
+  // If the luxury frame now has a real image, UserAvatar handles all rendering + effects.
+  if (bingkai?.image) {
+    return <UserAvatar user={user} size={size} />
+  }
+
+  // ── Legacy CSS-ring fallback (kept for any future CSS-only luxury frames) ──
   const photoUrl = user?.photoUrl ?? user?.photo_url
   const [imageFailed, setImageFailed] = React.useState(false)
   React.useEffect(() => { setImageFailed(false) }, [photoUrl])
@@ -245,7 +356,6 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
   const isVoid  = bingkai?.luxury === 'void'
   const ringColor = bingkai?.border || '#D4AF37'
 
-  // Diamond dot at each cardinal position of the rotating ring
   const DiamondDot = ({ angle }) => (
     <div style={{
       position: 'absolute',
@@ -261,11 +371,8 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
 
   return (
     <div style={{ position: 'relative', width: size, height: size }}>
-      {/* Outer rotating ring */}
       <div style={{
-        position: 'absolute',
-        inset: -14,
-        borderRadius: '50%',
+        position: 'absolute', inset: -14, borderRadius: '50%',
         border: `1px solid ${ringColor}44`,
         animation: 'tomat-spin-cw 18s linear infinite',
       }}>
@@ -274,19 +381,14 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
         <DiamondDot angle={180} />
         <DiamondDot angle={270} />
       </div>
-      {/* Inner dashed ring */}
       <div style={{
-        position: 'absolute',
-        inset: -6,
-        borderRadius: '50%',
+        position: 'absolute', inset: -6, borderRadius: '50%',
         border: `1.5px dashed ${ringColor}55`,
         animation: 'tomat-spin-ccw 12s linear infinite',
       }} />
-      {/* Glow pulse */}
       {isAurum && (
         <div style={{
-          position: 'absolute', inset: 0,
-          borderRadius: size * 0.3,
+          position: 'absolute', inset: 0, borderRadius: size * 0.3,
           boxShadow: `0 0 22px 6px ${ringColor}55`,
           animation: 'tomat-pulse-g 2.8s ease-in-out infinite',
           pointerEvents: 'none',
@@ -295,21 +397,18 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
       {isVoid && (
         <>
           <div style={{
-            position: 'absolute', inset: -9,
-            borderRadius: '50%',
+            position: 'absolute', inset: -9, borderRadius: '50%',
             border: `1px solid ${ringColor}66`,
             animation: 'tomat-spin-cw 30s linear infinite',
           }} />
           <div style={{
-            position: 'absolute', inset: 0,
-            borderRadius: size * 0.3,
+            position: 'absolute', inset: 0, borderRadius: size * 0.3,
             boxShadow: `0 0 28px 8px ${ringColor}44`,
             animation: 'tomat-pulse-g 3.5s ease-in-out infinite',
             pointerEvents: 'none',
           }} />
         </>
       )}
-      {/* Avatar itself */}
       <div style={{
         width: size, height: size, borderRadius: size * 0.3, flexShrink: 0,
         background: showPhoto
@@ -319,18 +418,12 @@ export function LuxuryAvatarFrame({ user, size, bingkai, bingkaiId }) {
             : 'linear-gradient(135deg, #0891B2, #2563EB)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: size * 0.38, fontWeight: 900, color: '#fff',
-        border: `${Math.max(2, Math.round(size / 16))}px ${bingkai.style} ${ringColor}`,
+        border: `${Math.max(2, Math.round(size / 16))}px ${bingkai.style || 'solid'} ${ringColor}`,
         boxSizing: 'border-box',
         position: 'relative', zIndex: 1,
       }}>
         {showPhoto && (
-          <img
-            src={photoUrl}
-            alt=""
-            aria-hidden="true"
-            onError={() => setImageFailed(true)}
-            style={{ display: 'none' }}
-          />
+          <img src={photoUrl} alt="" aria-hidden="true" onError={() => setImageFailed(true)} style={{ display: 'none' }} />
         )}
         {!showPhoto && (user?.name || '?')[0]?.toUpperCase()}
       </div>
@@ -385,7 +478,36 @@ export function RoyalShimmer() {
   )
 }
 
-export function PublicProfileModal({ profile, loading, error, onClose }) {
+// Twinkling sparkle dots for epic banner tiers — reuses tomat-sparkle-fade animation
+export function BannerSparkles({ color = '#93c5fd', count = 14 }) {
+  React.useEffect(() => { ensureLuxuryStyles() }, [])
+  const sizes = [2, 3, 2, 4, 2, 3, 3, 2, 4, 2, 3, 2, 4, 3]
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => {
+        const size = sizes[i % sizes.length]
+        const top  = `${8  + (i * 19 + i * 7)  % 82}%`
+        const left = `${3  + (i * 13 + i * 11) % 94}%`
+        const dur  = `${1.6 + (i % 5) * 0.5}s`
+        const del  = `-${(i * 0.38).toFixed(2)}s`
+        return (
+          <div key={i} style={{
+            position: 'absolute',
+            top, left,
+            width: size, height: size,
+            borderRadius: '50%',
+            background: color,
+            boxShadow: `0 0 ${size * 3}px ${size}px ${color}88`,
+            animation: `tomat-sparkle-fade ${dur} ease-in-out ${del} infinite`,
+            pointerEvents: 'none',
+          }} />
+        )
+      })}
+    </>
+  )
+}
+
+export function PublicProfileModal({ profile, loading, error, onClose, onVisitProfile }) {
   const { user: currentUser } = useAuth()
 
   // Close on Escape key
@@ -401,7 +523,7 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
   const spandukId = profile?.equippedSpanduk ?? profile?.equipped_spanduk
   const spanduk    = spandukId ? SPANDUK_VISUALS[spandukId] : null
   const bingkaiId  = profile?.equippedBingkai ?? profile?.equipped_bingkai
-  const bingkai    = bingkaiId ? BINGKAI_VISUALS[bingkaiId] : null
+  const bingkai    = resolveUserBingkai(profile, bingkaiId)
   const isCelestia = spanduk?.luxury === 'celestia'
   const isRoyal    = spanduk?.luxury === 'royal'
   const isLuxuryFrame = bingkai?.luxury === 'aurum' || bingkai?.luxury === 'void'
@@ -440,7 +562,9 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
               position: 'relative',
               height: 140,
               background: spanduk
-                ? spanduk.gradient
+                ? (spanduk.image
+                    ? `url(${spanduk.image}) right center / auto 100% no-repeat, ${spanduk.gradient}`
+                    : spanduk.gradient)
                 : 'linear-gradient(160deg,#0c1a2e,#111827)',
               overflow: 'hidden',
             }}>
@@ -455,11 +579,11 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
                 pointerEvents: 'none',
               }} />
 
-              {/* Celestia animated orbiting particles */}
+              {/* Celestia: orbiting particles + star dots + sparkles */}
               {isCelestia && (
                 <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
                   <CelestiaParticles />
-                  {/* Static star dots */}
+                  <BannerSparkles color="#93c5fd" count={16} />
                   {[...Array(18)].map((_, i) => (
                     <div key={i} style={{
                       position: 'absolute',
@@ -477,7 +601,12 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
                 </div>
               )}
 
-              {/* Royal shimmer */}
+              {/* Royal: gold sparkles + shimmer */}
+              {isRoyal && (
+                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                  <BannerSparkles color="#d4af37" count={16} />
+                </div>
+              )}
               {isRoyal && <RoyalShimmer />}
 
               {/* Item label bottom-left */}
@@ -518,19 +647,6 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
                 background: 'linear-gradient(to bottom, transparent, #0f172a)',
                 pointerEvents: 'none',
               }} />
-
-              {/* ── Placed stickers (read-only) ── */}
-              {(profile.stikerLayout || []).map(s => (
-                <div key={s.uid} style={{
-                  position: 'absolute',
-                  left: `${s.x}%`, top: `${s.y}%`,
-                  fontSize: s.size, lineHeight: 1,
-                  transform: 'translate(-50%,-50%)',
-                  pointerEvents: 'none',
-                  zIndex: 12,
-                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))',
-                }}>{s.emoji}</div>
-              ))}
             </div>
 
             {/* ── AVATAR (overlapping banner bottom) ── */}
@@ -600,10 +716,14 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
             <div style={{ display: 'flex', gap: 8, padding: '0 22px 18px', marginTop: 8 }}>
               <button
                 onClick={() => {
-                  // The modal already has the complete, access-checked profile.
-                  // Pass it along so the full profile screen does not make a
-                  // second request that can race or fail independently.
-                  window.dispatchEvent(new CustomEvent('tomat:visit-profile', { detail: profile }))
+                  // Use callback if provided (avoids re-triggering the popup loop).
+                  // The modal already has the complete, access-checked profile so
+                  // the full profile screen does not need to make a second request.
+                  if (onVisitProfile) {
+                    onVisitProfile(profile)
+                  } else {
+                    window.dispatchEvent(new CustomEvent('tomat:visit-profile', { detail: profile }))
+                  }
                   onClose()
                 }}
                 style={{
@@ -612,7 +732,7 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
                   background: 'rgba(255,255,255,0.06)', color: '#E2E8F0',
                   fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                 }}
-              >👤 Lihat Profil</button>
+              >👤 Kunjungi Profil</button>
 
               {profile.role === 'siswa' && currentUser?.role === 'siswa' && profile.id !== currentUser?.id && (
                 <button
@@ -816,13 +936,23 @@ function notificationLabel(notification) {
   if (notification.type === 'tugas_baru') return '📝 Tugas baru'
   if (notification.type === 'nilai_baru') return '⭐ Nilai baru'
   if (notification.type === 'hafalan') return '🧮 Hafalan'
-  return '🔔 Informasi TOMAT'
+  return '🔔 Informasi SMARTISA'
 }
 
 export function AppNotificationBell({ onCommunicationClick }) {
   const appNotifications = useAppNotifications(true)
   const push = usePushNotifications(true)
   const [open, setOpen] = React.useState(false)
+  const [panelRect, setPanelRect] = React.useState(null)
+  const btnRef = React.useRef(null)
+
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPanelRect({ top: r.bottom + 8, right: window.innerWidth - r.right })
+    }
+    setOpen(v => !v)
+  }
 
   const openNotification = async notification => {
     await appNotifications.markRead(notification.id)
@@ -837,7 +967,8 @@ export function AppNotificationBell({ onCommunicationClick }) {
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
       <button
-        onClick={() => setOpen(value => !value)}
+        ref={btnRef}
+        onClick={toggle}
         title="Pusat notifikasi"
         aria-label={`Pusat notifikasi${appNotifications.unreadCount ? `, ${appNotifications.unreadCount} belum dibaca` : ''}`}
         aria-expanded={open}
@@ -849,7 +980,7 @@ export function AppNotificationBell({ onCommunicationClick }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        📣
+        <img src="/notif.png" alt="" style={{ width: 18, height: 18, objectFit: 'contain', display: 'block' }} />
         {appNotifications.unreadCount > 0 && (
           <span style={{
             position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18,
@@ -859,12 +990,19 @@ export function AppNotificationBell({ onCommunicationClick }) {
           }}>{appNotifications.unreadCount > 99 ? '99+' : appNotifications.unreadCount}</span>
         )}
       </button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: 46, right: 0, width: 310, maxWidth: 'calc(100vw - 32px)',
-          background: '#151923', border: '1px solid rgba(167,139,250,0.3)',
-          borderRadius: 16, boxShadow: '0 14px 34px rgba(0,0,0,0.45)', overflow: 'hidden', zIndex: 70,
-        }}>
+      {/* Portal: renders backdrop + panel directly on document.body so
+          backdrop-filter / transform on any ancestor cannot create a new
+          containing block and bury the panel. */}
+      {open && createPortal(
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10019 }} />
+          {panelRect && (
+          <div style={{
+            position: 'fixed', top: panelRect.top, right: panelRect.right,
+            width: 310, maxWidth: 'calc(100vw - 32px)',
+            background: '#151923', border: '1px solid rgba(167,139,250,0.3)',
+            borderRadius: 16, boxShadow: '0 14px 34px rgba(0,0,0,0.45)', overflow: 'hidden', zIndex: 10020,
+          }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px',
             borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -917,6 +1055,11 @@ export function AppNotificationBell({ onCommunicationClick }) {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ flex: 1, color: notification.read_at ? '#CBD5E1' : '#C4B5FD', fontSize: 11, fontWeight: 800 }}>{notificationLabel(notification)}</span>
+                    {notification.source === 'blp' ? (
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(103,232,249,0.15)', color: '#67E8F9', letterSpacing: 0.3 }}>BLP</span>
+                    ) : (
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(159,227,189,0.15)', color: '#9fe3bd', letterSpacing: 0.3 }}>TOMAT</span>
+                    )}
                     {!notification.read_at && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#A78BFA' }} />}
                   </div>
                   <div style={{ color: '#E2E8F0', fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>{notification.title}</div>
@@ -927,7 +1070,10 @@ export function AppNotificationBell({ onCommunicationClick }) {
             </div>
           )}
         </div>
-      )}
+        )}
+      </>,
+      document.body
+    )}
     </div>
   )
 }
@@ -942,7 +1088,7 @@ export function PlayerHeader({ onAvatarClick, onNotificationTaskClick, onCommuni
   const appNotifications = useAppNotifications(true)
   const push = usePushNotifications(true)
   const expPct = Math.min(100, Math.round((player.exp / player.maxExp) * 100))
-  const bingkai = user?.equippedBingkai ? BINGKAI_VISUALS[user.equippedBingkai] : null
+  const bingkai = resolveUserBingkai(user, user?.equippedBingkai)
   const isLuxuryFrame = bingkai?.luxury === 'aurum' || bingkai?.luxury === 'void'
   const avatar = isLuxuryFrame
     ? <LuxuryAvatarFrame user={user} size={48} bingkai={bingkai} bingkaiId={user.equippedBingkai} />
@@ -1158,8 +1304,12 @@ export function Card({ children, style = {}, border = 'rgba(255,255,255,0.08)', 
 }
 
 export function Btn({ children, onClick, disabled, color = '#6366F1', textColor = '#fff', style = {} }) {
+  const handleClick = (e) => {
+    if (!disabled) import('../sfx.js').then(m => m.playSfx('click')).catch(() => {})
+    onClick?.(e)
+  }
   return (
-    <button onClick={onClick} disabled={disabled} style={{
+    <button onClick={handleClick} disabled={disabled} style={{
       background: disabled ? '#374151' : `linear-gradient(135deg, ${color}, #4F46E5)`,
       color: disabled ? '#6B7280' : textColor,
       border: '1px solid rgba(255,255,255,0.08)', borderRadius: 15, padding: '15px 20px',
@@ -1203,6 +1353,14 @@ export function OptionGrid({ options, onSelect, correct = null, disabled = false
 // task session counts the question as answered (preventing infinite retries).
 export function FeedbackBanner({ message, isCorrect, extras, correct, answer, onNext }) {
   const { recordWrongAnswer } = usePlayer()
+  React.useEffect(() => {
+    import('../sfx.js').then(m => {
+      const resolved = isCorrect !== undefined ? isCorrect : correct
+      if (resolved === true)  m.playSfx('correct')
+      if (resolved === false) m.playSfx('wrong')
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // Resolve which pattern is being used
   const resolvedIsCorrect = isCorrect !== undefined ? isCorrect : correct
   const resolvedMessage = message !== undefined
@@ -1213,7 +1371,10 @@ export function FeedbackBanner({ message, isCorrect, extras, correct, answer, on
   if (resolvedMessage === null || resolvedMessage === undefined || resolvedMessage === '') return null
 
   const handleNext = () => {
-    if (!resolvedIsCorrect) recordWrongAnswer?.()
+    // For the new isCorrect-prop pattern: FeedbackBanner owns recordWrongAnswer.
+    // For the legacy correct-prop pattern (G8/G9 games): games call it in confirm(),
+    // so we skip it here to avoid double-counting.
+    if (isCorrect !== undefined && !resolvedIsCorrect) recordWrongAnswer?.()
     onNext()
   }
 
@@ -1291,6 +1452,13 @@ export function MultipleChoice({ options, selected, onSelect, correct = null, di
 // ── Unified answer feedback + "Next" button ───────────────────────────────────
 // Replaces the old FeedbackBanner usage in G8/G9 games.
 export function GameFeedback({ correct, correctAnswer, onNext, unit = '' }) {
+  React.useEffect(() => {
+    import('../sfx.js').then(m => {
+      if (correct === true)  m.playSfx('correct')
+      if (correct === false) m.playSfx('wrong')
+    }).catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{

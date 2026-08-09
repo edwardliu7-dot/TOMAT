@@ -1,5 +1,6 @@
 import express from 'express'
 import http from 'node:http'
+import path from 'node:path'
 import session from 'express-session'
 import connectPgSimple from 'connect-pg-simple'
 import authRouter from './auth.js'
@@ -15,6 +16,12 @@ import hafalanSiswaRouter from './hafalan-siswa.js'
 import komunikasiRouter from './komunikasi.js'
 import notifikasiRouter from './notifikasi.js'
 import petRouter from './pet.js'
+import eventMissionsRouter from './event-missions-router.js'
+import appVersionRouter from './app-version.js'
+import mobaResultsRouter from './moba-results.js'
+import mobaAssetsRouter from './moba-assets.js'
+import videoMateriGuruRouter from './video-materi.js'
+import videoMateriSiswaRouter from './video-materi-siswa.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
 import { setupMultiplayer } from './multiplayer.js'
@@ -28,10 +35,106 @@ if (!process.env.SESSION_SECRET) {
   throw new Error('SESSION_SECRET environment variable is required.')
 }
 
+// Origin yang diizinkan untuk request dari APK (Capacitor WebView)
+const ALLOWED_ORIGINS = [
+  'capacitor://localhost',
+  'https://localhost',
+  'http://localhost',
+]
+
+// Purge konten submission yang sudah direview lebih dari 7 hari.
+// Konten dihapus tapi metadata (reviewedAt, type, expired: true) tetap ada.
+async function purgeExpiredSubmissions() {
+  try {
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+    const cutoff = new Date(Date.now() - SEVEN_DAYS_MS).toISOString()
+
+    const rows = await pool.query(
+      `SELECT student_id, record_date, submissions
+       FROM daily_records
+       WHERE submissions IS NOT NULL
+         AND submissions != '{}'::jsonb`
+    )
+
+    let purgedCount = 0
+    for (const row of rows.rows) {
+      const subs = row.submissions || {}
+      let changed = false
+
+      for (const [actId, sub] of Object.entries(subs)) {
+        if (
+          sub.reviewedAt &&
+          sub.reviewedAt < cutoff &&
+          !sub.expired &&
+          (sub.type === 'audio' || sub.type === 'text') &&
+          sub.content
+        ) {
+          subs[actId] = { ...sub, expired: true }
+          delete subs[actId].content
+          changed = true
+          purgedCount++
+        }
+      }
+
+      if (changed) {
+        await pool.query(
+          'UPDATE daily_records SET submissions = $3::jsonb WHERE student_id = $1 AND record_date = $2',
+          [row.student_id, row.record_date, JSON.stringify(subs)]
+        )
+      }
+    }
+
+    if (purgedCount > 0) {
+      console.log(`[purge] Expired ${purgedCount} submission content(s)`)
+    }
+  } catch (err) {
+    console.error('[purge] Error during submission purge:', err)
+  }
+}
+
 async function createServer() {
   const app = express()
+
+  // CORS — izinkan Capacitor APK dan web dev
+  app.use((req, res, next) => {
+    const origin = req.headers.origin
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin)
+        res.setHeader('Access-Control-Allow-Credentials', 'true')
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+      }
+      if (req.method === 'OPTIONS') return res.sendStatus(204)
+    }
+    next()
+  })
+
   app.use(express.json({ limit: '2mb' }))
   app.set('trust proxy', 1)
+
+  // Capacitor Cookie Patch — ubah SameSite=Lax → SameSite=None; Secure
+  // agar session cookie bisa dikirim dari https://localhost (Capacitor) ke
+  // domain produksi (cross-site request dengan withCredentials: true).
+  app.use((req, res, next) => {
+    const origin = req.headers.origin || ''
+    const isCapacitor = origin === 'capacitor://localhost' || origin === 'https://localhost'
+    if (!isCapacitor) return next()
+
+    const _setHeader = res.setHeader.bind(res)
+    res.setHeader = function (name, value) {
+      if (name.toLowerCase() === 'set-cookie') {
+        const patch = (c) =>
+          c
+            .replace(/;\s*samesite=[^;,]*/gi, '')  // hapus SameSite lama
+            .replace(/;\s*secure/gi, '')             // hapus Secure lama
+            + '; SameSite=None; Secure'              // tambah ulang
+        value = Array.isArray(value) ? value.map(patch) : patch(String(value))
+      }
+      return _setHeader(name, value)
+    }
+    next()
+  })
 
   const PgSession = connectPgSimple(session)
   // Keep a reference so Socket.io can share the same session middleware
@@ -62,58 +165,27 @@ async function createServer() {
   app.use('/api/auth', authRouter)
   app.use('/api/guru', guruRouter)
   app.use('/api/guru/insight', insightRouter)
+  app.use('/api/guru/moba/results', mobaResultsRouter)
   app.use('/api/siswa', siswaRouter)
   app.use('/api/siswa/player', playerRouter)
   app.use('/api/siswa/toko', tokoRouter)
+  app.use('/api/siswa/event-missions', eventMissionsRouter)
   app.use('/api/siswa/papan-peringkat', papanPeringkatRouter)
   app.use('/api/siswa/lencana', lencanaRouter)
   app.use('/api/guru/hafalan', hafalanGuruRouter)
+  app.use('/api/guru', videoMateriGuruRouter)
   app.use('/api/siswa/hafalan', hafalanSiswaRouter)
+  app.use('/api/siswa', videoMateriSiswaRouter)
   app.use('/api/komunikasi', komunikasiRouter)
   app.use('/api/notifikasi', notifikasiRouter)
   app.use('/api/siswa/pet', petRouter)
 
-  // Endpoint publik — cek versi APK, tidak perlu login
-  // Auto-detect dari GitHub Releases: https://github.com/edwardliu7-dot/tomat
-  const GH_REPO = 'edwardliu7-dot/tomat'
-  let _ghCache = null // { minVersionCode, downloadUrl, fetchedAt }
-  const GH_CACHE_TTL = 10 * 60 * 1000 // 10 menit
-
-  function semverToCode(tag) {
-    // "v1.2.3" atau "1.2.3" → 10203
-    const clean = tag.replace(/^v/, '')
-    const parts = clean.split('.').map(n => parseInt(n, 10) || 0)
-    return (parts[0] || 0) * 10000 + (parts[1] || 0) * 100 + (parts[2] || 0)
-  }
-
-  app.get('/api/app/version-check', async (req, res) => {
-    // Kembalikan cache kalau masih fresh
-    if (_ghCache && Date.now() - _ghCache.fetchedAt < GH_CACHE_TTL) {
-      return res.json({ minVersionCode: _ghCache.minVersionCode, downloadUrl: _ghCache.downloadUrl })
-    }
-
-    try {
-      const ghRes = await fetch(
-        `https://api.github.com/repos/${GH_REPO}/releases/latest`,
-        { headers: { 'User-Agent': 'TOMAT-Server', Accept: 'application/vnd.github+json' } }
-      )
-      if (!ghRes.ok) throw new Error(`GitHub API ${ghRes.status}`)
-      const release = await ghRes.json()
-
-      const minVersionCode = semverToCode(release.tag_name || '0')
-      const apkAsset = (release.assets || []).find(a => a.name.endsWith('.apk'))
-      const downloadUrl = apkAsset?.browser_download_url || ''
-
-      _ghCache = { minVersionCode, downloadUrl, fetchedAt: Date.now() }
-      return res.json({ minVersionCode, downloadUrl })
-    } catch (err) {
-      console.warn('[version-check] GitHub fetch gagal, fallback ke env:', err.message)
-      // Fallback ke env var jika GitHub tidak bisa dijangkau
-      const minVersionCode = parseInt(process.env.MIN_APP_VERSION_CODE || '1', 10)
-      const downloadUrl = process.env.APP_DOWNLOAD_URL || ''
-      return res.json({ minVersionCode, downloadUrl })
-    }
-  })
+  // ── App version & OTA bundles ─────────────────────────────────────────────
+  app.use('/api/app', appVersionRouter)
+  // Internal-only MOBA Arena Editor assets. This route is intentionally
+  // separate from TOMAT's authenticated product APIs.
+  app.use('/api/internal', mobaAssetsRouter)
+  app.use('/local-moba-assets', express.static(path.resolve(process.cwd(), 'local_moba_assets')))
 
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite')
@@ -123,7 +195,8 @@ async function createServer() {
     })
     app.use(vite.middlewares)
   } else {
-    const path = await import('node:path')
+    // Serve OTA bundle zips dari folder bundles/ (dibuat oleh scripts/deploy-bundle.sh)
+    app.use('/bundles', express.static(path.resolve(process.cwd(), 'bundles')))
     const distPath = path.resolve(process.cwd(), 'dist')
     app.use(express.static(distPath))
     app.use((req, res) => {
@@ -148,6 +221,10 @@ async function createServer() {
   ensureSchema().catch((err) => {
     console.error('Failed to ensure database schema:', err)
   })
+
+  // Purge expired submission content once at startup, then every hour
+  purgeExpiredSubmissions()
+  setInterval(purgeExpiredSubmissions, 60 * 60 * 1000)
 }
 
 createServer()

@@ -21,7 +21,7 @@ function genQ(difficulty = 'medium') {
 function rootSymbol(n) { return n === 2 ? '√' : n === 3 ? '∛' : '∜' }
 
 export default function G8KristalGame({ goBack, difficulty = 'medium', survival = false }) {
-  const { addCoins, addExp } = usePlayer()
+  const { addCoins, addExp, recordWrongAnswer } = usePlayer()
   const survivalState = useSurvival(survival)
   const effectiveDifficulty = survival ? survivalState.difficulty : difficulty
   const [q, setQ] = useState(() => genQ(effectiveDifficulty))
@@ -40,7 +40,7 @@ export default function G8KristalGame({ goBack, difficulty = 'medium', survival 
     const correct = val === q.answer
     setFeedback(correct)
     survivalState.recordResult(correct)
-    if (correct) { addCoins(50); addExp(100) }
+    if (correct) { addCoins(50); addExp(100) } else { recordWrongAnswer() }
   }
 
   if (survival && survivalState.gameOver)

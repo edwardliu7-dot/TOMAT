@@ -19,20 +19,25 @@ const GAME_LABELS = {
 }
 
 /**
- * Overlay banner muncul saat siswa menerima notifikasi 'tournament:your-match'.
+ * Overlay banner for two scenarios:
+ *   1. matchData.type === 'match' (default) — student has a live match ready
+ *      matchData = { tournamentId, matchId, opponent, gameKey, round }
+ *   2. matchData.type === 'bracket' — tournament active after page refresh, no pending match
+ *      matchData = { type: 'bracket', tournamentId }
  * Props:
- *   matchData  = { tournamentId, matchId, opponent, gameKey, round }
- *   onAccept(matchData)  — siswa klik "Masuk Arena!"
- *   onDismiss()          — siswa pilih lewati / countdown habis
+ *   onAccept(matchData)  — clicked primary button
+ *   onDismiss()          — closed / countdown expired
  */
 export default function TournamentNotificationBanner({ matchData, onAccept, onDismiss }) {
-  const TOTAL = 60
-  const [countdown, setCountdown] = useState(TOTAL)
+  const isBracketMode = matchData?.type === 'bracket'
+  const TOTAL = isBracketMode ? 0 : 60  // no auto-dismiss for bracket mode
+  const [countdown, setCountdown] = useState(isBracketMode ? 0 : TOTAL)
   const timerRef = useRef(null)
   const { pet } = usePet()
   const petDead = pet?.isDead === true
 
   useEffect(() => {
+    if (isBracketMode) return  // no countdown for bracket notification
     timerRef.current = setInterval(() => {
       setCountdown(c => {
         if (c <= 1) {
@@ -44,7 +49,7 @@ export default function TournamentNotificationBanner({ matchData, onAccept, onDi
       })
     }, 1000)
     return () => clearInterval(timerRef.current)
-  }, [onDismiss])
+  }, [onDismiss, isBracketMode])
 
   const pct = (countdown / TOTAL) * 100
   const urgent = countdown <= 15
@@ -59,6 +64,53 @@ export default function TournamentNotificationBanner({ matchData, onAccept, onDi
     onDismiss?.()
   }
 
+  // ── Bracket mode (rejoin after page refresh) ──────────────────────────────
+  if (isBracketMode) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'flex-end', padding: '0 0 24px',
+      }}>
+        <div style={{
+          width: '100%', maxWidth: 480, margin: '0 auto',
+          background: 'linear-gradient(135deg,#0d1f2e,#0a1f15)',
+          border: '2px solid rgba(16,185,129,0.5)',
+          borderRadius: 24, padding: '24px 20px 20px',
+          boxShadow: '0 0 60px rgba(16,185,129,0.2)',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 24, background: 'radial-gradient(circle at 50% 0%, rgba(16,185,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div style={{ fontSize: 36 }}>🏆</div>
+            <div>
+              <div style={{ fontSize: 11, color: '#10b981', fontWeight: 800, letterSpacing: 1.5 }}>TURNAMEN MASIH BERLANGSUNG</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>Kamu masih dalam turnamen!</div>
+            </div>
+          </div>
+          <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 14, padding: '14px 16px', marginBottom: 20, fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>
+            Halaman dimuat ulang — turnamen di kelasmu masih aktif. Lihat bracket dan tunggu giliran ronde berikutnya.
+          </div>
+          <button onClick={handleAccept} style={{
+            width: '100%', background: '#0e7490', border: 'none', borderRadius: 14, padding: '16px',
+            color: '#fff', fontSize: 16, fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit',
+            boxShadow: '0 4px 24px rgba(14,116,144,0.35)',
+          }}>
+            🏆 Lihat Bracket Turnamen
+          </button>
+          <button onClick={handleDismiss} style={{
+            width: '100%', background: 'transparent', border: 'none',
+            color: '#475569', fontSize: 12, marginTop: 10,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            Tutup
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Match mode (normal match notification) ─────────────────────────────────
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9999,

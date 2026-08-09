@@ -72,9 +72,13 @@ export function TaskProvider({ children, onTaskComplete }) {
 
   const [tasks, setTasks] = useState([])
   const [grades, setGrades] = useState([])
-  // activeSession: { taskId, correctAnswers, totalQuestions, task } | null
   // activeSession: { taskId, correctAnswers, wrongAnswers, totalQuestions, task } | null
   const [activeSession, setActiveSession] = useState(null)
+  // submitError: shown to student when the server rejects the grade submission
+  const [submitError, setSubmitError] = useState(null)
+  // exitWarning: true when student was caught leaving and task was auto-reset
+  const [exitWarning, setExitWarning] = useState(false)
+  const submittingTaskIdRef = useRef(null)
 
   const onTaskCompleteRef = useRef(onTaskComplete)
   useEffect(() => { onTaskCompleteRef.current = onTaskComplete }, [onTaskComplete])
@@ -112,11 +116,33 @@ export function TaskProvider({ children, onTaskComplete }) {
     setActiveSession(null)
   }, [])
 
+  // Called by useTaskGuard when the student leaves mid-task.
+  // Zeros correctAnswers/wrongAnswers so questions restart from the beginning,
+  // and raises the exitWarning flag so the UI can show a penalty modal.
+  const resetTaskSession = useCallback(() => {
+    setActiveSession(s => s ? { ...s, correctAnswers: 0, wrongAnswers: 0 } : null)
+    setExitWarning(true)
+  }, [])
+
+  const clearExitWarning = useCallback(() => setExitWarning(false), [])
+
   // Shared helper: submit grade when all questions have been answered (correct or wrong).
   const submitGrade = useCallback((session, newCorrect, newWrong) => {
     const totalAnswered = newCorrect + newWrong
     if (totalAnswered < session.totalQuestions) return false
-    setActiveSession(null)
+
+    // Keep the session visible until the server confirms the grade. The
+    // in-flight ref prevents duplicate submissions without losing progress on
+    // a network failure.
+    if (submittingTaskIdRef.current === session.taskId) return true
+    submittingTaskIdRef.current = session.taskId
+    setActiveSession(s => s ? {
+      ...s,
+      correctAnswers: newCorrect,
+      wrongAnswers: newWrong,
+    } : s)
+    setSubmitError(null)
+
     apiCall('/api/siswa/nilai', {
       method: 'POST',
       body: { tugasId: session.taskId, correctCount: newCorrect },
@@ -124,20 +150,37 @@ export function TaskProvider({ children, onTaskComplete }) {
       const gradeRecord = { ...mapNilai({ ...nilai, game_name: session.task.gameName, game_emoji: session.task.gameEmoji, type: session.task.type }) }
       setTasks(ts => ts.map(t => t.id === session.taskId ? { ...t, status: 'completed' } : t))
       setGrades(gs => [...gs, gradeRecord])
+      submittingTaskIdRef.current = null
+      setActiveSession(null)
       onTaskCompleteRef.current?.(gradeRecord)
     }).catch(err => {
       console.error('Failed to submit grade', err)
+      // Surface the error so the student knows the task was not saved.
+      // Common causes: pet died during gameplay, guru closed the task, session expired.
+      const msg = err?.message || 'Terjadi kesalahan jaringan.'
+      setSubmitError(msg)
+      submittingTaskIdRef.current = null
     })
     return true
   }, [])
 
+  // Retry the last complete submission without restarting the game. The
+  // session remains alive after a network failure, and the server treats a
+  // repeated POST as an idempotent success if the first request was committed.
+  const retrySubmitGrade = useCallback(() => {
+    const session = activeSessionRef.current
+    if (!session) return false
+    return submitGrade(session, session.correctAnswers, session.wrongAnswers ?? 0)
+  }, [submitGrade])
+
   // Override addCoins: game files use the legacy 50 marker, while the actual
   // normalized economy reward is 15 coins per correct answer.
   // A correct answer advances correctAnswers; when correct+wrong >= totalQuestions the session ends.
-  const addCoins = useCallback((amount) => {
+  const addCoins = useCallback((amount, options = {}) => {
     playerCtx.addCoins(amount)
     const session = activeSessionRef.current
-    if (!session || amount !== 50) return // legacy marker = one correct game answer
+    const isCorrectAnswer = options.isCorrectAnswer ?? amount > 0
+    if (!session || !isCorrectAnswer) return
 
     const newCorrect = session.correctAnswers + 1
     const newWrong = session.wrongAnswers ?? 0
@@ -167,6 +210,8 @@ export function TaskProvider({ children, onTaskComplete }) {
     ? { ...playerCtx, addCoins, recordWrongAnswer }
     : playerCtx
 
+  const clearSubmitError = useCallback(() => setSubmitError(null), [])
+
   const taskValue = {
     tasks,
     grades,
@@ -174,7 +219,13 @@ export function TaskProvider({ children, onTaskComplete }) {
     getTaskForGame,
     startTaskSession,
     endTaskSession,
+    resetTaskSession,
+    clearExitWarning,
     refresh,
+    submitError,
+    clearSubmitError,
+    retrySubmitGrade,
+    exitWarning,
   }
 
   return (

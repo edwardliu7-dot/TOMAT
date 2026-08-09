@@ -1,0 +1,210 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --editor-bg: #07111f;
+  --editor-panel: #0c1b2d;
+  --editor-panel-2: #10253b;
+  --editor-line: rgba(143, 187, 217, 0.13);
+  --editor-muted: #6f89a2;
+  --editor-text: #e8f4ff;
+  --editor-cyan: #43d9d1;
+  --editor-blue: #5c8cff;
+  --editor-orange: #f9a65a;
+}
+
+.moba-editor {
+  min-height: 100vh;
+  color: var(--editor-text);
+  background:
+    radial-gradient(circle at 74% 8%, rgba(41, 102, 150, .2), transparent 28rem),
+    radial-gradient(circle at 12% 100%, rgba(27, 93, 112, .11), transparent 30rem),
+    var(--editor-bg);
+  font-family: 'Manrope', system-ui, sans-serif;
+  letter-spacing: -.015em;
+}
+
+.moba-editor *,
+.moba-editor *::before,
+.moba-editor *::after { box-sizing: border-box; }
+
+.moba-editor button { font: inherit; }
+
+.moba-editor__topbar {
+  min-height: 82px;
+  padding: 16px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--editor-line);
+  background: rgba(5, 15, 28, .82);
+  backdrop-filter: blur(18px);
+}
+
+.moba-editor__brand,
+.moba-editor__top-actions,
+.moba-editor__panel-heading,
+.moba-editor__stage-header,
+.moba-editor__coordinates,
+.moba-editor__library-heading,
+.moba-editor__selection,
+.moba-editor__save-note {
+  display: flex;
+  align-items: center;
+}
+
+.moba-editor__brand { gap: 13px; }
+.moba-editor__brand h1 { margin: 3px 0 0; font-size: 18px; letter-spacing: -.04em; }
+.moba-editor__mark {
+  width: 34px; height: 34px; display: grid; place-items: center;
+  color: var(--editor-cyan); border: 1px solid rgba(67, 217, 209, .35);
+  border-radius: 10px; background: rgba(67, 217, 209, .1); font-size: 19px;
+}
+.moba-editor__eyebrow, .moba-editor__section-kicker {
+  color: #63849f; font: 500 9px/1 'DM Mono', monospace; letter-spacing: .13em;
+}
+.moba-editor__back {
+  color: #89a4bc; text-decoration: none; font-size: 21px; margin-right: 4px;
+  transition: color .15s ease, transform .15s ease;
+}
+.moba-editor__back:hover { color: var(--editor-cyan); transform: translateX(-2px); }
+.moba-editor__top-actions { gap: 10px; }
+.moba-editor__status {
+  color: #74cdc1; font: 500 9px/1 'DM Mono', monospace; letter-spacing: .09em;
+  margin-right: 8px;
+}
+.moba-editor__status i {
+  display: inline-block; width: 6px; height: 6px; margin-right: 6px;
+  border-radius: 50%; background: #49d6a4; box-shadow: 0 0 10px #49d6a4;
+}
+.moba-editor__ghost-button, .moba-editor__clear-button {
+  border-radius: 8px; padding: 9px 12px; cursor: pointer; font-size: 11px; transition: .15s ease;
+}
+.moba-editor__ghost-button { color: #9bb2c9; border: 1px solid var(--editor-line); background: transparent; }
+.moba-editor__clear-button { color: #ffb5aa; border: 1px solid rgba(239, 119, 108, .25); background: rgba(239, 119, 108, .08); }
+.moba-editor__ghost-button:hover { border-color: rgba(67, 217, 209, .45); color: var(--editor-cyan); }
+.moba-editor__clear-button:hover { background: rgba(239, 119, 108, .16); }
+
+.moba-editor__notice {
+  position: fixed; z-index: 10; top: 94px; left: 50%; transform: translateX(-50%);
+  padding: 11px 17px; border-radius: 10px; font-size: 12px; font-weight: 700;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .28); animation: editorNoticeIn .2s ease-out;
+}
+.moba-editor__notice--success { color: #b0f7dc; border: 1px solid rgba(73, 214, 164, .35); background: #0d302d; }
+.moba-editor__notice--error { color: #ffc1bb; border: 1px solid rgba(239, 119, 108, .35); background: #341c24; }
+.moba-editor__notice--info { color: #bed3ff; border: 1px solid rgba(92, 140, 255, .35); background: #17294b; }
+@keyframes editorNoticeIn { from { opacity: 0; transform: translate(-50%, -7px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+.moba-editor__workspace {
+  max-width: 1540px; min-height: calc(100vh - 82px); margin: 0 auto;
+  display: grid; grid-template-columns: 294px minmax(0, 1fr); gap: 0;
+}
+.moba-editor__sidebar { border-right: 1px solid var(--editor-line); }
+.moba-editor__panel { padding: 25px 22px; border-bottom: 1px solid var(--editor-line); }
+.moba-editor__panel-heading { justify-content: space-between; align-items: flex-start; }
+.moba-editor__panel h2, .moba-editor__stage h2 { margin: 7px 0 0; color: #f1f7fd; font-size: 15px; letter-spacing: -.035em; }
+.moba-editor__count {
+  color: var(--editor-cyan); font: 500 11px 'DM Mono', monospace; padding: 5px 7px;
+  border: 1px solid rgba(67, 217, 209, .2); border-radius: 6px; background: rgba(67, 217, 209, .08);
+}
+.moba-editor__panel-copy { margin: 13px 0 18px; color: var(--editor-muted); font-size: 11px; line-height: 1.65; }
+.moba-editor__file-input { display: none; }
+.moba-editor__upload-button {
+  display: flex; align-items: center; width: 100%; gap: 11px; padding: 12px;
+  border: 1px dashed rgba(67, 217, 209, .43); border-radius: 10px; cursor: pointer;
+  color: var(--editor-text); text-align: left; background: rgba(67, 217, 209, .07); transition: .15s ease;
+}
+.moba-editor__upload-button:hover:not(:disabled) { border-color: var(--editor-cyan); background: rgba(67, 217, 209, .13); }
+.moba-editor__upload-button:disabled { opacity: .65; cursor: wait; }
+.moba-editor__upload-icon { display: grid; place-items: center; width: 28px; height: 28px; color: #081820; border-radius: 7px; background: var(--editor-cyan); font-size: 20px; line-height: 1; }
+.moba-editor__upload-button strong, .moba-editor__upload-button small { display: block; }
+.moba-editor__upload-button strong { font-size: 11px; }
+.moba-editor__upload-button small { margin-top: 3px; color: #7894a8; font-size: 9px; }
+.moba-editor__library-heading { justify-content: space-between; }
+.moba-editor__library-heading h2 { margin: 0; }
+.moba-editor__library-heading button { color: var(--editor-muted); border: 0; background: none; cursor: pointer; font-size: 19px; line-height: 1; }
+.moba-editor__library-heading button:hover { color: var(--editor-cyan); transform: rotate(35deg); }
+.moba-editor__hint { margin: 7px 0 15px; color: #526e86; font-size: 10px; }
+.moba-editor__asset-list { display: grid; gap: 8px; max-height: 370px; overflow-y: auto; padding-right: 3px; }
+.moba-editor__asset-list::-webkit-scrollbar { width: 4px; }
+.moba-editor__asset-list::-webkit-scrollbar-thumb { background: #24445c; border-radius: 5px; }
+.moba-editor__empty { padding: 27px 10px; color: #57748a; text-align: center; font-size: 10px; line-height: 1.65; border: 1px dashed rgba(143, 187, 217, .14); border-radius: 9px; }
+.moba-editor__empty span { display: block; margin-bottom: 5px; color: #47728e; font-size: 22px; }
+.moba-editor__asset-card {
+  display: flex; align-items: center; width: 100%; gap: 10px; padding: 7px;
+  color: var(--editor-text); border: 1px solid transparent; border-radius: 9px;
+  background: rgba(255,255,255,.025); cursor: pointer; text-align: left; transition: .15s ease;
+}
+.moba-editor__asset-card:hover { border-color: rgba(143, 187, 217, .23); background: rgba(255,255,255,.06); }
+.moba-editor__asset-card.is-selected { border-color: rgba(67, 217, 209, .62); background: rgba(67, 217, 209, .1); box-shadow: inset 3px 0 var(--editor-cyan); }
+.moba-editor__asset-thumb { position: relative; flex: 0 0 40px; width: 40px; height: 40px; overflow: hidden; display: grid; place-items: center; border: 1px solid rgba(143, 187, 217, .13); border-radius: 6px; background: #071522; }
+.moba-editor__asset-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.moba-editor__asset-thumb b { position: absolute; right: 2px; bottom: 2px; display: grid; place-items: center; width: 13px; height: 13px; color: #06161b; border-radius: 50%; background: var(--editor-cyan); font-size: 9px; }
+.moba-editor__asset-meta { min-width: 0; }
+.moba-editor__asset-meta strong, .moba-editor__asset-meta small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.moba-editor__asset-meta strong { color: #cde1ef; font-size: 11px; }
+.moba-editor__asset-meta small { margin-top: 3px; color: #5d7a91; font: 9px 'DM Mono', monospace; }
+.moba-editor__tips { display: grid; }
+.moba-editor__panel--tips { background: rgba(7, 17, 31, .2); }
+.moba-editor__tip { display: flex; gap: 10px; margin-top: 14px; color: #7e9ab1; font-size: 10px; line-height: 1.5; }
+.moba-editor__tip b { color: var(--editor-orange); font: 500 9px 'DM Mono', monospace; }
+
+.moba-editor__stage { min-width: 0; padding: 34px 46px 28px; }
+.moba-editor__stage-header { justify-content: space-between; margin-bottom: 30px; }
+.moba-editor__stage h2 { margin-top: 9px; font-size: 19px; }
+.moba-editor__stage h2 span { color: #5f7890; font-size: 11px; font-weight: 500; vertical-align: middle; }
+.moba-editor__coordinates { gap: 18px; color: #6d899f; font: 9px 'DM Mono', monospace; }
+.moba-editor__coordinates span { display: flex; align-items: center; gap: 6px; }
+.moba-editor__legend { width: 6px; height: 6px; display: inline-block; border-radius: 2px; }
+.moba-editor__legend--grid { background: #48708e; }
+.moba-editor__legend--active { background: var(--editor-cyan); box-shadow: 0 0 7px rgba(67, 217, 209, .8); }
+.moba-editor__canvas-shell { max-width: 920px; margin: 0 auto; padding: 29px 28px 26px 32px; border: 1px solid rgba(130, 182, 218, .13); border-radius: 15px; background: linear-gradient(145deg, rgba(17, 40, 62, .88), rgba(7, 18, 32, .88)); box-shadow: 0 25px 60px rgba(0, 0, 0, .2), inset 0 1px rgba(255,255,255,.03); }
+.moba-editor__ruler { color: #54728c; font: 8px 'DM Mono', monospace; user-select: none; }
+.moba-editor__ruler--top { display: grid; grid-template-columns: repeat(20, 1fr); margin: 0 0 7px 29px; text-align: center; }
+.moba-editor__ruler--left { display: grid; grid-template-rows: repeat(20, 1fr); width: 20px; align-items: center; text-align: center; }
+.moba-editor__arena-row { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 9px; }
+.moba-editor__grid { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); aspect-ratio: 1; overflow: hidden; border: 1px solid rgba(84, 158, 190, .29); border-radius: 4px; background: rgba(3, 14, 25, .8); }
+.moba-editor__cell { position: relative; min-width: 0; padding: 0; border: 0; border-right: 1px solid rgba(73, 135, 164, .16); border-bottom: 1px solid rgba(73, 135, 164, .16); background: rgba(10, 35, 54, .38); cursor: crosshair; transition: background .1s ease; }
+.moba-editor__cell:nth-child(20n) { border-right: 0; }
+.moba-editor__cell:hover, .moba-editor__cell.is-drag-over { background: rgba(67, 217, 209, .18); }
+.moba-editor__cell.has-asset { background: rgba(35, 88, 103, .22); }
+.moba-editor__placed-asset { position: absolute; inset: 7%; display: grid; place-items: center; border: 1px solid transparent; border-radius: 4px; cursor: grab; transition: border .12s ease, transform .12s ease; }
+.moba-editor__placed-asset:hover, .moba-editor__placed-asset.is-selected { border-color: var(--editor-cyan); background: rgba(67, 217, 209, .14); transform: scale(1.06); z-index: 2; }
+.moba-editor__placed-asset:active { cursor: grabbing; }
+.moba-editor__placed-asset img { width: 90%; height: 90%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 4px rgba(0,0,0,.45)); }
+.moba-editor__placed-asset em { position: absolute; top: -7px; right: -7px; display: grid; place-items: center; width: 15px; height: 15px; color: #091820; border-radius: 50%; background: var(--editor-cyan); font: 800 11px/1 system-ui; font-style: normal; }
+.moba-editor__stage-footer { max-width: 920px; margin: 21px auto 0; display: flex; align-items: center; justify-content: space-between; }
+.moba-editor__selection { min-width: 180px; gap: 9px; }
+.moba-editor__selection-preview { display: grid; place-items: center; width: 30px; height: 30px; overflow: hidden; color: #557389; border: 1px solid var(--editor-line); border-radius: 6px; background: rgba(255,255,255,.025); font-size: 16px; }
+.moba-editor__selection-preview img { width: 100%; height: 100%; object-fit: contain; }
+.moba-editor__selection small, .moba-editor__selection strong { display: block; }
+.moba-editor__selection small { color: #54738c; font: 8px 'DM Mono', monospace; }
+.moba-editor__selection strong { margin-top: 2px; color: #7691a7; font-size: 10px; font-weight: 600; }
+.moba-editor__selection.has-selection strong { color: var(--editor-cyan); }
+.moba-editor__save-note { gap: 6px; color: #506b82; font-size: 9px; }
+.moba-editor__save-note span { color: #84a4bc; font: 11px 'DM Mono', monospace; }
+
+@media (max-width: 900px) {
+  .moba-editor__topbar { align-items: flex-start; gap: 15px; padding: 15px 17px; }
+  .moba-editor__top-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .moba-editor__status { width: 100%; text-align: right; }
+  .moba-editor__workspace { display: block; }
+  .moba-editor__sidebar { display: grid; grid-template-columns: 1fr 1fr; border-right: 0; }
+  .moba-editor__panel--tips { grid-column: 1 / -1; }
+  .moba-editor__asset-list { max-height: 220px; }
+  .moba-editor__stage { padding: 28px 16px; }
+  .moba-editor__canvas-shell { padding: 20px 16px 18px 19px; overflow-x: auto; }
+  .moba-editor__ruler--top, .moba-editor__arena-row { min-width: 530px; }
+  .moba-editor__grid { min-width: 500px; }
+}
+
+@media (max-width: 590px) {
+  .moba-editor__topbar { display: block; }
+  .moba-editor__top-actions { margin-top: 14px; justify-content: flex-start; }
+  .moba-editor__status { width: auto; margin-right: auto; }
+  .moba-editor__sidebar { display: block; }
+  .moba-editor__panel { padding: 20px 16px; }
+  .moba-editor__stage-header { display: block; }
+  .moba-editor__coordinates { margin-top: 14px; }
+  .moba-editor__stage-footer { display: block; }
+  .moba-editor__save-note { margin-top: 14px; }
+}

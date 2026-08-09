@@ -53,7 +53,7 @@ export default function PublicProfileScreen({ profile, goBack, onInviteDuel }) {
 
   // ── Banner ──
   const Banner = () => (
-    <div style={{ position: 'relative', height: isDesktop ? 200 : 160, background: spanduk ? spanduk.gradient : 'linear-gradient(160deg,#0c1a2e,#111827)', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', height: isDesktop ? 200 : 160, background: spanduk ? (spanduk.image ? `url(${spanduk.image}) right center / auto 100% no-repeat, ${spanduk.gradient}` : spanduk.gradient) : 'linear-gradient(160deg,#0c1a2e,#111827)', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, background: isCelestia ? 'radial-gradient(circle at 20% 60%, rgba(191,219,254,0.28), transparent 35%), radial-gradient(circle at 80% 30%, rgba(96,165,250,0.2), transparent 30%)' : isRoyal ? 'radial-gradient(circle at 50% 0%, rgba(212,175,55,0.25), transparent 55%), linear-gradient(90deg, transparent, rgba(212,175,55,0.08), transparent)' : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)', pointerEvents: 'none' }} />
       {isCelestia && (
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
@@ -65,9 +65,6 @@ export default function PublicProfileScreen({ profile, goBack, onInviteDuel }) {
       )}
       {isRoyal && <RoyalShimmer />}
       {spanduk && <div style={{ position: 'absolute', left: 16, bottom: 52, color: isRoyal ? '#f5e7b2cc' : isCelestia ? '#dbeafecc' : '#ffffffaa', fontSize: 8, fontWeight: 800, letterSpacing: 3, textTransform: 'uppercase', textShadow: '0 1px 10px rgba(0,0,0,0.7)' }}>{isRoyal ? 'Royal Mathematician' : isCelestia ? 'Celestia Relic' : spandukId}</div>}
-      {(profile.stikerLayout || []).map(s => (
-        <div key={s.uid} style={{ position: 'absolute', left: `${s.x}%`, top: `${s.y}%`, fontSize: s.size, lineHeight: 1, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 12, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.55))' }}>{s.emoji}</div>
-      ))}
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56, background: 'linear-gradient(to bottom, transparent, #0A0B14)', pointerEvents: 'none' }} />
     </div>
   )

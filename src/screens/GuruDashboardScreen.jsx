@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { connectSocket, getSocket } from '../socket'
 import { useAuth } from '../AuthContext'
 import { GAMES_CATALOG, GRADE_BAB_LABELS, getBabsForGrade } from '../gamesCatalog'
+import { VideoFrame } from '../components/VideoMateriPanel'
 
 const KELAS_PREFIX_TO_GRADE = { VII: 7, VIII: 8, IX: 9 }
 function kelasToGrade(kelas) {
@@ -12,10 +13,11 @@ import { TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import ProfileScreen from './ProfileScreen'
 import PublicProfileScreen from './PublicProfileScreen'
-import CommunicationScreen from './CommunicationScreen'
 import {
-  MessageNotificationBell, AppNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile, fetchPublicProfile, normalizeProfileTarget,
+  AppNotificationBell, PublicProfileModal, UserAvatar, usePublicProfile, fetchPublicProfile, normalizeProfileTarget,
 } from '../components/shared'
+import { guruCacheGet, guruCacheSet } from '../guruCache'
+import { ClassicBracket } from './TournamentWaitScreen'
 
 async function apiCall(path, options = {}) {
   const res = await fetch(path, {
@@ -29,12 +31,64 @@ async function apiCall(path, options = {}) {
   return data
 }
 
+// ── Web loading screen dengan persentase (hanya tampil di browser, bukan APK) ─
+function GuruDataLoadingScreen({ pct = 0 }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9000,
+      background: 'linear-gradient(160deg, #0a0b14 0%, #0e1a2e 60%, #0a0b14 100%)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '32px 24px', fontFamily: 'system-ui, sans-serif',
+    }}>
+      <div style={{
+        width: 72, height: 72, borderRadius: 18,
+        background: 'linear-gradient(135deg,#1e293b,#0f172a)',
+        border: '1px solid rgba(159,227,189,0.25)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 32, marginBottom: 28,
+        boxShadow: '0 0 32px rgba(159,227,189,0.12)',
+      }}>🏫</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginBottom: 6, letterSpacing: -0.3 }}>
+        Memuat Data Guru
+      </div>
+      <div style={{ fontSize: 13, color: '#64748B', marginBottom: 32 }}>
+        Menyiapkan dashboard Anda…
+      </div>
+      {/* Progress bar */}
+      <div style={{ width: '100%', maxWidth: 280, height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', borderRadius: 99,
+          background: 'linear-gradient(90deg,#9fe3bd,#67E8F9)',
+          width: `${Math.max(4, pct)}%`,
+          transition: 'width 0.4s ease',
+          boxShadow: '0 0 8px rgba(159,227,189,0.5)',
+        }} />
+      </div>
+      <div style={{ marginTop: 10, fontSize: 12, color: '#9fe3bd', fontWeight: 700 }}>
+        {Math.round(pct)}%
+      </div>
+    </div>
+  )
+}
+
+// ── Shared Style Constants ────────────────────────────────────────────────────
+const inputStyle = {
+  width: '100%', background: '#0D1117', border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 12, padding: '11px 12px', color: '#fff', fontSize: 13,
+  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+}
+const labelStyle = {
+  fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 1.5,
+  textTransform: 'uppercase', marginBottom: 5,
+}
+
 const TABS = [
   { id: 'home',    label: '🏠', text: 'Beranda' },
   { id: 'tugas',   label: '📋', text: 'Tugas' },
+  { id: 'video',   label: '🎬', text: 'Video Materi' },
   { id: 'hafalan', label: '🧮', text: 'Hafalan' },
   { id: 'nilai',   label: '📊', text: 'Nilai' },
-  { id: 'komunikasi', label: '💬', text: 'Chat' },
   { id: 'siswa',   label: '👥', text: 'Siswa' },
   { id: 'kunci',   label: '🔒', text: 'Kunci Bab' },
   { id: 'raid',      label: '⚔️', text: 'Boss Raid' },
@@ -42,10 +96,290 @@ const TABS = [
   { id: 'insight',   label: '🎮', text: 'Insight' },
 ]
 
+// Tabs that only guru mapel terdaftar may access
+const MANAGEMENT_TAB_IDS = new Set(['tugas', 'video', 'hafalan', 'kunci', 'raid', 'turnamen'])
+
+const IPA_BAB_LABELS = {
+  7: { I: 'BAB I: Besaran dan Pengukuran', II: 'BAB II: Zat dan Perubahannya', III: 'BAB III: Suhu, Pemuaian, dan Kalor', IV: 'BAB IV: Gaya dan Gerak' },
+  8: { I: 'BAB I: Pengenalan Sel', II: 'BAB II: Pencernaan & Peredaran Darah', III: 'BAB III: Pernapasan & Ekskresi' },
+  9: { I: 'BAB I: Sistem Koordinasi & Homeostasis', II: 'BAB II: Zat Adiktif & Psikotropika', III: 'BAB III: Sistem Reproduksi' },
+}
+
+const VIDEO_SUBJECTS = [
+  { value: 'matematika', label: 'Matematika' },
+  { value: 'ipa', label: 'IPA' },
+]
+
+function getVideoBabLabels(grade, subject) {
+  return subject === 'ipa' ? (IPA_BAB_LABELS[grade] || {}) : (GRADE_BAB_LABELS[grade] || {})
+}
+
+function emptyVideoForm(kelasDiampu) {
+  const kelas = kelasDiampu[0] || ''
+  const grade = kelasToGrade(kelas)
+  const bab = Object.keys(getVideoBabLabels(grade, 'matematika'))[0] || ''
+  return { kelas, subject: 'matematika', bab, title: '', description: '', youtubeUrl: '' }
+}
+
+function VideoMateriTab({ kelasDiampu }) {
+  const [videos, setVideos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState(() => emptyVideoForm(kelasDiampu))
+  const [editingId, setEditingId] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [filterSubject, setFilterSubject] = useState('all')
+  const [filterKelas, setFilterKelas] = useState('all')
+
+  const grade = kelasToGrade(form.kelas)
+  const babLabels = getVideoBabLabels(grade, form.subject)
+  const visibleVideos = videos.filter(video => (
+    (filterSubject === 'all' || video.subject === filterSubject)
+    && (filterKelas === 'all' || video.kelas === filterKelas)
+  ))
+  const confirmTarget = videos.find(video => video.id === confirmDeleteId)
+
+  const refresh = useCallback(async () => {
+    try {
+      const data = await apiCall('/api/guru/video-materi')
+      setVideos(data.videos || [])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { refresh() }, [refresh])
+
+  useEffect(() => {
+    const firstBab = Object.keys(babLabels)[0] || ''
+    if (!babLabels[form.bab]) {
+      setForm(current => ({ ...current, bab: firstBab }))
+    }
+  }, [form.bab, babLabels])
+
+  const updateField = (name, value) => setForm(current => ({ ...current, [name]: value }))
+
+  const resetForm = () => {
+    setEditingId(null)
+    setForm(emptyVideoForm(kelasDiampu))
+  }
+
+  const submit = async event => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      const data = await apiCall(
+        editingId ? `/api/guru/video-materi/${editingId}` : '/api/guru/video-materi',
+        { method: editingId ? 'PATCH' : 'POST', body: form },
+      )
+      if (editingId) {
+        setVideos(current => current.map(video => video.id === editingId ? data.video : video))
+      } else {
+        setVideos(current => [data.video, ...current])
+      }
+      resetForm()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const editVideo = video => {
+    setEditingId(video.id)
+    setForm({
+      kelas: video.kelas,
+      subject: video.subject,
+      bab: video.bab,
+      title: video.title,
+      description: video.description || '',
+      youtubeUrl: video.youtubeUrl || `https://www.youtube.com/watch?v=${video.youtubeVideoId}`,
+    })
+    setError('')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const deleteVideo = async () => {
+    if (!confirmDeleteId) return
+    setDeleting(true)
+    setError('')
+    try {
+      await apiCall(`/api/guru/video-materi/${confirmDeleteId}`, { method: 'DELETE' })
+      setVideos(current => current.filter(video => video.id !== confirmDeleteId))
+      if (editingId === confirmDeleteId) resetForm()
+      setConfirmDeleteId(null)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {confirmTarget && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', padding: 20,
+        }} onClick={() => !deleting && setConfirmDeleteId(null)}>
+          <div style={{
+            width: '100%', maxWidth: 380, padding: 24, borderRadius: 20,
+            background: '#111827', border: '1px solid rgba(239,68,68,0.3)',
+          }} onClick={event => event.stopPropagation()}>
+            <div style={{ fontSize: 32, textAlign: 'center', marginBottom: 10 }}>🗑️</div>
+            <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, textAlign: 'center' }}>Hapus video materi?</div>
+            <div style={{ color: '#94A3B8', fontSize: 12, lineHeight: 1.5, textAlign: 'center', margin: '8px 0 20px' }}>
+              “{confirmTarget.title}” tidak akan tampil lagi untuk siswa kelas {confirmTarget.kelas}.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" onClick={() => setConfirmDeleteId(null)} disabled={deleting} style={{ ...secondaryButtonStyle, flex: 1 }}>Batal</button>
+              <button type="button" onClick={deleteVideo} disabled={deleting} style={{ ...dangerButtonStyle, flex: 1 }}>{deleting ? 'Menghapus…' : 'Hapus'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Section style={{ borderColor: editingId ? 'rgba(103,232,249,0.28)' : 'rgba(159,227,189,0.16)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+          <div style={{ fontSize: 28 }}>🎬</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: '#fff', fontSize: 16, fontWeight: 800 }}>{editingId ? 'Edit Video Materi' : 'Tambah Video Materi'}</div>
+            <div style={{ color: '#64748B', fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>
+              Video akan tampil pada zona siswa sesuai kelas, mapel, dan BAB yang dipilih.
+            </div>
+          </div>
+          {editingId && <button type="button" onClick={resetForm} style={linkButtonStyle}>Batal edit</button>}
+        </div>
+
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
+            <div>
+              <div style={labelStyle}>Kelas</div>
+              <select value={form.kelas} onChange={event => updateField('kelas', event.target.value)} style={inputStyle} required>
+                {kelasDiampu.length === 0 && <option value="">Belum ada kelas</option>}
+                {kelasDiampu.map(kelas => <option key={kelas} value={kelas}>{kelas}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>Mata Pelajaran</div>
+              <select value={form.subject} onChange={event => updateField('subject', event.target.value)} style={inputStyle} required>
+                {VIDEO_SUBJECTS.map(subject => <option key={subject.value} value={subject.value}>{subject.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>BAB</div>
+              <select value={form.bab} onChange={event => updateField('bab', event.target.value)} style={inputStyle} required>
+                {Object.entries(babLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <div style={labelStyle}>Judul Video</div>
+            <input value={form.title} onChange={event => updateField('title', event.target.value)} maxLength={255} placeholder="Contoh: Memahami Bilangan Bulat" style={inputStyle} required />
+          </div>
+          <div>
+            <div style={labelStyle}>Link YouTube</div>
+            <input type="url" value={form.youtubeUrl} onChange={event => updateField('youtubeUrl', event.target.value)} placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX" style={inputStyle} required />
+            <div style={{ color: '#64748B', fontSize: 11, marginTop: 5 }}>Gunakan link YouTube biasa, Shorts, atau link pendek youtu.be. ID video akan divalidasi server.</div>
+          </div>
+          <div>
+            <div style={labelStyle}>Deskripsi <span style={{ color: '#475569', fontWeight: 400, letterSpacing: 0, textTransform: 'none' }}>(opsional)</span></div>
+            <textarea value={form.description} onChange={event => updateField('description', event.target.value)} maxLength={2000} rows={3} placeholder="Keterangan singkat untuk siswa…" style={{ ...inputStyle, resize: 'vertical' }} />
+          </div>
+          {error && <div style={{ color: '#FCA5A5', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: '9px 12px', fontSize: 12 }}>{error}</div>}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button type="submit" disabled={saving || !form.kelas} style={{ ...primaryButtonStyle, opacity: saving || !form.kelas ? 0.55 : 1 }}>
+              {saving ? 'Menyimpan…' : editingId ? '✏️ Simpan Perubahan' : '＋ Tambah Video'}
+            </button>
+          </div>
+        </form>
+      </Section>
+
+      <Section>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, flex: 1 }}>Video yang Saya Kelola</div>
+          <select value={filterKelas} onChange={event => setFilterKelas(event.target.value)} style={{ ...smallSelectStyle, minWidth: 150 }}>
+            <option value="all">Semua kelas</option>
+            {kelasDiampu.map(kelas => <option key={kelas} value={kelas}>{kelas}</option>)}
+          </select>
+          <select value={filterSubject} onChange={event => setFilterSubject(event.target.value)} style={smallSelectStyle}>
+            <option value="all">Semua mapel</option>
+            {VIDEO_SUBJECTS.map(subject => <option key={subject.value} value={subject.value}>{subject.label}</option>)}
+          </select>
+        </div>
+
+        {loading ? (
+          <div style={{ color: '#64748B', fontSize: 12, padding: '18px 0' }}>Memuat video materi…</div>
+        ) : visibleVideos.length === 0 ? (
+          <div style={{ color: '#64748B', fontSize: 12, lineHeight: 1.6, padding: '20px 0', textAlign: 'center' }}>
+            Belum ada video yang cocok dengan filter ini.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 12 }}>
+            {visibleVideos.map(video => (
+              <article key={video.id} style={{ background: '#0D1117', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+                <VideoFrame video={video} compact />
+                <div style={{ padding: 12 }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 7 }}>
+                    <span style={videoPillStyle}>{video.subject === 'ipa' ? 'IPA' : 'MATEMATIKA'}</span>
+                    <span style={{ ...videoPillStyle, color: '#A78BFA', background: 'rgba(167,139,250,0.12)' }}>KELAS {video.grade}</span>
+                  </div>
+                  <div style={{ color: '#fff', fontSize: 13, fontWeight: 800, lineHeight: 1.35 }}>{video.title}</div>
+                  <div style={{ color: '#67E8F9', fontSize: 10, fontWeight: 700, marginTop: 5 }}>{getVideoBabLabels(video.grade, video.subject)[video.bab] || `BAB ${video.bab}`}</div>
+                  <div style={{ color: '#64748B', fontSize: 11, marginTop: 3 }}>{video.kelas}</div>
+                  {video.description && <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 8 }}>{video.description}</div>}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <button type="button" onClick={() => editVideo(video)} style={{ ...secondaryButtonStyle, flex: 1 }}>✏️ Edit</button>
+                    <button type="button" onClick={() => setConfirmDeleteId(video.id)} style={{ ...dangerButtonStyle, flex: 1 }}>🗑 Hapus</button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </Section>
+    </div>
+  )
+}
+
+const primaryButtonStyle = {
+  background: 'linear-gradient(135deg,#34D399,#059669)', color: '#042f2e',
+  border: 'none', borderRadius: 11, padding: '11px 16px', fontSize: 12,
+  fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+}
+const secondaryButtonStyle = {
+  background: 'rgba(255,255,255,0.06)', color: '#CBD5E1',
+  border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9, padding: '9px 10px',
+  fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+}
+const dangerButtonStyle = {
+  background: 'rgba(239,68,68,0.12)', color: '#F87171',
+  border: '1px solid rgba(239,68,68,0.25)', borderRadius: 9, padding: '9px 10px',
+  fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+}
+const linkButtonStyle = {
+  background: 'none', border: 'none', color: '#67E8F9',
+  fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+}
+const smallSelectStyle = {
+  background: '#0D1117', color: '#CBD5E1', border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 9, padding: '8px 10px', fontSize: 11, fontFamily: 'inherit',
+}
+const videoPillStyle = {
+  color: '#34D399', background: 'rgba(52,211,153,0.12)',
+  borderRadius: 99, padding: '4px 7px', fontSize: 9, fontWeight: 800,
+}
+
 function Section({ children, style = {} }) {
   return (
     <div style={{
-      background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)',
+      background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)',
       padding: 16, ...style
     }}>{children}</div>
   )
@@ -152,9 +486,10 @@ function EditTugasModal({ tugas, onClose, onSaved }) {
   )
 }
 
+// ── Tugas Tab ─────────────────────────────────────────────────────────────────
 function TugasTab({ kelasDiampu }) {
-  const [tugasList, setTugasList] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [tugasList, setTugasList] = useState(() => guruCacheGet('tugas') ?? [])
+  const [loading, setLoading] = useState(() => !guruCacheGet('tugas'))
   const [error, setError] = useState('')
   const initialKelas = kelasDiampu[0] || ''
   const initialGrade = kelasToGrade(initialKelas)
@@ -164,6 +499,7 @@ function TugasTab({ kelasDiampu }) {
   const [editingTugas, setEditingTugas] = useState(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [subView, setSubView] = useState('list') // 'form' | 'list'
 
   const classGrade = kelasToGrade(form.kelas)
   const availableGames = GAMES_CATALOG.filter(g => classGrade ? g.grade <= classGrade : false)
@@ -175,11 +511,12 @@ function TugasTab({ kelasDiampu }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.kelas])
 
-  const refresh = useCallback(async () => {
-    setLoading(true)
+  const refresh = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true)
     try {
       const { tugas } = await apiCall('/api/guru/tugas')
       setTugasList(tugas)
+      guruCacheSet('tugas', tugas)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -187,7 +524,10 @@ function TugasTab({ kelasDiampu }) {
     }
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    const cached = guruCacheGet('tugas')
+    refresh(!cached) // show loading hanya jika tidak ada cache
+  }, [refresh])
 
   const submit = async (e) => {
     e.preventDefault()
@@ -205,6 +545,7 @@ function TugasTab({ kelasDiampu }) {
         },
       })
       await refresh()
+      setSubView('list')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -288,164 +629,196 @@ function TugasTab({ kelasDiampu }) {
         </div>
       )}
 
-      {/* New task form */}
-      <div style={{ background: '#111827', borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-        <div style={{ height: 2, background: 'linear-gradient(90deg, #06B6D4, #8B5CF6)' }} />
-        <div style={{ padding: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#06B6D4', boxShadow: '0 0 8px rgba(6,182,212,0.8)' }} />
-            Tetapkan Tugas Baru
-          </div>
-          <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
-              <div>
-                <div style={labelStyle}>Kelas</div>
-                <select value={form.kelas} onChange={e => setForm(f => ({ ...f, kelas: e.target.value }))} style={inputStyle}>
-                  {kelasDiampu.map(k => <option key={k} value={k}>{k}</option>)}
-                </select>
-              </div>
-              <div>
-                <div style={{ ...labelStyle, color: '#06B6D4' }}>Game Modul</div>
-                <select value={form.gameKey} onChange={e => setForm(f => ({ ...f, gameKey: e.target.value }))} style={{ ...inputStyle, borderColor: 'rgba(6,182,212,0.35)' }}>
-                  {availableGames.length === 0 && <option value="">Tidak ada game untuk kelas ini</option>}
-                  {[9, 8, 7].filter(gr => gr <= (classGrade || 0)).map(gr => {
-                    const gradeGames = availableGames.filter(g => g.grade === gr)
-                    if (gradeGames.length === 0) return null
-                    return (
-                      <optgroup key={gr} label={`Kelas ${gr === 7 ? 'VII' : gr === 8 ? 'VIII' : 'IX'}`}>
-                        {gradeGames.map(g => <option key={g.key} value={g.key}>{g.emoji} {g.name} ({GRADE_BAB_LABELS[g.grade]?.[g.bab] || g.bab})</option>)}
-                      </optgroup>
-                    )
-                  })}
-                </select>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div>
-                <div style={labelStyle}>Penilaian</div>
-                <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} style={inputStyle}>
-                  <option value="harian">Harian</option>
-                  <option value="formatif">Formatif</option>
-                  <option value="sumatif">Sumatif</option>
-                </select>
-              </div>
-              <div>
-                <div style={labelStyle}>Jml Soal</div>
-                <input type="number" min={1} value={form.totalQuestions}
-                  onChange={e => setForm(f => ({ ...f, totalQuestions: e.target.value }))}
-                  style={inputStyle} />
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div>
-                <div style={labelStyle}>Kesulitan</div>
-                <select value={form.difficulty} onChange={e => setForm(f => ({ ...f, difficulty: e.target.value }))} style={inputStyle}>
-                  {DIFFICULTY_LEVELS.map(level => <option key={level} value={level}>{DIFFICULTY_LABELS[level]}</option>)}
-                </select>
-              </div>
-              <div>
-                <div style={labelStyle}>Tenggat</div>
-                <input type="date" value={form.dueAt} onChange={e => setForm(f => ({ ...f, dueAt: e.target.value }))} style={inputStyle} />
-              </div>
-            </div>
-            {error && <div style={{ color: '#fca5a5', fontSize: 12, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 10, padding: '8px 12px' }}>{error}</div>}
-            <button type="submit" disabled={submitting || kelasDiampu.length === 0} style={{
-              marginTop: 4, background: submitting ? '#065f46' : 'linear-gradient(135deg,#10B981,#059669)',
-              color: '#fff', border: 'none', borderRadius: 14, padding: '14px 0',
-              fontSize: 14, fontWeight: 800, cursor: submitting ? 'default' : 'pointer', fontFamily: 'inherit',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              boxShadow: '0 0 20px rgba(16,185,129,0.3)',
-            }}>
-              ▶ {submitting ? 'Menyimpan…' : 'Tetapkan Tugas'}
-            </button>
-          </form>
-        </div>
+      {/* Sub-view toggle */}
+      <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 4, gap: 4 }}>
+        {[{ id: 'list', label: `Daftar Tugas${tugasList.length ? ` (${tugasList.length})` : ''}` }, { id: 'form', label: '+ Buat Tugas' }].map(v => (
+          <button key={v.id} onClick={() => setSubView(v.id)} style={{
+            flex: 1, padding: '9px 0', borderRadius: 9, border: 'none', cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+            background: subView === v.id ? (v.id === 'form' ? 'linear-gradient(135deg,#10B981,#059669)' : '#1A1D27') : 'transparent',
+            color: subView === v.id ? '#fff' : '#4B5563',
+            transition: 'all 0.15s',
+          }}>{v.label}</button>
+        ))}
       </div>
 
-      {/* Task list */}
-      <div>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 10 }}>
-          Daftar Tugas <span style={{ color: '#fff', background: 'rgba(255,255,255,0.1)', fontSize: 11, padding: '1px 8px', borderRadius: 20, marginLeft: 6 }}>{tugasList.length}</span>
+      {/* Create form */}
+      {subView === 'form' && (
+        <div style={{ background: '#111827', borderRadius: 18, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+          <div style={{ height: 2, background: 'linear-gradient(90deg, #06B6D4, #8B5CF6)' }} />
+          <div style={{ padding: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#06B6D4', boxShadow: '0 0 8px rgba(6,182,212,0.8)' }} />
+              Tetapkan Tugas Baru
+            </div>
+            <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
+                <div>
+                  <div style={labelStyle}>Kelas</div>
+                  <select value={form.kelas} onChange={e => setForm(f => ({ ...f, kelas: e.target.value }))} style={inputStyle}>
+                    {kelasDiampu.map(k => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div style={{ ...labelStyle, color: '#06B6D4' }}>Game Modul</div>
+                  <select value={form.gameKey} onChange={e => setForm(f => ({ ...f, gameKey: e.target.value }))} style={{ ...inputStyle, borderColor: 'rgba(6,182,212,0.35)' }}>
+                    {availableGames.length === 0 && <option value="">Tidak ada game untuk kelas ini</option>}
+                    {[9, 8, 7].filter(gr => gr <= (classGrade || 0)).map(gr => {
+                      const gradeGames = availableGames.filter(g => g.grade === gr)
+                      if (gradeGames.length === 0) return null
+                      return (
+                        <optgroup key={gr} label={`Kelas ${gr === 7 ? 'VII' : gr === 8 ? 'VIII' : 'IX'}`}>
+                          {gradeGames.map(g => <option key={g.key} value={g.key}>{g.emoji} {g.name} ({GRADE_BAB_LABELS[g.grade]?.[g.bab] || g.bab})</option>)}
+                        </optgroup>
+                      )
+                    })}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <div style={labelStyle}>Penilaian</div>
+                  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} style={inputStyle}>
+                    <option value="harian">Harian</option>
+                    <option value="formatif">Formatif</option>
+                    <option value="sumatif">Sumatif</option>
+                  </select>
+                </div>
+                <div>
+                  <div style={labelStyle}>Jml Soal</div>
+                  <input type="number" min={1} value={form.totalQuestions}
+                    onChange={e => setForm(f => ({ ...f, totalQuestions: e.target.value }))}
+                    style={inputStyle} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <div style={labelStyle}>Kesulitan</div>
+                  <select value={form.difficulty} onChange={e => setForm(f => ({ ...f, difficulty: e.target.value }))} style={inputStyle}>
+                    {DIFFICULTY_LEVELS.map(level => <option key={level} value={level}>{DIFFICULTY_LABELS[level]}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div style={labelStyle}>Tenggat</div>
+                  <input type="date" value={form.dueAt} onChange={e => setForm(f => ({ ...f, dueAt: e.target.value }))} style={inputStyle} />
+                </div>
+              </div>
+              {error && <div style={{ color: '#fca5a5', fontSize: 12, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 10, padding: '8px 12px' }}>{error}</div>}
+              <button type="submit" disabled={submitting || kelasDiampu.length === 0} style={{
+                marginTop: 4, background: submitting ? '#065f46' : 'linear-gradient(135deg,#10B981,#059669)',
+                color: '#fff', border: 'none', borderRadius: 14, padding: '14px 0',
+                fontSize: 14, fontWeight: 800, cursor: submitting ? 'default' : 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: '0 0 20px rgba(16,185,129,0.3)',
+              }}>
+                ▶ {submitting ? 'Menyimpan…' : 'Tetapkan Tugas'}
+              </button>
+            </form>
+          </div>
         </div>
-        {loading ? (
-          <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
-        ) : tugasList.length === 0 ? (
-          <div style={{ color: '#374151', fontSize: 13 }}>Belum ada tugas.</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {tugasList.map(t => {
-              const isActive = t.status === 'active'
-              return (
-                <div key={t.id} style={{
-                  background: '#111827', borderRadius: 16, border: `1px solid ${isActive ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)'}`,
-                  overflow: 'hidden', display: 'flex', opacity: isActive ? 1 : 0.65,
-                }}>
-                  <div style={{ width: 4, flexShrink: 0, background: isActive ? '#10B981' : '#374151', boxShadow: isActive ? '0 0 8px rgba(16,185,129,0.6)' : 'none' }} />
-                  <div style={{ padding: '12px 14px', flex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ fontSize: 22 }}>{t.game_emoji}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{t.game_name}</div>
-                      <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ color: '#67E8F9', fontWeight: 700, background: 'rgba(103,232,249,0.1)', padding: '1px 7px', borderRadius: 8 }}>{t.kelas}</span>
-                        <span>{TYPE_ICONS[t.type]} {TYPE_LABELS[t.type]}</span>
-                        <span>{t.total_questions} soal</span>
-                        {t.due_at && <span>Tenggat {t.due_at}</span>}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+      )}
+
+      {/* Task list */}
+      {subView === 'list' && (
+        <div>
+          {loading ? (
+            <div style={{ color: '#64748B', fontSize: 13, padding: '12px 0' }}>Memuat…</div>
+          ) : tugasList.length === 0 ? (
+            <div style={{ color: '#374151', fontSize: 13, textAlign: 'center', padding: '32px 0' }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+              Belum ada tugas. Klik <strong style={{ color: '#10B981' }}>+ Buat Tugas</strong> untuk memulai.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {tugasList.map(t => {
+                const isActive = t.status === 'active'
+                return (
+                  <div key={t.id} style={{
+                    background: '#111827', borderRadius: 14, border: `1px solid ${isActive ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)'}`,
+                    overflow: 'hidden', display: 'flex', opacity: isActive ? 1 : 0.65,
+                  }}>
+                    <div style={{ width: 3, flexShrink: 0, background: isActive ? '#10B981' : '#374151', boxShadow: isActive ? '0 0 8px rgba(16,185,129,0.6)' : 'none' }} />
+                    <div style={{ padding: '10px 12px', flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {/* Status pill + game name */}
                       <span style={{
+                        flexShrink: 0,
                         background: isActive ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)',
                         color: isActive ? '#34D399' : '#64748B',
                         border: `1px solid ${isActive ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                        fontSize: 9, fontWeight: 800, padding: '3px 9px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: 0.5,
-                      }}>{isActive ? 'Aktif' : 'Ditutup'}</span>
-                      <div style={{ display: 'flex', gap: 5 }}>
-                        <button onClick={() => closeTugas(t.id, t.status === 'active' ? 'closed' : 'active')} style={{
+                        fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 20,
+                        textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap',
+                      }}>{isActive ? 'Aktif' : 'Tutup'}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {t.game_emoji} {t.game_name}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                          <span style={{ color: '#67E8F9', fontWeight: 700 }}>{t.kelas}</span>
+                          <span>·</span>
+                          <span>{TYPE_ICONS[t.type]} {TYPE_LABELS[t.type]}</span>
+                          <span>·</span>
+                          <span>{t.total_questions} soal</span>
+                          {t.due_at && <><span>·</span><span>Tenggat {t.due_at}</span></>}
+                        </div>
+                      </div>
+                      {/* Icon action buttons */}
+                      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                        <button onClick={() => closeTugas(t.id, t.status === 'active' ? 'closed' : 'active')} title={isActive ? 'Tutup tugas' : 'Buka tugas'} style={{
                           background: isActive ? 'rgba(244,63,94,0.12)' : 'rgba(16,185,129,0.12)',
                           color: isActive ? '#F87171' : '#34D399',
                           border: `1px solid ${isActive ? 'rgba(244,63,94,0.25)' : 'rgba(16,185,129,0.25)'}`,
-                          borderRadius: 8, padding: '4px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                          borderRadius: 8, width: 32, height: 32, fontSize: 13, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                          {isActive ? 'Tutup' : 'Buka'}
+                          {isActive ? '⏸' : '▶'}
                         </button>
                         <button onClick={() => setEditingTugas(t)} title="Edit tugas" style={{
                           background: 'rgba(245,158,11,0.12)', color: '#FBBF24',
                           border: '1px solid rgba(245,158,11,0.25)',
-                          borderRadius: 8, padding: '4px 8px', fontSize: 13, cursor: 'pointer', lineHeight: 1,
+                          borderRadius: 8, width: 32, height: 32, fontSize: 13, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>✏️</button>
                         <button onClick={() => setConfirmDeleteId(t.id)} title="Hapus tugas" style={{
                           background: 'rgba(239,68,68,0.12)', color: '#F87171',
                           border: '1px solid rgba(239,68,68,0.25)',
-                          borderRadius: 8, padding: '4px 8px', fontSize: 13, cursor: 'pointer', lineHeight: 1,
+                          borderRadius: 8, width: 32, height: 32, fontSize: 13, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>🗑️</button>
                       </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
+// ── Nilai Tab ─────────────────────────────────────────────────────────────────
 function NilaiTab({ onProfileClick }) {
-  const [nilaiList, setNilaiList] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [nilaiList, setNilaiList] = useState(() => guruCacheGet('nilai') ?? [])
+  const [loading, setLoading] = useState(() => !guruCacheGet('nilai'))
+  const [openKelas, setOpenKelas] = useState(new Set())
+
   useEffect(() => {
-    apiCall('/api/guru/nilai').then(({ nilai }) => setNilaiList(nilai)).finally(() => setLoading(false))
+    const cached = guruCacheGet('nilai')
+    if (!cached) setLoading(true)
+    apiCall('/api/guru/nilai').then(({ nilai }) => {
+      const safe = nilai || []
+      setNilaiList(safe)
+      guruCacheSet('nilai', safe)
+    }).finally(() => setLoading(false))
   }, [])
+
   if (loading) return <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
   if (nilaiList.length === 0) return <div style={{ color: '#374151', fontSize: 13 }}>Belum ada nilai yang terkumpul.</div>
 
   const avg = Math.round(nilaiList.reduce((s, n) => s + n.score, 0) / nilaiList.length)
   const avgColor = avg >= 90 ? '#34D399' : avg >= 75 ? '#67E8F9' : avg >= 60 ? '#FBBF24' : '#F87171'
 
-  // Keep each assignment separate by its database id. A teacher may assign
-  // the same game more than once, so grouping only by game name would merge
-  // different assignments together.
   const kelasGroups = new Map()
   for (const nilai of nilaiList) {
     if (!kelasGroups.has(nilai.kelas)) kelasGroups.set(nilai.kelas, new Map())
@@ -468,112 +841,143 @@ function NilaiTab({ onProfileClick }) {
     ? new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
     : null
 
+  const toggleKelas = (kelas) => {
+    setOpenKelas(prev => {
+      const next = new Set(prev)
+      if (next.has(kelas)) next.delete(kelas)
+      else next.add(kelas)
+      return next
+    })
+  }
+
+  // Unique kelas count and tugas count
+  const uniqueTugas = new Set(nilaiList.map(n => n.tugas_id)).size
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ background: '#111827', borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', padding: '20px', textAlign: 'center' }}>
-        <div style={{ fontSize: 40, fontWeight: 900, color: avgColor, lineHeight: 1 }}>{avg}</div>
-        <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>Rata-rata dari {nilaiList.length} nilai terkumpul</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Summary bar — 3 stats inline */}
+      <div style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', padding: '14px 20px', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: avgColor, lineHeight: 1 }}>{avg}</div>
+          <div style={{ fontSize: 10, color: '#64748B', marginTop: 3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Rata-rata</div>
+        </div>
+        <div style={{ width: 1, height: 36, background: 'rgba(255,255,255,0.07)' }} />
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{nilaiList.length}</div>
+          <div style={{ fontSize: 10, color: '#64748B', marginTop: 3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Nilai</div>
+        </div>
+        <div style={{ width: 1, height: 36, background: 'rgba(255,255,255,0.07)' }} />
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{uniqueTugas}</div>
+          <div style={{ fontSize: 10, color: '#64748B', marginTop: 3, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Tugas</div>
+        </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+      {/* Kelas accordions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {[...kelasGroups.entries()].map(([kelas, tugasGroups]) => {
           const kelasNilai = [...tugasGroups.values()].flatMap(tugas => tugas.nilai)
           const kelasAverage = Math.round(kelasNilai.reduce((sum, nilai) => sum + nilai.score, 0) / kelasNilai.length)
+          const isOpen = openKelas.has(kelas)
           return (
-            <div key={kelas} style={{
-              background: 'rgba(15,23,42,0.68)', border: '1px solid rgba(103,232,249,0.18)',
-              borderRadius: 18, padding: 12,
-            }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '4px 4px 12px',
-                borderBottom: '1px solid rgba(255,255,255,0.07)',
+            <div key={kelas} style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+              {/* Kelas header — tap to toggle */}
+              <button onClick={() => toggleKelas(kelas)} style={{
+                width: '100%', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px',
               }}>
                 <div style={{
-                  width: 34, height: 34, borderRadius: 11, background: 'rgba(103,232,249,0.14)',
-                  color: '#67E8F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17,
+                  width: 34, height: 34, borderRadius: 10, background: 'rgba(103,232,249,0.14)',
+                  color: '#67E8F9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0,
                 }}>🏫</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>Kelas {kelas}</div>
-                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{kelas}</div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>
                     {kelasNilai.length} nilai · {tugasGroups.size} tugas
                   </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: scoreColor(kelasAverage) }}>{kelasAverage}</div>
-                  <div style={{ fontSize: 9, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.6 }}>Rata-rata</div>
+                <div style={{ textAlign: 'right', marginRight: 8 }}>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: scoreColor(kelasAverage) }}>{kelasAverage}</div>
+                  <div style={{ fontSize: 9, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.6 }}>Avg</div>
                 </div>
-              </div>
+                <span style={{ color: '#64748B', fontSize: 14, transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>›</span>
+              </button>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
-                {[...tugasGroups.values()].map(tugas => {
-                  const tugasAverage = Math.round(tugas.nilai.reduce((sum, nilai) => sum + nilai.score, 0) / tugas.nilai.length)
-                  return (
-                    <div key={tugas.id} style={{
-                      background: '#111827', borderRadius: 14,
-                      border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden',
-                    }}>
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: 10, padding: '12px 13px',
-                        background: 'rgba(255,255,255,0.025)',
-                      }}>
-                        <div style={{ fontSize: 24, flexShrink: 0 }}>{tugas.gameEmoji}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{tugas.gameName}</div>
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-                            <span style={{
-                              background: `${TYPE_COLORS[tugas.type]}18`, color: TYPE_COLORS[tugas.type],
-                              fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
-                            }}>
-                              {TYPE_ICONS[tugas.type]} {TYPE_LABELS[tugas.type]}
-                            </span>
-                            <span style={{ color: '#64748B', fontSize: 10 }}>
-                              {tugas.nilai.length} siswa mengumpulkan
-                            </span>
-                            {tugas.dueAt && (
-                              <span style={{ color: '#64748B', fontSize: 10 }}>
-                                Tenggat {formatDate(tugas.dueAt)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: 20, fontWeight: 900, color: scoreColor(tugasAverage) }}>{tugasAverage}</div>
-                          <div style={{ fontSize: 9, color: '#64748B' }}>RATA-RATA</div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 10px 10px' }}>
-                        {tugas.nilai.map(n => (
-                          <div key={n.id} style={{
-                            display: 'flex', alignItems: 'center', gap: 10,
-                            background: 'rgba(255,255,255,0.035)', borderRadius: 10, padding: '9px 10px',
+              {/* Tugas list (expanded) */}
+              {isOpen && (
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '8px 12px 12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {[...tugasGroups.values()].map(tugas => {
+                      const tugasAverage = Math.round(tugas.nilai.reduce((sum, nilai) => sum + nilai.score, 0) / tugas.nilai.length)
+                      return (
+                        <div key={tugas.id} style={{
+                          background: '#0D1117', borderRadius: 12,
+                          border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden',
+                        }}>
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
                           }}>
-                             <UserAvatar
-                               user={{ id: n.student_id, role: 'siswa', name: n.student_name, photoUrl: n.student_photo_url, equippedBingkai: n.student_equipped_bingkai }}
-                               size={34}
-                               onClick={() => onProfileClick({ id: n.student_id, role: 'siswa', name: n.student_name })}
-                             />
+                            <div style={{ fontSize: 20, flexShrink: 0 }}>{tugas.gameEmoji}</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                               <button onClick={() => onProfileClick({ id: n.student_id, role: 'siswa', name: n.student_name })} style={{
-                                 border: 'none', background: 'none', padding: 0, cursor: 'pointer',
-                                 color: '#fff', fontFamily: 'inherit', textAlign: 'left',
-                                 fontSize: 12, fontWeight: 700, maxWidth: '100%',
-                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                               }}>
-                                {n.student_name}
-                                <span style={{ color: '#64748B', fontWeight: 400, marginLeft: 5 }}>({n.student_username})</span>
-                               </button>
-                              <div style={{ fontSize: 10, color: '#64748B', marginTop: 3 }}>
-                                {n.correct_count}/{n.total_questions} soal
+                              <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tugas.gameName}</div>
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 3 }}>
+                                <span style={{
+                                  background: `${TYPE_COLORS[tugas.type]}18`, color: TYPE_COLORS[tugas.type],
+                                  fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
+                                }}>
+                                  {TYPE_ICONS[tugas.type]} {TYPE_LABELS[tugas.type]}
+                                </span>
+                                <span style={{ color: '#64748B', fontSize: 10 }}>
+                                  {tugas.nilai.length} siswa
+                                </span>
+                                {tugas.dueAt && (
+                                  <span style={{ color: '#64748B', fontSize: 10 }}>
+                                    Tenggat {formatDate(tugas.dueAt)}
+                                  </span>
+                                )}
                               </div>
                             </div>
-                            <div style={{ fontSize: 20, fontWeight: 900, color: scoreColor(n.score) }}>{n.score}</div>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <div style={{ fontSize: 18, fontWeight: 900, color: scoreColor(tugasAverage) }}>{tugasAverage}</div>
+                              <div style={{ fontSize: 9, color: '#64748B' }}>RATA-RATA</div>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, padding: '4px 8px 8px' }}>
+                            {tugas.nilai.map(n => (
+                              <div key={n.id} style={{
+                                display: 'flex', alignItems: 'center', gap: 10,
+                                background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '8px 10px',
+                              }}>
+                                <UserAvatar
+                                  user={{ id: n.student_id, role: 'siswa', name: n.student_name, photoUrl: n.student_photo_url, equippedBingkai: n.student_equipped_bingkai }}
+                                  size={28}
+                                  onClick={() => onProfileClick({ id: n.student_id, role: 'siswa', name: n.student_name })}
+                                />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <button onClick={() => onProfileClick({ id: n.student_id, role: 'siswa', name: n.student_name })} style={{
+                                    border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+                                    color: '#fff', fontFamily: 'inherit', textAlign: 'left',
+                                    fontSize: 12, fontWeight: 700, maxWidth: '100%',
+                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                  }}>
+                                    {n.student_name}
+                                    <span style={{ color: '#64748B', fontWeight: 400, marginLeft: 5 }}>({n.student_username})</span>
+                                  </button>
+                                  <div style={{ fontSize: 10, color: '#64748B', marginTop: 1 }}>
+                                    {n.correct_count}/{n.total_questions} soal
+                                  </div>
+                                </div>
+                                <div style={{ fontSize: 18, fontWeight: 900, color: scoreColor(n.score), flexShrink: 0 }}>{n.score}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}
@@ -582,38 +986,56 @@ function NilaiTab({ onProfileClick }) {
   )
 }
 
+// ── Siswa Tab ─────────────────────────────────────────────────────────────────
 function SiswaTab({ onProfileClick }) {
-  const [students, setStudents] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [students, setStudents] = useState(() => guruCacheGet('students') ?? [])
+  const [loading, setLoading] = useState(() => !guruCacheGet('students'))
   useEffect(() => {
-    apiCall('/api/guru/students').then(({ students }) => setStudents(students)).finally(() => setLoading(false))
+    const cached = guruCacheGet('students')
+    if (!cached) setLoading(true)
+    apiCall('/api/guru/students').then(({ students }) => {
+      const safe = students || []
+      setStudents(safe)
+      guruCacheSet('students', safe)
+    }).finally(() => setLoading(false))
   }, [])
   if (loading) return <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
   if (students.length === 0) return <div style={{ color: '#374151', fontSize: 13 }}>Belum ada siswa terdaftar di kelas yang Anda ampu.</div>
   const byKelas = {}
   for (const s of students) { (byKelas[s.kelas] ||= []).push(s) }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {Object.entries(byKelas).map(([kelas, list]) => (
         <div key={kelas}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#67E8F9', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>{kelas} ({list.length} siswa)</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* Sticky kelas header */}
+          <div style={{
+            position: 'sticky', top: 0, zIndex: 5,
+            background: 'rgba(10,11,20,0.96)', backdropFilter: 'blur(12px)',
+            padding: '8px 0 10px',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#67E8F9', textTransform: 'uppercase', letterSpacing: 1 }}>{kelas}</span>
+            <span style={{ background: 'rgba(103,232,249,0.12)', color: '#67E8F9', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>{list.length} siswa</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {list.map(s => (
-              <Section key={s.id} style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button key={s.id} onClick={() => onProfileClick({ id: s.id, role: 'siswa', name: s.name })} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                background: '#111827', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)',
+                padding: '10px 12px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%',
+              }}>
                 <UserAvatar
                   user={{ ...s, role: 'siswa' }}
-                  size={38}
+                  size={32}
                   onClick={() => onProfileClick({ id: s.id, role: 'siswa', name: s.name })}
                 />
-                <button onClick={() => onProfileClick({ id: s.id, role: 'siswa', name: s.name })} style={{
-                  flex: 1, minWidth: 0, border: 'none', background: 'none', padding: 0,
-                  color: '#fff', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, color: '#fff', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
-                   <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{s.username}</div>
-                   {s.is_test_account && <div style={{ fontSize: 9, color: '#FBBF24', fontWeight: 800, letterSpacing: .8, marginTop: 3 }}>AKUN DEMO · FULL CATALOG</div>}
-                </button>
-              </Section>
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{s.username}</div>
+                  {s.is_test_account && <div style={{ fontSize: 9, color: '#FBBF24', fontWeight: 800, letterSpacing: .8, marginTop: 2 }}>AKUN DEMO</div>}
+                </div>
+                <span style={{ color: '#374151', fontSize: 14, flexShrink: 0 }}>›</span>
+              </button>
             ))}
           </div>
         </div>
@@ -622,6 +1044,7 @@ function SiswaTab({ onProfileClick }) {
   )
 }
 
+// ── Kunci Tab ─────────────────────────────────────────────────────────────────
 function KunciTab({ grades }) {
   const [locks, setLocks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -647,26 +1070,40 @@ function KunciTab({ grades }) {
   }
   if (loading) return <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {error && <div style={{ color: '#fca5a5', fontSize: 13 }}>{error}</div>}
       {grades.length === 0 && <div style={{ color: '#374151', fontSize: 13 }}>Anda belum mengampu kelas manapun.</div>}
       {grades.map(grade => (
         <div key={grade}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#A78BFA', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Kelas {grade}</div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#A78BFA', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>Kelas {grade}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {getBabsForGrade(grade).map(bab => {
               const locked = isLocked(grade, bab)
               return (
-                <Section key={bab} style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 13, color: '#fff', fontWeight: 600 }}>{GRADE_BAB_LABELS[grade]?.[bab] || bab}</div>
+                <div key={bab} style={{
+                  background: '#111827', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)',
+                  padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 14 }}>{locked ? '🔒' : '🔓'}</span>
+                    <div style={{ fontSize: 13, color: locked ? '#94A3B8' : '#fff', fontWeight: 600 }}>{GRADE_BAB_LABELS[grade]?.[bab] || bab}</div>
+                  </div>
+                  {/* Switch toggle */}
                   <button onClick={() => toggle(grade, bab)} style={{
-                    background: locked ? 'rgba(239,68,68,0.15)' : 'rgba(52,211,153,0.15)',
-                    color: locked ? '#F87171' : '#34D399', border: 'none', borderRadius: 20,
-                    padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    width: 48, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer',
+                    background: locked ? 'rgba(239,68,68,0.25)' : 'rgba(52,211,153,0.25)',
+                    position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                    boxShadow: `inset 0 0 0 1px ${locked ? 'rgba(239,68,68,0.4)' : 'rgba(52,211,153,0.4)'}`,
                   }}>
-                    {locked ? '🔒 Terkunci — Buka' : '🔓 Terbuka — Kunci'}
+                    <span style={{
+                      position: 'absolute', top: 3, left: locked ? 3 : 23,
+                      width: 20, height: 20, borderRadius: '50%',
+                      background: locked ? '#F87171' : '#34D399',
+                      transition: 'left 0.2s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                    }} />
                   </button>
-                </Section>
+                </div>
               )
             })}
           </div>
@@ -676,13 +1113,14 @@ function KunciTab({ grades }) {
   )
 }
 
+// ── Sparkline ─────────────────────────────────────────────────────────────────
 function Sparkline({ values }) {
   const max = Math.max(1, ...values)
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 28 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 36, flexShrink: 0 }}>
       {values.map((v, i) => (
         <div key={i} style={{
-          width: 8, borderRadius: 2, height: Math.max(3, (v / max) * 28),
+          width: 8, borderRadius: 2, height: Math.max(3, (v / max) * 36),
           background: i === values.length - 1 && v > 0 ? '#34D399' : v > 0 ? 'rgba(52,211,153,0.45)' : 'rgba(255,255,255,0.07)',
         }} />
       ))}
@@ -690,30 +1128,45 @@ function Sparkline({ values }) {
   )
 }
 
+// ── Insight Tab ───────────────────────────────────────────────────────────────
 function InsightTab({ onProfileClick }) {
-  const [students, setStudents] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [students, setStudents] = useState(() => guruCacheGet('insight') ?? [])
+  const [loading, setLoading] = useState(() => !guruCacheGet('insight'))
   const [error, setError] = useState('')
   useEffect(() => {
-    apiCall('/api/guru/insight').then(({ students }) => setStudents(students)).catch(err => setError(err.message)).finally(() => setLoading(false))
+    const cached = guruCacheGet('insight')
+    if (!cached) setLoading(true)
+    apiCall('/api/guru/insight').then(({ students }) => {
+      const safe = students || []
+      setStudents(safe)
+      guruCacheSet('insight', safe)
+    }).catch(err => setError(err.message)).finally(() => setLoading(false))
   }, [])
   if (loading) return <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
   if (error) return <div style={{ color: '#fca5a5', fontSize: 13 }}>{error}</div>
   if (students.length === 0) return <div style={{ color: '#374151', fontSize: 13 }}>Belum ada siswa terdaftar di kelas yang Anda ampu.</div>
+
+  const badgeColor = count => count < 3 ? '#F87171' : count < 8 ? '#FBBF24' : '#34D399'
+
   const byKelas = {}
   for (const s of students) { (byKelas[s.kelas] ||= []).push(s) }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ fontSize: 12, color: '#374151' }}>Aktivitas 7 hari terakhir, level, koin, dan lencana.</div>
+      <div style={{ fontSize: 11, color: '#64748B', background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 12px' }}>
+        Aktivitas 7 hari terakhir, level, koin, dan lencana.
+      </div>
       {Object.entries(byKelas).map(([kelas, list]) => (
         <div key={kelas}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#67E8F9', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>{kelas} ({list.length} siswa)</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#67E8F9', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+            {kelas}
+            <span style={{ background: 'rgba(103,232,249,0.12)', color: '#67E8F9', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>{list.length}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {list.map(s => (
-              <Section key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div key={s.id} style={{ background: '#111827', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <UserAvatar
                   user={{ ...s, role: 'siswa' }}
-                  size={38}
+                  size={34}
                   onClick={() => onProfileClick({ id: s.id, role: 'siswa', name: s.name })}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -722,16 +1175,20 @@ function InsightTab({ onProfileClick }) {
                     cursor: 'pointer', fontFamily: 'inherit', display: 'flex',
                     alignItems: 'center', gap: 6, textAlign: 'left',
                   }}>
-                     <span style={{ fontSize: 13, fontWeight: 700 }}>{s.name}</span>
-                    {s.activeToday && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34D399', display: 'inline-block', boxShadow: '0 0 6px rgba(52,211,153,0.8)' }} />}
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>{s.name}</span>
+                    {s.activeToday && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399', display: 'inline-block', boxShadow: '0 0 6px rgba(52,211,153,0.8)' }} />}
                   </button>
-                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                    ⭐ Lv {s.level} · 📚 {s.exp} EXP · 🪙 {s.coins} · 🏅 {s.badgeCount} · 🔥 {s.bestSurvivalStreak}
+                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <span>⭐ Lv {s.level}</span>
+                    <span>📚 {s.exp} EXP</span>
+                    <span>🪙 {s.coins}</span>
+                    <span style={{ color: badgeColor(s.badgeCount) }}>🏅 {s.badgeCount}</span>
+                    <span>🔥 {s.bestSurvivalStreak}</span>
                   </div>
-                   {s.is_test_account && <div style={{ fontSize: 9, color: '#FBBF24', fontWeight: 800, letterSpacing: .8, marginTop: 3 }}>AKUN DEMO · SEMUA ITEM TERSEDIA</div>}
+                  {s.is_test_account && <div style={{ fontSize: 9, color: '#FBBF24', fontWeight: 800, letterSpacing: .8, marginTop: 2 }}>AKUN DEMO · SEMUA ITEM TERSEDIA</div>}
                 </div>
                 <Sparkline values={s.sparkline} />
-              </Section>
+              </div>
             ))}
           </div>
         </div>
@@ -749,6 +1206,7 @@ function RaidTab({ kelasDiampu }) {
   const [creating,  setCreating]  = useState(false)
   const [ending,    setEnding]    = useState(null)
   const [error,     setError]     = useState('')
+  const [formOpen,  setFormOpen]  = useState(false)
   const [form, setForm] = useState({
     kelas:        kelasDiampu[0] || '',
     maxHp:        1000,
@@ -791,6 +1249,7 @@ function RaidTab({ kelasDiampu }) {
         },
       })
       await refresh()
+      setFormOpen(false)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -814,99 +1273,105 @@ function RaidTab({ kelasDiampu }) {
   const activeKelas = raids.map(r => r.kelas)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      {/* Active raids */}
+      {/* Active raids — HP bar prominent */}
       {raids.length > 0 && (
-        <div>
-          <div style={{ fontSize: 11, color: '#ef4444', fontWeight: 700, letterSpacing: 1.5, marginBottom: 10 }}>🔴 RAID SEDANG AKTIF</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontSize: 10, color: '#ef4444', fontWeight: 800, letterSpacing: 1.5 }}>🔴 RAID SEDANG AKTIF</div>
           {raids.map(r => {
             const pct   = Math.round((r.hp / r.maxHp) * 100)
             const hpClr = pct > 50 ? '#22c55e' : pct > 25 ? '#f59e0b' : '#ef4444'
             return (
               <div key={r.kelas} style={{
-                background: '#0D1117', borderRadius: 14, marginBottom: 10,
-                border: '1px solid rgba(239,68,68,0.3)', padding: '14px 16px',
+                background: '#0D1117', borderRadius: 16,
+                border: '1px solid rgba(239,68,68,0.35)', overflow: 'hidden',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                  <div style={{ fontSize: 32 }}>{r.bossEmoji}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{r.bossName}</div>
-                    <div style={{ fontSize: 11, color: '#64748B' }}>Kelas {r.kelas} · {r.participants?.length || 0} peserta aktif</div>
-                  {r.rewardType && r.rewardAmount > 0 && (
-                    <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 700, marginTop: 2 }}>
-                      🎁 {r.rewardType === 'koin' ? `🪙 ${r.rewardAmount} koin` : r.rewardType === 'exp' ? `⚡ ${r.rewardAmount} EXP` : `🪙+⚡ ${r.rewardAmount}`} per siswa jika menang
+                {/* Big HP bar at top */}
+                <div style={{ height: 8, background: 'rgba(255,255,255,0.04)' }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: hpClr, transition: 'width 0.5s ease', boxShadow: `0 0 10px ${hpClr}80` }} />
+                </div>
+                <div style={{ padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                    <div style={{ fontSize: 36 }}>{r.bossEmoji}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{r.bossName}</div>
+                      <div style={{ fontSize: 11, color: '#64748B' }}>Kelas {r.kelas} · {r.participants?.length || 0} peserta aktif</div>
+                      {r.rewardType && r.rewardAmount > 0 && (
+                        <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 700, marginTop: 3 }}>
+                          🎁 {r.rewardType === 'koin' ? `🪙 ${r.rewardAmount} koin` : r.rewardType === 'exp' ? `⚡ ${r.rewardAmount} EXP` : `🪙+⚡ ${r.rewardAmount}`} per siswa jika menang
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: hpClr }}>{r.hp.toLocaleString()}</div>
+                      <div style={{ fontSize: 10, color: '#475569' }}>/ {r.maxHp.toLocaleString()} HP</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: hpClr, marginTop: 2 }}>{pct}%</div>
+                    </div>
+                  </div>
+
+                  {r.participants?.length > 0 && (
+                    <div style={{ fontSize: 11, color: '#64748B', marginBottom: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '6px 10px' }}>
+                      🏆 Top: {r.participants[0].name} ({r.participants[0].damage} damage)
                     </div>
                   )}
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: hpClr, textAlign: 'right' }}>
-                    {r.hp.toLocaleString()}<br/>
-                    <span style={{ fontSize: 10, color: '#475569', fontWeight: 400 }}>/ {r.maxHp.toLocaleString()} HP</span>
-                  </div>
+
+                  <button
+                    onClick={() => end(r.kelas)}
+                    disabled={ending === r.kelas}
+                    style={{
+                      width: '100%', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)',
+                      color: '#f87171', borderRadius: 12, padding: '10px 0',
+                      fontSize: 13, fontWeight: 700, cursor: ending === r.kelas ? 'default' : 'pointer',
+                      opacity: ending === r.kelas ? 0.6 : 1, fontFamily: 'inherit',
+                    }}
+                  >
+                    {ending === r.kelas ? '…' : '⏹ Akhiri Raid'}
+                  </button>
                 </div>
-
-                {/* HP bar */}
-                <div style={{ height: 10, background: 'rgba(255,255,255,0.05)', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
-                  <div style={{ width: `${pct}%`, height: '100%', background: hpClr, borderRadius: 8, transition: 'width 0.5s ease' }} />
-                </div>
-
-                {/* Top attacker preview */}
-                {r.participants?.length > 0 && (
-                  <div style={{ fontSize: 11, color: '#64748B', marginBottom: 10 }}>
-                    🏆 Top: {r.participants[0].name} ({r.participants[0].damage} damage)
-                  </div>
-                )}
-
-                <button
-                  onClick={() => end(r.kelas)}
-                  disabled={ending === r.kelas}
-                  style={{
-                    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.35)',
-                    color: '#f87171', borderRadius: 8, padding: '7px 16px',
-                    fontSize: 12, fontWeight: 700, cursor: ending === r.kelas ? 'default' : 'pointer',
-                    opacity: ending === r.kelas ? 0.6 : 1,
-                  }}
-                >
-                  {ending === r.kelas ? '…' : '⏹ Akhiri Raid'}
-                </button>
               </div>
             )
           })}
         </div>
       )}
 
-      {/* Create form */}
-      <div style={{ background: '#111827', borderRadius: 18, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-        <div style={{ height: 2, background: 'linear-gradient(90deg,#ef4444,#f59e0b)' }} />
-        <div style={{ padding: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 8px rgba(239,68,68,0.8)' }} />
-            Mulai Boss Raid Baru
+      {/* Create form — collapsible, show toggle button */}
+      <div style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+        <button onClick={() => setFormOpen(v => !v)} style={{
+          width: '100%', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+          padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <div style={{ height: 2, width: 0, position: 'absolute' }} />
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>⚔️</div>
+          <div style={{ flex: 1, textAlign: 'left' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Mulai Boss Raid Baru</div>
+            <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>Setiap jawaban benar = -100 HP Bos</div>
           </div>
-          <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.6 }}>
-            Siswa sekelasmu bersatu mengalahkan satu bos bersama. Setiap jawaban benar = -100 HP Bos.
-          </div>
+          <span style={{ color: '#64748B', fontSize: 16, transform: formOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>›</span>
+        </button>
+        <div style={{ height: 2, background: 'linear-gradient(90deg,#ef4444,#f59e0b)', margin: '0 0 0 0' }} />
 
-          <form onSubmit={create} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
-              <div>
-                <div style={labelStyle}>Kelas</div>
-                <select value={form.kelas} onChange={e => setForm(f => ({ ...f, kelas: e.target.value }))} style={inputStyle}>
-                  {kelasDiampu.map(k => <option key={k} value={k}>{k}</option>)}
-                </select>
+        {formOpen && (
+          <div style={{ padding: '14px 16px' }}>
+            <form onSubmit={create} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
+                <div>
+                  <div style={labelStyle}>Kelas</div>
+                  <select value={form.kelas} onChange={e => setForm(f => ({ ...f, kelas: e.target.value }))} style={inputStyle}>
+                    {kelasDiampu.map(k => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div style={labelStyle}>Nama Boss</div>
+                  <input
+                    value={form.bossName}
+                    onChange={e => setForm(f => ({ ...f, bossName: e.target.value }))}
+                    maxLength={40} placeholder="Boss Matematika"
+                    style={inputStyle}
+                  />
+                </div>
               </div>
-              <div>
-                <div style={labelStyle}>Nama Boss</div>
-                <input
-                  value={form.bossName}
-                  onChange={e => setForm(f => ({ ...f, bossName: e.target.value }))}
-                  maxLength={40} placeholder="Boss Matematika"
-                  style={inputStyle}
-                />
-              </div>
-            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
                 <div style={labelStyle}>Total HP Boss</div>
                 <select value={form.maxHp} onChange={e => setForm(f => ({ ...f, maxHp: e.target.value }))} style={inputStyle}>
@@ -916,76 +1381,84 @@ function RaidTab({ kelasDiampu }) {
                   <option value={5000}>5.000 HP — Legenda</option>
                 </select>
               </div>
+
+              {/* Boss emoji grid 2×5 */}
               <div>
                 <div style={labelStyle}>Emoji Boss</div>
-                <select value={form.bossEmoji} onChange={e => setForm(f => ({ ...f, bossEmoji: e.target.value }))} style={inputStyle}>
-                  {BOSS_EMOJIS.map(em => <option key={em} value={em}>{em} {em}</option>)}
-                </select>
-              </div>
-            </div>
-
-            {/* Reward section */}
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 12, marginTop: 2 }}>
-              <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>🎁 HADIAH JIKA BOSS DIKALAHKAN</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div>
-                  <div style={labelStyle}>Jenis Hadiah</div>
-                  <select value={form.rewardType} onChange={e => setForm(f => ({ ...f, rewardType: e.target.value }))} style={inputStyle}>
-                    <option value="koin">🪙 Koin</option>
-                    <option value="exp">⚡ EXP</option>
-                    <option value="koin_exp">🎁 Koin + EXP</option>
-                  </select>
-                </div>
-                <div>
-                  <div style={labelStyle}>Jumlah per Siswa</div>
-                  <input
-                    type="number"
-                    min={1}
-                    max={1000}
-                    value={form.rewardAmount}
-                    onChange={e => setForm(f => ({ ...f, rewardAmount: e.target.value }))}
-                    style={{ ...inputStyle, MozAppearance: 'textfield' }}
-                    placeholder="Ketik jumlah..."
-                  />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+                  {BOSS_EMOJIS.map(em => (
+                    <button key={em} type="button" onClick={() => setForm(f => ({ ...f, bossEmoji: em }))} style={{
+                      fontSize: 22, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+                      background: form.bossEmoji === em ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.04)',
+                      boxShadow: form.bossEmoji === em ? 'inset 0 0 0 1.5px rgba(239,68,68,0.5)' : 'inset 0 0 0 1px rgba(255,255,255,0.06)',
+                    }}>{em}</button>
+                  ))}
                 </div>
               </div>
-              <div style={{ fontSize: 11, color: '#64748B', marginTop: 8, lineHeight: 1.5 }}>
-                {form.rewardType === 'koin' && `Setiap peserta mendapat 🪙 ${form.rewardAmount} koin saat boss dikalahkan.`}
-                {form.rewardType === 'exp'  && `Setiap peserta mendapat ⚡ ${form.rewardAmount} EXP saat boss dikalahkan.`}
-                {form.rewardType === 'koin_exp' && `Setiap peserta mendapat 🪙 ${form.rewardAmount} koin + ⚡ ${form.rewardAmount} EXP saat boss dikalahkan.`}
-              </div>
-            </div>
 
-            {error && (
-              <div style={{ color: '#fca5a5', fontSize: 12, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 10, padding: '8px 12px' }}>
-                {error}
+              {/* Reward section */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10, marginTop: 2 }}>
+                <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>🎁 HADIAH JIKA BOSS DIKALAHKAN</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <div style={labelStyle}>Jenis Hadiah</div>
+                    <select value={form.rewardType} onChange={e => setForm(f => ({ ...f, rewardType: e.target.value }))} style={inputStyle}>
+                      <option value="koin">🪙 Koin</option>
+                      <option value="exp">⚡ EXP</option>
+                      <option value="koin_exp">🎁 Koin + EXP</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div style={labelStyle}>Jumlah per Siswa</div>
+                    <input
+                      type="number"
+                      min={1}
+                      max={1000}
+                      value={form.rewardAmount}
+                      onChange={e => setForm(f => ({ ...f, rewardAmount: e.target.value }))}
+                      style={{ ...inputStyle, MozAppearance: 'textfield' }}
+                      placeholder="Ketik jumlah..."
+                    />
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: '#64748B', marginTop: 8, lineHeight: 1.5 }}>
+                  {form.rewardType === 'koin' && `Setiap peserta mendapat 🪙 ${form.rewardAmount} koin saat boss dikalahkan.`}
+                  {form.rewardType === 'exp'  && `Setiap peserta mendapat ⚡ ${form.rewardAmount} EXP saat boss dikalahkan.`}
+                  {form.rewardType === 'koin_exp' && `Setiap peserta mendapat 🪙 ${form.rewardAmount} koin + ⚡ ${form.rewardAmount} EXP saat boss dikalahkan.`}
+                </div>
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={creating || !form.kelas || activeKelas.includes(form.kelas)}
-              style={{
-                marginTop: 4,
-                background: (creating || !form.kelas || activeKelas.includes(form.kelas))
-                  ? 'rgba(239,68,68,0.1)'
-                  : 'linear-gradient(135deg,#ef4444,#b91c1c)',
-                color: '#fff', border: 'none', borderRadius: 14, padding: '14px 0',
-                fontSize: 14, fontWeight: 800, cursor: (creating || activeKelas.includes(form.kelas)) ? 'default' : 'pointer',
-                fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                opacity: (creating || !form.kelas || activeKelas.includes(form.kelas)) ? 0.5 : 1,
-                boxShadow: (creating || activeKelas.includes(form.kelas)) ? 'none' : '0 0 20px rgba(239,68,68,0.25)',
-              }}
-            >
-              {creating
-                ? '⏳ Memulai…'
-                : activeKelas.includes(form.kelas)
-                  ? `⚔️ Raid sudah aktif di ${form.kelas}`
-                  : `⚔️ Mulai Raid untuk ${form.kelas || '…'}`}
-            </button>
-          </form>
-        </div>
+              {error && (
+                <div style={{ color: '#fca5a5', fontSize: 12, background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 10, padding: '8px 12px' }}>
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={creating || !form.kelas || activeKelas.includes(form.kelas)}
+                style={{
+                  marginTop: 4,
+                  background: (creating || !form.kelas || activeKelas.includes(form.kelas))
+                    ? 'rgba(239,68,68,0.1)'
+                    : 'linear-gradient(135deg,#ef4444,#b91c1c)',
+                  color: '#fff', border: 'none', borderRadius: 14, padding: '14px 0',
+                  fontSize: 14, fontWeight: 800, cursor: (creating || activeKelas.includes(form.kelas)) ? 'default' : 'pointer',
+                  fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  opacity: (creating || !form.kelas || activeKelas.includes(form.kelas)) ? 0.5 : 1,
+                  boxShadow: (creating || activeKelas.includes(form.kelas)) ? 'none' : '0 0 20px rgba(239,68,68,0.25)',
+                }}
+              >
+                {creating
+                  ? '⏳ Memulai…'
+                  : activeKelas.includes(form.kelas)
+                    ? `⚔️ Raid sudah aktif di ${form.kelas}`
+                    : `⚔️ Mulai Raid untuk ${form.kelas || '…'}`}
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
       {loading && !raids.length && (
@@ -1032,41 +1505,116 @@ const MATCH_STATUS_BADGE = {
   pending:        { bg: 'rgba(255,255,255,0.06)', color: '#475569', label: '🔒 Menunggu' },
 }
 
+const TEAM_COLORS = [
+  '#67E8F9', // cyan
+  '#f59e0b', // amber
+  '#a78bfa', // violet
+  '#34d399', // emerald
+  '#f472b6', // pink
+  '#fb923c', // orange
+  '#60a5fa', // blue
+  '#a3e635', // lime
+]
+
 function TurnamenTab({ kelasDiampu }) {
   const [tournament,   setTournament]   = useState(null)
   const [loading,      setLoading]      = useState(true)
   const [creating,     setCreating]     = useState(false)
   const [error,        setError]        = useState('')
-  const [spectate,       setSpectate]       = useState(null)  // match being spectated
-  const [spectateSliders,setSpectateSliders] = useState({})    // { [userId]: number }
-  const [spectateQ,      setSpectateQ]       = useState(null)  // { round, maxRounds, text }
-  const [form,         setForm]         = useState({ kelas: kelasDiampu[0] || '', gameKey: 'katak' })
-  const [liveFeed,     setLiveFeed]     = useState([])         // { time, text, color }
+  const [spectate,       setSpectate]       = useState(null)
+  const [spectateSliders,setSpectateSliders] = useState({})
+  const [spectateQ,      setSpectateQ]       = useState(null)
+  const [form,         setForm]         = useState({
+    kelasArr:           kelasDiampu.slice(0, 1),
+    gameKey:            'katak',
+    selectedStudentIds: [],
+    mode:               'individual',
+    teamCount:          2,
+    teamAssignment:     'auto',   // 'auto' | 'manual'
+    manualTeams:        [],       // [{ name, memberIds: string[] }]
+  })
+  const [students,       setStudents]       = useState([])
+  const [studentsLoading,setStudentsLoading] = useState(false)
+  const [liveFeed,     setLiveFeed]     = useState([])
+  const [activeRound,  setActiveRound]  = useState(null) // for round pill navigation
+  const [history,      setHistory]      = useState([])
+  const [historyLoading, setHistoryLoading] = useState(true)
+  const [showFinishedPodium, setShowFinishedPodium] = useState(false)
   const socketJoined   = useRef(false)
+  const prevKelasRef   = useRef(kelasDiampu.slice(0, 1))
 
-  // Fetch current tournament state via REST on mount
+  // Load siswa when kelasArr changes — smart merge:
+  //   first load  → select all
+  //   kelas added → auto-add students from that kelas
+  //   kelas removed → auto-remove students from that kelas
+  useEffect(() => {
+    if (!form.kelasArr.length) { setStudents([]); setForm(f => ({ ...f, selectedStudentIds: [] })); return }
+    setStudentsLoading(true)
+    const prevKelas = prevKelasRef.current
+    const addedKelas   = form.kelasArr.filter(k => !prevKelas.includes(k))
+    const removedKelas = prevKelas.filter(k => !form.kelasArr.includes(k))
+    prevKelasRef.current = form.kelasArr
+    apiCall('/api/guru/students')
+      .then(({ students: all }) => {
+        const filtered = (all || []).filter(s => form.kelasArr.includes(s.kelas))
+        const filteredSet = new Set(filtered.map(s => String(s.id)))
+        setStudents(filtered)
+        setForm(f => {
+          // First load: nothing selected yet → select all
+          if (f.selectedStudentIds.length === 0) {
+            return { ...f, selectedStudentIds: filtered.map(s => String(s.id)) }
+          }
+          // Kelas removed → drop those students
+          const removedIds = new Set(
+            (all || []).filter(s => removedKelas.includes(s.kelas)).map(s => String(s.id))
+          )
+          // Kelas added → auto-add new students from that kelas
+          const addedIds = (all || [])
+            .filter(s => addedKelas.includes(s.kelas))
+            .map(s => String(s.id))
+          const kept    = f.selectedStudentIds.filter(id => filteredSet.has(id) && !removedIds.has(id))
+          const newOnes = addedIds.filter(id => !kept.includes(id))
+          return { ...f, selectedStudentIds: [...kept, ...newOnes] }
+        })
+      })
+      .catch(() => {})
+      .finally(() => setStudentsLoading(false))
+  }, [form.kelasArr.join(',')])
+
+  // Fetch current tournament state + history via REST on mount
   useEffect(() => {
     apiCall('/api/guru/tournament').then(d => {
       setTournament(d.tournaments?.[0] || null)
       setLoading(false)
     }).catch(() => setLoading(false))
+    apiCall('/api/guru/tournament/history').then(d => {
+      setHistory(d.history || [])
+      setHistoryLoading(false)
+    }).catch(() => setHistoryLoading(false))
   }, [])
 
   // Connect socket for live updates (guru needs socket for real-time bracket)
   useEffect(() => {
     const socket = connectSocket()
 
-    socket.on('tournament:state', (state) => {
-      setTournament(state)
-    })
-    socket.on('tournament:round-start', ({ state }) => {
-      if (state) setTournament(state)
-    })
-    socket.on('tournament:finished', ({ state }) => {
-      if (state) setTournament(state)
-    })
-    socket.on('tournament:cancelled', () => {
-      setTournament(null)
+    const handleState = (state) => {
+      if (state?.id) setTournament(prev => !prev || prev.id === state.id ? state : prev)
+    }
+    const handleRoundStart = ({ state }) => {
+      if (state?.id) setTournament(prev => !prev || prev.id === state.id ? state : prev)
+    }
+    const handleFinished = ({ state }) => {
+      if (state?.id) setTournament(prev => !prev || prev.id === state.id ? state : prev)
+      setShowFinishedPodium(true)
+    }
+    const handleCancelled = () => setTournament(prev => prev?.status === 'finished' ? prev : null)
+    socket.on('tournament:state', handleState)
+    socket.on('tournament:round-start', handleRoundStart)
+    socket.on('tournament:finished', handleFinished)
+    socket.on('tournament:cancelled', handleCancelled)
+    // Lobby updates — update lobby list in real-time
+    socket.on('tournament:lobby-state', ({ tournamentId: tid, lobby }) => {
+      setTournament(prev => prev && prev.id === tid ? { ...prev, lobby } : prev)
     })
     socket.on('tournament:player-answered', (data) => {
       if (spectate?.id === data.matchId) {
@@ -1095,10 +1643,11 @@ function TurnamenTab({ kelasDiampu }) {
     })
 
     return () => {
-      socket.off('tournament:state')
-      socket.off('tournament:round-start')
-      socket.off('tournament:finished')
-      socket.off('tournament:cancelled')
+      socket.off('tournament:state', handleState)
+      socket.off('tournament:round-start', handleRoundStart)
+      socket.off('tournament:finished', handleFinished)
+      socket.off('tournament:cancelled', handleCancelled)
+      socket.off('tournament:lobby-state')
       socket.off('tournament:player-answered')
       socket.off('tournament:player-finished')
     }
@@ -1109,10 +1658,22 @@ function TurnamenTab({ kelasDiampu }) {
     if (!tournament?.id || socketJoined.current === tournament.id) return
     socketJoined.current = tournament.id
     const socket = getSocket()
-    socket?.emit('tournament:spectate', { tournamentId: tournament.id })
+    if (!socket) return
+    const joinTournamentRoom = () => socket.emit('tournament:spectate', { tournamentId: tournament.id })
+    const handleDisconnect = () => {
+      // Socket.io rooms are lost on disconnect; allow the next connect to rejoin.
+      socketJoined.current = false
+    }
+    socket.on('connect', joinTournamentRoom)
+    socket.on('disconnect', handleDisconnect)
+    if (socket.connected) joinTournamentRoom()
+    return () => {
+      socket.off('connect', joinTournamentRoom)
+      socket.off('disconnect', handleDisconnect)
+    }
   }, [tournament?.id])
 
-  // Spectate-match socket events — sliders + question (resets when spectate changes)
+  // Spectate-match socket events
   useEffect(() => {
     if (!spectate) {
       setSpectateSliders({})
@@ -1128,7 +1689,7 @@ function TurnamenTab({ kelasDiampu }) {
     const onQuestion = ({ question, round, maxRounds }) => {
       const text = question?.question?.text || question?.text || ''
       setSpectateQ({ round, maxRounds, text })
-      setSpectateSliders({})  // reset slider positions for new question
+      setSpectateSliders({})
     }
 
     socket.on('tournament:opponent-slider', onSlider)
@@ -1140,13 +1701,76 @@ function TurnamenTab({ kelasDiampu }) {
     }
   }, [spectate?.id])
 
+  const getSelectedIds = () => form.selectedStudentIds
+
+  // Helper: inisialisasi manualTeams saat count berubah, pertahankan anggota yang sudah ada
+  const initManualTeams = (count, existingTeams, allStudentIds) => {
+    const teams = Array.from({ length: count }, (_, i) => ({
+      name: existingTeams[i]?.name || `Kelompok ${i + 1}`,
+      memberIds: existingTeams[i]?.memberIds || [],
+    }))
+    return teams
+  }
+
+  // Helper: klik siswa dalam manual assignment
+  const handleManualAssign = (studentId) => {
+    setForm(f => {
+      const teams = f.manualTeams.length === f.teamCount
+        ? f.manualTeams
+        : initManualTeams(f.teamCount, f.manualTeams, [])
+      const currentTeamIdx = teams.findIndex(t => t.memberIds.includes(studentId))
+      if (currentTeamIdx === -1) {
+        // belum ditugaskan → masuk ke tim dengan anggota paling sedikit
+        const minIdx = teams.reduce((mi, t, i) => t.memberIds.length < teams[mi].memberIds.length ? i : mi, 0)
+        const next = teams.map((t, i) => i === minIdx
+          ? { ...t, memberIds: [...t.memberIds, studentId] }
+          : t)
+        return { ...f, manualTeams: next }
+      } else {
+        const nextTeamIdx = (currentTeamIdx + 1) % (teams.length + 1)
+        if (nextTeamIdx === teams.length) {
+          // kembali ke belum ditugaskan
+          const next = teams.map((t, i) => i === currentTeamIdx
+            ? { ...t, memberIds: t.memberIds.filter(id => id !== studentId) }
+            : t)
+          return { ...f, manualTeams: next }
+        } else {
+          // pindah ke tim berikutnya
+          const next = teams.map((t, i) => {
+            if (i === currentTeamIdx) return { ...t, memberIds: t.memberIds.filter(id => id !== studentId) }
+            if (i === nextTeamIdx)    return { ...t, memberIds: [...t.memberIds, studentId] }
+            return t
+          })
+          return { ...f, manualTeams: next }
+        }
+      }
+    })
+  }
+
   const handleCreate = async (e) => {
     e.preventDefault()
-    if (!form.kelas || !form.gameKey) return
+    if (!form.kelasArr?.length || !form.gameKey) return
+    const selectedIds = getSelectedIds()
+    if (selectedIds.length < 2) {
+      setError('Minimal 2 siswa diperlukan.')
+      return
+    }
     setCreating(true)
     setError('')
     try {
-      const data = await apiCall('/api/guru/tournament', { method: 'POST', body: form })
+      const body = { kelasArr: form.kelasArr, gameKey: form.gameKey }
+      if (form.selectedStudentIds.length < students.length) {
+        body.selectedStudentIds = form.selectedStudentIds
+      }
+      body.mode = form.mode
+      if (form.mode === 'kelompok') {
+        if (form.teamAssignment === 'manual' && form.manualTeams.length >= 2) {
+          body.teams = form.manualTeams.map(t => ({ name: t.name, memberIds: t.memberIds }))
+        } else {
+          body.teamCount = form.teamCount
+        }
+      }
+      const data = await apiCall('/api/guru/tournament', { method: 'POST', body })
       setTournament(data.tournament)
     } catch (err) {
       setError(err.message)
@@ -1165,72 +1789,433 @@ function TurnamenTab({ kelasDiampu }) {
     }
   }
 
+  // Turnamen yang sudah selesai tidak perlu dihapus. Cukup tutup bracket-nya
+  // agar guru kembali ke form untuk mengatur turnamen berikutnya.
+  const handleNewTournament = async () => {
+    setTournament(null)
+    setActiveRound(null)
+    setLiveFeed([])
+    setSpectate(null)
+    setError('')
+
+    // Refresh riwayat supaya turnamen yang baru selesai tetap terlihat di bawah
+    // form tanpa perlu memuat ulang halaman.
+    try {
+      const data = await apiCall('/api/guru/tournament/history')
+      setHistory(data.history || [])
+    } catch {
+      // Kegagalan refresh riwayat tidak boleh menghalangi pembuatan turnamen baru.
+    }
+  }
+
+  const handleStartFromLobby = async () => {
+    if (!tournament) return
+    try {
+      const data = await apiCall(`/api/guru/tournament/${tournament.id}/start`, { method: 'POST' })
+      setTournament(data.tournament)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   const openSpectate = (match) => {
     if (!match?.id) return
     setSpectate(match)
     getSocket()?.emit('tournament:spectate-match', { matchId: match.id })
   }
 
-  const inputS = {
-    width: '100%', background: '#0D1117', border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 12, padding: '11px 12px', color: '#fff', fontSize: 13,
-    fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-  }
-  const labelS = { fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 5 }
-
   if (loading) return (
     <div style={{ textAlign: 'center', color: '#64748B', fontSize: 13, paddingTop: 16 }}>Memuat…</div>
   )
+
+  // Determine which round to show (for pill nav)
+  const displayRound = activeRound !== null ? activeRound : (tournament?.currentRound ? tournament.currentRound - 1 : 0)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {!tournament ? (
         // ── Setup Form ──────────────────────────────────────────────────────
-        <div style={{ background: '#1A1D27', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ background: '#1A1D27', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 1.5 }}>🏆 BUAT TURNAMEN BARU</div>
           <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Kelas */}
+            {/* Kelas — multi-select checkboxes */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={labelS}>KELAS</div>
-              <div style={{ position: 'relative' }}>
-                <select value={form.kelas} onChange={e => setForm(f => ({ ...f, kelas: e.target.value }))} style={{ ...inputS, appearance: 'none' }}>
-                  <option value="">Pilih kelas…</option>
-                  {kelasDiampu.map(k => <option key={k} value={k}>{k}</option>)}
-                </select>
-                <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94A3B8', fontSize: 12 }}>▼</div>
+              <div style={{ ...labelStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>KELAS</span>
+                <span style={{ fontSize: 10, color: '#67E8F9', fontWeight: 600 }}>
+                  {form.kelasArr.length === 0 ? 'Pilih minimal 1' : `${form.kelasArr.length} dipilih`}
+                </span>
               </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {kelasDiampu.map(k => {
+                  const checked = form.kelasArr.includes(k)
+                  return (
+                    <button key={k} type="button"
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        kelasArr: checked ? f.kelasArr.filter(x => x !== k) : [...f.kelasArr, k]
+                      }))}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+                        fontFamily: 'inherit', textAlign: 'left', border: 'none',
+                        background: checked ? 'rgba(103,232,249,0.1)' : 'rgba(255,255,255,0.04)',
+                        boxShadow: checked ? 'inset 0 0 0 1.5px #67E8F9' : 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+                      }}>
+                      <div style={{
+                        width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                        background: checked ? '#67E8F9' : 'transparent',
+                        border: `1.5px solid ${checked ? '#67E8F9' : '#475569'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {checked && <span style={{ color: '#0A1628', fontSize: 11, fontWeight: 900 }}>✓</span>}
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: checked ? 700 : 500, color: checked ? '#67E8F9' : '#94A3B8' }}>{k}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {form.kelasArr.length > 1 && (
+                <div style={{ fontSize: 11, color: '#f59e0b', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '6px 10px' }}>
+                  ⚔️ Turnamen Antar Kelas — siswa dari {form.kelasArr.length} kelas akan bersaing bersama
+                </div>
+              )}
             </div>
 
-            {/* Game — 2-column grid */}
+            {/* Siswa Peserta — checklist */}
+            {form.kelasArr.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ ...labelStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>SISWA PESERTA</span>
+                  {studentsLoading ? (
+                    <span style={{ fontSize: 10, color: '#64748B' }}>Memuat…</span>
+                  ) : (
+                    <span style={{ fontSize: 10, color: '#67E8F9', fontWeight: 600 }}>
+                      {getSelectedIds().length} / {students.length} dipilih
+                    </span>
+                  )}
+                </div>
+
+                {studentsLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {[1,2,3].map(i => (
+                      <div key={i} style={{ height: 38, borderRadius: 10, background: 'rgba(255,255,255,0.05)', animation: 'pulse 1.5s infinite' }} />
+                    ))}
+                  </div>
+                ) : students.length === 0 ? (
+                  <div style={{ fontSize: 12, color: '#64748B', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, textAlign: 'center' }}>
+                    Tidak ada siswa di kelas ini
+                  </div>
+                ) : (
+                  <>
+                    {/* Tombol Pilih Semua */}
+                    <button type="button"
+                      onClick={() => {
+                        const allIds = students.map(s => String(s.id))
+                        const curIds = getSelectedIds()
+                        const allSelected = curIds.length === students.length
+                        setForm(f => ({ ...f, selectedStudentIds: allSelected ? [] : allIds }))
+                      }}
+                      style={{
+                        alignSelf: 'flex-start', padding: '5px 12px', borderRadius: 20,
+                        fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                        background: getSelectedIds().length === students.length
+                          ? 'rgba(103,232,249,0.12)' : 'rgba(255,255,255,0.06)',
+                        border: getSelectedIds().length === students.length
+                          ? '1px solid #67E8F9' : '1px solid rgba(255,255,255,0.1)',
+                        color: getSelectedIds().length === students.length ? '#67E8F9' : '#94A3B8',
+                      }}>
+                      {getSelectedIds().length === students.length ? '✓ Semua Dipilih' : 'Pilih Semua'}
+                    </button>
+
+                    {/* Daftar siswa per kelas */}
+                    {form.kelasArr.map(kls => {
+                      const siswaDiKelas = students.filter(s => s.kelas === kls)
+                      if (!siswaDiKelas.length) return null
+                      const selectedIds = getSelectedIds()
+                      return (
+                        <div key={kls} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {form.kelasArr.length > 1 && (
+                            <div style={{ fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 0.8, paddingLeft: 2, marginBottom: 2 }}>
+                              {kls}
+                            </div>
+                          )}
+                          {siswaDiKelas.map(s => {
+                            const id = String(s.id)
+                            const checked = selectedIds.includes(id)
+                            return (
+                              <button key={id} type="button"
+                                onClick={() => {
+                                  setForm(f => {
+                                    const cur = f.selectedStudentIds
+                                    const next = cur.includes(id)
+                                      ? cur.filter(x => x !== id)
+                                      : [...cur, id]
+                                    return { ...f, selectedStudentIds: next }
+                                  })
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 10,
+                                  padding: '8px 12px', borderRadius: 10, cursor: 'pointer',
+                                  fontFamily: 'inherit', textAlign: 'left', border: 'none',
+                                  background: checked ? 'rgba(103,232,249,0.07)' : 'rgba(255,255,255,0.03)',
+                                  boxShadow: checked ? 'inset 0 0 0 1px rgba(103,232,249,0.3)' : 'inset 0 0 0 1px rgba(255,255,255,0.07)',
+                                }}>
+                                <div style={{
+                                  width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                                  background: checked ? '#67E8F9' : 'transparent',
+                                  border: `1.5px solid ${checked ? '#67E8F9' : '#475569'}`,
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                  {checked && <span style={{ color: '#0A1628', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                                </div>
+                                <span style={{ fontSize: 13, fontWeight: checked ? 600 : 400, color: checked ? '#e2e8f0' : '#64748B' }}>
+                                  {s.name}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )
+                    })}
+
+                    {/* Peringatan jika < 2 */}
+                    {getSelectedIds().length < 2 && (
+                      <div style={{ fontSize: 11, color: '#f87171', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 8, padding: '6px 10px' }}>
+                        ⚠️ Pilih minimal 2 siswa untuk memulai turnamen
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Game — horizontal scroll chips */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={labelS}>GAME</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={labelStyle}>GAME</div>
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
                 {TOURNAMENT_GAMES.map(g => {
                   const sel = form.gameKey === g.key
                   const emoji = g.label.split(' ')[0]
                   const name = g.label.split(' ').slice(1).join(' ')
                   return (
                     <button key={g.key} type="button" onClick={() => setForm(f => ({ ...f, gameKey: g.key }))} style={{
-                      display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-                      borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                      background: sel ? 'rgba(103,232,249,0.1)' : '#111827',
-                      border: sel ? '1px solid #67E8F9' : '1px solid rgba(255,255,255,0.1)',
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px',
+                      borderRadius: 20, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                      background: sel ? 'rgba(103,232,249,0.12)' : 'rgba(255,255,255,0.05)',
+                      border: sel ? '1px solid #67E8F9' : '1px solid rgba(255,255,255,0.08)',
                       boxShadow: sel ? '0 0 8px rgba(103,232,249,0.2)' : 'none',
-                      fontSize: 13, fontWeight: sel ? 600 : 500,
-                      color: sel ? '#67E8F9' : '#fff',
-                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      fontSize: 12, fontWeight: sel ? 700 : 500,
+                      color: sel ? '#67E8F9' : '#94A3B8',
+                      flexShrink: 0,
                     }}>
-                      <span style={{ fontSize: 16, flexShrink: 0 }}>{emoji}</span>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+                      <span style={{ fontSize: 14 }}>{emoji}</span>
+                      <span style={{ whiteSpace: 'nowrap' }}>{name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {/* Selected game info */}
+              {form.gameKey && (
+                <div style={{ fontSize: 11, color: '#64748B', background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '6px 10px' }}>
+                  {TOURNAMENT_GAMES.find(g => g.key === form.gameKey)?.desc}
+                </div>
+              )}
+            </div>
+
+            {/* Mode Turnamen */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={labelStyle}>MODE TURNAMEN</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[
+                  { value: 'individual', label: 'Individual', desc: 'Tiap siswa bertanding sendiri' },
+                  { value: 'kelompok',   label: 'Kelompok',   desc: 'Siswa dibagi menjadi tim' },
+                ].map(opt => {
+                  const sel = form.mode === opt.value
+                  return (
+                    <button key={opt.value} type="button"
+                      onClick={() => setForm(f => ({ ...f, mode: opt.value }))}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+                        fontFamily: 'inherit', textAlign: 'left', border: 'none',
+                        background: sel ? 'rgba(103,232,249,0.07)' : 'rgba(255,255,255,0.03)',
+                        boxShadow: sel ? 'inset 0 0 0 1.5px #67E8F9' : 'inset 0 0 0 1px rgba(255,255,255,0.08)',
+                      }}>
+                      <div style={{
+                        width: 16, height: 16, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box',
+                        border: sel ? '5px solid #67E8F9' : '1.5px solid #475569',
+                        background: sel ? '#111827' : 'transparent',
+                      }} />
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: sel ? 700 : 500, color: sel ? '#67E8F9' : '#94A3B8' }}>{opt.label}</div>
+                        <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>{opt.desc}</div>
+                      </div>
                     </button>
                   )
                 })}
               </div>
             </div>
 
+            {/* Pengaturan Kelompok */}
+            {form.mode === 'kelompok' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(103,232,249,0.03)', border: '1px solid rgba(103,232,249,0.12)', borderRadius: 14, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, color: '#67E8F9', fontWeight: 800, letterSpacing: 1.2 }}>PENGATURAN KELOMPOK</div>
+
+                {/* Jumlah kelompok */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, letterSpacing: 0.8 }}>JUMLAH KELOMPOK</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <button type="button"
+                      onClick={() => setForm(f => ({ ...f, teamCount: Math.max(2, f.teamCount - 1), manualTeams: [] }))}
+                      style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      −
+                    </button>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: '#67E8F9', minWidth: 24, textAlign: 'center' }}>{form.teamCount}</span>
+                    <button type="button"
+                      onClick={() => setForm(f => ({ ...f, teamCount: Math.min(8, f.teamCount + 1), manualTeams: [] }))}
+                      style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: 16, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      +
+                    </button>
+                    <span style={{ fontSize: 11, color: '#475569' }}>min 2, max 8</span>
+                  </div>
+                </div>
+
+                {/* Toggle auto / manual */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, letterSpacing: 0.8 }}>PEMBAGIAN</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[{ v: 'auto', label: 'Otomatis' }, { v: 'manual', label: 'Manual' }].map(opt => {
+                      const sel = form.teamAssignment === opt.v
+                      return (
+                        <button key={opt.v} type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            teamAssignment: opt.v,
+                            manualTeams: opt.v === 'manual'
+                              ? initManualTeams(f.teamCount, f.manualTeams, getSelectedIds())
+                              : f.manualTeams,
+                          }))}
+                          style={{
+                            padding: '6px 16px', borderRadius: 20, cursor: 'pointer',
+                            fontFamily: 'inherit', fontSize: 12, fontWeight: sel ? 700 : 500,
+                            background: sel ? '#67E8F9' : 'rgba(255,255,255,0.06)',
+                            border: sel ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                            color: sel ? '#0A1628' : '#94A3B8',
+                          }}>
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Konten sesuai assignment */}
+                {form.teamAssignment === 'auto' ? (
+                  <div style={{ fontSize: 11, color: '#64748B', background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '8px 10px', lineHeight: 1.6 }}>
+                    ℹ️ Server akan membagi <strong style={{ color: '#94A3B8' }}>{getSelectedIds().length} siswa</strong> ke{' '}
+                    <strong style={{ color: '#67E8F9' }}>{form.teamCount} kelompok</strong> secara acak
+                    {' '}(±{Math.ceil(getSelectedIds().length / form.teamCount)} siswa/kelompok)
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {/* Kelompok cards */}
+                    {Array.from({ length: form.teamCount }, (_, i) => {
+                      const team = form.manualTeams[i] || { name: `Kelompok ${i + 1}`, memberIds: [] }
+                      const color = TEAM_COLORS[i % TEAM_COLORS.length]
+                      const memberNames = team.memberIds
+                        .map(id => students.find(s => String(s.id) === id)?.name)
+                        .filter(Boolean)
+                      return (
+                        <div key={i} style={{ borderRadius: 10, border: `1px solid ${color}33`, background: `${color}08`, padding: '8px 10px' }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color, marginBottom: 6 }}>
+                            {team.name} ({memberNames.length} anggota)
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {memberNames.length === 0
+                              ? <span style={{ fontSize: 11, color: '#475569', fontStyle: 'italic' }}>Belum ada anggota</span>
+                              : memberNames.map((n, j) => (
+                                <span key={j} style={{
+                                  fontSize: 11, padding: '2px 8px', borderRadius: 12,
+                                  background: `${color}22`, color, border: `1px solid ${color}44`, fontWeight: 600,
+                                }}>{n}</span>
+                              ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    {/* Belum ditugaskan */}
+                    {(() => {
+                      const assignedIds = (form.manualTeams || []).flatMap(t => t.memberIds)
+                      const unassigned = students
+                        .filter(s => getSelectedIds().includes(String(s.id)) && !assignedIds.includes(String(s.id)))
+                      if (unassigned.length === 0) return null
+                      return (
+                        <div style={{ borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', padding: '8px 10px' }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', marginBottom: 6 }}>
+                            Belum ditugaskan ({unassigned.length})
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {unassigned.map(s => (
+                              <span key={s.id} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', color: '#64748B', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                {s.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Semua siswa — klik untuk assign */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ fontSize: 11, color: '#475569', fontWeight: 700, letterSpacing: 0.8 }}>KLIK SISWA UNTUK PINDAHKAN KELOMPOK</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {students.filter(s => getSelectedIds().includes(String(s.id))).map(s => {
+                          const id = String(s.id)
+                          const teams = form.manualTeams || []
+                          const teamIdx = teams.findIndex(t => t.memberIds.includes(id))
+                          const color = teamIdx >= 0 ? TEAM_COLORS[teamIdx % TEAM_COLORS.length] : '#475569'
+                          const label = teamIdx >= 0 ? `Kel.${teamIdx + 1}` : '—'
+                          return (
+                            <button key={id} type="button"
+                              onClick={() => handleManualAssign(id)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 5,
+                                padding: '4px 10px', borderRadius: 20, cursor: 'pointer',
+                                fontFamily: 'inherit', fontSize: 11, fontWeight: 600,
+                                background: teamIdx >= 0 ? `${color}22` : 'rgba(255,255,255,0.05)',
+                                border: `1px solid ${teamIdx >= 0 ? color + '55' : 'rgba(255,255,255,0.1)'}`,
+                                color,
+                              }}>
+                              <span>{s.name}</span>
+                              <span style={{ fontSize: 9, opacity: 0.7 }}>{label}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Peringatan belum ditugaskan */}
+                    {(() => {
+                      const assignedIds = (form.manualTeams || []).flatMap(t => t.memberIds)
+                      const unassignedCount = students
+                        .filter(s => getSelectedIds().includes(String(s.id)) && !assignedIds.includes(String(s.id))).length
+                      if (unassignedCount === 0) return null
+                      return (
+                        <div style={{ fontSize: 11, color: '#f59e0b', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 8, padding: '6px 10px' }}>
+                          ⚠️ {unassignedCount} siswa belum ditugaskan ke kelompok mana pun
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Format — cosmetic radio */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={labelS}>FORMAT</div>
+              <div style={labelStyle}>FORMAT</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 12, border: '1px solid #67E8F9', background: 'rgba(103,232,249,0.05)' }}>
                   <div style={{ width: 18, height: 18, borderRadius: '50%', border: '5px solid #67E8F9', background: '#111827', marginTop: 2, flexShrink: 0, boxSizing: 'border-box' }} />
@@ -1257,55 +2242,263 @@ function TurnamenTab({ kelasDiampu }) {
               🎯 Turnamen akan dimulai setelah kamu klik Mulai. Semua siswa online akan otomatis masuk.
             </div>
 
-            <button type="submit" disabled={creating || !form.kelas} style={{
-              background: creating || !form.kelas ? 'rgba(180,83,9,0.3)' : '#b45309',
+            <button type="submit" disabled={creating || !form.kelasArr?.length || getSelectedIds().length < 2} style={{
+              background: creating || !form.kelasArr?.length || getSelectedIds().length < 2 ? 'rgba(180,83,9,0.3)' : '#b45309',
               color: '#fff', border: 'none', borderRadius: 14, padding: '16px',
-              fontSize: 16, fontWeight: 700, cursor: creating || !form.kelas ? 'default' : 'pointer',
-              fontFamily: 'inherit', opacity: creating || !form.kelas ? 0.5 : 1,
-              boxShadow: !creating && form.kelas ? '0 4px 12px rgba(180,83,9,0.3)' : 'none',
+              fontSize: 16, fontWeight: 700, cursor: creating || !form.kelasArr?.length || getSelectedIds().length < 2 ? 'default' : 'pointer',
+              fontFamily: 'inherit', opacity: creating || !form.kelasArr?.length || getSelectedIds().length < 2 ? 0.5 : 1,
+              boxShadow: !creating && form.kelasArr?.length && getSelectedIds().length >= 2 ? '0 4px 12px rgba(180,83,9,0.3)' : 'none',
               marginTop: 8,
             }}>
-              {creating ? '⏳ Memulai…' : `🏆 Mulai Turnamen — ${form.kelas || '…'}`}
+              {creating
+                ? '⏳ Memulai…'
+                : form.kelasArr?.length > 1
+                  ? `🏆 Mulai Turnamen Antar Kelas (${form.kelasArr.length} kelas)`
+                  : `🏆 Mulai Turnamen — ${form.kelasArr?.[0] || '…'}`}
             </button>
           </form>
         </div>
-      ) : (
-        // ── Bracket View ─────────────────────────────────────────────────────
+      ) : tournament.lobbyOpen ? (
+        // ── Lobby Management View ────────────────────────────────────────────
         <>
-          {/* Champion banner */}
-          {tournament.champion && (
-            <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontSize: 28 }}>🏆</div>
-              <div>
-                <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 800 }}>JUARA TURNAMEN</div>
-                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{tournament.champion.name}</div>
+          <div style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 16, padding: '16px 16px 12px' }}>
+            <div style={{ fontSize: 11, color: '#a78bfa', fontWeight: 800, letterSpacing: 1.5, marginBottom: 4 }}>🏆 LOBBY TURNAMEN — MENUNGGU SISWA MASUK</div>
+            <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>
+              {TOURNAMENT_GAMES.find(g => g.key === tournament.gameKey)?.label || tournament.gameKey}
+            </div>
+            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>
+              Mode: {tournament.mode === 'kelompok' ? '👥 Kelompok' : '👤 Individual'} · {tournament.kelasArr?.join(', ')}
+            </div>
+          </div>
+
+          {/* Lobby counter */}
+          <div style={{ background: '#1A1D27', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1 }}>SISWA DI LOBBY</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#a78bfa' }}>
+                {tournament.lobby?.length ?? 0} / {tournament.students?.length ?? tournament.rounds?.[0]?.matches?.reduce((a,m) => a + (m.player1?1:0) + (m.player2?1:0), 0) ?? '?'}
+              </div>
+            </div>
+
+            {(!tournament.lobby || tournament.lobby.length === 0) ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: '#475569' }}>
+                Belum ada siswa yang masuk lobby…
+                <div style={{ fontSize: 11, color: '#334155', marginTop: 6 }}>Siswa akan mendapat notifikasi dan dapat masuk lobby dari aplikasi.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 240, overflowY: 'auto' }}>
+                {tournament.lobby.map((member, i) => (
+                  <div key={member.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 10 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{member.name}</span>
+                    <span style={{ fontSize: 10, color: '#10b981', fontWeight: 700 }}>✓ Siap</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Kelompok teams info (saat lobby) */}
+          {tournament.mode === 'kelompok' && tournament.teams && (
+            <div style={{ background: '#1A1D27', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: 16 }}>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 12 }}>SUSUNAN KELOMPOK</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {tournament.teams.map(team => (
+                  <div key={team.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b', marginBottom: 6 }}>👥 {team.name}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {team.members?.map(m => (
+                        <div key={m.userId} style={{ fontSize: 11, padding: '3px 8px', background: 'rgba(245,158,11,0.1)', borderRadius: 20, color: '#f59e0b', fontWeight: 600 }}>
+                          {m.name}
+                          {tournament.lobby?.some(l => String(l.userId) === String(m.userId)) ? ' ✓' : ''}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
+          {/* Start button */}
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button
+              onClick={handleStartFromLobby}
+              disabled={!tournament.lobby || tournament.lobby.length < 2}
+              style={{
+                flex: 2, background: (!tournament.lobby || tournament.lobby.length < 2) ? 'rgba(167,139,250,0.2)' : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+                border: 'none', borderRadius: 14, padding: '16px 0', color: '#fff',
+                fontSize: 15, fontWeight: 800, cursor: (!tournament.lobby || tournament.lobby.length < 2) ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit', opacity: (!tournament.lobby || tournament.lobby.length < 2) ? 0.6 : 1,
+              }}
+            >
+              🚀 Mulai Pertandingan ({tournament.lobby?.length ?? 0} peserta)
+            </button>
+            <button onClick={handleEnd} style={{ flex: 1, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 14, padding: '16px 0', color: '#f87171', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              🛑 Batalkan
+            </button>
+          </div>
+
+          {(!tournament.lobby || tournament.lobby.length < 2) && (
+            <div style={{ fontSize: 12, color: '#475569', textAlign: 'center' }}>
+              Minimal 2 peserta di lobby untuk memulai pertandingan.
+            </div>
+          )}
+        </>
+      ) : showFinishedPodium && tournament.champion ? (
+        // ── Podium otomatis saat turnamen selesai ─────────────────────────────
+        (() => {
+          const champion  = tournament.champion
+          const runnerUp  = tournament.runnerUp
+          const semis     = tournament.semifinalists || []
+
+          const PodiumCard = ({ rank, player, highlight, emoji, accentColor, height }) => player ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flex: 1 }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: `linear-gradient(135deg,${accentColor}33,${accentColor}11)`, border: `2.5px solid ${accentColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, boxShadow: highlight ? `0 0 20px ${accentColor}55` : 'none' }}>{emoji}</div>
+              <div style={{ textAlign: 'center', lineHeight: 1.3, maxWidth: 80 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: accentColor }}>{player.teamName || player.name}</div>
+                {player.teamName && <div style={{ fontSize: 9, color: '#475569', fontStyle: 'italic', marginTop: 2 }}>({player.name})</div>}
+              </div>
+              <div style={{ background: accentColor, color: '#000', borderRadius: 8, padding: '8px 0', width: '100%', textAlign: 'center', fontSize: 18, fontWeight: 900, height, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 8 }}>{rank}</div>
+            </div>
+          ) : null
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: '32px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 800, letterSpacing: 2 }}>🏆 TURNAMEN SELESAI</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: '#fbbf24' }}>Turnamen Berakhir!</div>
+
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '24px 20px', width: '100%' }}>
+                <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, letterSpacing: 1, marginBottom: 20 }}>PODIUM</div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', justifyContent: 'center' }}>
+                  <PodiumCard rank="🥈" player={runnerUp}        highlight={false} emoji="🥈" accentColor="#94A3B8" height={60} />
+                  <PodiumCard rank="🥇" player={champion}        highlight={true}  emoji="👑" accentColor="#fbbf24" height={80} />
+                  <PodiumCard rank="🥉" player={semis[0] || null} highlight={false} emoji="🥉" accentColor="#cd7c3a" height={50} />
+                </div>
+                {semis.length > 1 && (
+                  <div style={{ marginTop: 12, fontSize: 11, color: '#64748B' }}>
+                    🥉 {semis.map(s => s.name).join(' & ')} — Peringkat 3
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowFinishedPodium(false)}
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 14, padding: '12px 32px', color: '#94A3B8', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                📊 Lihat Bracket
+              </button>
+            </div>
+          )
+        })()
+      ) : (
+        // ── Bracket View ─────────────────────────────────────────────────────
+        <>
+          {/* Podium / Champion banner */}
+          {tournament.champion && (
+            <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 16, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 28 }}>🏆</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 800 }}>JUARA TURNAMEN</div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>{tournament.champion.name}</div>
+                </div>
+              </div>
+              {(tournament.runnerUp || tournament.semifinalists?.length > 0) && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {tournament.runnerUp && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(148,163,184,0.1)', borderRadius: 20, padding: '4px 10px' }}>
+                      <span>🥈</span>
+                      <span style={{ fontSize: 12, color: '#94A3B8', fontWeight: 700 }}>{tournament.runnerUp.name}</span>
+                    </div>
+                  )}
+                  {tournament.semifinalists?.map(s => (
+                    <div key={s.userId} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(205,124,58,0.1)', borderRadius: 20, padding: '4px 10px' }}>
+                      <span>🥉</span>
+                      <span style={{ fontSize: 12, color: '#cd7c3a', fontWeight: 700 }}>{s.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Summary stats bar */}
-          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 2 }}>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
             {[
               { icon: '🎮', label: 'Game', value: TOURNAMENT_GAMES.find(g => g.key === tournament.gameKey)?.label?.split(' ').slice(1,3).join(' ') || tournament.gameKey },
               { icon: '👥', label: 'Peserta', value: `${tournament.rounds?.[0]?.matches?.reduce((a,m) => a + (m.player1 ? 1 : 0) + (m.player2 ? 1 : 0), 0) ?? '?'} siswa` },
               { icon: '⏱️', label: 'Ronde', value: `${tournament.currentRound} / ${tournament.rounds?.length ?? '?'}` },
               { icon: '📊', label: 'Status', value: tournament.status === 'finished' ? 'Selesai' : 'Berlangsung' },
             ].map((stat, i) => (
-              <div key={i} style={{ background: '#1A1D27', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                <span style={{ fontSize: 20 }}>{stat.icon}</span>
+              <div key={i} style={{ background: '#1A1D27', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <span style={{ fontSize: 18 }}>{stat.icon}</span>
                 <div>
-                  <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 2, fontWeight: 500 }}>{stat.label}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{stat.value}</div>
+                  <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 1, fontWeight: 500 }}>{stat.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>{stat.value}</div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Bracket rounds — vertical list with in-progress expanded */}
-          {tournament.rounds?.map((round, ri) => {
+          {/* Round navigation pills */}
+          {tournament.rounds && tournament.rounds.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+              {tournament.rounds.map((round, ri) => {
+                const isLive = ri + 1 === tournament.currentRound && tournament.status !== 'finished'
+                const isDone = ri + 1 < tournament.currentRound
+                const isActive = displayRound === ri
+                const roundLabel = round.label || `Ronde ${ri + 1}`
+                return (
+                  <button key={ri} onClick={() => setActiveRound(ri)} style={{
+                    flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: 11, fontWeight: 700,
+                    background: isActive
+                      ? (isLive ? 'rgba(248,113,113,0.2)' : isDone ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.12)')
+                      : 'rgba(255,255,255,0.04)',
+                    color: isActive
+                      ? (isLive ? '#f87171' : isDone ? '#10b981' : '#fff')
+                      : '#64748B',
+                    boxShadow: isActive ? `inset 0 0 0 1px ${isLive ? 'rgba(248,113,113,0.4)' : isDone ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.2)'}` : 'none',
+                  }}>
+                    {isLive ? '🔴 ' : isDone ? '✓ ' : ''}{roundLabel}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Bracket for selected round */}
+          {tournament.rounds?.length > 0 && (
+            <div style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(103,232,249,0.2)', padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: '#67E8F9' }}>BRACKET TURNAMEN</div>
+                {tournament.status !== 'finished' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(248,113,113,0.15)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171', padding: '3px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>
+                    <div style={{ width: 5, height: 5, background: '#f87171', borderRadius: '50%' }} />
+                    LIVE
+                  </div>
+                )}
+              </div>
+              <ClassicBracket
+                rounds={tournament.rounds}
+                currentRound={tournament.currentRound}
+                mode={tournament.mode}
+                onMatchClick={openSpectate}
+              />
+              <div style={{ fontSize: 10, color: '#475569', marginTop: 8 }}>
+                Klik match yang sedang LIVE untuk memantau pertandingan secara real-time.
+              </div>
+            </div>
+          )}
+
+          {/* Detail ronde terpilih — mempertahankan status match dan kontrol pantau guru */}
+          {tournament.rounds?.[displayRound] && (() => {
+            const round = tournament.rounds[displayRound]
+            const ri = displayRound
             const isLive = ri + 1 === tournament.currentRound && tournament.status !== 'finished'
             return (
-              <div key={ri} style={{ background: '#111827', borderRadius: 16, border: `1px solid ${isLive ? 'rgba(103,232,249,0.2)' : 'rgba(255,255,255,0.08)'}`, padding: 16 }}>
+              <div style={{ background: '#111827', borderRadius: 16, border: `1px solid ${isLive ? 'rgba(103,232,249,0.2)' : 'rgba(255,255,255,0.06)'}`, padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: isLive ? '#67E8F9' : '#94A3B8' }}>
                     RONDE {ri + 1}
@@ -1328,11 +2521,10 @@ function TurnamenTab({ kelasDiampu }) {
                     return (
                       <div key={mi} style={{
                         background: isMatchLive ? 'rgba(103,232,249,0.04)' : '#0D1117',
-                        border: `1px solid ${isMatchLive ? 'rgba(103,232,249,0.2)' : 'rgba(255,255,255,0.08)'}`,
+                        border: `1px solid ${isMatchLive ? 'rgba(103,232,249,0.2)' : 'rgba(255,255,255,0.06)'}`,
                         borderRadius: 12, padding: isMatchLive ? 16 : '12px 14px',
                       }}>
                         {isMatchLive && m.player1 && m.player2 ? (
-                          // Expanded live match card
                           <>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                               <div style={{ background: 'rgba(103,232,249,0.1)', color: '#67E8F9', padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>MATCH {mi + 1}</div>
@@ -1383,7 +2575,6 @@ function TurnamenTab({ kelasDiampu }) {
                             }}>👁 Pantau Real-time</button>
                           </>
                         ) : (
-                          // Compact match card (done or pending)
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <div style={{ flex: 1 }}>
                               {[m.player1, m.player2].filter(Boolean).map((p, pi) => (
@@ -1412,11 +2603,11 @@ function TurnamenTab({ kelasDiampu }) {
                 </div>
               </div>
             )
-          })}
+          })()}
 
           {/* Live Feed */}
           {liveFeed.length > 0 && (
-            <div style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', padding: 16 }}>
+            <div style={{ background: '#111827', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', padding: 16 }}>
               <div style={{ fontSize: 13, color: '#fff', fontWeight: 600, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                 📡 Live Feed
               </div>
@@ -1449,7 +2640,15 @@ function TurnamenTab({ kelasDiampu }) {
             >
               📊 Lihat Nilai Siswa
             </button>
-            {tournament.status !== 'finished' && (
+            {tournament.status === 'finished' ? (
+              <button onClick={handleNewTournament} style={{
+                flex: 1, background: 'linear-gradient(135deg, #0e7490, #155e75)', border: '1px solid rgba(103,232,249,0.35)',
+                borderRadius: 14, padding: '14px 0', color: '#fff', fontSize: 14, fontWeight: 800,
+                cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(14,116,144,0.22)',
+              }}>
+                🏆 Turnamen Baru
+              </button>
+            ) : (
               <button onClick={handleEnd} style={{
                 flex: 1, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
                 borderRadius: 14, padding: '14px 0', color: '#f87171', fontSize: 14, fontWeight: 700,
@@ -1460,6 +2659,74 @@ function TurnamenTab({ kelasDiampu }) {
             )}
           </div>
         </>
+      )}
+
+      {/* Riwayat Turnamen — shown when no active tournament */}
+      {!tournament && (
+        <div style={{ background: '#1A1D27', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', padding: 20 }}>
+          <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800, letterSpacing: 1.5, marginBottom: 14 }}>📜 RIWAYAT TURNAMEN</div>
+          {historyLoading ? (
+            <div style={{ fontSize: 13, color: '#475569', textAlign: 'center', padding: '12px 0' }}>Memuat…</div>
+          ) : history.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#475569', textAlign: 'center', padding: '12px 0' }}>Belum ada turnamen yang pernah digelar.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {history.map(h => {
+                const gameLabel = TOURNAMENT_GAMES.find(g => g.key === h.game_key)?.label || h.game_key
+                const gameEmoji = gameLabel.split(' ')[0]
+                const gameName  = gameLabel.split(' ').slice(1).join(' ')
+                const isFinished = h.status === 'finished'
+                const finishedDate = h.finished_at ? new Date(h.finished_at) : null
+                const date = finishedDate && !isNaN(finishedDate) ? finishedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : null
+                const time = finishedDate && !isNaN(finishedDate) ? finishedDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null
+                return (
+                  <div key={h.id} style={{
+                    background: '#111827', borderRadius: 12,
+                    border: `1px solid ${isFinished ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.06)'}`,
+                    padding: '12px 14px',
+                    display: 'flex', flexDirection: 'column', gap: 8,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                        <span style={{ fontSize: 18 }}>{gameEmoji}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gameName}</div>
+                          <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>
+                        {h.kelas_arr?.length > 1 ? `⚔️ ${h.kelas_arr.join(', ')}` : h.kelas}
+                      </div>
+                        </div>
+                      </div>
+                      <span style={{
+                        flexShrink: 0, fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20,
+                        background: isFinished ? 'rgba(251,191,36,0.12)' : 'rgba(239,68,68,0.12)',
+                        color: isFinished ? '#fbbf24' : '#f87171',
+                      }}>
+                        {isFinished ? '🏆 Selesai' : '🛑 Dibatalkan'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                      {isFinished && h.champion_name && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ fontSize: 13 }}>🥇</span>
+                          <span style={{ fontSize: 12, color: '#fbbf24', fontWeight: 700 }}>{h.champion_name}</span>
+                        </div>
+                      )}
+                      <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>👥</span> {h.total_participants} peserta
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>🔄</span> {h.total_rounds} ronde
+                      </div>
+                      <div style={{ fontSize: 11, color: '#475569', marginLeft: 'auto', textAlign: 'right' }}>
+                        {date} · {time}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Spectator bottom sheet */}
@@ -1478,7 +2745,6 @@ function TurnamenTab({ kelasDiampu }) {
             <div style={{ fontSize: 13, fontWeight: 800, color: '#67E8F9', marginBottom: 12 }}>
               👁 Pantau Match
             </div>
-            {/* Player cards side-by-side */}
             {spectate.player1 && spectate.player2 && (
               <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
                 {[
@@ -1487,7 +2753,6 @@ function TurnamenTab({ kelasDiampu }) {
                 ].map(({ p, color, emoji }) => {
                   const score = spectate.scores?.[p.userId] ?? 0
                   const sliderVal = spectateSliders[String(p.userId)] ?? 0
-                  // slider range for katak is -20 to 20 (range of 40)
                   const sliderPct = Math.max(0, Math.min(100, ((sliderVal + 20) / 40) * 100))
                   return (
                     <div key={p.userId} style={{
@@ -1497,7 +2762,6 @@ function TurnamenTab({ kelasDiampu }) {
                       <div style={{ fontSize: 11, color, fontWeight: 700, marginBottom: 4 }}>{emoji} {p.name}</div>
                       <div style={{ fontSize: 32, fontWeight: 900, color }}>{score}</div>
                       <div style={{ fontSize: 10, color: '#475569', marginBottom: 8 }}>soal benar</div>
-                      {/* Real-time slider */}
                       <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '6px 10px' }}>
                         <div style={{ fontSize: 10, color: '#94A3B8', marginBottom: 4 }}>Slider saat ini</div>
                         <div style={{ fontSize: 18, fontWeight: 900, color }}>{sliderVal}</div>
@@ -1511,7 +2775,6 @@ function TurnamenTab({ kelasDiampu }) {
               </div>
             )}
 
-            {/* Round indicator */}
             {spectateQ ? (
               <>
                 <div style={{
@@ -1561,90 +2824,46 @@ function useIsDesktop() {
 }
 
 // ── Guru Home Overview Tab ────────────────────────────────────────────────────
-function GuruActionCard({ eyebrow, icon, title, body, action, isEmerald, onClick }) {
-  const [hovered, setHovered] = useState(false)
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        minHeight: 178, borderRadius: 16, padding: 20,
-        border: `1px solid ${isEmerald ? 'rgba(159,227,189,0.2)' : 'rgba(215,199,255,0.2)'}`,
-        background: isEmerald ? '#153633' : '#252442',
-        transition: 'transform 0.15s',
-        transform: hovered ? 'translateY(-2px)' : 'none',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <span style={{
-          width: 40, height: 40, borderRadius: 12, fontSize: 18,
-          background: isEmerald ? 'rgba(159,227,189,0.15)' : 'rgba(215,199,255,0.15)',
-          color: isEmerald ? '#9fe3bd' : '#d7c7ff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>{icon}</span>
-        <span style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', color: isEmerald ? '#8dc7ae' : '#b4a8d5' }}>{eyebrow}</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginTop: 24 }}>
-        <div>
-          <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.03em', color: '#fff', margin: 0 }}>{title}</h3>
-          <p style={{ marginTop: 4, maxWidth: 400, fontSize: 12, lineHeight: 1.6, color: isEmerald ? '#a8c7bd' : '#bdb9d0', margin: '4px 0 0' }}>{body}</p>
-        </div>
-        <button
-          onClick={onClick}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-            borderRadius: 9999, padding: '10px 14px', fontSize: 11, fontWeight: 700,
-            background: isEmerald ? '#9fe3bd' : '#d7c7ff',
-            color: isEmerald ? '#12302e' : '#332653',
-            border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >{action} +</button>
-      </div>
-    </div>
-  )
-}
-
-function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSelectTab }) {
-  const [tugas, setTugas]       = useState([])
-  const [students, setStudents] = useState([])
-  const [nilaiList, setNilai]   = useState([])
-  const [loading, setLoading]   = useState(true)
+function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSelectTab, hideHeader = false, hasMateriTerdaftar = false }) {
+  const [tugas, setTugas]             = useState(() => guruCacheGet('home_tugas') ?? [])
+  const [homeStats, setHomeStats]     = useState(() => guruCacheGet('home_stats') ?? null)
+  const hasCache                      = !!(guruCacheGet('home_tugas') && guruCacheGet('home_stats'))
+  const [loading, setLoading]         = useState(!hasCache)
+  const [loadPct, setLoadPct]         = useState(0)
   const [activeClass, setActiveClass] = useState('Semua kelas')
-  const [showNotif, setShowNotif]     = useState(false)
-  const [showMenu, setShowMenu]       = useState(false)
-  const [toast, setToast]             = useState('')
   const isDesktop = useIsDesktop()
+  const isNative  = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() === true
 
   useEffect(() => {
-    setLoading(true)
-    Promise.all([
-      apiCall('/api/guru/tugas').then(d => setTugas(d.tugas || [])),
-      apiCall('/api/guru/students').then(d => setStudents(d.students || [])),
-      apiCall('/api/guru/nilai').then(d => setNilai(d.nilai || [])),
-    ]).catch(() => {}).finally(() => setLoading(false))
+    let done = 0
+    const onOne = () => { done++; setLoadPct(done * 50); if (done === 2) setLoading(false) }
+    apiCall('/api/guru/tugas')
+      .then(d => { const t = d.tugas || []; setTugas(t); guruCacheSet('home_tugas', t) })
+      .catch(() => {}).finally(onOne)
+    apiCall('/api/guru/home-stats')
+      .then(d => { setHomeStats(d); guruCacheSet('home_stats', d) })
+      .catch(() => {}).finally(onOne)
   }, [])
-
-  const notify = (msg) => { setToast(msg); setTimeout(() => setToast(''), 2600) }
 
   const classes = ['Semua kelas', ...kelasDiampu]
   const filteredTugas = activeClass === 'Semua kelas' ? tugas : tugas.filter(t => t.kelas === activeClass)
   const activeTugas   = tugas.filter(t => t.status === 'active')
-  const avgScore      = nilaiList.length > 0
-    ? (nilaiList.reduce((s, n) => s + n.score, 0) / nilaiList.length).toFixed(1).replace('.', ',')
+  const studentCount  = homeStats?.studentCount ?? 0
+  const nilaiCount    = homeStats?.nilaiCount ?? 0
+  const avgScore      = nilaiCount > 0
+    ? String(homeStats.avgScore).replace('.', ',')
     : '—'
 
   const nama     = user?.name || 'Guru'
-  const initials = nama.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
   const hour     = new Date().getHours()
-  const greeting = hour < 11 ? 'pagi' : hour < 15 ? 'siang' : hour < 18 ? 'sore' : 'malam'
-  const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const greeting = hour < 11 ? 'Pagi' : hour < 15 ? 'Siang' : hour < 18 ? 'Sore' : 'Malam'
+  const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })
 
   const metrics = [
-    { label: 'Siswa aktif',    value: students.length.toString().padStart(2, '0'), detail: `${kelasDiampu.length} kelas diampu`,        icon: '👥', accent: '#9fe3bd',  bg: 'rgba(159,227,189,0.1)' },
-    { label: 'Tugas berjalan', value: activeTugas.length.toString().padStart(2, '0'), detail: `${activeTugas.length} perlu ditinjau`, icon: '📋', accent: '#d7c7ff',  bg: 'rgba(215,199,255,0.1)' },
-    { label: 'Rata-rata kelas',value: avgScore,                                   detail: nilaiList.length > 0 ? `dari ${nilaiList.length} nilai` : 'Belum ada nilai', icon: '🎓', accent: '#f5cf9c',  bg: 'rgba(245,207,156,0.1)' },
-    { label: 'Kelas diampu',   value: kelasDiampu.length.toString(),              detail: kelasDiampu.slice(0, 2).join(', ') || '—',     icon: '📅', accent: '#a8d7ec',  bg: 'rgba(168,215,236,0.1)' },
+    { label: 'Siswa',      value: studentCount,             detail: `${kelasDiampu.length} kelas`,                              icon: '👥', accent: '#9fe3bd',  bg: 'rgba(159,227,189,0.12)' },
+    { label: 'Tugas Aktif', value: activeTugas.length,      detail: 'berjalan',                                                  icon: '📋', accent: '#d7c7ff',  bg: 'rgba(215,199,255,0.12)' },
+    { label: 'Rata-rata',   value: avgScore,                 detail: nilaiCount > 0 ? `${nilaiCount} nilai` : 'Belum ada',        icon: '🎓', accent: '#f5cf9c', bg: 'rgba(245,207,156,0.12)' },
+    { label: 'Kelas',       value: kelasDiampu.length,       detail: kelasDiampu[0] || '—',                                      icon: '📅', accent: '#67E8F9',  bg: 'rgba(103,232,249,0.12)' },
   ]
 
   const classColor = (kelas) => {
@@ -1652,285 +2871,159 @@ function GuruHomeTab({ kelasDiampu, user, logout, onPlayGames, onGoProfile, onSe
     return ['#9fe3bd', '#d7c7ff', '#f5cf9c', '#a8d7ec'][idx % 4]
   }
 
-  const photoSrc = user?.photoUrl ?? user?.photo_url ?? null
+  // Web browser: tampilkan loading screen dengan persentase (hanya saat tidak ada cache)
+  if (loading && !isNative) {
+    return <GuruDataLoadingScreen pct={loadPct} />
+  }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#071321', color: '#e8f1ee', position: 'relative' }}>
-      {/* radial overlays */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, opacity: 0.6,
-        background: 'radial-gradient(circle at 84% 0%, rgba(94,75,160,.18), transparent 33%), radial-gradient(circle at 8% 64%, rgba(29,123,96,.10), transparent 30%)' }} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, paddingBottom: 8 }}>
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 1500, margin: '0 auto', padding: '0 clamp(20px,4vw,48px)' }}>
-
-        {/* ── Header ── */}
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '20px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => notify('Kamu sudah berada di beranda TOMAT')} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
-              <span style={{ width: 40, height: 40, borderRadius: 14, background: '#9fe3bd', color: '#0b2c2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 11, letterSpacing: '-0.1em', boxShadow: '0 0 0 5px rgba(159,227,189,0.08)' }}>TM</span>
-              {isDesktop && (
-                <span style={{ textAlign: 'left' }}>
-                  <span style={{ display: 'block', fontFamily: 'monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.24em', color: '#9fe3bd' }}>Ruang belajar</span>
-                  <span style={{ fontWeight: 600, letterSpacing: '-0.03em', color: '#fff', fontSize: 14 }}>TOMAT</span>
-                </span>
-              )}
-            </button>
-            {isDesktop && (
-              <nav style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 16 }}>
-                <button style={{ borderRadius: 9999, background: 'rgba(255,255,255,0.09)', padding: '8px 16px', fontSize: 12, fontWeight: 600, color: '#fff', border: 'none', cursor: 'default', fontFamily: 'inherit' }}>Beranda</button>
-                <NavBtn label="Kelas" onClick={() => onSelectTab('siswa')} />
-                <NavBtn label="Rekap nilai" onClick={() => onSelectTab('nilai')} />
-              </nav>
-            )}
-          </div>
-
-          {/* Right controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-            <button
-              onClick={() => { setShowNotif(v => !v); setShowMenu(false) }}
-              style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.09)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#a8b6bd', cursor: 'pointer', position: 'relative', fontSize: 15 }}
-            >
-              🔔
-              {activeTugas.length > 0 && <span style={{ position: 'absolute', top: 9, right: 10, width: 6, height: 6, borderRadius: '50%', background: '#9fe3bd' }} />}
-            </button>
-            <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.09)' }} />
-            <button
-              onClick={() => { setShowMenu(v => !v); setShowNotif(false) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, borderRadius: 9999, padding: '4px 8px 4px 4px', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              {photoSrc
-                ? <img src={photoSrc} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
-                : <span style={{ width: 36, height: 36, borderRadius: '50%', background: '#d7c7ff', color: '#3d286c', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{initials}</span>
-              }
-              {isDesktop && (
-                <span style={{ textAlign: 'left' }}>
-                  <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#fff' }}>{nama}</span>
-                  <span style={{ display: 'block', fontSize: 10, color: '#83929d' }}>Guru</span>
-                </span>
-              )}
-              <span style={{ color: '#71818c', fontSize: 11 }}>▾</span>
-            </button>
-
-            {/* Notif dropdown */}
-            {showNotif && (
-              <div style={{ position: 'absolute', right: 140, top: 52, zIndex: 30, width: 288, borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)', background: '#122231', padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.35)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Notifikasi</span>
-                  <button onClick={() => setShowNotif(false)} style={{ background: 'none', border: 'none', color: '#84959e', cursor: 'pointer', fontSize: 14 }}>✕</button>
-                </div>
-                {activeTugas.length > 0
-                  ? <p style={{ borderRadius: 12, background: 'rgba(159,227,189,0.08)', padding: 12, fontSize: 12, lineHeight: 1.6, color: '#b7cbc8' }}>{activeTugas.length} tugas aktif sedang berjalan.</p>
-                  : <p style={{ fontSize: 12, color: '#4e626e', textAlign: 'center', padding: 12 }}>Tidak ada notifikasi baru.</p>
-                }
-              </div>
-            )}
-
-            {/* Profile menu */}
-            {showMenu && (
-              <div style={{ position: 'absolute', right: 0, top: 52, zIndex: 30, width: 208, borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)', background: '#122231', padding: 8, boxShadow: '0 20px 60px rgba(0,0,0,0.35)' }}>
-                <MenuBtn label="Pengaturan profil" onClick={() => { setShowMenu(false); onGoProfile() }} />
-                <MenuBtn label="🎮 Media Ajar" onClick={() => { setShowMenu(false); onPlayGames() }} />
-                <MenuBtn label="Keluar" onClick={() => { setShowMenu(false); logout() }} danger />
-              </div>
-            )}
-          </div>
-        </header>
-
-        {/* ── Hero ── */}
-        <section style={{ paddingTop: isDesktop ? 56 : 32, paddingBottom: 32 }}>
-          <div style={{ display: 'flex', flexDirection: isDesktop ? 'row' : 'column', justifyContent: 'space-between', alignItems: isDesktop ? 'flex-end' : 'flex-start', gap: 28 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#82939e', marginBottom: 16 }}>
-                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#9fe3bd', flexShrink: 0 }} />
-                {todayStr}
-              </div>
-              <h1 style={{ fontSize: 'clamp(2rem,5vw,4rem)', fontWeight: 600, lineHeight: 0.98, letterSpacing: '-0.065em', color: '#fff', maxWidth: 560, margin: 0 }}>
-                Selamat {greeting},<br /><span style={{ color: '#9fe3bd' }}>{nama.split(' ')[0]}.</span>
-              </h1>
-              <p style={{ marginTop: 20, maxWidth: 400, fontSize: 14, lineHeight: 1.7, color: '#98aab1' }}>
-                {loading ? 'Memuat data kelas…' : `${kelasDiampu.length} kelas diampu · ${activeTugas.length} tugas aktif · ${students.length} siswa terdaftar.`}
-              </p>
-            </div>
-            {/* Insight chip */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, maxWidth: 320, width: '100%', borderRadius: 16, border: '1px solid rgba(215,199,255,0.2)', background: 'rgba(215,199,255,0.07)', padding: 16 }}>
-              <span style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 12, background: 'rgba(215,199,255,0.15)', color: '#d7c7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>✨</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: '#e5dcff', margin: 0 }}>
-                  {activeTugas.length > 0 ? `${activeTugas.length} tugas aktif berjalan` : 'Semua terkelola dengan baik'}
-                </p>
-                <p style={{ marginTop: 4, fontSize: 11, lineHeight: 1.5, color: '#a99fc6', margin: '4px 0 0' }}>
-                  {nilaiList.length > 0 ? `Rata-rata nilai kelas: ${avgScore}` : 'Mulai buat tugas untuk kelasmu.'}
-                </p>
-              </div>
-              <button onClick={() => onSelectTab('insight')} style={{ color: '#d7c7ff', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, flexShrink: 0, padding: 4, lineHeight: 1 }}>↗</button>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Action cards ── */}
-        <section style={{ display: 'grid', gridTemplateColumns: isDesktop ? '1.1fr 0.9fr' : '1fr', gap: 16 }}>
-          <GuruActionCard
-            eyebrow="TUGAS AKTIF" icon="📋"
-            title="Buat tugas baru untuk kelasmu"
-            body="Mulai dari kuis singkat, evaluasi harian, atau kumpulkan hasil pengamatan."
-            action="Buat tugas" isEmerald={true}
-            onClick={() => onSelectTab('tugas')}
-          />
-          <GuruActionCard
-            eyebrow="PANTAU KELAS" icon="👥"
-            title={students.length > 0 ? `${students.length} siswa terdaftar` : 'Pantau kelas aktif'}
-            body={kelasDiampu.length > 0 ? `${kelasDiampu.join(' · ')} · SMP TISA` : 'Belum ada kelas diampu.'}
-            action="Lihat kelas" isEmerald={false}
-            onClick={() => onSelectTab('siswa')}
-          />
-        </section>
-
-        {/* ── Metrics ── */}
-        <section style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(4,1fr)' : 'repeat(2,1fr)', gap: 12, padding: '32px 0' }}>
-          {metrics.map(m => (
-            <button
-              key={m.label}
-              onClick={() => notify(`${m.label}: ${m.value}`)}
-              style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(13,29,43,0.8)', padding: isDesktop ? 20 : 16, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
-                <span style={{ width: 36, height: 36, borderRadius: 12, background: m.bg, color: m.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{m.icon}</span>
-                <span style={{ fontSize: 13, color: '#4e626e' }}>↗</span>
-              </div>
-              <p style={{ fontSize: 11, fontWeight: 500, color: '#82939e', margin: 0 }}>{m.label}</p>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-                <p style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-0.05em', color: '#fff', margin: 0 }}>{loading ? '—' : m.value}</p>
-                <p style={{ fontSize: 10, color: m.accent, margin: 0 }}>{m.detail}</p>
-              </div>
-            </button>
-          ))}
-        </section>
-
-        {/* ── Bottom: task list + attention sidebar ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'minmax(0,1.55fr) minmax(290px,0.75fr)' : '1fr', gap: 32, paddingBottom: 48 }}>
-
-          {/* Task list */}
-          <section style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
-              <div>
-                <p style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#738793', margin: 0 }}>Ruang kerja</p>
-                <h2 style={{ marginTop: 8, fontSize: 22, fontWeight: 600, letterSpacing: '-0.045em', color: '#fff', margin: '8px 0 0' }}>Tugas mendatang</h2>
-              </div>
-              <button onClick={() => onSelectTab('tugas')} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#9fe3bd', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = '#9fe3bd'}>Lihat semua ↗</button>
-            </div>
-
-            {/* Class filter pills */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
-              <span style={{ fontSize: 13, color: '#6e818c', flexShrink: 0 }}>⚙</span>
-              {classes.map(c => (
-                <button
-                  key={c}
-                  onClick={() => setActiveClass(c)}
-                  style={{ whiteSpace: 'nowrap', borderRadius: 9999, border: `1px solid ${activeClass === c ? 'rgba(159,227,189,0.5)' : 'rgba(255,255,255,0.08)'}`, background: activeClass === c ? '#9fe3bd' : 'rgba(255,255,255,0.03)', color: activeClass === c ? '#12302e' : '#81939e', padding: '8px 14px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
-                >{c}</button>
-              ))}
-            </div>
-
-            {/* Task rows */}
-            <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(13,29,43,0.7)', overflow: 'hidden' }}>
-              {loading
-                ? <div style={{ padding: 32, textAlign: 'center', color: '#4e626e', fontSize: 14 }}>Memuat…</div>
-                : filteredTugas.length === 0
-                  ? <div style={{ padding: 40, textAlign: 'center', color: '#4e626e', fontSize: 14 }}>Belum ada tugas untuk kelas ini.</div>
-                  : filteredTugas.slice(0, 6).map((t, i) => {
-                      const isActive = t.status === 'active'
-                      const color = classColor(t.kelas)
-                      return (
-                        <button
-                          key={t.id}
-                          onClick={() => onSelectTab('tugas')}
-                          style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 12, borderBottom: i < Math.min(filteredTugas.length, 6) - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none', padding: isDesktop ? '16px 20px' : '14px 16px', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.035)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                        >
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                          <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                            <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#e0eae7', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.game_name || t.gameName}</span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4, fontSize: 10, color: '#7f939d' }}>
-                              <span>{t.kelas}</span>
-                              <span style={{ color: '#435964' }}>·</span>
-                              <span>{t.total_questions} soal</span>
-                              {t.due_at && <><span style={{ color: '#435964' }}>·</span><span>Tenggat {new Date(t.due_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span></>}
-                            </span>
-                          </span>
-                          {isDesktop && (
-                            <span style={{ borderRadius: 9999, padding: '4px 10px', fontSize: 10, fontWeight: 600, flexShrink: 0, background: isActive ? 'rgba(159,227,189,0.1)' : 'rgba(255,255,255,0.05)', color: isActive ? '#9fe3bd' : '#64748B' }}>
-                              {isActive ? 'Aktif' : 'Ditutup'}
-                            </span>
-                          )}
-                          <span style={{ color: '#536975', fontSize: 14, flexShrink: 0 }}>↗</span>
-                        </button>
-                      )
-                    })
-              }
-            </div>
-          </section>
-
-          {/* Attention sidebar */}
-          <section style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
-              <div>
-                <p style={{ fontFamily: 'monospace', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#738793', margin: 0 }}>Sinyal kelas</p>
-                <h2 style={{ marginTop: 8, fontSize: 22, fontWeight: 600, letterSpacing: '-0.045em', color: '#fff', margin: '8px 0 0' }}>Ringkasan kelas</h2>
-              </div>
-              <button onClick={() => onSelectTab('insight')} style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.08)', color: '#7e9099', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }} onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = '#7e9099'}>⋯</button>
-            </div>
-
-            <div style={{ borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(13,29,43,0.7)', padding: isDesktop ? 20 : 16 }}>
-              <p style={{ fontSize: 12, lineHeight: 1.6, color: '#8fa1a8', margin: 0 }}>
-                {loading ? 'Memuat data…' : students.length === 0 ? 'Belum ada siswa di kelasmu.' : `${students.length} siswa terdaftar di ${kelasDiampu.length} kelas.`}
-              </p>
-              {!loading && kelasDiampu.length > 0 && (
-                <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {kelasDiampu.slice(0, 3).map((kelas, idx) => {
-                    const colorPairs = [['#9fe3bd','#153a32'],['#d7c7ff','#3d286c'],['#f5cf9c','#633f20']]
-                    const [bg, text] = colorPairs[idx % 3]
-                    const cnt = students.filter(s => s.kelas === kelas).length
-                    const aktif = activeTugas.filter(t => t.kelas === kelas).length
-                    return (
-                      <button key={kelas} onClick={() => onSelectTab('siswa')} style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%', padding: 0 }}>
-                        <span style={{ width: 36, height: 36, borderRadius: '50%', background: bg, color: text, fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{kelas.replace(/[^A-Z0-9]/gi,'').substring(0,4).toUpperCase()}</span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#dbe6e4' }}>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{kelas}</span>
-                            <span style={{ borderRadius: 4, background: 'rgba(255,255,255,0.07)', padding: '2px 6px', fontSize: 9, fontWeight: 500, color: '#92a5aa', flexShrink: 0 }}>{cnt} siswa</span>
-                          </span>
-                          <span style={{ display: 'block', marginTop: 4, fontSize: 11, color: '#82939e' }}>{aktif > 0 ? `${aktif} tugas aktif` : 'Tidak ada tugas aktif'}</span>
-                        </span>
-                        <span style={{ fontSize: 13, color: '#536975', flexShrink: 0 }}>↗</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-              <button onClick={() => onSelectTab('siswa')} style={{ marginTop: 24, display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, border: '1px solid rgba(255,255,255,0.09)', padding: '10px 0', fontSize: 12, fontWeight: 600, color: '#b4c4c5', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#b4c4c5' }}>
-                🔍 Buka pantau kelas
-              </button>
-            </div>
-
-            {/* Highlight */}
-            {!loading && activeTugas.length > 0 && (
-              <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, borderRadius: 16, border: '1px solid rgba(159,227,189,0.15)', background: 'rgba(159,227,189,0.05)', padding: 16 }}>
-                <span style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(159,227,189,0.15)', color: '#9fe3bd', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>✓</span>
-                <p style={{ fontSize: 11, lineHeight: 1.5, color: '#9fb5b1', margin: 0 }}>
-                  <span style={{ fontWeight: 600, color: '#cde4d8' }}>{activeTugas[0].kelas}</span> memiliki tugas aktif: {activeTugas[0].game_name}.
-                </p>
-              </div>
-            )}
-          </section>
+      {/* ── Hero greeting ── */}
+      <div style={{ padding: isDesktop ? '28px 0 20px' : '20px 16px 16px' }}>
+        <div style={{ fontSize: 11, color: '#64748B', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#9fe3bd', display: 'inline-block' }} />
+          {todayStr}
         </div>
+        <h1 style={{ fontSize: isDesktop ? 32 : 24, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.2 }}>
+          Selamat {greeting}, <span style={{ color: '#9fe3bd' }}>{nama.split(' ')[0]}.</span>
+        </h1>
+        <p style={{ fontSize: 12, color: '#64748B', marginTop: 6 }}>
+          {loading ? 'Memuat data kelas…' : `${kelasDiampu.length} kelas · ${activeTugas.length} tugas aktif · ${studentCount} siswa`}
+        </p>
       </div>
 
-      {/* Toast */}
-      {toast && (
-        <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 50, borderRadius: 9999, border: '1px solid rgba(159,227,189,0.25)', background: '#162d35', padding: '12px 16px', fontSize: 12, fontWeight: 500, color: '#d6ebe2', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', whiteSpace: 'nowrap' }}>
-          {toast}
+      {/* ── Metric strip — horizontal scroll ── */}
+      <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: isDesktop ? '0 0 16px' : '0 16px 16px', scrollbarWidth: 'none' }}>
+        {metrics.map(m => (
+          <div key={m.label} style={{
+            flexShrink: 0, borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)',
+            background: '#111827', padding: '14px 18px',
+            display: 'flex', alignItems: 'center', gap: 12, minWidth: 140,
+          }}>
+            <span style={{ width: 40, height: 40, borderRadius: 12, background: m.bg, color: m.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{m.icon}</span>
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{loading ? '—' : m.value}</div>
+              <div style={{ fontSize: 11, color: m.accent, marginTop: 2, fontWeight: 600 }}>{m.label}</div>
+              <div style={{ fontSize: 10, color: '#64748B', marginTop: 1 }}>{m.detail}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Quick action pills — only for registered subject teachers ── */}
+      {hasMateriTerdaftar && (
+        <div style={{ display: 'flex', gap: 10, padding: isDesktop ? '0 0 20px' : '0 16px 20px' }}>
+          <button onClick={() => onSelectTab('tugas')} style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            background: 'linear-gradient(135deg,rgba(159,227,189,0.18),rgba(159,227,189,0.08))',
+            border: '1px solid rgba(159,227,189,0.3)', color: '#9fe3bd',
+            borderRadius: 24, padding: '13px 16px', fontSize: 13, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>📋 Tetapkan Tugas</button>
+          <button onClick={() => onSelectTab('raid')} style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            background: 'linear-gradient(135deg,rgba(239,68,68,0.18),rgba(239,68,68,0.08))',
+            border: '1px solid rgba(239,68,68,0.3)', color: '#F87171',
+            borderRadius: 24, padding: '13px 16px', fontSize: 13, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>⚔️ Mulai Boss Raid</button>
+        </div>
+      )}
+
+      {/* ── Task list ── */}
+      <div style={{ padding: isDesktop ? '0 0 20px' : '0 16px 20px' }}>
+        {/* Header + class filter */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>Tugas Aktif</div>
+          {hasMateriTerdaftar && <button onClick={() => onSelectTab('tugas')} style={{ fontSize: 11, color: '#9fe3bd', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Lihat semua →</button>}
+        </div>
+        {/* Class filter pills */}
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none', marginBottom: 8 }}>
+          {classes.map(c => (
+            <button key={c} onClick={() => setActiveClass(c)} style={{
+              flexShrink: 0, borderRadius: 20, padding: '5px 12px', fontSize: 11, fontWeight: 600,
+              background: activeClass === c ? '#9fe3bd' : 'rgba(255,255,255,0.04)',
+              color: activeClass === c ? '#12302e' : '#64748B',
+              border: activeClass === c ? '1px solid #9fe3bd' : '1px solid rgba(255,255,255,0.06)',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>{c}</button>
+          ))}
+        </div>
+
+        {/* Task rows — compact */}
+        {loading ? (
+          <div style={{ color: '#64748B', fontSize: 13 }}>Memuat…</div>
+        ) : filteredTugas.length === 0 ? (
+          <div style={{ color: '#374151', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>
+            Belum ada tugas untuk kelas ini.
+          </div>
+        ) : (
+          <div style={{ background: '#111827', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+            {filteredTugas.slice(0, 6).map((t, i) => {
+              const isActive = t.status === 'active'
+              const color = classColor(t.kelas)
+              return (
+                <button key={t.id} onClick={() => onSelectTab('tugas')} style={{
+                  display: 'flex', width: '100%', alignItems: 'center', gap: 10,
+                  borderBottom: i < Math.min(filteredTugas.length, 6) - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                  padding: '12px 14px', textAlign: 'left', background: 'transparent', border: 'none',
+                  cursor: 'pointer', fontFamily: 'inherit', boxSizing: 'border-box',
+                }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                  <span style={{
+                    flexShrink: 0, fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 20,
+                    background: isActive ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.05)',
+                    color: isActive ? '#34D399' : '#64748B',
+                    textTransform: 'uppercase', letterSpacing: 0.5,
+                  }}>{isActive ? 'Aktif' : 'Tutup'}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#e0eae7', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.game_name || t.gameName}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginTop: 2, fontSize: 10, color: '#64748B' }}>
+                      <span>{t.kelas}</span>
+                      <span>·</span>
+                      <span>{t.total_questions} soal</span>
+                      {t.due_at && <><span>·</span><span>Tenggat {new Date(t.due_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</span></>}
+                    </span>
+                  </span>
+                  <span style={{ color: '#374151', fontSize: 14, flexShrink: 0 }}>›</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Class summary ── */}
+      {!loading && kelasDiampu.length > 0 && (
+        <div style={{ padding: isDesktop ? '0 0 20px' : '0 16px 20px' }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', marginBottom: 10 }}>Ringkasan Kelas</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {kelasDiampu.map((kelas, idx) => {
+              const colorPairs = [['#9fe3bd','rgba(159,227,189,0.1)'],['#d7c7ff','rgba(215,199,255,0.1)'],['#f5cf9c','rgba(245,207,156,0.1)'],['#67E8F9','rgba(103,232,249,0.1)']]
+              const [accent, bg] = colorPairs[idx % 4]
+              const cnt = homeStats?.studentsByClass?.[kelas] ?? 0
+              const aktif = activeTugas.filter(t => t.kelas === kelas).length
+              return (
+                <button key={kelas} onClick={() => onSelectTab('siswa')} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  background: '#111827', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)',
+                  padding: '12px 14px', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', width: '100%',
+                }}>
+                  <span style={{ width: 36, height: 36, borderRadius: 10, background: bg, color: accent, fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, letterSpacing: -0.5 }}>
+                    {kelas.replace(/[^A-Z0-9]/gi,'').substring(0,4).toUpperCase()}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{kelas}</span>
+                    <span style={{ display: 'block', fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                      {cnt} siswa · {aktif > 0 ? `${aktif} tugas aktif` : 'tidak ada tugas aktif'}
+                    </span>
+                  </span>
+                  <span style={{ color: '#374151', fontSize: 14, flexShrink: 0 }}>›</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -1954,6 +3047,7 @@ function MenuBtn({ label, onClick, danger }) {
 const DESKTOP_TABS = [
   { id: 'home',       icon: '🏠', text: 'Beranda' },
   { id: 'tugas',      icon: '📋', text: 'Kelola Tugas' },
+  { id: 'video',      icon: '🎬', text: 'Video Materi' },
   { id: 'siswa',      icon: '👥', text: 'Pantau Kelas' },
   { id: 'nilai',      icon: '📊', text: 'Nilai Siswa' },
   { id: 'insight',    icon: '🎮', text: 'Insight Siswa' },
@@ -1961,18 +3055,18 @@ const DESKTOP_TABS = [
   { id: 'turnamen',   icon: '🏆', text: 'Turnamen' },
   { id: 'hafalan',    icon: '📖', text: 'Hafalan' },
   { id: 'kunci',      icon: '🔒', text: 'Kunci Bab' },
-  { id: 'komunikasi', icon: '💬', text: 'Komunikasi' },
 ]
 
 export default function GuruDashboardScreen({ onPlayGames }) {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState('home')
   const [view, setView] = useState('dashboard')
-  const [komunikasiTarget, setKomunikasiTarget] = useState(null)
   const [visitedProfile, setVisitedProfile] = useState(null)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
   const publicProfile = usePublicProfile()
   const isDesktop = useIsDesktop()
   const kelasDiampu = user?.kelas || []
+  const hasMateriTerdaftar = user?.hasMateriTerdaftar ?? false
   const grades = [...new Set(kelasDiampu.map(kelasToGrade).filter(Boolean))].sort()
 
   const selectTab = useCallback((nextTab) => {
@@ -1985,9 +3079,11 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   useEffect(() => {
     const handler = (e) => {
       const key = e.detail?.key
+      if (key === 'profile') { setView('profile'); return }
       const nextTab = {
         guruDashboard: 'home',
         guruTugas: 'tugas',
+        guruVideo: 'video',
         guruPantau: 'siswa',
         guruNilai: 'nilai',
         guruHafalan: 'hafalan',
@@ -1995,13 +3091,19 @@ export default function GuruDashboardScreen({ onPlayGames }) {
         guruRaid: 'raid',
         guruTurnamen: 'turnamen',
         guruKunci: 'kunci',
-        guruKomunikasi: 'komunikasi',
       }[key]
       if (nextTab) selectTab(nextTab)
     }
     window.addEventListener('tomat:guru-nav', handler)
     return () => window.removeEventListener('tomat:guru-nav', handler)
   }, [selectTab])
+
+  // Redirect non-mapel guru away from management-only tabs
+  useEffect(() => {
+    if (!hasMateriTerdaftar && MANAGEMENT_TAB_IDS.has(tab)) {
+      selectTab('home')
+    }
+  }, [hasMateriTerdaftar, tab, selectTab])
 
   // "Lihat Profil" must not reuse the compact profile object from the modal.
   // Fetch the complete, access-checked profile before opening the full page.
@@ -2034,146 +3136,271 @@ export default function GuruDashboardScreen({ onPlayGames }) {
     return <PublicProfileScreen profile={visitedProfile} goBack={() => setVisitedProfile(null)} />
   }
 
-  // ── Home tab renders as a full standalone page ──
-  if (tab === 'home') {
-    return (
-      <>
-        <GuruHomeTab
-          kelasDiampu={kelasDiampu}
-          user={user}
-          logout={logout}
-          onPlayGames={onPlayGames}
-          onGoProfile={() => setView('profile')}
-          onSelectTab={selectTab}
-        />
-        <PublicProfileModal
-          profile={publicProfile.profile}
-          loading={publicProfile.loading}
-          error={publicProfile.error}
-          onClose={publicProfile.closeProfile}
-        />
-      </>
-    )
-  }
-
   const tabContent = (
     <>
-      {tab === 'tugas'      && <TugasTab kelasDiampu={kelasDiampu} />}
-      {tab === 'hafalan'    && <GuruHafalanScreen />}
+      {tab === 'home'       && <GuruHomeTab kelasDiampu={kelasDiampu} user={user} logout={logout} onPlayGames={onPlayGames} onGoProfile={() => setView('profile')} onSelectTab={selectTab} hideHeader={!isDesktop} hasMateriTerdaftar={hasMateriTerdaftar} />}
+      {tab === 'tugas'      && hasMateriTerdaftar && <TugasTab kelasDiampu={kelasDiampu} />}
+      {tab === 'video'      && hasMateriTerdaftar && <VideoMateriTab kelasDiampu={kelasDiampu} />}
+      {tab === 'hafalan'    && hasMateriTerdaftar && <GuruHafalanScreen />}
       {tab === 'nilai'      && <NilaiTab onProfileClick={publicProfile.openProfile} />}
-      {tab === 'komunikasi' && <CommunicationScreen embedded initialTarget={komunikasiTarget} />}
       {tab === 'siswa'      && <SiswaTab onProfileClick={publicProfile.openProfile} />}
-      {tab === 'kunci'      && <KunciTab grades={grades} />}
-      {tab === 'raid'       && <RaidTab kelasDiampu={kelasDiampu} />}
-      {tab === 'turnamen'   && <TurnamenTab kelasDiampu={kelasDiampu} />}
+      {tab === 'kunci'      && hasMateriTerdaftar && <KunciTab grades={grades} />}
+      {tab === 'raid'       && hasMateriTerdaftar && <RaidTab kelasDiampu={kelasDiampu} />}
+      {tab === 'turnamen'   && hasMateriTerdaftar && <TurnamenTab kelasDiampu={kelasDiampu} />}
       {tab === 'insight'    && <InsightTab onProfileClick={publicProfile.openProfile} />}
     </>
   )
 
+  // ── shared bottom-nav data ──
+  const PRIMARY_TABS_ALL = [
+    { id: 'home',       icon: '🏠', label: 'Beranda' },
+    { id: 'tugas',      icon: '📋', label: 'Tugas' },
+    { id: 'siswa',      icon: '👥', label: 'Siswa' },
+  ]
+  const MORE_TABS_ALL = [
+    { id: 'video',    icon: '🎬', label: 'Video Materi' },
+    { id: 'hafalan',  icon: '🧮', label: 'Hafalan' },
+    { id: 'nilai',    icon: '📊', label: 'Nilai' },
+    { id: 'kunci',    icon: '🔒', label: 'Kunci Bab' },
+    { id: 'raid',     icon: '⚔️',  label: 'Boss Raid' },
+    { id: 'turnamen', icon: '🏆', label: 'Turnamen' },
+    { id: 'insight',  icon: '🎮', label: 'Insight' },
+  ]
+  const PRIMARY_TABS = hasMateriTerdaftar ? PRIMARY_TABS_ALL : PRIMARY_TABS_ALL.filter(t => !MANAGEMENT_TAB_IDS.has(t.id))
+  const MORE_TABS = hasMateriTerdaftar ? MORE_TABS_ALL : MORE_TABS_ALL.filter(t => !MANAGEMENT_TAB_IDS.has(t.id))
+  const filteredDesktopTabs = hasMateriTerdaftar ? DESKTOP_TABS : DESKTOP_TABS.filter(t => !MANAGEMENT_TAB_IDS.has(t.id))
+  const isMoreTab = MORE_TABS.some(t => t.id === tab)
+
+  const currentTabInfo = TABS.find(t => t.id === tab)
+
+  // ── Desktop layout — left sidebar + content ──
+  if (isDesktop) {
+    return (
+      <div style={{ height: '100vh', overflow: 'hidden', background: '#0A0B14', position: 'relative', display: 'flex' }}>
+        {/* Background blobs */}
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
+          <div style={{ position: 'absolute', top: '-10%', right: '-15%', width: '60%', height: '45%', borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(100px)' }} />
+          <div style={{ position: 'absolute', bottom: '20%', left: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(16,185,129,0.08)', filter: 'blur(100px)' }} />
+        </div>
+
+        {/* ── Left Sidebar 220px ── */}
+        <div style={{
+          width: 220, flexShrink: 0, position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 20,
+          background: 'rgba(10,11,20,0.97)', backdropFilter: 'blur(20px)',
+          borderRight: '1px solid rgba(255,255,255,0.07)',
+          display: 'flex', flexDirection: 'column',
+          overflowY: 'auto',
+        }}>
+          {/* Logo + user info */}
+          <div style={{ padding: '20px 18px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <span style={{ width: 34, height: 34, borderRadius: 10, background: '#9fe3bd', color: '#0b2c2a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 10, letterSpacing: '-0.05em', flexShrink: 0 }}>TM</span>
+              <div>
+                <div style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, letterSpacing: '0.12em', color: '#9fe3bd', textTransform: 'uppercase' }}>SMARTISA</div>
+                <div style={{ fontSize: 11, color: '#64748B' }}>Ruang Guru</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#d7c7ff', color: '#3d286c', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                {user?.photoUrl
+                  ? <img src={user.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                  : (user?.name || 'G').charAt(0).toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || 'Guru'}</div>
+                <div style={{ fontSize: 10, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(user?.kelas || []).slice(0, 2).join(', ')}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tab list */}
+          <nav style={{ flex: 1, padding: '10px 10px' }}>
+            {filteredDesktopTabs.map(({ id, icon, text }) => {
+              const active = tab === id
+              return (
+                <button key={id} onClick={() => selectTab(id)} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 12px', borderRadius: 12, marginBottom: 3,
+                  background: active ? 'rgba(159,227,189,0.1)' : 'transparent',
+                  border: active ? '1px solid rgba(159,227,189,0.2)' : '1px solid transparent',
+                  color: active ? '#9fe3bd' : '#64748B',
+                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: active ? 700 : 500,
+                  textAlign: 'left',
+                  transition: 'all 0.12s',
+                }}>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{text}</span>
+                </button>
+              )
+            })}
+          </nav>
+
+          {/* Sidebar actions bottom */}
+          <div style={{ padding: '10px 10px 20px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <button onClick={onPlayGames} style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px',
+              borderRadius: 12, background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)',
+              color: '#34D399', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+            }}>🎮 <span>Media Ajar</span></button>
+            <button onClick={() => setView('profile')} style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px',
+              borderRadius: 12, background: 'transparent', border: '1px solid rgba(255,255,255,0.06)',
+              color: '#94A3B8', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
+            }}>👤 <span>Profil Saya</span></button>
+            <button onClick={logout} style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px',
+              borderRadius: 12, background: 'transparent', border: '1px solid rgba(239,68,68,0.12)',
+              color: '#F87171', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
+            }}>⏻ <span>Keluar</span></button>
+          </div>
+        </div>
+
+        {/* ── Main area ── */}
+        <div style={{ flex: 1, marginLeft: 220, position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+          {/* Topbar */}
+          <div style={{
+            padding: '12px 24px', display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(10,11,20,0.92)', backdropFilter: 'blur(20px)',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            position: 'sticky', top: 0, zIndex: 50,
+          }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>{currentTabInfo?.label}</span>
+                {currentTabInfo?.text}
+              </div>
+              <div style={{ fontSize: 10, color: '#A78BFA', fontWeight: 600, marginTop: 1 }}>
+                {user?.name} · {kelasDiampu.join(', ') || 'Guru'}
+              </div>
+            </div>
+            <AppNotificationBell />
+          </div>
+
+          {/* Content */}
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '24px 32px', width: '100%', maxWidth: 1280 }}>
+            {tabContent}
+          </div>
+        </div>
+
+        <PublicProfileModal profile={publicProfile.profile} loading={publicProfile.loading} error={publicProfile.error} onClose={publicProfile.closeProfile} />
+      </div>
+    )
+  }
+
+  // ── Mobile layout — fully fixed shell ──
+  // AppShell header is fixed at top (64px). Bottom nav is fixed at bottom.
+  // Scrollable content fills the space between them via fixed inset positioning.
+  // This mirrors the siswa AppShell pattern and is immune to height arithmetic errors.
+  const navBottom = 'calc(56px + max(18px, env(safe-area-inset-bottom)))'
   return (
-    <div style={{ minHeight: '100vh', background: '#0A0B14', position: 'relative' }}>
+    <div style={{ position: 'fixed', inset: 0, background: '#0A0B14', zIndex: 0 }}>
       {/* Background blobs */}
-      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
         <div style={{ position: 'absolute', top: '-10%', right: '-15%', width: '60%', height: '45%', borderRadius: '50%', background: 'rgba(139,92,246,0.12)', filter: 'blur(100px)' }} />
         <div style={{ position: 'absolute', bottom: '20%', left: '-15%', width: '50%', height: '40%', borderRadius: '50%', background: 'rgba(16,185,129,0.08)', filter: 'blur(100px)' }} />
       </div>
 
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* ── Sticky Topbar ── */}
-        <div style={{
-          padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 10,
-          background: 'rgba(10,11,20,0.92)', backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
-          position: 'sticky', top: 0, zIndex: 50,
-        }}>
-          {/* Back to home button */}
-          <button onClick={() => selectTab('home')} style={{
-            background: 'rgba(159,227,189,0.1)', border: '1px solid rgba(159,227,189,0.25)',
-            color: '#9fe3bd', borderRadius: 10, padding: '6px 12px', cursor: 'pointer',
-            fontSize: 12, fontWeight: 700, flexShrink: 0, fontFamily: 'inherit',
-            display: 'flex', alignItems: 'center', gap: 5,
-          }}>← Beranda</button>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {TABS.find(t => t.id === tab)?.label} {TABS.find(t => t.id === tab)?.text}
-            </div>
-            <div style={{ fontSize: 10, color: '#A78BFA', fontWeight: 600, marginTop: 1 }}>
-              {user?.name} · {kelasDiampu.join(', ') || 'Guru'}
-            </div>
+      {/* ── Scrollable Content — fixed between header and bottom nav ── */}
+      <div style={{
+        position: 'fixed', top: 64, left: 0, right: 0, bottom: navBottom,
+        overflowY: 'auto', overflowX: 'hidden',
+        zIndex: 1, WebkitOverflowScrolling: 'touch', touchAction: 'pan-y',
+      }}>
+        {tab !== 'home' && (
+          <div style={{ padding: '16px 16px 0' }}>
+            {tabContent}
           </div>
-
-          <MessageNotificationBell onClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} suppress={tab === 'komunikasi'} />
-          <AppNotificationBell onCommunicationClick={target => { setKomunikasiTarget(target || null); selectTab('komunikasi') }} />
-
-          <button onClick={onPlayGames} style={{
-            background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)',
-            color: '#34D399', borderRadius: 20, padding: '8px 14px', cursor: 'pointer',
-            fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-          }}>🎮 Media Ajar</button>
-
-          <button onClick={logout} style={{
-            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)',
-            color: '#64748B', width: 36, height: 36, borderRadius: 10, cursor: 'pointer', fontSize: 16,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>⏻</button>
-        </div>
-
-        {/* ── Body ── */}
-        {isDesktop ? (
-          /* ── Desktop: vertical sidebar + scrollable content ── */
-           <div style={{ display: 'flex', minHeight: 'calc(100vh - 65px)' }}>
-             {/* Main content area. Desktop navigation lives in AppShell/Sidebar. */}
-             <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', maxWidth: 1100 }}>
-              {tabContent}
-            </div>
-          </div>
-        ) : (
-          /* ── Mobile: horizontal scroll tab bar + content ── */
-          <>
-            <div style={{ display: 'flex', gap: 4, padding: '12px 16px 0', overflowX: 'auto', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-               {TABS.filter(t => t.id !== 'home').map(t => {
-                const active = tab === t.id
-                 return (
-                   <button key={t.id} data-tab={t.id} onClick={() => selectTab(t.id)} style={{
-                    flex: '0 0 auto', padding: '8px 14px', borderRadius: 10, border: 'none',
-                    cursor: 'pointer', fontSize: 12, fontWeight: 800, fontFamily: 'inherit',
-                    whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5,
-                    background: active ? 'rgba(52,211,153,0.12)' : 'transparent',
-                    color: active ? '#34D399' : '#4B5563',
-                    borderBottom: active ? '2px solid #34D399' : '2px solid transparent',
-                    marginBottom: -1,
-                    boxShadow: active ? '0 0 12px rgba(52,211,153,0.15)' : 'none',
-                  }}>
-                    {t.label} {t.text}
-                  </button>
-                )
-              })}
-            </div>
-            <div style={{ padding: 16, maxWidth: 'var(--content-max)', margin: '0 auto' }}>
-              {tabContent}
-            </div>
-          </>
         )}
-
-        <PublicProfileModal
-          profile={publicProfile.profile}
-          loading={publicProfile.loading}
-          error={publicProfile.error}
-          onClose={publicProfile.closeProfile}
-        />
+        {tab === 'home' && tabContent}
+        <div style={{ height: 16 }} />
+        <PublicProfileModal profile={publicProfile.profile} loading={publicProfile.loading} error={publicProfile.error} onClose={publicProfile.closeProfile} />
       </div>
+
+      {/* ── Fixed Bottom Nav ── */}
+      <nav style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10,
+        display: 'flex', justifyContent: 'space-around', alignItems: 'stretch',
+        paddingTop: 4, paddingBottom: 'max(18px, env(safe-area-inset-bottom))',
+        paddingLeft: 4, paddingRight: 4,
+        background: 'rgba(10,11,20,0.97)', backdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        minHeight: 56,
+      }}>
+        {PRIMARY_TABS.map(({ id, icon, label }) => {
+          const active = tab === id
+          return (
+            <button key={id} onClick={() => { selectTab(id); setShowMoreMenu(false) }} style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              gap: 3, border: 'none', background: 'none', cursor: 'pointer',
+              color: active ? '#34D399' : '#4B5563', fontFamily: 'inherit',
+              padding: '6px 2px', position: 'relative', minHeight: 48,
+              justifyContent: 'center',
+            }}>
+              {active && <span style={{
+                position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                width: 20, height: 3, borderRadius: 99, background: '#34D399',
+              }} />}
+              <span style={{ fontSize: 22, opacity: active ? 1 : 0.5 }}>{icon}</span>
+              <small style={{ fontSize: 9, fontWeight: active ? 800 : 500 }}>{label}</small>
+            </button>
+          )
+        })}
+
+        {/* Lainnya */}
+        <button onClick={() => setShowMoreMenu(v => !v)} style={{
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          gap: 3, border: 'none', background: 'none', cursor: 'pointer',
+          color: showMoreMenu || isMoreTab ? '#A78BFA' : '#4B5563',
+          fontFamily: 'inherit', padding: '6px 2px', position: 'relative',
+          minHeight: 48, justifyContent: 'center',
+        }}>
+          {(showMoreMenu || isMoreTab) && (
+            <span style={{
+              position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+              width: 20, height: 3, borderRadius: 99, background: '#A78BFA',
+            }} />
+          )}
+          <span style={{ fontSize: 22, opacity: showMoreMenu || isMoreTab ? 1 : 0.5 }}>☰</span>
+          <small style={{ fontSize: 9, fontWeight: showMoreMenu || isMoreTab ? 800 : 500 }}>Lainnya</small>
+        </button>
+      </nav>
+
+      {/* ── More Menu Sheet — vertical list ── */}
+      {showMoreMenu && (
+        <>
+          <div onClick={() => setShowMoreMenu(false)} style={{
+            position: 'fixed', inset: 0, zIndex: 11, background: 'rgba(0,0,0,0.55)',
+          }} />
+          <div style={{
+            position: 'fixed', bottom: 'calc(56px + max(18px, env(safe-area-inset-bottom)))', left: 8, right: 8, zIndex: 12,
+            background: '#12131f', borderRadius: 20,
+            border: '1px solid rgba(255,255,255,0.09)',
+            overflowY: 'auto',
+            maxHeight: 'calc(100dvh - 200px)',
+            boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
+          }}>
+            <div style={{ fontSize: 10, color: '#4B5563', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '14px 16px 8px' }}>Menu Lainnya</div>
+            {MORE_TABS.map(({ id, icon, label }) => {
+              const active = tab === id
+              return (
+                <button key={id} onClick={() => { selectTab(id); setShowMoreMenu(false) }} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '13px 16px', border: 'none',
+                  background: active ? 'rgba(167,139,250,0.08)' : 'transparent',
+                  color: active ? '#A78BFA' : '#94A3B8',
+                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', boxSizing: 'border-box',
+                  borderBottom: '1px solid rgba(255,255,255,0.04)',
+                }}>
+                  <span style={{ fontSize: 20, flexShrink: 0, width: 24, textAlign: 'center' }}>{icon}</span>
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: active ? 700 : 500 }}>{label}</span>
+                  <span style={{ fontSize: 16, color: active ? '#A78BFA' : '#374151', flexShrink: 0 }}>›</span>
+                </button>
+              )
+            })}
+            <div style={{ height: 6 }} />
+          </div>
+        </>
+      )}
     </div>
   )
-}
-
-const inputStyle = {
-  width: '100%', background: '#0D1117', border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: 12, padding: '11px 12px', color: '#fff', fontSize: 13,
-  fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-}
-
-const labelStyle = {
-  fontSize: 10, color: '#64748B', fontWeight: 700, letterSpacing: 1.5,
-  textTransform: 'uppercase', marginBottom: 5,
 }

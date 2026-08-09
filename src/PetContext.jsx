@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from './AuthContext'
+import { playSfx, skinToSfxKey } from './sfx'
 
 const PetContext = createContext(null)
 
@@ -28,6 +29,9 @@ export function PetProvider({ children }) {
     foods: {},
   })
   const [loading, setLoading] = useState(false)
+  // Track current skin in a ref so feed/revive callbacks can read it without stale closure
+  const skinRef = useRef('golden')
+  useEffect(() => { skinRef.current = pet.skin }, [pet.skin])
   const intervalRef = useRef(null)
 
   const fetchPet = useCallback(async () => {
@@ -69,6 +73,7 @@ export function PetProvider({ children }) {
 
   const feedPet = useCallback(async (foodId) => {
     setLoading(true)
+    playSfx('feed_' + skinToSfxKey(skinRef.current))
     try {
       const data = await apiCall('/api/siswa/pet/feed', { method: 'POST', body: { foodId } })
       setPet(prev => ({
@@ -88,6 +93,7 @@ export function PetProvider({ children }) {
 
   const revivePet = useCallback(async () => {
     setLoading(true)
+    playSfx('pet_revive')
     try {
       const data = await apiCall('/api/siswa/pet/revive', { method: 'POST', body: {} })
       setPet(prev => ({

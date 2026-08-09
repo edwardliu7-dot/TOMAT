@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { playSfx } from '../sfx'
 import { TopBar, PlayerHeader } from '../components/shared'
 import { useAuth } from '../AuthContext'
 import { usePet } from '../PetContext'
 import { usePlayer } from '../PlayerContext'
 import { KATEGORI_LABELS, PET_SKIN_INFO, PET_FOOD_CATALOG } from '../shopVisuals'
 import PetSVG, { PET_CSS, STATE_ANIMS, getPetName } from '../components/PetSVG'
+import { getPetBonusDisplay } from '../petBonuses'
+import { VISIBLE_EVENTS, isEventActive, getEventEndDate, formatCountdown, getUpcomingEvents, formatDaysUntil } from '../data/seasonalEvents'
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -28,16 +31,11 @@ async function apiCall(path, options = {}) {
   return data
 }
 
-const TABS = ['bingkai', 'spanduk', 'tema', 'stiker', 'pet_skin']
+const TABS = ['event', 'bingkai', 'spanduk', 'tema', 'pet_skin']
 
 // ── Rarity helpers ────────────────────────────────────────────────────────────
 function getItemRarity(item) {
   const v = item.visual || {}
-  if (item.kategori === 'stiker') {
-    if (v.tier === 'epic')  return 'epik'
-    if (v.tier === 'rare')  return 'langka'
-    return 'umum'
-  }
   if (v.limited) return 'epik'
   if (v.glow)    return 'langka'
   return 'umum'
@@ -54,8 +52,32 @@ const RARITY_BADGE_BG = {
 
 function ItemVisual({ item }) {
   const luxury = item.visual?.luxury
-  if (luxury === 'aurum') {
+  // For luxury frames that now have a PNG image, use the shared image-frame renderer
+  if ((luxury === 'aurum' || luxury === 'void') && item.visual?.image) {
+    const v = item.visual
+    const outer = 110
+    const sf = v.spread ?? 0.30
+    const photoSz = Math.round(outer / (1 + 2 * sf))
+    const isEpic = Boolean(v.limited)
+    const glowFilter = `drop-shadow(0 0 ${Math.round(outer * 0.16)}px ${v.border}ee) drop-shadow(0 0 ${Math.round(outer * 0.07)}px ${v.border}88)`
     return (
+      <div style={{ width: '100%', height: 150, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: luxury === 'aurum' ? 'radial-gradient(circle at 50% 40%,rgba(212,175,55,0.12),transparent 60%),#0a0906' : 'radial-gradient(circle at 50% 40%,rgba(99,102,241,0.14),transparent 60%),#04040a', position: 'relative', overflow: 'hidden' }}>
+        {isEpic && (
+          <div style={{ position: 'absolute', inset: 0, borderRadius: 8, boxShadow: `inset 0 0 40px ${v.border}22`, pointerEvents: 'none' }} />
+        )}
+        <div style={{ position: 'relative', width: outer, height: outer, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {isEpic && (
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', boxShadow: `0 0 ${Math.round(outer * 0.25)}px ${v.border}55`, animation: 'tomat-frame-glow-pulse 2.4s ease-in-out infinite', pointerEvents: 'none' }} />
+          )}
+          <div style={{ width: photoSz, height: photoSz, borderRadius: '50%', background: 'linear-gradient(135deg,#1a1a2e,#0d0d1a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(photoSz * 0.45), position: 'relative', zIndex: 1 }}>🧑‍🎓</div>
+          <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 5, mixBlendMode: v.mixBlend ?? 'normal', filter: glowFilter }} />
+        </div>
+      </div>
+    )
+  }
+  if ((luxury === 'aurum' || luxury === 'void') && !item.visual?.image) {
+    const isAurum = luxury === 'aurum'
+    return isAurum ? (
       <div style={{ width: '100%', height: 150, borderRadius: 8, padding: 1, background: 'linear-gradient(145deg,#fff5b8,#d4af37 22%,#2a220b 52%,#aa7c11)', boxShadow: '0 12px 26px rgba(212,175,55,0.18)' }}>
         <div style={{ height: '100%', borderRadius: 7, background: 'radial-gradient(circle at 50% 32%,rgba(212,175,55,.28),transparent 45%),#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#e8d08c', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', inset: 10, border: '1px solid rgba(212,175,55,.45)' }} />
@@ -63,10 +85,7 @@ function ItemVisual({ item }) {
           <div style={{ marginTop: 10, fontSize: 9, letterSpacing: 2.2, fontWeight: 800 }}>AURUM SOVEREIGN</div>
         </div>
       </div>
-    )
-  }
-  if (luxury === 'void') {
-    return (
+    ) : (
       <div style={{ width: '100%', height: 150, borderRadius: 8, background: 'radial-gradient(circle at 50% 22%,rgba(79,70,229,.24),transparent 46%),#040406', border: '1px solid #2a2a3a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#a5b4fc', boxShadow: '0 12px 30px rgba(49,46,129,.2)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', width: 112, height: 112, border: '1px dashed rgba(99,102,241,.35)', borderRadius: '50%' }} />
         <div style={{ position: 'absolute', width: 78, height: 78, border: '1px solid rgba(129,140,248,.3)', borderRadius: '50%' }} />
@@ -93,10 +112,26 @@ function ItemVisual({ item }) {
       const outer = 80
       const sf = v.spread ?? 0.45
       const photoSz = Math.round(outer / (1 + 2 * sf))
+      const BINGKAI_SPARKLE_DOTS = [
+        { top: '5%',  left: '10%', delay: '0.0s', size: 3, color: '#E11D48' },
+        { top: '8%',  right: '8%', delay: '0.7s', size: 2, color: '#F1F5F9' },
+        { top: '50%', left: '0%',  delay: '1.2s', size: 2, color: '#F1F5F9' },
+        { top: '50%', right:'0%',  delay: '0.4s', size: 3, color: '#E11D48' },
+        { top: '88%', left: '12%', delay: '1.6s', size: 2, color: '#F1F5F9' },
+        { top: '85%', right:'10%', delay: '0.9s', size: 3, color: '#E11D48' },
+      ]
       return (
         <div style={{ position: 'relative', width: outer, height: outer, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: photoSz, height: photoSz, borderRadius: '50%', background: '#1E2128', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(photoSz * 0.45), position: 'relative', zIndex: 1 }}>🧑‍🎓</div>
-          <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 3, mixBlendMode: v.mixBlend ?? 'normal', filter: v.glow ? `drop-shadow(0 0 6px ${v.border}bb)` : 'none' }} />
+          <img src={v.image} alt="" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 3, mixBlendMode: v.mixBlend ?? 'normal', filter: `${v.cssFilter ? v.cssFilter + ' ' : ''}${v.glow ? `drop-shadow(0 0 6px ${v.border}bb)` : ''}` || 'none' }} />
+          {v.sparkle === 'merahputih' && (
+            <>
+              <style>{`@keyframes bingkai-sparkle{0%,100%{opacity:0;transform:scale(0.3) rotate(0deg)}50%{opacity:1;transform:scale(1.2) rotate(45deg)}}`}</style>
+              {BINGKAI_SPARKLE_DOTS.map((d, i) => (
+                <div key={i} style={{ position: 'absolute', width: d.size, height: d.size, borderRadius: '50%', background: '#fff', top: d.top, left: d.left, right: d.right, boxShadow: `0 0 3px 1px ${d.color}, 0 0 7px 2px ${d.color}88`, animation: `bingkai-sparkle 2.4s ease-in-out ${d.delay} infinite`, opacity: 0, zIndex: 6, pointerEvents: 'none' }} />
+              ))}
+            </>
+          )}
         </div>
       )
     }
@@ -108,20 +143,31 @@ function ItemVisual({ item }) {
   }
   if (item.kategori === 'spanduk') {
     const v = item.visual || {}
-    return <div style={{ width: '100%', height: 64, borderRadius: 12, background: v.gradient || '#334155', boxShadow: v.glow ? '0 0 20px rgba(212,175,55,0.3)' : 'none', border: v.limited ? '1px solid rgba(212,175,55,0.55)' : 'none' }} />
+    const bg = v.image
+      ? `url(${v.image}) center/cover no-repeat, ${v.gradient || '#334155'}`
+      : v.gradient || '#334155'
+    return <div style={{ width: '100%', height: 64, borderRadius: 12, background: bg, boxShadow: v.glow ? '0 0 20px rgba(212,175,55,0.3)' : 'none', border: v.limited ? '1px solid rgba(212,175,55,0.55)' : 'none' }} />
   }
-  if (item.kategori === 'stiker') {
-    const emoji = item.visual?.emoji || '🪄'
-    const tier = item.visual?.tier || 'common'
-    const tierBg = tier === 'epic' ? 'radial-gradient(circle,#3b0764,#1e1b4b)' : tier === 'rare' ? 'radial-gradient(circle,#1e3a5f,#0f172a)' : 'radial-gradient(circle,#1e293b,#0f172a)'
-    const tierBorder = tier === 'epic' ? 'rgba(168,85,247,0.5)' : tier === 'rare' ? 'rgba(96,165,250,0.5)' : 'rgba(100,116,139,0.4)'
+
+  if (item.kategori === 'tema') {
+    const v = item.visual || {}
+    const sw = v.swatches || []
     return (
-      <div style={{ width: '100%', height: 100, borderRadius: 12, background: tierBg, border: `1px solid ${tierBorder}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-        <div style={{ fontSize: 44, lineHeight: 1 }}>{emoji}</div>
-        <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: tier === 'epic' ? '#c084fc' : tier === 'rare' ? '#93c5fd' : '#94a3b8' }}>{tier === 'epic' ? '★ Epik' : tier === 'rare' ? '◆ Langka' : 'Umum'}</div>
+      <div style={{ width: '100%', height: 80, borderRadius: 12, overflow: 'hidden', position: 'relative', background: v.gradient || '#1A1D27', border: v.limited ? `1px solid ${v.accent}44` : '1px solid rgba(255,255,255,0.08)', boxShadow: v.glow ? `0 0 18px ${v.accent}33` : 'none' }}>
+        {/* glow orb */}
+        {v.accent && <div style={{ position: 'absolute', width: 70, height: 70, borderRadius: '50%', background: v.accent, filter: 'blur(34px)', opacity: 0.22, top: '-30%', left: '28%', pointerEvents: 'none' }} />}
+        {/* dot particles */}
+        {[12,28,42,56,72,85].map((x, i) => (
+          <div key={i} style={{ position: 'absolute', width: 1.5, height: 1.5, borderRadius: '50%', background: '#fff', opacity: 0.18 + i * 0.04, left: `${x}%`, top: `${10 + i * 12}%` }} />
+        ))}
+        {/* swatches */}
+        <div style={{ position: 'absolute', bottom: 7, left: 10, display: 'flex', gap: 5 }}>
+          {sw.map((c, i) => <div key={i} style={{ width: 12, height: 12, borderRadius: '50%', background: c, border: '1px solid rgba(255,255,255,0.18)', flexShrink: 0 }} />)}
+        </div>
       </div>
     )
   }
+
   return <div style={{ width: 76, height: 76, borderRadius: 12, background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>❔</div>
 }
 
@@ -130,6 +176,7 @@ const REVIVE_COST = 300
 function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false }) {
   const info = PET_SKIN_INFO[skinId]
   if (!info) return null
+  const bonus = getPetBonusDisplay(skinId)
   const owned = skinId === 'golden' || data.ownedItemIds.includes(skinId)
   const prerequisiteOwned = !info.prerequisitePetId || data.ownedItemIds.includes(info.prerequisitePetId)
   const equipped = equippedSkin === skinId
@@ -137,16 +184,18 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
   const affordable = skinId === 'golden' || (shopItem && data.coins >= shopItem.harga)
   const canBuy = prerequisiteOwned && affordable
   const busy = busyId === skinId
+  const isEpic = info.rarity === 'epic'
   return (
     <div style={{
       background: info.glow ? `radial-gradient(ellipse at 50% 0%,${info.glow},transparent 65%),#1A1D27` : '#1A1D27',
-      border: `1.5px solid ${equipped ? info.tierColor : 'rgba(255,255,255,0.07)'}`,
+      border: `1.5px solid ${equipped ? info.tierColor : isEpic ? `${info.tierColor}44` : 'rgba(255,255,255,0.07)'}`,
       borderRadius: 18, padding: wide ? '16px 20px' : '16px 12px',
       display: 'flex', flexDirection: wide ? 'row' : 'column',
       alignItems: 'center', gap: wide ? 16 : 10,
-      position: 'relative',
-      boxShadow: equipped ? `0 0 24px ${info.glow || 'rgba(245,166,35,0.2)'}` : 'none',
+      position: 'relative', overflow: 'hidden',
+      boxShadow: equipped ? `0 0 24px ${info.glow || 'rgba(245,166,35,0.2)'}` : isEpic ? `0 0 14px ${info.glow || 'rgba(192,132,252,0.15)'}` : 'none',
     }}>
+      {isEpic && <EpicSparkle color={info.tierColor} />}
       {equipped && (
         <div style={{ position: 'absolute', top: 0, right: 0, background: info.tierColor, color: ['#F59E0B','#34D399'].includes(info.tierColor) ? '#000' : '#fff', fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: '0 16px 0 10px' }}>
           DIPAKAI
@@ -158,7 +207,27 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
       <div style={{ textAlign: wide ? 'left' : 'center', flex: wide ? 1 : undefined, minWidth: 0 }}>
         <div style={{ fontSize: 10, fontWeight: 800, color: info.tierColor, letterSpacing: '0.15em', marginBottom: 2 }}>{info.tier}</div>
         <div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{info.nama}</div>
-        <div style={{ fontSize: 10, color: '#64748B', marginTop: 4, lineHeight: 1.4 }}>{info.desc}</div>
+        {bonus.label && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 5,
+            background: `${bonus.color}1a`, border: `1px solid ${bonus.color}44`,
+            borderRadius: 20, padding: '2px 8px',
+          }}>
+            <span style={{ fontSize: 11 }}>{bonus.icon}</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: bonus.color, letterSpacing: 0.2 }}>{bonus.label}</span>
+          </div>
+        )}
+        {info.story && (
+          <div style={{
+            marginTop: 7,
+            borderLeft: `2px solid ${info.tierColor}55`,
+            paddingLeft: 8,
+            fontSize: 10, fontStyle: 'italic', color: '#94A3B8', lineHeight: 1.55,
+          }}>
+            "{info.story}"
+          </div>
+        )}
+        <div style={{ fontSize: 10, color: '#475569', marginTop: 6, lineHeight: 1.4 }}>{info.desc}</div>
         {wide && (
           <div style={{ marginTop: 10 }}>
             {equipped ? (
@@ -188,30 +257,111 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
   )
 }
 
+// ── Rarity config for pet grouping ──────────────────────────────────────────
+// Base pets (different animals — each is its own creature)
+const BASE_PETS = [
+  { id: 'golden',       rarity: 'umum',   rarityColor: '#94A3B8' },
+  { id: 'pet_kelinsay', rarity: 'umum',   rarityColor: '#34D399' },
+  { id: 'pet_monyong',  rarity: 'langka', rarityColor: '#FB923C' },
+  { id: 'pet_komodih',  rarity: 'langka', rarityColor: '#A3E635' },
+  { id: 'pet_nananaga', rarity: 'epic',   rarityColor: '#C084FC' },
+]
+
+// Skins grouped by which base pet they dress up
+const SKIN_GROUPS = [
+  {
+    id: 'tomi',
+    label: 'Tomi (Marmut)',
+    icon: '🐹',
+    color: '#F5A623',
+    bg: 'rgba(245,166,35,0.10)',
+    border: 'rgba(245,166,35,0.22)',
+    skins: ['pet_skin_silver', 'pet_skin_cosmic', 'pet_skin_void'],
+  },
+  {
+    id: 'kelinsay',
+    label: 'Kelinsay (Kelinci)',
+    icon: '🐰',
+    color: '#34D399',
+    bg: 'rgba(52,211,153,0.10)',
+    border: 'rgba(52,211,153,0.22)',
+    skins: ['pet_kelinsay_senja', 'pet_kelinsay_malam', 'pet_kelinsay_merahputih'],
+  },
+  {
+    id: 'monyong',
+    label: 'Monyang (Monyet)',
+    icon: '🐒',
+    color: '#FB923C',
+    bg: 'rgba(251,146,60,0.10)',
+    border: 'rgba(251,146,60,0.22)',
+    skins: ['pet_monyong_raja', 'pet_monyong_kosmik'],
+  },
+  {
+    id: 'nananaga',
+    label: 'Nananaga (Naga)',
+    icon: '🐲',
+    color: '#C084FC',
+    bg: 'rgba(192,132,252,0.12)',
+    border: 'rgba(192,132,252,0.25)',
+    skins: ['pet_nananaga_merah', 'pet_nananaga_es'],
+  },
+]
+
+// ── Subtle sparkle overlay for Epic-tier pet cards ────────────────────────────
+const SPARKLE_DOTS = [
+  { top: '10%', left:  '7%', delay: '0.0s', size: 4 },
+  { top: '22%', right: '9%', delay: '0.6s', size: 3 },
+  { top: '60%', left: '12%', delay: '1.1s', size: 3 },
+  { top: '78%', right:'11%', delay: '0.3s', size: 4 },
+  { top: '42%', left: '90%', delay: '1.5s', size: 2 },
+  { top: '88%', left: '45%', delay: '0.8s', size: 3 },
+]
+function EpicSparkle({ color = '#C084FC' }) {
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', borderRadius: 'inherit', zIndex: 10 }}>
+      <style>{`
+        @keyframes pet-sparkle {
+          0%, 100% { opacity: 0;   transform: scale(0.4) rotate(0deg);   }
+          50%       { opacity: 0.85; transform: scale(1.1) rotate(45deg); }
+        }
+      `}</style>
+      {SPARKLE_DOTS.map((d, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          width: d.size, height: d.size,
+          borderRadius: '50%',
+          background: '#fff',
+          top: d.top, left: d.left, right: d.right,
+          boxShadow: `0 0 4px 1px ${color}, 0 0 9px 2px ${color}88`,
+          animation: `pet-sparkle 2.6s ease-in-out ${d.delay} infinite`,
+          opacity: 0,
+        }} />
+      ))}
+    </div>
+  )
+}
+
 function PetTokoTab({ data, onRefresh, setError }) {
   const { pet, feedPet, revivePet, refreshPet } = usePet()
   const { refreshMe } = useAuth()
   const [busyId, setBusyId] = useState(null)
   const [localError, setLocalError] = useState('')
   const [feedSuccess, setFeedSuccess] = useState('')
+  const [subTab, setSubTab] = useState('pet')  // 'pet' | 'skin' | 'makanan'
 
-  const tomiSkins  = ['golden', 'pet_skin_silver', 'pet_skin_cosmic', 'pet_skin_void']
-  const newPets    = ['pet_kelinsay', 'pet_monyong', 'pet_nananaga']
-  const kelinsaySkins = ['pet_kelinsay_senja', 'pet_kelinsay_malam']
-  const monyongSkins = ['pet_monyong_raja', 'pet_monyong_kosmik']
-  const nananagaSkins = ['pet_nananaga_merah', 'pet_nananaga_es']
-  const equippedSkin = data.equipped.pet_skin || 'golden'
+  const equippedSkin  = data.equipped.pet_skin || 'golden'
   const activePetName = getPetName(equippedSkin)
 
   const buyEquipSkin = async (skinId) => {
-    if (skinId === 'golden') return
-    const item = data.items.find(it => it.id === skinId)
-    if (!item) return
-    const owned = data.ownedItemIds.includes(skinId)
+    const isGolden = skinId === 'golden'
+    const item = !isGolden ? data.items.find(it => it.id === skinId) : null
+    if (!isGolden && !item) return
+    const owned = isGolden || data.ownedItemIds.includes(skinId)
     setBusyId(skinId); setLocalError('')
     try {
-      if (!owned) await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } })
+      if (!owned) { await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } }); playSfx('buy') }
       await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: skinId } })
+      playSfx('equip')
       await onRefresh(); await refreshMe(); refreshPet()
     } catch (err) { setLocalError(err.message) } finally { setBusyId(null) }
   }
@@ -227,7 +377,7 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const doRevive = async () => {
     setBusyId('revive'); setLocalError(''); setFeedSuccess('')
     const result = await revivePet()
-    if (result.ok) { setFeedSuccess('🐾 Pet baru sudah diadopsi!'); await onRefresh(); await refreshMe(); setTimeout(() => setFeedSuccess(''), 4000) }
+    if (result.ok) { playSfx('equip'); setFeedSuccess('🐾 Pet baru sudah diadopsi!'); await onRefresh(); await refreshMe(); setTimeout(() => setFeedSuccess(''), 4000) }
     else setLocalError(result.error)
     setBusyId(null)
   }
@@ -235,10 +385,21 @@ function PetTokoTab({ data, onRefresh, setError }) {
   const hungerColor = pet.isDead ? '#EF4444' : pet.hunger < 30 ? '#F59E0B' : '#F5A623'
   const hungerLabel = pet.isDead ? '💀 Mati' : pet.isStarving ? '😩 Lapar sekali' : pet.hunger < 50 ? '😕 Agak lapar' : '😊 Kenyang'
 
+  // ── Sub-tab toggle ──────────────────────────────────────────────────────────
+  const subTabStyle = (active) => ({
+    flex: 1, padding: '10px 0', borderRadius: 12, border: 'none', cursor: 'pointer',
+    fontSize: 12, fontWeight: 800, fontFamily: 'inherit', transition: 'all 0.15s',
+    background: active ? '#6366F1' : 'rgba(255,255,255,0.05)',
+    color: active ? '#fff' : '#64748B',
+    boxShadow: active ? '0 2px 12px rgba(99,102,241,0.3)' : 'none',
+  })
+
   return (
     <div style={{ paddingBottom: 40 }}>
       <style>{PET_CSS}</style>
-      <div style={{ margin: '0 0 20px', background: 'linear-gradient(160deg,#0d1b2a,#1a0d2e)', border: '1px solid rgba(245,166,35,0.2)', borderRadius: 20, padding: 20, display: 'flex', alignItems: 'flex-end', gap: 16 }}>
+
+      {/* ── Active pet status card ── */}
+      <div style={{ margin: '0 0 16px', background: 'linear-gradient(160deg,#0d1b2a,#1a0d2e)', border: '1px solid rgba(245,166,35,0.2)', borderRadius: 20, padding: 20, display: 'flex', alignItems: 'flex-end', gap: 16 }}>
         <div style={{ animation: STATE_ANIMS[pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'], transformOrigin: 'center bottom' }}>
           <PetSVG state={pet.isDead ? 'dead' : pet.isStarving ? 'hungry' : 'idle'} skinId={equippedSkin} size={96} />
         </div>
@@ -257,192 +418,269 @@ function PetTokoTab({ data, onRefresh, setError }) {
         </div>
       </div>
 
+      {/* ── Sub-tabs ── */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <button onClick={() => setSubTab('pet')}     style={subTabStyle(subTab === 'pet')}>🐾 Pet</button>
+        <button onClick={() => setSubTab('skin')}    style={subTabStyle(subTab === 'skin')}>✨ Skin</button>
+        <button onClick={() => setSubTab('makanan')} style={subTabStyle(subTab === 'makanan')}>🍖 Makanan</button>
+      </div>
+
+      {/* ── Feedback banner ── */}
       {(localError || feedSuccess) && (
         <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 12, fontSize: 13, background: feedSuccess ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', border: `1px solid ${feedSuccess ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, color: feedSuccess ? '#34D399' : '#F87171' }}>
           {feedSuccess || localError}
         </div>
       )}
 
-      {/* ── Tomi skins ── */}
-      <div style={{ fontSize: 11, color: '#F5A623', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🎨 Kostum Tomi</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: 28 }}>
-        {tomiSkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} />)}
-      </div>
+      {/* ══════════════ SUB-TAB: PET ══════════════ */}
+      {subTab === 'pet' && (
+        <>
+          {/* ── Dead / revive block ── */}
+          {pet.isDead && (
+            <div style={{ marginBottom: 24, borderRadius: 18, background: 'linear-gradient(145deg,#1a0000,#2d0a0a)', border: '2px solid rgba(239,68,68,0.4)', padding: '20px 16px', textAlign: 'center' }}>
+              <div style={{ fontSize: 52, marginBottom: 10 }}>💀</div>
+              <div style={{ fontSize: 17, fontWeight: 900, color: '#F87171', marginBottom: 6 }}>{activePetName} sudah mati!</div>
+              <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 16, lineHeight: 1.6 }}>{activePetName} tidak bisa diberi makan lagi. Kamu perlu mengadopsi pet baru untuk melanjutkan perjalanan!</div>
+              <div style={{ fontSize: 13, color: '#FCA5A5', marginBottom: 16 }}>Biaya adopsi: <strong style={{ color: '#F87171', fontSize: 16 }}>🪙 {REVIVE_COST}</strong>{data.coins < REVIVE_COST && <span style={{ color: '#6B7280', fontSize: 11, display: 'block', marginTop: 4 }}>(Kamu punya 🪙 {data.coins} — perlu {REVIVE_COST - data.coins} lagi)</span>}</div>
+              <button onClick={doRevive} disabled={data.coins < REVIVE_COST || busyId === 'revive'} style={{ width: '100%', padding: '13px', borderRadius: 12, border: 'none', fontSize: 14, fontWeight: 900, cursor: data.coins >= REVIVE_COST ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: data.coins >= REVIVE_COST ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'rgba(248,113,113,0.1)', color: data.coins >= REVIVE_COST ? '#fff' : '#F87171', outline: data.coins >= REVIVE_COST ? 'none' : '1px solid rgba(248,113,113,0.2)' }}>
+                {busyId === 'revive' ? '…' : data.coins >= REVIVE_COST ? '🐾 Adopsi Pet Baru' : '🔒 Koin tidak cukup'}
+              </button>
+            </div>
+          )}
 
-      {/* ── New animal pets ── */}
-      <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>🐾 Pet Baru</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Ganti petmu dengan hewan lain! Membeli pet baru tidak menghapus Tomi — kamu bisa ganti kapan saja.</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
-        {newPets.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
-      </div>
-
-      {/* ── Kelinsay skins ── */}
-      <div style={{ fontSize: 11, color: '#FB923C', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>🌅 Skin Kelinsay</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Skin khusus Kelinsay hanya terbuka setelah kamu memiliki pet Kelinsay.</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
-        {kelinsaySkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
-      </div>
-
-      {/* ── Monyang skins ── */}
-      <div style={{ fontSize: 11, color: '#C084FC', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>👑 Skin Monyang</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Skin khusus Monyang hanya terbuka setelah kamu memiliki pet Monyang.</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
-        {monyongSkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
-      </div>
-
-      {/* ── Nananaga skins ── */}
-      <div style={{ fontSize: 11, color: '#38BDF8', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>🔥 Skin Nananaga</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Skin khusus Nananaga hanya terbuka setelah kamu memiliki pet Nananaga.</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1,1fr)', gap: 12, marginBottom: 28 }}>
-        {nananagaSkins.map(skinId => <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} wide />)}
-      </div>
-
-      {pet.isDead && (
-        <div style={{ marginBottom: 24, borderRadius: 18, background: 'linear-gradient(145deg,#1a0000,#2d0a0a)', border: '2px solid rgba(239,68,68,0.4)', padding: '20px 16px', textAlign: 'center' }}>
-          <div style={{ fontSize: 52, marginBottom: 10 }}>💀</div>
-          <div style={{ fontSize: 17, fontWeight: 900, color: '#F87171', marginBottom: 6 }}>{activePetName} sudah mati!</div>
-          <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 16, lineHeight: 1.6 }}>{activePetName} tidak bisa diberi makan lagi. Kamu perlu mengadopsi pet baru untuk melanjutkan perjalanan!</div>
-          <div style={{ fontSize: 13, color: '#FCA5A5', marginBottom: 16 }}>Biaya adopsi: <strong style={{ color: '#F87171', fontSize: 16 }}>🪙 {REVIVE_COST}</strong>{data.coins < REVIVE_COST && <span style={{ color: '#6B7280', fontSize: 11, display: 'block', marginTop: 4 }}>(Kamu punya 🪙 {data.coins} — perlu {REVIVE_COST - data.coins} lagi)</span>}</div>
-          <button onClick={doRevive} disabled={data.coins < REVIVE_COST || busyId === 'revive'} style={{ width: '100%', padding: '13px', borderRadius: 12, border: 'none', fontSize: 14, fontWeight: 900, cursor: data.coins >= REVIVE_COST ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: data.coins >= REVIVE_COST ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'rgba(248,113,113,0.1)', color: data.coins >= REVIVE_COST ? '#fff' : '#F87171', outline: data.coins >= REVIVE_COST ? 'none' : '1px solid rgba(248,113,113,0.2)' }}>
-            {busyId === 'revive' ? '…' : data.coins >= REVIVE_COST ? '🐾 Adopsi Pet Baru' : '🔒 Koin tidak cukup'}
-          </button>
-        </div>
+          <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🐾 Koleksi Pet</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+            {BASE_PETS.map(({ id, rarityColor }) => (
+              <PetCard key={id} skinId={id} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} />
+            ))}
+          </div>
+        </>
       )}
 
-      <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🌾 Toko Makanan Pet</div>
-      {pet.isDead ? (
-        <div style={{ padding: '16px', borderRadius: 14, background: 'rgba(239,68,68,0.07)', border: '1px dashed rgba(239,68,68,0.3)', textAlign: 'center', fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
-          🚫 Makanan tidak bisa diberikan ke pet yang sudah mati.<br />Adopsi dulu pet baru di atas!
-        </div>
-      ) : (
+      {/* ══════════════ SUB-TAB: SKIN ══════════════ */}
+      {subTab === 'skin' && (
         <>
-          <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14 }}>Semakin mahal makanannya, semakin lama {activePetName} kenyang. Memberi makan langsung meningkatkan stamina petmu.</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-            {PET_FOOD_CATALOG.map(food => {
-              const affordable = data.coins >= food.harga
-              const busy = busyId === food.id
-              return (
-                <div key={food.id} style={{ background: '#1A1D27', border: `1px solid ${food.color}22`, borderRadius: 16, padding: '14px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                  <div style={{ fontSize: 38 }}>{food.emoji}</div>
-                  <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', textAlign: 'center' }}>{food.nama}</div>
-                  <div style={{ fontSize: 11, color: '#64748B' }}>Kenyang {food.dur}</div>
-                  <div style={{ fontWeight: 900, fontSize: 14, color: food.color }}>🪙 {food.harga}</div>
-                  <button onClick={() => buyFood(food.id)} disabled={!affordable || busy} style={{ width: '100%', padding: '8px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: affordable ? `${food.color}22` : 'rgba(248,113,113,0.1)', color: affordable ? food.color : '#F87171', outline: `1px solid ${affordable ? food.color + '44' : 'rgba(248,113,113,0.2)'}` }}>
-                    {busy ? '…' : affordable ? 'Beri Makan' : '🔒 Koin kurang'}
-                  </button>
+          {SKIN_GROUPS.map(group => (
+            <div key={group.id} style={{ marginBottom: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: group.bg, border: `1px solid ${group.border}`, borderRadius: 99, padding: '3px 10px' }}>
+                  <span style={{ fontSize: 12 }}>{group.icon}</span>
+                  <span style={{ fontSize: 10, fontWeight: 900, color: group.color, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{group.label}</span>
                 </div>
-              )
-            })}
-          </div>
+                <div style={{ flex: 1, height: 1, background: `${group.color}28` }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: group.color + '88' }}>{group.skins.length} skin</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+                {group.skins.map(skinId => (
+                  <PetCard key={skinId} skinId={skinId} data={data} equippedSkin={equippedSkin} busyId={busyId} onBuyEquip={buyEquipSkin} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* ══════════════ SUB-TAB: MAKANAN ══════════════ */}
+      {subTab === 'makanan' && (
+        <>
+          <div style={{ fontSize: 11, color: '#34D399', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 14 }}>🌾 Toko Makanan Pet</div>
+          {pet.isDead ? (
+            <div style={{ padding: '20px 16px', borderRadius: 16, background: 'rgba(239,68,68,0.07)', border: '1px dashed rgba(239,68,68,0.3)', textAlign: 'center', fontSize: 13, color: '#6B7280', lineHeight: 1.7 }}>
+              🚫 Makanan tidak bisa diberikan ke pet yang sudah mati.<br />
+              <span style={{ fontSize: 11 }}>Adopsi pet baru dulu di tab <strong style={{ color: '#94A3B8' }}>🐾 Pet</strong></span>
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: '#64748B', marginBottom: 16, lineHeight: 1.5 }}>Semakin mahal makanannya, semakin lama <strong style={{ color: '#94A3B8' }}>{activePetName}</strong> kenyang.</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+                {PET_FOOD_CATALOG.map(food => {
+                  const affordable = data.coins >= food.harga
+                  const busy = busyId === food.id
+                  return (
+                    <div key={food.id} style={{ background: '#1A1D27', border: `1px solid ${food.color}22`, borderRadius: 16, padding: '16px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontSize: 40 }}>{food.emoji}</div>
+                      <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', textAlign: 'center' }}>{food.nama}</div>
+                      <div style={{ fontSize: 11, color: '#64748B' }}>Kenyang {food.dur}</div>
+                      <div style={{ fontWeight: 900, fontSize: 14, color: food.color }}>🪙 {food.harga}</div>
+                      <button onClick={() => buyFood(food.id)} disabled={!affordable || busy} style={{ width: '100%', padding: '9px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: affordable ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: affordable ? `${food.color}22` : 'rgba(248,113,113,0.1)', color: affordable ? food.color : '#F87171', outline: `1px solid ${affordable ? food.color + '44' : 'rgba(248,113,113,0.2)'}` }}>
+                        {busy ? '…' : affordable ? 'Beri Makan' : '🔒 Koin kurang'}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
   )
 }
 
-function CustomGifPetSection({ equippedSkin, customGifUrl, onRefresh, refreshPet }) {
-  const { refreshMe } = useAuth()
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [preview, setPreview] = useState(null)
-  const fileRef = React.useRef(null)
-  const isEquipped = equippedSkin === 'pet_custom'
+// ── Deterministic dot positions for tema preview strip ──────────────────────
+const TEMA_DOTS = Array.from({ length: 14 }, (_, i) => ({
+  left: ((i * 137.5 + 11) % 100).toFixed(1),
+  top:  ((i * 83.7  +  7) % 100).toFixed(1),
+  size: (1 + (i % 3) * 0.5).toFixed(1),
+  op:   (0.18 + (i % 4) * 0.08).toFixed(2),
+}))
 
-  const handleFile = (e) => {
-    setError(''); setSuccess(''); setPreview(null)
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.type !== 'image/gif') { setError('Hanya file GIF yang didukung (.gif)'); return }
-    if (file.size > 2 * 1024 * 1024) { setError('Ukuran GIF maksimal 2 MB'); return }
-    const reader = new FileReader()
-    reader.onload = (ev) => setPreview(ev.target.result)
-    reader.readAsDataURL(file)
-  }
+const DEFAULT_TEMA_ENTRY = {
+  id:       null,
+  nama:     'Default',
+  kategori: 'tema',
+  harga:    0,
+  visual: {
+    gradient:    'linear-gradient(135deg,#071321,#0d1b2e)',
+    accent:      '#22d3ee',
+    swatches:    ['#071321','#0d1b2e','#22d3ee','#818cf8'],
+    description: 'Tema bawaan SMARTISA — biru galaksi & cyan.',
+    limited:     false,
+  },
+}
 
-  const doUpload = async () => {
-    if (!preview) return
-    setBusy(true); setError(''); setSuccess('')
-    try {
-      const res = await fetch('/api/siswa/pet/upload-gif', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dataUrl: preview }),
-      })
-      const d = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(d.error || 'Upload gagal.')
-      setSuccess('✅ Pet GIF kustom berhasil dipasang!')
-      setPreview(null)
-      if (fileRef.current) fileRef.current.value = ''
-      await onRefresh(); await refreshMe(); refreshPet()
-      setTimeout(() => setSuccess(''), 4000)
-    } catch (err) { setError(err.message) } finally { setBusy(false) }
-  }
-
-  const doRemove = async () => {
-    setBusy(true); setError(''); setSuccess('')
-    try {
-      await fetch('/api/siswa/pet/remove-gif', { method: 'POST', credentials: 'include' })
-      setSuccess('GIF dihapus. Pet kembali ke default.')
-      await onRefresh(); await refreshMe(); refreshPet()
-      setTimeout(() => setSuccess(''), 3000)
-    } catch { setError('Gagal menghapus GIF.') } finally { setBusy(false) }
-  }
-
+function TemaCard({ tema, isEquipped, owned, affordable, busy, onAction }) {
+  const v = tema.visual || {}
+  const accent = v.accent || '#22d3ee'
+  const isDefault = tema.id === null
   return (
-    <div style={{ marginBottom: 28 }}>
-      <div style={{ fontSize: 11, color: '#38BDF8', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>🎨 Pet Kustom GIF</div>
-      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 14, lineHeight: 1.5 }}>Upload GIF buatanmu sendiri sebagai pet! Ukuran max 2 MB, hanya format .gif.</div>
-
-      <div style={{ background: isEquipped ? 'radial-gradient(ellipse at 50% 0%,rgba(56,189,248,0.18),transparent 65%),#1A1D27' : '#1A1D27', border: `1.5px solid ${isEquipped ? '#38BDF8' : 'rgba(255,255,255,0.07)'}`, borderRadius: 18, padding: 18, position: 'relative', boxShadow: isEquipped ? '0 0 24px rgba(56,189,248,0.2)' : 'none' }}>
-        {isEquipped && <div style={{ position: 'absolute', top: 0, right: 0, background: '#38BDF8', color: '#000', fontSize: 9, fontWeight: 900, padding: '3px 8px', borderRadius: '0 16px 0 10px' }}>DIPAKAI</div>}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
-          {/* Preview / Current */}
-          <div style={{ width: 80, height: 80, borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-            {preview ? (
-              <img src={preview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }}/>
-            ) : isEquipped && customGifUrl ? (
-              <img src={customGifUrl} alt="pet kustom" style={{ width: '100%', height: '100%', objectFit: 'contain' }}/>
-            ) : (
-              <span style={{ fontSize: 32 }}>🎨</span>
-            )}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
-              {preview ? 'Preview baru' : isEquipped ? 'Pet GIF Kustom' : 'Belum ada GIF'}
-            </div>
-            <div style={{ fontSize: 11, color: '#64748B', lineHeight: 1.5 }}>
-              {preview ? 'GIF siap diupload. Klik "Pakai" untuk memasang.' : isEquipped ? 'GIF kustommu sedang aktif sebagai pet.' : 'Pilih file GIF dari perangkatmu.'}
-            </div>
-          </div>
+    <div style={{
+      borderRadius: 18, overflow: 'hidden', border: `1px solid ${isEquipped ? accent + '55' : 'rgba(255,255,255,0.07)'}`,
+      boxShadow: isEquipped ? `0 0 20px ${accent}22` : 'none',
+      transition: 'border-color 0.2s, box-shadow 0.2s',
+    }}>
+      {/* ── Preview strip ── */}
+      <div style={{ height: 64, position: 'relative', overflow: 'hidden', background: v.gradient || '#071321' }}>
+        {/* Dot particles */}
+        {TEMA_DOTS.map((d, i) => (
+          <div key={i} style={{ position: 'absolute', borderRadius: '50%', background: '#fff', pointerEvents: 'none',
+            left: `${d.left}%`, top: `${d.top}%`, width: `${d.size}px`, height: `${d.size}px`, opacity: d.op }} />
+        ))}
+        {/* Glow orb */}
+        <div style={{ position: 'absolute', width: 80, height: 80, borderRadius: '50%', background: accent,
+          filter: 'blur(36px)', opacity: 0.28, top: '-35%', left: '20%', pointerEvents: 'none' }} />
+        {/* Swatches */}
+        <div style={{ position: 'absolute', bottom: 8, left: 12, display: 'flex', gap: 5 }}>
+          {(v.swatches || []).map((c, i) => (
+            <div key={i} style={{ width: 13, height: 13, borderRadius: '50%', background: c,
+              border: '1px solid rgba(255,255,255,0.22)', flexShrink: 0 }} />
+          ))}
         </div>
-
-        {(error || success) && (
-          <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 10, fontSize: 12, background: success ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)', border: `1px solid ${success ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, color: success ? '#34D399' : '#F87171' }}>
-            {success || error}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <label style={{ flex: 1, minWidth: 120, padding: '9px 14px', borderRadius: 10, background: '#334155', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', textAlign: 'center', display: 'block' }}>
-            📂 Pilih GIF
-            <input ref={fileRef} type="file" accept="image/gif" onChange={handleFile} style={{ display: 'none' }}/>
-          </label>
-          {preview && (
-            <button onClick={doUpload} disabled={busy}
-              style={{ flex: 1, minWidth: 120, padding: '9px 14px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#0284c7,#0369a1)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {busy ? '…' : '✅ Pakai GIF Ini'}
-            </button>
+        {/* Badges */}
+        <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+          {v.limited && !isEquipped && (
+            <div style={{ background: 'rgba(234,179,8,0.9)', color: '#422006', fontSize: 9, fontWeight: 900,
+              padding: '3px 7px', borderRadius: 99, letterSpacing: 0.5 }}>★ LIMITED</div>
           )}
-          {isEquipped && !preview && (
-            <button onClick={doRemove} disabled={busy}
-              style={{ flex: 1, minWidth: 120, padding: '9px 14px', borderRadius: 10, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#F87171', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-              {busy ? '…' : '🗑️ Hapus GIF'}
-            </button>
+          {isEquipped && (
+            <div style={{ background: accent, color: '#000', fontSize: 9, fontWeight: 900,
+              padding: '3px 7px', borderRadius: 99 }}>✓ DIPAKAI</div>
+          )}
+          {!isEquipped && !isDefault && (
+            <div style={{ background: `${accent}22`, border: `1px solid ${accent}44`, color: accent,
+              fontSize: 9, fontWeight: 900, padding: '3px 7px', borderRadius: 99 }}>
+              🪙 {tema.harga.toLocaleString('id-ID')}
+            </div>
+          )}
+          {isDefault && !isEquipped && (
+            <div style={{ background: 'rgba(148,163,184,0.15)', border: '1px solid rgba(148,163,184,0.3)',
+              color: '#94A3B8', fontSize: 9, fontWeight: 800, padding: '3px 7px', borderRadius: 99 }}>GRATIS</div>
           )}
         </div>
       </div>
+
+      {/* ── Card body ── */}
+      <div style={{ background: 'rgba(255,255,255,0.025)', padding: '12px 14px',
+        display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {tema.nama}
+          </div>
+          {v.description && (
+            <div style={{ fontSize: 11, color: '#64748B', marginTop: 3, lineHeight: 1.4 }}>{v.description}</div>
+          )}
+        </div>
+        <button
+          onClick={onAction}
+          disabled={busy || isEquipped || (!owned && !affordable)}
+          style={{
+            flexShrink: 0, padding: '8px 14px', borderRadius: 12, border: 'none',
+            fontSize: 11, fontWeight: 900, cursor: (busy || isEquipped || (!owned && !affordable)) ? 'default' : 'pointer',
+            fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all 0.15s',
+            ...(isEquipped
+              ? { background: `${accent}22`, color: accent, border: `1px solid ${accent}44` }
+              : owned || isDefault
+              ? { background: '#4F46E5', color: '#fff', boxShadow: '0 0 12px rgba(99,102,241,0.3)' }
+              : affordable
+              ? { background: '#EAB308', color: '#1a1000', boxShadow: '0 0 12px rgba(234,179,8,0.3)' }
+              : { background: 'rgba(255,255,255,0.05)', color: '#475569', cursor: 'not-allowed' })
+          }}
+        >
+          {busy ? '…'
+            : isEquipped ? '✓ Aktif'
+            : (owned || isDefault) ? 'Pakai'
+            : affordable ? `Beli`
+            : '🔒 Kurang'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function TemaTokoTab({ data, onBuy, onEquip, busyId, onRefresh, refreshMe, setError }) {
+  const [defaultBusy, setDefaultBusy] = useState(false)
+
+  const temaItems  = data.items.filter(it => it.kategori === 'tema')
+  const equippedId = data.equipped.tema   // null → default is active
+  const allTemas   = [DEFAULT_TEMA_ENTRY, ...temaItems]
+
+  const equipDefault = async () => {
+    if (equippedId === null) return
+    setDefaultBusy(true); setError('')
+    try {
+      await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: null } })
+      await onRefresh(); await refreshMe()
+    } catch (err) { setError(err.message) }
+    finally { setDefaultBusy(false) }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {allTemas.map(tema => {
+        const isDefault = tema.id === null
+        const isEquipped = isDefault ? equippedId === null : equippedId === tema.id
+        const owned = isDefault || data.ownedItemIds.includes(tema.id)
+        const affordable = isDefault || data.coins >= tema.harga
+        const busy = isDefault ? defaultBusy : busyId === tema.id
+
+        const onAction = isDefault
+          ? equipDefault
+          : owned
+          ? () => onEquip(tema)
+          : () => onBuy(tema)
+
+        return (
+          <TemaCard
+            key={tema.id ?? 'default'}
+            tema={tema}
+            isEquipped={isEquipped}
+            owned={owned}
+            affordable={affordable}
+            busy={busy}
+            onAction={onAction}
+          />
+        )
+      })}
+
+      {/* Info banner */}
+      <div style={{ borderRadius: 16, background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.18)',
+        padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 4 }}>
+        <span style={{ fontSize: 15, flexShrink: 0 }}>🎨</span>
+        <p style={{ fontSize: 11, color: 'rgba(165,180,252,0.75)', lineHeight: 1.6, margin: 0 }}>
+          Tema mengubah tampilan <strong style={{ color: '#C4B5FD' }}>layar permainan</strong> — warna latar, efek cahaya, dan partikel. Profil &amp; toko tidak terpengaruh.
+        </p>
+      </div>
+      <div style={{ height: 8 }} />
     </div>
   )
 }
@@ -473,10 +711,317 @@ function ItemCard({ item, data, onBuy, onEquip, busyId }) {
   )
 }
 
+// ── MissionPanel — shows mission progress + claim buttons for one event ────────
+function MissionPanel({ ev, missions, onClaim, claimingId, claimError }) {
+  if (!missions || missions.length === 0) return null
+  return (
+    <div style={{ background: 'rgba(10,16,26,0.85)', padding: '14px 14px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
+        <span style={{
+          fontSize: 9, fontWeight: 900, letterSpacing: 2, color: ev.accent,
+          background: `${ev.accent}18`, borderRadius: 6, padding: '2px 7px', textTransform: 'uppercase',
+        }}>🎖️ Misi Event</span>
+        <div style={{ flex: 1, height: 1, background: `${ev.accent}28` }} />
+      </div>
+
+      {claimError && (
+        <div style={{ marginBottom: 10, padding: '8px 12px', borderRadius: 10, fontSize: 12, background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.25)', color: '#F87171' }}>{claimError}</div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+        {missions.map((m, idx) => {
+          const isAutoMission = m.requires?.length > 0
+          const pct = Math.min(100, Math.round((m.progress / m.goal) * 100))
+          const isBusy = claimingId === m.id
+
+          return (
+            <div key={m.id} style={{
+              borderRadius: 14,
+              border: `1px solid ${m.completed ? m.accent + '55' : 'rgba(255,255,255,0.07)'}`,
+              background: m.completed
+                ? `linear-gradient(135deg, ${m.accent}0d, rgba(10,16,26,0.9))`
+                : 'rgba(255,255,255,0.025)',
+              padding: '12px 14px',
+              opacity: (!m.completed && isAutoMission) ? 0.6 : 1,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                {/* Icon */}
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 20,
+                  background: m.completed ? `${m.accent}22` : 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${m.completed ? m.accent + '44' : 'rgba(255,255,255,0.08)'}`,
+                }}>{m.emoji}</div>
+
+                {/* Content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: m.completed ? '#fff' : '#CBD5E1' }}>
+                      Misi {idx + 1}: {m.nama}
+                    </span>
+                    {m.claimed && (
+                      <span style={{ fontSize: 9, fontWeight: 900, background: 'rgba(52,211,153,0.15)', color: '#34D399', borderRadius: 5, padding: '1px 5px' }}>✓ CLAIMED</span>
+                    )}
+                    {m.completed && !m.claimed && (
+                      <span style={{ fontSize: 9, fontWeight: 900, background: `${m.accent}22`, color: m.accent, borderRadius: 5, padding: '1px 5px', animation: 'tomat-pulse 1.8s ease-in-out infinite' }}>SELESAI!</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748B', marginBottom: 8, lineHeight: 1.4 }}>{m.deskripsi}</div>
+
+                  {/* For auto-missions (requires): show dependency chips */}
+                  {isAutoMission ? (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {m.requires.map(reqId => {
+                        const reqMission = missions.find(x => x.id === reqId)
+                        const done = reqMission?.completed
+                        return (
+                          <span key={reqId} style={{
+                            fontSize: 10, fontWeight: 700, borderRadius: 6, padding: '2px 7px',
+                            background: done ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.06)',
+                            color: done ? '#34D399' : '#64748B',
+                            border: `1px solid ${done ? 'rgba(52,211,153,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                          }}>
+                            {done ? '✓' : '○'} {reqMission?.nama || reqId}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    /* Progress bar */
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: 10, color: '#475569' }}>{m.unit}</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: m.completed ? m.accent : '#94A3B8' }}>
+                          {m.progress}/{m.goal}
+                        </span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', borderRadius: 99, transition: 'width 0.5s ease',
+                          width: `${pct}%`,
+                          background: m.completed
+                            ? `linear-gradient(90deg, ${m.accent}, ${m.accent}cc)`
+                            : `linear-gradient(90deg, ${ev.accent}88, ${ev.accent}44)`,
+                          boxShadow: m.completed ? `0 0 8px ${m.accent}66` : 'none',
+                        }} />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Claim button — only when completed and not yet claimed */}
+              {m.completed && !m.claimed && (
+                <button
+                  onClick={() => onClaim(m.id)}
+                  disabled={isBusy}
+                  style={{
+                    marginTop: 12, width: '100%', padding: '10px', borderRadius: 10,
+                    border: 'none', cursor: isBusy ? 'default' : 'pointer',
+                    fontFamily: 'inherit', fontSize: 12, fontWeight: 900,
+                    background: `linear-gradient(135deg, ${m.accent}, ${m.accent}cc)`,
+                    color: '#fff',
+                    boxShadow: `0 4px 14px ${m.accent}44`,
+                  }}
+                >
+                  {isBusy ? '…' : `🎁 Ambil Hadiah`}
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Divider before items */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
+        <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: 2, color: '#64748B', textTransform: 'uppercase' }}>🛍️ Item Eksklusif</span>
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+      </div>
+    </div>
+  )
+}
+
+// ── EventTokoTab ──────────────────────────────────────────────────────────────
+function EventTokoTab({ data, onBuy, onEquip, busyId, activeEventSlugs, onRefresh }) {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Mission state
+  const [missionData, setMissionData] = useState({})   // { [eventSlug]: mission[] }
+  const [claimingId, setClaimingId]   = useState(null)
+  const [claimError, setClaimError]   = useState('')
+
+  const loadMissions = useCallback(async () => {
+    try {
+      const res = await apiCall('/api/siswa/event-missions')
+      const map = {}
+      for (const ev of res.events || []) map[ev.eventSlug] = ev.missions
+      setMissionData(map)
+    } catch {
+      // non-fatal — missions just won't show if offline
+    }
+  }, [])
+
+  useEffect(() => { loadMissions() }, [loadMissions])
+
+  const claimMission = async (missionId) => {
+    setClaimingId(missionId); setClaimError('')
+    try {
+      await apiCall(`/api/siswa/event-missions/${missionId}/claim`, { method: 'POST' })
+      playSfx('buy')
+      await loadMissions()
+      await onRefresh()  // refresh inventory so the claimed item shows as owned
+    } catch (err) {
+      setClaimError(err.message)
+    } finally {
+      setClaimingId(null)
+    }
+  }
+
+  // Adapter: PetCard needs a combined buy+equip callback
+  const { refreshMe } = useAuth()
+  const { refreshPet } = usePet()
+  const [petBusy, setPetBusy] = useState(null)
+  const [petError, setPetError] = useState('')
+  const makeBuyEquipSkin = (skinId) => async () => {
+    const owned = data.ownedItemIds.includes(skinId)
+    setPetBusy(skinId); setPetError('')
+    try {
+      if (!owned) await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: skinId } })
+      await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: skinId } })
+      playSfx(owned ? 'equip' : 'buy')
+      await onRefresh(); await refreshMe(); refreshPet()
+    } catch (err) { setPetError(err.message) } finally { setPetBusy(null) }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28, paddingBottom: 40 }}>
+      {(petError) && (
+        <div style={{ padding: '10px 14px', borderRadius: 12, fontSize: 13, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#F87171' }}>{petError}</div>
+      )}
+      {VISIBLE_EVENTS.map(ev => {
+        const isActive = activeEventSlugs.has(ev.slug)
+        const endDate  = isActive ? getEventEndDate(ev, now) : null
+        const msLeft   = endDate ? endDate - now : 0
+        const upcoming = !isActive ? getUpcomingEvents(now).find(u => u.slug === ev.slug) : null
+        const eventItems = data.items.filter(it => it.visual?.eventSlug === ev.slug)
+        const missions   = missionData[ev.slug] || []
+
+        return (
+          <div key={ev.slug} style={{ borderRadius: 20, overflow: 'hidden', border: `1px solid ${isActive ? ev.accent + '44' : 'rgba(255,255,255,0.06)'}`, boxShadow: isActive ? `0 0 24px ${ev.accent}18` : 'none' }}>
+            {/* Event header */}
+            <div style={{ background: ev.bgGradient, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ fontSize: 40, lineHeight: 1 }}>{ev.emoji}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff', marginBottom: 3 }}>{ev.name}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{ev.description}</div>
+              </div>
+              <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                {isActive ? (
+                  <>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: `${ev.accent}22`, border: `1px solid ${ev.accent}55`, borderRadius: 99, padding: '3px 10px', marginBottom: 4 }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: ev.accent, boxShadow: `0 0 6px ${ev.accent}` }} />
+                      <span style={{ fontSize: 10, fontWeight: 900, color: ev.accent, letterSpacing: '0.1em' }}>AKTIF</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', display: 'block' }}>{formatCountdown(msLeft)}</div>
+                  </>
+                ) : (
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                    {upcoming ? `Mulai ${upcoming.nextStart.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}` : 'Tidak aktif'}
+                    {upcoming && <div style={{ color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{formatDaysUntil(upcoming.nextStart, now)}</div>}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mission panel (active events only) */}
+            {isActive && missions.length > 0 && (
+              <MissionPanel
+                ev={ev}
+                missions={missions}
+                onClaim={claimMission}
+                claimingId={claimingId}
+                claimError={claimError}
+              />
+            )}
+
+            {/* Event items */}
+            <div style={{ background: 'rgba(10,16,26,0.85)', padding: eventItems.length ? '14px 14px' : '10px 14px' }}>
+              {!isActive && missions.length === 0 && eventItems.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '16px 0', color: '#6B7280', fontSize: 13 }}>Belum ada item untuk event ini.</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+                  {eventItems.map(item => {
+                    const isMissionOnly = item.visual?.missionOnly
+                    const owned = data.ownedItemIds.includes(item.id)
+
+                    if (item.kategori === 'pet_skin') {
+                      const equippedSkin = data.equipped.pet_skin || 'golden'
+                      const skinBusy = petBusy === item.id || busyId === item.id
+                      const skinInfo = PET_SKIN_INFO[item.id]
+                      if (!skinInfo) return null
+                      return (
+                        <div key={item.id} style={{ position: 'relative' }}>
+                          <PetCard skinId={item.id} data={data} equippedSkin={equippedSkin} busyId={skinBusy ? item.id : null} onBuyEquip={makeBuyEquipSkin(item.id)} />
+                          {/* Mission-only badge when not yet owned */}
+                          {isMissionOnly && !owned && (
+                            <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, borderRadius: 8, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '5px 8px', backdropFilter: 'blur(4px)' }}>
+                              <span style={{ fontSize: 10, fontWeight: 900, color: '#F59E0B' }}>🎖️ Hanya via Misi</span>
+                            </div>
+                          )}
+                          {!isActive && (
+                            <div style={{ position: 'absolute', inset: 0, borderRadius: 18, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#94A3B8' }}>⏳ Belum dimulai</div>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    // Non-pet event item
+                    if (!isActive) {
+                      return (
+                        <div key={item.id} style={{ position: 'relative' }}>
+                          <ItemCard item={item} data={data} onBuy={() => {}} onEquip={onEquip} busyId={busyId} />
+                          <div style={{ position: 'absolute', inset: 0, borderRadius: 16, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: '#94A3B8' }}>⏳ Belum dimulai</div>
+                        </div>
+                      )
+                    }
+                    // Active, mission-only: block buy, show equip if owned
+                    if (isMissionOnly) {
+                      return (
+                        <div key={item.id} style={{
+                          background: '#1A1D27', borderRadius: 16, padding: 12,
+                          border: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', gap: 8,
+                        }}>
+                          <ItemCard item={item} data={data} onBuy={() => {}} onEquip={onEquip} busyId={busyId} />
+                          {!owned && (
+                            <div style={{ marginTop: -4, padding: '7px', borderRadius: 10, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.22)', textAlign: 'center', fontSize: 11, fontWeight: 800, color: '#F59E0B' }}>
+                              🎖️ Selesaikan Misi untuk mendapatkan
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    return <ItemCard key={item.id} item={item} data={data} onBuy={onBuy} onEquip={onEquip} busyId={busyId} />
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function ShopScreen({ goBack, initialTab }) {
   const { refreshMe } = useAuth()
   const isDesktop = useIsDesktop()
-  const [tab, setTab] = useState(initialTab || 'bingkai')
+  const [tab, setTab] = useState(initialTab || 'event')
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
@@ -490,13 +1035,18 @@ export default function ShopScreen({ goBack, initialTab }) {
 
   const buy = async (item) => {
     setError(''); setBusyId(item.id)
-    try { await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: item.id } }); await refresh() }
+    try { await apiCall('/api/siswa/toko/beli', { method: 'POST', body: { itemId: item.id } }); playSfx('buy'); await refresh() }
     catch (err) { setError(err.message) } finally { setBusyId(null) }
   }
 
   const equip = async (item) => {
     setError(''); setBusyId(item.id)
-    try { await apiCall('/api/siswa/toko/pakai', { method: 'POST', body: { itemId: item.id } }); await refresh(); await refreshMe() }
+    // Default items (id === null) have no shop_items row — send kategori so the
+    // server knows which column to clear (set to NULL = "back to default").
+    const body = item.id === null
+      ? { itemId: null, kategori: item.kategori }
+      : { itemId: item.id }
+    try { await apiCall('/api/siswa/toko/pakai', { method: 'POST', body }); playSfx('equip'); await refresh(); await refreshMe() }
     catch (err) { setError(err.message) } finally { setBusyId(null) }
   }
 
@@ -524,7 +1074,9 @@ export default function ShopScreen({ goBack, initialTab }) {
 
   // ── Item grid ──
   const ItemGrid = () => {
+    if (tab === 'event') return <EventTokoTab data={data} onBuy={buy} onEquip={equip} busyId={busyId} activeEventSlugs={new Set(data.activeEvents || [])} onRefresh={refresh} />
     if (tab === 'pet_skin') return <PetTokoTab data={data} onRefresh={refresh} setError={setError} />
+    if (tab === 'tema') return <TemaTokoTab data={data} onBuy={buy} onEquip={equip} busyId={busyId} onRefresh={refresh} refreshMe={refreshMe} setError={setError} />
     if (items.length === 0) return (
       <div style={{ textAlign: 'center', padding: '40px 16px', color: '#6B7280' }}>
         <div style={{ fontSize: 32, marginBottom: 10 }}>✨</div>
@@ -539,7 +1091,7 @@ export default function ShopScreen({ goBack, initialTab }) {
     for (const item of items) grouped[getItemRarity(item)].push(item)
     const activeRarities = RARITY_ORDER.filter(r => grouped[r].length > 0)
 
-    const cols = tab === 'spanduk' ? '1fr' : isDesktop ? 'repeat(3,1fr)' : 'repeat(2,1fr)'
+    const cols = (tab === 'spanduk' || tab === 'tema') ? '1fr' : isDesktop ? 'repeat(3,1fr)' : 'repeat(2,1fr)'
 
     return (
       <div>

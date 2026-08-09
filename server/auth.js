@@ -1,11 +1,56 @@
 import express from 'express'
 import bcrypt from 'bcryptjs'
 import { pool } from './db.js'
-import { computeHunger } from './pet-state.js'
+import { computeHunger, getHungerUntil } from './pet-state.js'
 
 const router = express.Router()
 
-function sanitizeUser(row, role) {
+// Check if a guru qualifies as an active subject teacher for TOMAT:
+// jabatan must include 'guru' or 'guru_mapel' AND they must have at least one subject entry.
+// Runs a profile-sync first so gurus with mapel+kelas_diampu filled get
+// their subjects auto-created without needing to visit the EOB5 subjects page first.
+async function computeHasMateriTerdaftar(guruId, jabatan) {
+  const jabatanArr = Array.isArray(jabatan) ? jabatan : []
+  if (!jabatanArr.includes('guru') && !jabatanArr.includes('guru_mapel')) return false
+  try {
+    // Mirror syncSubjectFolders logic from server/eob5/subjects.js
+    const { rows: guruRows } = await pool.query(
+      'SELECT mapel, kelas_diampu FROM gurus WHERE id = $1',
+      [guruId]
+    )
+    if (guruRows.length) {
+      const { mapel = [], kelas_diampu = [] } = guruRows[0]
+      if (mapel?.length && kelas_diampu?.length) {
+        const { rows: existing } = await pool.query(
+          'SELECT name FROM subjects WHERE teacher_id = $1',
+          [guruId]
+        )
+        const existingNames = new Set(existing.map(s => s.name))
+        for (const m of mapel) {
+          for (const k of kelas_diampu) {
+            const name = `${m} - ${k}`
+            if (!existingNames.has(name)) {
+              await pool.query(
+                'INSERT INTO subjects (teacher_id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+                [guruId, name]
+              )
+            }
+          }
+        }
+      }
+    }
+
+    const { rows } = await pool.query(
+      `SELECT 1 FROM subjects WHERE teacher_id = $1 AND deleted_at IS NULL LIMIT 1`,
+      [guruId]
+    )
+    return rows.length > 0
+  } catch {
+    return false
+  }
+}
+
+function sanitizeUser(row, role, extra = {}) {
   const base = {
     id: row.id,
     username: row.username,
@@ -14,13 +59,14 @@ function sanitizeUser(row, role) {
     kelas: role === 'siswa' ? row.kelas : row.kelas_diampu,
     photoUrl: row.photo_url || null,
     bio: row.bio || null,
+    ...extra,
   }
   if (role !== 'siswa') return base
   // Gamifikasi fields are server-authoritative and only meaningful for students —
   // included on login/me so PlayerContext can hydrate without a second round-trip.
   return {
     ...base,
-    petIsDead: computeHunger(row.pet_hunger_until).isDead,
+    petIsDead: computeHunger(getHungerUntil(row.pet_hunger_map, row.equipped_pet_skin || 'golden')).isDead,
     coins: row.coins,
     level: row.level,
     exp: row.exp,
@@ -88,12 +134,57 @@ router.post('/login', async (req, res) => {
     }
     
     req.session.user = {
-      id: user.id,
+      id:           user.id,
       role,
-      name: user.name || user.username || null,
-      kelas: role === 'siswa' ? (user.kelas || null) : null,
+      name:         user.name || user.username || null,
+      username:     user.username || null,
+      kelas:        role === 'siswa' ? (user.kelas || null) : null,
+      // Guru-specific — needed by requireAdmin middleware and feature checks
+      jabatan:      role === 'guru' ? (user.jabatan || []) : undefined,
+      kelas_diampu: role === 'guru' ? (user.kelas_diampu || []) : undefined,
+      wali_kelas_kelas: role === 'guru' ? (user.wali_kelas_kelas || null) : undefined,
     }
-    res.json({ user: sanitizeUser(user, role) })
+    if (role === 'guru') {
+      req.session.user.hasMateriTerdaftar = await computeHasMateriTerdaftar(user.id, user.jabatan || [])
+    }
+
+    // Award daily login bonus on fresh login (siswa only) — same logic as /me
+    let dailyBonus = null
+    if (role === 'siswa') {
+      const today     = new Date().toISOString().slice(0, 10)
+      const lastDate  = user.last_login_bonus_date
+        ? new Date(user.last_login_bonus_date).toISOString().slice(0, 10)
+        : null
+      if (lastDate !== today) {
+        const yesterday  = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+        const newStreak  = lastDate === yesterday ? (user.login_streak || 0) + 1 : 1
+        const STREAK_COINS = [50, 75, 100, 125, 150, 175, 200]
+        const bonusCoins = STREAK_COINS[Math.min(newStreak - 1, 6)]
+        try {
+          await pool.query(
+            `update students
+                set coins              = coins + $2,
+                    total_coins_earned = total_coins_earned + $2,
+                    last_login_bonus_date = current_date,
+                    login_streak       = $3
+              where id = $1`,
+            [user.id, bonusCoins, newStreak]
+          )
+          dailyBonus = { coins: bonusCoins, streak: newStreak }
+        } catch (bonusErr) {
+          console.error('login daily bonus error', bonusErr)
+          // Non-fatal — login still succeeds
+        }
+      }
+    }
+
+    const guruExtra = role === 'guru' ? {
+      hasMateriTerdaftar: req.session.user.hasMateriTerdaftar ?? false,
+      jabatan:            user.jabatan        || [],
+      kelas_diampu:       user.kelas_diampu   || [],
+      wali_kelas_kelas:   user.wali_kelas_kelas || null,
+    } : {}
+    res.json({ user: sanitizeUser(user, role, guruExtra), dailyBonus })
   } catch (err) {
     console.error('login error', err)
     res.status(500).json({ error: 'Terjadi kesalahan server saat login.' })
@@ -118,12 +209,74 @@ router.get('/me', async (req, res) => {
       req.session.destroy(() => {})
       return res.status(401).json({ error: 'Sesi tidak valid.' })
     }
-    // Backfill kelas into session in case it was missing (older sessions)
+    // Backfill missing fields into session (older sessions may lack these)
+    let needsSave = false
     if (session.role === 'siswa' && session.kelas === undefined) {
       session.kelas = user.kelas || null
-      req.session.save(() => {})
+      needsSave = true
     }
-    res.json({ user: sanitizeUser(user, session.role) })
+    if (!session.name) {
+      session.name = user.name || user.username || null
+      needsSave = true
+    }
+    if (!session.username) {
+      session.username = user.username || null
+      needsSave = true
+    }
+    // Always sync all guru-specific session fields from DB on every /me call
+    // so jabatan/kelas_diampu changes take effect without re-login, and old
+    // sessions that were created before these fields existed get backfilled.
+    if (session.role === 'guru') {
+      session.jabatan        = user.jabatan        || []
+      session.kelas_diampu   = user.kelas_diampu   || []
+      session.wali_kelas_kelas = user.wali_kelas_kelas || null
+      needsSave = true
+      // Always recompute hasMateriTerdaftar from live DB state
+      const freshHas = await computeHasMateriTerdaftar(session.id, session.jabatan)
+      if (session.hasMateriTerdaftar !== freshHas) {
+        session.hasMateriTerdaftar = freshHas
+      }
+    }
+    if (needsSave) req.session.save(() => {})
+
+    // Daily login bonus (siswa only) — awarded once per calendar day
+    let dailyBonus = null
+    if (session.role === 'siswa') {
+      const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD local-ish (UTC)
+      const lastDate = user.last_login_bonus_date
+        ? new Date(user.last_login_bonus_date).toISOString().slice(0, 10)
+        : null
+      if (lastDate !== today) {
+        const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+        const newStreak  = lastDate === yesterday ? (user.login_streak || 0) + 1 : 1
+        const STREAK_COINS = [50, 75, 100, 125, 150, 175, 200]
+        const bonusCoins = STREAK_COINS[Math.min(newStreak - 1, 6)]
+        try {
+          await pool.query(
+            `update students
+               set coins              = coins + $2,
+                   total_coins_earned = total_coins_earned + $2,
+                   last_login_bonus_date = current_date,
+                   login_streak       = $3
+             where id = $1`,
+            [session.id, bonusCoins, newStreak]
+          )
+          user.coins = (user.coins || 0) + bonusCoins
+          dailyBonus = { coins: bonusCoins, streak: newStreak }
+        } catch (bonusErr) {
+          console.error('daily bonus error', bonusErr)
+          // Non-fatal — still return the user
+        }
+      }
+    }
+
+    const guruExtra = session.role === 'guru' ? {
+      hasMateriTerdaftar: session.hasMateriTerdaftar ?? false,
+      jabatan:            session.jabatan        || [],
+      kelas_diampu:       session.kelas_diampu   || [],
+      wali_kelas_kelas:   session.wali_kelas_kelas || null,
+    } : {}
+    res.json({ user: sanitizeUser(user, session.role, guruExtra), dailyBonus })
   } catch (err) {
     console.error('me error', err)
     res.status(500).json({ error: 'Terjadi kesalahan server.' })

@@ -1,0 +1,24 @@
+
+2026-08-02T06:15:50.995681200Z TOMAT server running on port 5000
+2026-08-02T06:15:54.640199357Z Failed to ensure database schema: error: column "guru_id" does not exist
+2026-08-02T06:15:54.640256373Z     at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+2026-08-02T06:15:54.640261685Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-08-02T06:15:54.640264930Z     at async ensureSchema (file:///app/server/schema.js:794:3) {
+2026-08-02T06:15:54.640267843Z   length: 97,
+2026-08-02T06:15:54.640270403Z   severity: 'ERROR',
+2026-08-02T06:15:54.640272859Z   code: '42703',
+2026-08-02T06:15:54.640275305Z   detail: undefined,
+2026-08-02T06:15:54.640277629Z   hint: undefined,
+2026-08-02T06:15:54.640280025Z   position: undefined,
+2026-08-02T06:15:54.640282309Z   internalPosition: undefined,
+2026-08-02T06:15:54.640284680Z   internalQuery: undefined,
+2026-08-02T06:15:54.640287003Z   where: undefined,
+2026-08-02T06:15:54.640289357Z   schema: undefined,
+2026-08-02T06:15:54.640291605Z   table: undefined,
+2026-08-02T06:15:54.640293946Z   column: undefined,
+2026-08-02T06:15:54.640296186Z   dataType: undefined,
+2026-08-02T06:15:54.640303145Z   constraint: undefined,
+2026-08-02T06:15:54.640305457Z   file: 'indexcmds.c',
+2026-08-02T06:15:54.640307788Z   line: '1959',
+2026-08-02T06:15:54.640310046Z   routine: 'ComputeIndexAttrs'
+2026-08-02T06:15:54.640312403Z }

@@ -1,0 +1,2601 @@
+TOMAT server running on port 5000
+[gameplay-events] onCorrectAnswerWithResult → student=arvan
+[gameplay-events] onCorrectAnswerWithResult → student=arvan
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=arvan
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=zidan
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[gameplay-events] onCorrectAnswerWithResult → student=malik
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}
+incrementMissionProgress error error: column "progress" is of type integer but expression is of type text
+    at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async incrementMissionProgress (file:///app/server/event-missions.js:106:22)
+    at async fireAndReturn (file:///app/server/gameplay-events.js:46:12)
+    at async onCorrectAnswerWithResult (file:///app/server/gameplay-events.js:121:41)
+    at async file:///app/server/player.js:84:9 {
+  length: 194,
+  severity: 'ERROR',
+  code: '42804',
+  detail: undefined,
+  hint: 'You will need to rewrite or cast the expression.',
+  position: '100',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_target.c',
+  line: '588',
+  routine: 'transformAssignedExpr'
+}

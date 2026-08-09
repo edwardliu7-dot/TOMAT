@@ -2,18 +2,21 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TOMAT – Tantangan Otak Matematika</title>
-    <meta name="description" content="TOMAT - Platform gamifikasi matematika SMP dengan duel real-time, turnamen, dan sistem reward." />
-    <meta name="theme-color" content="#0F1115" />
-    <meta property="og:title" content="TOMAT — Tantangan Otak Matematika" />
-    <meta property="og:description" content="Belajar matematika SMP dengan cara yang menyenangkan. Duel teman, ikut turnamen, kumpulkan reward!" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>SMARTISA – Platform Pembelajaran TISA</title>
+    <meta name="description" content="SMARTISA - Platform pembelajaran resmi guru dan siswa TISA. Belajar, duel, turnamen, dan sistem reward." />
+    <meta name="theme-color" content="#071321" />
+    <meta property="og:title" content="SMARTISA — Platform Pembelajaran TISA" />
+    <meta property="og:description" content="Platform pembelajaran resmi SMP TISA Islamic School. Belajar matematika dengan cara yang menyenangkan!" />
     <meta property="og:type" content="website" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="TOMAT" />
+    <meta name="apple-mobile-web-app-title" content="SMARTISA" />
     <link rel="icon" type="image/png" href="/src/assets/logo.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Preload Tomi sprite sheet immediately so the pet is ready on first login -->
+    <link rel="preload" as="image" href="/tomi-sprite.png" />
     <!-- Preload bingkai images so they're ready before the shop opens -->
     <link rel="preload" as="image" href="/bingkai-neon.png" />
     <link rel="preload" as="image" href="/bingkai-api.png" />
@@ -25,6 +28,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       :root {
@@ -55,7 +59,12 @@
         :root { --content-max: 1100px; }
       }
       html { font-size: calc(16px * var(--fs-scale)); }
-      body { font-family: 'Inter', sans-serif; background: #0F1115; color: #E2E2E6; min-height: 100vh; }
+      body { font-family: 'Inter', sans-serif; background: #0F1115; color: #E2E2E6; min-height: 100vh;
+        padding-top: env(safe-area-inset-top);
+        padding-right: env(safe-area-inset-right);
+        padding-bottom: env(safe-area-inset-bottom);
+        padding-left: env(safe-area-inset-left);
+      }
       #root { min-height: 100vh; }
 
       /* Sidebar offset untuk konten utama */
@@ -94,7 +103,8 @@
       transition: opacity 0.25s ease;
     }
     #splash.hidden { opacity: 0; pointer-events: none; }
-    #splash-logo {
+    #splash-logo { display: flex; align-items: center; justify-content: center; }
+    #splash-logo-old {
       width: 88px; height: 88px; border-radius: 22px;
       background: #1E2128; display: flex; align-items: center; justify-content: center;
       font-size: 52px;
@@ -115,9 +125,9 @@
   </style>
   <body>
     <div id="splash">
-      <div id="splash-logo">🍅</div>
-      <div id="splash-title">TOMAT</div>
-      <div id="splash-sub">Tantangan Otak Matematika</div>
+      <div id="splash-logo"><img src="/logo-smartisa.png" alt="SMARTISA" style="width:72px;height:72px;object-fit:contain;border-radius:16px;" /></div>
+      <div id="splash-title">SMARTISA</div>
+      <div id="splash-sub">Platform Pembelajaran TISA</div>
       <div id="splash-dots"><span></span><span></span><span></span></div>
     </div>
     <div id="root"></div>
@@ -128,6 +138,39 @@
         var s = document.getElementById('splash');
         if (s) { s.classList.add('hidden'); setTimeout(function(){ s.remove(); }, 300); }
       };
+
+      // Fullscreen API — sembunyikan Android nav bar tanpa perlu install PWA.
+      // Hanya aktif di mobile (< 768px); desktop tidak perlu fullscreen.
+      // Browser mengharuskan gesture user (tap/click) sebelum requestFullscreen bisa dipanggil.
+      (function() {
+        var isDesktop = window.innerWidth >= 768;
+        if (isDesktop) return; // desktop: tidak perlu fullscreen
+
+        var el = document.documentElement;
+        var isStandalone = window.matchMedia('(display-mode: fullscreen)').matches
+                        || window.matchMedia('(display-mode: standalone)').matches
+                        || window.navigator.standalone;
+
+        function goFullscreen() {
+          if (isStandalone) return; // sudah fullscreen via PWA install, tidak perlu
+          if (document.fullscreenElement) return;
+          var req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+          if (req) req.call(el).catch(function(){});
+        }
+
+        // Re-enter fullscreen jika user keluar (e.g. notifikasi, alt-tab)
+        document.addEventListener('fullscreenchange', function() {
+          if (!document.fullscreenElement && !isStandalone) {
+            // Jangan langsung re-request tanpa gesture — tunggu tap berikutnya
+            document.addEventListener('click', goFullscreen, { once: true });
+            document.addEventListener('touchstart', goFullscreen, { once: true });
+          }
+        });
+
+        // Request saat tap pertama
+        document.addEventListener('click', goFullscreen, { once: true });
+        document.addEventListener('touchstart', goFullscreen, { once: true });
+      })();
     </script>
   </body>
 </html>

@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { TopBar, Card, Btn } from '../components/shared'
 import { connectSocket, getSocket } from '../socket'
 import { getGameInfo } from '../gamesCatalog'
+import { useAuth } from '../AuthContext'
+import { useTask } from '../TaskContext'
+import { usePlayer } from '../PlayerContext'
+import { getWrongImmunity } from '../petBonuses'
 
 function useIsMd() {
   const [md, setMd] = React.useState(() => window.innerWidth >= 768)
@@ -325,6 +329,9 @@ function GameOverScreen({ winner, scores, myIndex, onLeave }) {
 export default function DuelKatakScreen({ code, myIndex, question: initQ, round: initRound, maxRounds, scores: initScores, gameKey = 'katak', goBack }) {
   const gameInfo = getGameInfo(gameKey)
   const isMd = useIsMd()
+  const { user } = useAuth()
+  const { activeSession } = useTask()
+  const { syncCoins } = usePlayer()
   const [question, setQuestion] = useState(initQ)
   const [round, setRound]       = useState(initRound)
   const [scores, setScores]     = useState(initScores)
@@ -334,6 +341,11 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   const [myAnswered, setMyAnswered]     = useState(false)
   const [myCorrect, setMyCorrect]       = useState(null)
   const [correctAnswer, setCorrectAnswer] = useState(null)
+
+  // Nananaga wrong-answer immunity tokens for this duel session
+  const immunityLeft = useRef(
+    !activeSession && user?.equippedPetSkin ? getWrongImmunity(user.equippedPetSkin) : 0
+  )
 
   // phase: 'playing' | 'result' | 'leaderboard' | 'game-over' | 'left'
   const [phase, setPhase]   = useState('playing')
@@ -351,6 +363,8 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
   useEffect(() => {
     const socket = connectSocket()
 
+    const rejoin = () => socket.emit('duel:rejoin', { code })
+
     // Opponent score updated (fires every time opponent answers any question)
     socket.on('duel:score-update', ({ opponentScore, opponentRound }) => {
       setScores(prev => {
@@ -365,6 +379,33 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
 
     // My answer result — brief feedback, next question comes automatically after ~1.2s
     socket.on('duel:answer-result', ({ correct, yourScore, correctAnswer: ans }) => {
+      // Nananaga immunity: intercept wrong answers when tokens remain and no task session active
+      if (!correct && immunityLeft.current > 0 && !activeSession) {
+        // Request a bonus question from server without advancing the round
+        getSocket()?.emit('duel:use-immunity', { code }, ({ ok, tokensLeft } = {}) => {
+          if (!ok) {
+            // Server rejected the claim (for example, token state changed).
+            // Keep the local token untouched and show the normal result.
+            setMyAnswered(true)
+            setMyCorrect(false)
+            setCorrectAnswer(ans)
+            setPhase('result')
+            return
+          }
+          immunityLeft.current = tokensLeft
+          window.dispatchEvent(new CustomEvent('nananaga-shield', {
+            detail: { tokensLeft },
+          }))
+          // Stay in 'playing' phase; server sends the bonus question.
+          setMyAnswered(false)
+          setScores(prev => {
+            const updated = [...prev]
+            updated[myIndex] = { ...updated[myIndex], score: yourScore }
+            return updated
+          })
+        })
+        return
+      }
       setMyAnswered(true)
       setMyCorrect(correct)
       setCorrectAnswer(ans)
@@ -403,7 +444,16 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
     })
 
     // Game over — works from any phase (playing, result, leaderboard)
-    socket.on('duel:game-over', ({ winner, scores: finalScores }) => {
+    socket.on('duel:game-over', ({ winner, scores: finalScores, winnerNewCoins }) => {
+      const myUserId = user?.id
+      const iWon = winner?.userId && String(winner.userId) === String(myUserId)
+      console.log(`[duel:game-over] winner=${winner?.userId ?? 'draw'} myId=${myUserId} iWon=${iWon} winnerNewCoins=${winnerNewCoins}`)
+      // BUG FIX: sync the server-authoritative coin balance so the UI reflects
+      // the 15-coin win reward that the server now awards in finishGame().
+      if (iWon && winnerNewCoins != null) {
+        console.log(`[duel:game-over] Syncing coins → ${winnerNewCoins}`)
+        syncCoins(winnerNewCoins)
+      }
       setScores(finalScores)
       setPhase('game-over')
       setGameOver({ winner, scores: finalScores })
@@ -420,6 +470,11 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
       setOppSlider(value)
     })
 
+    socket.on('connect', rejoin)
+    // LobbyScreen normally leaves the socket connected, but this also
+    // recovers a duel when the screen is opened after a reconnect.
+    if (socket.connected) rejoin()
+
     return () => {
       socket.off('duel:score-update')
       socket.off('duel:answer-result')
@@ -428,8 +483,9 @@ export default function DuelKatakScreen({ code, myIndex, question: initQ, round:
       socket.off('duel:game-over')
       socket.off('duel:player-left')
       socket.off('duel:opponent-slider')
+      socket.off('connect', rejoin)
     }
-  }, [myIndex, code, gameKey])
+  }, [myIndex, code, gameKey, syncCoins, user])
 
   // Emit leave on unmount if game not over
   useEffect(() => {

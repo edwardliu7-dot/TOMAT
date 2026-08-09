@@ -5,12 +5,15 @@
 import { Server } from 'socket.io'
 import { pool } from './db.js'
 import { applyExp } from './gamify.js'
+import { onCorrectAnswer, onDuelWin, onCorrectAnswerWithResult, onDuelWinWithResult } from './gameplay-events.js'
 import { getBossRaid, raidToClient, bossRaids } from './boss-state.js'
 import { tournaments, tournamentToClient, getTournamentIo } from './tournament-state.js'
-import { startTournamentMatch, handleTournamentAnswer } from './tournament-engine.js'
+import { startTournamentMatch, handleTournamentAnswer, autoSelectJuruJawab, checkAndStartKelompokMatch, getTeamIdForUser, TOURNAMENT_MAX_ROUNDS, emitToUser, resendTournamentQuestion } from './tournament-engine.js'
 import { genTournamentQ } from './tournament-questions.js'
 import { notifyUser } from './notifications.js'
 import { isStudentPetDead } from './pet-state.js'
+import { getPetBonus } from './pet-bonuses.js'
+import { createMobaSocketAdapter } from './moba/socket-handlers.js'
 
 // ─── Question generation (server-authoritative) ───────────────────────────────
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min }
@@ -46,11 +49,13 @@ function safePlayer(p) {
 
 // Send one question to a single player (async flow — each player progresses independently)
 function startPlayerRound(io, room, player) {
+  player.nextRoundTimer = null
   player.myRound++
   player.answered = false
   player.lastAnswer = null
   const q = genTournamentQ(room.gameKey || 'katak')
   player.currentQ = q
+  player.questionStartedAt = Date.now()
   const { answer, ...qForClient } = q
   const playerSocket = io.sockets.sockets.get(player.socketId)
   playerSocket?.emit('duel:question', {
@@ -62,23 +67,77 @@ function startPlayerRound(io, room, player) {
   })
 }
 
-function finishGame(io, room) {
+function resendDuelQuestion(io, room, player, socket) {
+  if (!room || room.status !== 'in-progress' || !player?.currentQ || player.answered) return false
+  const { answer, ...qForClient } = player.currentQ
+  socket.emit('duel:question', {
+    question: qForClient,
+    round: player.myRound,
+    maxRounds: MAX_ROUNDS,
+    scores: room.players.map(safePlayer),
+    gameKey: room.gameKey || 'katak',
+    isRecovery: true,
+  })
+  return true
+}
+
+async function finishGame(io, room) {
   if (room._finishingGame) return
   room._finishingGame = true
   room.status = 'finished'
   const [p0, p1] = room.players
   let winner = null
+  let winnerReason = 'accuracy'
   if (p0 && p1) {
     if (p0.score > p1.score) winner = safePlayer(p0)
     else if (p1.score > p0.score) winner = safePlayer(p1)
-    // winner === null → draw
+    else if ((p0.answerTimeMs || 0) < (p1.answerTimeMs || 0)) {
+      winner = safePlayer(p0)
+      winnerReason = 'speed'
+    } else if ((p1.answerTimeMs || 0) < (p0.answerTimeMs || 0)) {
+      winner = safePlayer(p1)
+      winnerReason = 'speed'
+    }
+    // Exact same accuracy and response time → draw.
   } else if (p0) {
     // Only one player left (other disconnected from leaderboard) — remaining wins
     winner = safePlayer(p0)
   }
+
+  // Award 15 coins + track kemerdekaan_2 for the winner (server-authoritative).
+  // BUG FIX: previously only tracked kemerdekaan_2 but never actually awarded coins,
+  // even though GameOverScreen displayed "+15 koin".
+  let winnerNewCoins = null
+  if (winner?.userId) {
+    try {
+      const { rows } = await pool.query(
+        `update students
+           set coins              = coins              + 15,
+               total_coins_earned = total_coins_earned + 15
+         where id = $1
+         returning coins`,
+        [winner.userId]
+      )
+      winnerNewCoins = rows[0]?.coins ?? null
+    } catch (err) {
+      console.error('[duel:win] coin award error:', err)
+    }
+    // onDuelWinWithResult returns Array<MissionDelta> already formatted —
+    // no need to import EVENT_MISSIONS here (RULES.md §16).
+    const duelWinDeltas = await onDuelWinWithResult(winner.userId)
+    for (const delta of duelWinDeltas) {
+      for (const [, s] of io.sockets.sockets) {
+        if (String(s.data?.userId) === String(winner.userId)) s.emit('mission:progress', delta)
+      }
+    }
+  }
+
   io.to(room.code).emit('duel:game-over', {
     winner,
     scores: room.players.map(safePlayer),
+    winnerReason,
+    responseTimes: room.players.map(p => ({ userId: p.userId, timeMs: p.answerTimeMs || 0 })),
+    winnerNewCoins,   // new field: client uses this to sync coin display without double-counting
   })
 }
 
@@ -142,11 +201,23 @@ async function canPlayStudentMode(socket, eventName) {
 export function setupMultiplayer(httpServer, sessionMiddleware) {
   const io = new Server(httpServer, {
     path: '/socket.io',
-    cors: { origin: '*', credentials: true },
+    // origin: '*' + credentials: true dilarang per CORS spec → browser/WebView
+    // menolak response. Harus list origin eksplisit agar session cookie
+    // dikirim saat WebSocket handshake dari Capacitor APK.
+    cors: {
+      origin: [
+        'capacitor://localhost',
+        'https://localhost',
+        'http://localhost',
+        /^https?:\/\/localhost(:\d+)?$/,
+      ],
+      credentials: true,
+    },
   })
 
   // Share Express session so socket.request.session works
   io.engine.use((req, res, next) => sessionMiddleware(req, res, next))
+  const moba = createMobaSocketAdapter({ io, pool })
 
   io.on('connection', (socket) => {
     const session = socket.request?.session
@@ -160,7 +231,10 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     // Tournament notifications can be sent before a student opens a match,
     // so keep the authenticated user id on the socket for server-side lookup.
     socket.data.userId = user.id
+    socket.data.username = user.username || null
     socket.data.role = user.role
+    socket.data.displayName = user.name || user.username || 'Siswa'
+    moba.attach(socket)
 
     // Register socket for direct messaging
     if (!userSockets.has(user.id)) userSockets.set(user.id, new Set())
@@ -179,9 +253,16 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       score:      0,
       answered:   false,
       lastAnswer: null,
+      answerTimeMs: 0,
+      questionStartedAt: null,
       myRound:    0,       // soal ke-N yang sedang dikerjakan player ini
       finished:   false,   // apakah sudah selesai semua soal
       currentQ:   null,    // soal aktif player ini (server-authoritative)
+      // BUG-01 fix: immunity token tracking
+      lastAnswerCorrect:  null,  // bool: apakah jawaban terakhir benar?
+      immunityTokensLeft: null,  // null = belum di-fetch dari DB; number = sisa token
+      immunityInFlight: false,   // mencegah dua klaim token bersamaan
+      nextRoundTimer: null,      // timer soal normal, dibatalkan jika immunity dipakai
     })
 
     // ── CREATE ROOM ──────────────────────────────────────────────────────────
@@ -275,8 +356,19 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
 
       player.answered   = true
       player.lastAnswer = value
-      const correct = (value === player.currentQ.answer)
+      player.answerTimeMs = (player.answerTimeMs || 0) + Math.max(
+        0, Date.now() - (player.questionStartedAt || Date.now())
+      )
+      const correct = (Number(value) === Number(player.currentQ.answer))
       if (correct) player.score++
+      player.lastAnswerCorrect = correct  // BUG-01 fix: catat hasil untuk immunity check
+
+      // onCorrectAnswerWithResult returns Array<MissionDelta> already formatted —
+      // no need to import EVENT_MISSIONS here (RULES.md §16).
+      if (correct) {
+        const deltas = await onCorrectAnswerWithResult(user.id)
+        for (const delta of deltas) socket.emit('mission:progress', delta)
+      }
 
       const opponent = room.players.find(p => p.userId !== user.id)
 
@@ -314,10 +406,115 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
         }
       } else {
         // Langsung kirim soal berikutnya ke player ini setelah jeda singkat
-        setTimeout(() => {
-          if (room.status === 'in-progress') startPlayerRound(io, room, player)
+        player.nextRoundTimer = setTimeout(() => {
+          player.nextRoundTimer = null
+          // Immunity dapat mengganti soal normal selama jeda. Jangan menimpa
+          // soal bonus atau memajukan round untuk kedua kalinya.
+          if (room.status === 'in-progress' && player.answered) {
+            startPlayerRound(io, room, player)
+          }
         }, NEXT_Q_DELAY_MS)
       }
+    })
+
+    // ── NANANAGA IMMUNITY — kirim soal bonus tanpa menambah round ────────────
+    // BUG-01 FIX: tambahkan validasi server-side sebelum memberikan soal bonus:
+    //   1. Player harus sudah menjawab soal aktif
+    //   2. Jawaban terakhir harus salah
+    //   3. Sisa token immunity > 0 (di-fetch lazy dari DB berdasarkan skin equipped)
+    socket.on('duel:use-immunity', async ({ code } = {}, ack) => {
+      const reject = () => {
+        if (typeof ack === 'function') ack({ ok: false })
+      }
+      if (!(await canPlayStudentMode(socket, 'duel:error'))) return reject()
+      const room = rooms.get(code)
+      if (!room || room.status !== 'in-progress') return reject()
+      const player = room.players.find(p => p.userId === user.id)
+      if (!player) return reject()
+
+      // Validasi 1: player harus sudah menjawab soal saat ini
+      if (!player.answered) return reject()
+
+      // Validasi 2: jawaban terakhir harus salah
+      if (player.lastAnswerCorrect !== false) return reject()
+
+      // Validasi 3: serialisasi klaim sebelum query DB agar dua emit simultan
+      // tidak sama-sama melihat token yang sama.
+      if (player.immunityInFlight) return reject()
+      player.immunityInFlight = true
+
+      try {
+        // Cek sisa token dari DB (lazy fetch sekali per sesi)
+        if (player.immunityTokensLeft === null) {
+          const { rows } = await pool.query(
+            'SELECT equipped_pet_skin FROM students WHERE id = $1',
+            [user.id]
+          )
+          const skinId = rows[0]?.equipped_pet_skin || 'golden'
+          const bonus = getPetBonus(skinId)
+          player.immunityTokensLeft = bonus.wrongImmunity || 0
+        }
+
+        if (player.immunityTokensLeft <= 0) return reject()
+
+        // Konsumsi satu token & reset flag agar tidak bisa diklaim ulang soal yang sama
+        player.immunityTokensLeft--
+        player.lastAnswerCorrect = null
+        if (player.nextRoundTimer) {
+          clearTimeout(player.nextRoundTimer)
+          player.nextRoundTimer = null
+        }
+
+        // Generate fresh bonus question (round counter NOT incremented)
+        player.answered = false
+        player.lastAnswer = null
+        const q = genTournamentQ(room.gameKey || 'katak')
+        player.currentQ = q
+        const { answer, ...qForClient } = q
+        const playerSocket = io.sockets.sockets.get(player.socketId)
+        playerSocket?.emit('duel:question', {
+          question:        qForClient,
+          round:           player.myRound,  // same round — immunity bonus
+          maxRounds:       MAX_ROUNDS,
+          scores:          room.players.map(safePlayer),
+          gameKey:         room.gameKey || 'katak',
+          isImmunityBonus: true,
+        })
+        if (typeof ack === 'function') {
+          ack({ ok: true, tokensLeft: player.immunityTokensLeft })
+        }
+      } catch (err) {
+        console.error('[duel:use-immunity] DB check error:', err)
+        reject()
+      } finally {
+        player.immunityInFlight = false
+      }
+    })
+
+    // Re-attach a player to an in-progress duel after a WebSocket reconnect.
+    // Socket IDs are connection-scoped, so keeping the old ID would make
+    // subsequent questions/results disappear for the player.
+    socket.on('duel:rejoin', async ({ code: rawCode } = {}) => {
+      if (!(await canPlayStudentMode(socket, 'duel:error'))) return
+      const code = rawCode?.toUpperCase?.()?.trim()
+      const room = rooms.get(code)
+      if (!room || !['waiting', 'in-progress'].includes(room.status)) return
+      const player = room.players.find(p => String(p.userId) === String(user.id))
+      if (!player) return
+
+      // The normal lobby → arena transition keeps the same socket and the
+      // player is already in this room. Do not call leaveAllRooms here or the
+      // recovery attempt would remove the player before re-attaching it.
+      if (player.socketId !== socket.id) leaveAllRooms(socket, io)
+      player.socketId = socket.id
+      socket.join(code)
+      socket.emit('duel:rejoined', {
+        code,
+        players: room.players.map(safePlayer),
+        myIndex: room.players.indexOf(player),
+        status: room.status,
+      })
+      resendDuelQuestion(io, room, player, socket)
     })
 
     // ── LEAVE (explicit, e.g. pressing back mid-game) ────────────────────────
@@ -457,7 +654,8 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       }
       socket._bossQ = null
 
-      const correct = (value === pending.answer)
+      // BUG-03 FIX: gunakan Number() agar jawaban numeric string tidak selalu salah
+      const correct = (Number(value) === Number(pending.answer))
       const damage  = correct ? BOSS_DAMAGE : 0
 
       // Upsert participant record
@@ -562,6 +760,104 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     // TOURNAMENT — spectator (guru) + player (siswa) events
     // ════════════════════════════════════════════════════════════════════════
 
+    // Siswa: masuk lobby turnamen (sebelum guru mulai)
+    socket.on('tournament:join-lobby', ({ tournamentId } = {}) => {
+      if (user.role !== 'siswa') return
+      const t = tournaments.get(tournamentId)
+      if (!t || !t.lobbyOpen) return
+      const isParticipant = t.students?.some(s => String(s.userId) === String(user.id))
+      if (!isParticipant) return
+      if (!t.lobby) t.lobby = {}
+      t.lobby[user.id] = { userId: user.id, name: user.name, joinedAt: Date.now() }
+      // Join bracket room so they receive state updates
+      socket.join(`tournament:${tournamentId}`)
+      // Tell guru the lobby state
+      io.to(`tournament:${tournamentId}`).emit('tournament:lobby-state', {
+        tournamentId,
+        lobby: Object.values(t.lobby),
+        total: t.students?.length ?? 0,
+      })
+    })
+
+    // Siswa: cek apakah ada turnamen aktif setelah refresh halaman.
+    // Mencari turnamen mana pun yang masih berjalan dan siswa ini termasuk peserta.
+    socket.on('tournament:check-active', () => {
+      if (user.role !== 'siswa') return
+      for (const [tournamentId, t] of tournaments) {
+        if (t.status !== 'in-progress') continue
+        const isParticipant = t.students?.some(s => String(s.userId) === String(user.id))
+        if (!isParticipant) continue
+
+        // Bergabung ke room bracket agar menerima update
+        socket.join(`tournament:${tournamentId}`)
+
+        // Cari match aktif (waiting-join atau in-progress) untuk siswa ini di ronde saat ini
+        const round = t.rounds[t.currentRound - 1]
+        let pendingMatch = null
+        if (round) {
+          pendingMatch = round.matches.find(m => {
+            if (!['waiting-join', 'waiting-juru', 'in-progress'].includes(m.status)) return false
+            if (t.mode !== 'kelompok') {
+              return m.player1?.userId === user.id || m.player2?.userId === user.id
+            }
+            const teamId = getTeamIdForUser(t, user.id)
+            return teamId && (m.player1?.teamId === teamId || m.player2?.teamId === teamId)
+          })
+        }
+
+        if (pendingMatch) {
+          if (t.mode === 'kelompok') {
+            const myTeamId = getTeamIdForUser(t, user.id)
+            const myTeam = t.teams?.find(team => team.id === myTeamId)
+            const opponentTeamId = pendingMatch.player1?.teamId === myTeamId
+              ? pendingMatch.player2?.teamId
+              : pendingMatch.player1?.teamId
+            const opponentTeam = t.teams?.find(team => team.id === opponentTeamId)
+            const myRep = pendingMatch.player1?.teamId === myTeamId
+              ? pendingMatch.player1
+              : pendingMatch.player2
+            socket.emit('tournament:active-state', {
+              tournamentId,
+              match: {
+                matchId: pendingMatch.id,
+                opponent: opponentTeam
+                  ? { teamId: opponentTeam.id, teamName: opponentTeam.name, name: opponentTeam.name }
+                  : null,
+                gameKey: t.gameKey,
+                round: t.currentRound,
+                isKelompok: true,
+                teamId: myTeam?.id || myTeamId,
+                teamName: myTeam?.name || null,
+                teamRepUserId: myRep?.userId || null,
+                myTeamMembers: myTeam?.members?.map(member => ({
+                  userId: member.userId,
+                  name: member.name,
+                })) || [],
+              },
+            })
+          } else {
+            const opponent = pendingMatch.player1?.userId === user.id
+              ? pendingMatch.player2 : pendingMatch.player1
+            socket.emit('tournament:active-state', {
+              tournamentId,
+              match: {
+                matchId:    pendingMatch.id,
+                opponent:   opponent ? { userId: opponent.userId, name: opponent.name } : null,
+                gameKey:    t.gameKey,
+                round:      t.currentRound,
+                isKelompok: false,
+              },
+            })
+          }
+        } else {
+          // Turnamen masih berjalan tapi tidak ada match pending untuk siswa ini
+          // (mungkin sudah menang/kalah di ronde ini, menunggu ronde berikutnya)
+          socket.emit('tournament:active-state', { tournamentId, match: null })
+        }
+        return // Satu siswa hanya bisa ada di satu turnamen aktif
+      }
+    })
+
     // Guru/siswa: join tournament room untuk melihat bracket live.
     // Siswa hanya boleh melihat turnamen yang memang diikutinya.
     socket.on('tournament:spectate', ({ tournamentId } = {}) => {
@@ -599,27 +895,112 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const match = round?.matches.find(m => m.id === matchId)
       if (!match || match.status === 'finished' || match.status === 'walkover') return
 
-      const isP1 = match.player1?.userId === user.id
-      const isP2 = match.player2?.userId === user.id
-      if (!isP1 && !isP2) return
+      // BUG-04 FIX: validasi kepemilikan match SEBELUM socket.join agar
+      // peserta dari match lain tidak bisa masuk room dan mempengaruhi state.
+      if (t.mode === 'kelompok') {
+        // Kelompok: semua anggota tim boleh join, bukan hanya representatif
+        const teamId = getTeamIdForUser(t, user.id)
+        if (!teamId) return
 
-      // Update socketId
-      if (isP1) match.player1.socketId = socket.id
-      if (isP2) match.player2.socketId = socket.id
+        // Pastikan tim ini memang peserta match ini
+        const isMatchParticipant = match.player1?.teamId === teamId || match.player2?.teamId === teamId
+        if (!isMatchParticipant) return
 
-      // Join duel room
-      socket.join(match.roomCode)
+        // Baru join room setelah validasi
+        socket.join(match.roomCode)
+        match._teamMemberSockets = match._teamMemberSockets || {}
+        match._teamMemberSockets[user.id] = socket.id
 
-      // Broadcast bracket ke guru
-      io.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(t))
+        // The question event may have been emitted just before this socket
+        // connected (or while the app was resuming). Re-send the durable
+        // server-side question instead of leaving the arena blank.
+        resendTournamentQuestion(io, t, match, user.id, socket)
 
-      // Cek apakah kedua player sudah join → mulai match
-      const p1Ready = !match.player1 || match.player1.socketId
-      const p2Ready = !match.player2 || match.player2.socketId
-      if (p1Ready && p2Ready && match.status === 'waiting-join') {
-        if (match.walkoverTimer) { clearTimeout(match.walkoverTimer); match.walkoverTimer = null }
-        startTournamentMatch(io, t, match)
+        io.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(t))
+
+        // Beritahu anggota lain di match room siapa yang sudah join
+        io.to(match.roomCode).emit('tournament:team-member-joined', {
+          userId:   user.id,
+          name:     user.name,
+          teamId,
+          matchId:  match.id,
+        })
+
+        // Jika ini match pertama yang joining dan belum ada timer juru jawab → mulai timer
+        if (match.status === 'waiting-join') {
+          const anyJoined = Object.keys(match._teamMemberSockets).length === 1
+          if (anyJoined && !match._teamJuruTimer) {
+            // Mulai timer 30 detik untuk pemilihan juru jawab
+            match._teamJuruTimer = setTimeout(() => {
+              if (match.status === 'waiting-join' || match.status === 'waiting-juru') {
+                autoSelectJuruJawab(io, t, match)
+              }
+            }, 30_000)
+            match.status = 'waiting-juru'
+            io.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(t))
+          }
+        }
+      } else {
+        // Individual: hanya peserta match ini yang boleh join
+        const isP1 = match.player1?.userId === user.id
+        const isP2 = match.player2?.userId === user.id
+        if (!isP1 && !isP2) return  // BUG-04 FIX: cek sebelum join
+
+        // Baru join room setelah validasi
+        socket.join(match.roomCode)
+
+        if (isP1) match.player1.socketId = socket.id
+        if (isP2) match.player2.socketId = socket.id
+
+        // If the match is already live, this is a reconnect/re-entry. The
+        // original question event is not durable, so recover it immediately.
+        if (match.status === 'in-progress') {
+          resendTournamentQuestion(io, t, match, user.id, socket)
+          return
+        }
+
+        io.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(t))
+
+        const p1Ready = !match.player1 || match.player1.socketId
+        const p2Ready = !match.player2 || match.player2.socketId
+        if (p1Ready && p2Ready && match.status === 'waiting-join') {
+          if (match.walkoverTimer) { clearTimeout(match.walkoverTimer); match.walkoverTimer = null }
+          startTournamentMatch(io, t, match)
+        }
       }
+    })
+
+    // Siswa (kelompok): klaim jadi juru jawab tim
+    socket.on('tournament:claim-juru-jawab', ({ tournamentId, matchId } = {}) => {
+      if (user.role !== 'siswa') return
+      const t = tournaments.get(tournamentId)
+      if (!t || t.mode !== 'kelompok') return
+      const round = t.rounds[t.currentRound - 1]
+      const match = round?.matches.find(m => m.id === matchId)
+      if (!match || !['waiting-join','waiting-juru'].includes(match.status)) return
+
+      // BUG-05 FIX: user harus sudah join match ini via tournament:player-ready
+      if (!match._teamMemberSockets?.[user.id]) return
+
+      const teamId = getTeamIdForUser(t, user.id)
+      if (!teamId) return
+      if (match.teamJuruJawab?.[teamId]) return // sudah ada juru jawab
+
+      match.teamJuruJawab = match.teamJuruJawab || {}
+      match.teamJuruJawab[teamId] = user.id
+
+      const team = t.teams?.find(tm => tm.id === teamId)
+      const memberName = team?.members.find(m => String(m.userId) === String(user.id))?.name || user.name
+
+      io.to(match.roomCode).emit('tournament:juru-jawab-set', {
+        teamId,
+        userId:       user.id,
+        name:         memberName,
+        autoSelected: false,
+      })
+
+      // Cek apakah kedua tim sudah punya juru jawab
+      checkAndStartKelompokMatch(io, t, match)
     })
 
     // Siswa: submit jawaban turnamen
@@ -631,13 +1012,187 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       const round = t.rounds[t.currentRound - 1]
       const match = round?.matches.find(m => m.id === matchId)
       if (!match) return
-      handleTournamentAnswer(io, t, match, user.id, value, socket)
+      await handleTournamentAnswer(io, t, match, user.id, value, socket)
+    })
+
+    // Siswa: Nananaga immunity — kirim soal bonus tanpa menambah round tournament
+    // BUG-02 FIX: tambahkan validasi server-side sebelum memberikan soal bonus:
+    //   1. Player harus sudah menjawab soal aktif (_playerCurrentQ[userId] === null)
+    //   2. Jawaban terakhir harus salah (_playerLastAnswerCorrect[userId] === false)
+    //   3. Sisa token immunity > 0 (lazy fetch dari DB berdasarkan skin equipped)
+    socket.on('tournament:use-immunity', async ({ tournamentId, matchId } = {}, ack) => {
+      const reject = () => {
+        if (typeof ack === 'function') ack({ ok: false })
+      }
+      if (user.role !== 'siswa') return
+      if (!(await canPlayStudentMode(socket, 'tournament:error'))) return reject()
+      const t = tournaments.get(tournamentId)
+      if (!t) return reject()
+      const round = t.rounds[t.currentRound - 1]
+      const match = round?.matches.find(m => m.id === matchId)
+      if (!match || match.status !== 'in-progress') return reject()
+
+      const userId = user.id
+      const teamId = getTeamIdForUser(t, userId)
+      if (t.mode === 'kelompok') {
+        const isMatchTeam = Boolean(teamId && (
+          match.player1?.teamId === teamId || match.player2?.teamId === teamId
+        ))
+        const isJuruJawab = String(match.teamJuruJawab?.[teamId]) === String(userId)
+        if (!isMatchTeam || !isJuruJawab) return reject()
+
+        match._kelompokAnswers = match._kelompokAnswers || {}
+        match._kelompokQuestionsByTeam = match._kelompokQuestionsByTeam || {}
+        match._kelompokLastAnswerCorrect = match._kelompokLastAnswerCorrect || {}
+        match._kelompokImmunityLeft = match._kelompokImmunityLeft || {}
+        match._kelompokImmunityInFlight = match._kelompokImmunityInFlight || {}
+
+        // The original wrong answer has already been recorded. Only the
+        // answering team may claim a bonus, and only after a wrong answer.
+        if (match._kelompokAnswers[teamId] !== true) return reject()
+        if (match._kelompokLastAnswerCorrect[teamId] !== false) return reject()
+        if (match._kelompokImmunityInFlight[teamId]) return reject()
+        match._kelompokImmunityInFlight[teamId] = true
+
+        try {
+          if (match._kelompokImmunityLeft[teamId] === undefined) {
+            const { rows } = await pool.query(
+              'SELECT equipped_pet_skin FROM students WHERE id = $1',
+              [userId]
+            )
+            const skinId = rows[0]?.equipped_pet_skin || 'golden'
+            const bonus = getPetBonus(skinId)
+            match._kelompokImmunityLeft[teamId] = bonus.wrongImmunity || 0
+          }
+          if (match._kelompokImmunityLeft[teamId] <= 0) return reject()
+
+          match._kelompokImmunityLeft[teamId]--
+          match._kelompokLastAnswerCorrect[teamId] = null
+          match._kelompokAnswers[teamId] = false
+
+          const q = genTournamentQ(t.gameKey || 'katak')
+          match._kelompokQuestionsByTeam[teamId] = q
+          const { answer, ...qForClient } = q
+          const team = t.teams?.find(tm => tm.id === teamId)
+          for (const member of team?.members || []) {
+            const memberSocketId = match._teamMemberSockets?.[member.userId]
+            io.sockets.sockets.get(memberSocketId)?.emit('tournament:question', {
+              question: qForClient,
+              round: match._kelompokRound,
+              maxRounds: TOURNAMENT_MAX_ROUNDS,
+              scores: match.scores,
+              isKelompok: true,
+              teamJuruJawab: match.teamJuruJawab,
+              isImmunityBonus: true,
+            })
+          }
+          if (typeof ack === 'function') {
+            ack({ ok: true, tokensLeft: match._kelompokImmunityLeft[teamId] })
+          }
+        } catch (err) {
+          console.error('[tournament:use-immunity kelompok] DB check error:', err)
+          reject()
+        } finally {
+          match._kelompokImmunityInFlight[teamId] = false
+        }
+        return
+      }
+
+      const isMatchParticipant =
+        String(match.player1?.userId) === String(userId) ||
+        String(match.player2?.userId) === String(userId)
+      if (!isMatchParticipant) return reject()
+
+      match._playerRounds        = match._playerRounds        || {}
+      match._playerCurrentQ      = match._playerCurrentQ      || {}
+      match._playerLastAnswerCorrect = match._playerLastAnswerCorrect || {}
+      match._playerImmunityLeft  = match._playerImmunityLeft  || {}
+      match._playerImmunityInFlight = match._playerImmunityInFlight || {}
+      match._playerNextQuestionTimers = match._playerNextQuestionTimers || {}
+
+      // Validasi 1: player harus sudah menjawab (currentQ = null artinya sudah)
+      if (match._playerCurrentQ[userId] !== null && match._playerCurrentQ[userId] !== undefined) {
+        return reject()
+      }
+
+      // Validasi 2: jawaban terakhir harus salah
+      if (match._playerLastAnswerCorrect[userId] !== false) return reject()
+
+      // Serialisasi klaim sebelum query DB agar dua emit simultan tidak
+      // sama-sama memakai token yang sama.
+      if (match._playerImmunityInFlight[userId]) return reject()
+      match._playerImmunityInFlight[userId] = true
+
+      try {
+        // Validasi 3: cek sisa token dari DB (lazy fetch sekali per match per player)
+        if (match._playerImmunityLeft[userId] === undefined) {
+          const { rows } = await pool.query(
+            'SELECT equipped_pet_skin FROM students WHERE id = $1',
+            [userId]
+          )
+          const skinId = rows[0]?.equipped_pet_skin || 'golden'
+          const bonus = getPetBonus(skinId)
+          match._playerImmunityLeft[userId] = bonus.wrongImmunity || 0
+        }
+
+        if (match._playerImmunityLeft[userId] <= 0) return reject()
+
+        // Konsumsi satu token & reset flag
+        match._playerImmunityLeft[userId]--
+        match._playerLastAnswerCorrect[userId] = null
+        if (match._playerNextQuestionTimers[userId]) {
+          clearTimeout(match._playerNextQuestionTimers[userId])
+          match._playerNextQuestionTimers[userId] = null
+        }
+
+        const playerRound = match._playerRounds[userId] || 0
+
+        // Generate bonus question without advancing round counter
+        const q = genTournamentQ(t.gameKey || 'katak')
+        match._playerCurrentQ[userId] = q
+        match._playerQuestionStartedAt = match._playerQuestionStartedAt || {}
+        match._playerQuestionStartedAt[userId] = Date.now()
+        const { answer, ...qForClient } = q
+        socket.emit('tournament:question', {
+          question:        qForClient,
+          round:           playerRound,  // same round — immunity bonus
+          maxRounds:       TOURNAMENT_MAX_ROUNDS,
+          scores:          match.scores,
+          isImmunityBonus: true,
+        })
+        if (typeof ack === 'function') {
+          ack({ ok: true, tokensLeft: match._playerImmunityLeft[userId] })
+        }
+      } catch (err) {
+        console.error('[tournament:use-immunity] DB check error:', err)
+        reject()
+      } finally {
+        match._playerImmunityInFlight[userId] = false
+      }
     })
 
     // Siswa: kirim posisi slider ke guru spectator
     socket.on('tournament:slider-move', async ({ matchId, value } = {}) => {
       if (user.role !== 'siswa') return
       if (!(await canPlayStudentMode(socket, 'tournament:error'))) return
+      socket.to(`match-spectate:${matchId}`).emit('tournament:opponent-slider', {
+        userId: user.id, value, matchId,
+      })
+    })
+
+    // Siswa (juru jawab kelompok): broadcast posisi slider ke anggota tim sendiri
+    socket.on('tournament:team-slider', async ({ tournamentId, matchId, value } = {}) => {
+      if (user.role !== 'siswa') return
+      const t = tournaments.get(tournamentId)
+      if (!t || t.mode !== 'kelompok') return
+      const round = t.rounds[t.currentRound - 1]
+      const match = round?.matches.find(m => m.id === matchId)
+      if (!match) return
+      // Broadcast ke seluruh match room kecuali pengirim
+      socket.to(match.roomCode).emit('tournament:team-slider-update', {
+        userId: user.id, value, matchId,
+      })
+      // Juga ke guru spectator
       socket.to(`match-spectate:${matchId}`).emit('tournament:opponent-slider', {
         userId: user.id, value, matchId,
       })

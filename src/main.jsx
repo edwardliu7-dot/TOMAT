@@ -1,7 +1,12 @@
+import { applyNativePatch } from './nativePatch'
+applyNativePatch() // harus dipanggil sebelum semua import lain agar __TOMAT_API__ tersedia
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import MobaArenaEditor from './moba-editor/MobaArenaEditor.jsx'
 import { AuthProvider } from './AuthContext'
+import AssetPreloader from './components/AssetPreloader'
 
 if ('serviceWorker' in navigator) {
   // Listener untuk pesan dari SW (notifikasi → buka halaman)
@@ -19,10 +24,18 @@ if ('serviceWorker' in navigator) {
   })
 }
 
+const isInternalMobaEditor = window.location.pathname === '/hidden-moba-editor'
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    {isInternalMobaEditor ? (
+      <MobaArenaEditor />
+    ) : (
+      <AssetPreloader>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </AssetPreloader>
+    )}
   </React.StrictMode>
 )

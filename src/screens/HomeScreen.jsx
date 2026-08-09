@@ -4,8 +4,10 @@ import { useTask } from '../TaskContext'
 import { useAuth } from '../AuthContext'
 import { usePet } from '../PetContext'
 import { UserAvatar } from '../components/shared'
+import SeasonalEventBanner from '../components/SeasonalEventBanner'
 import { getAccessibleGradesForUser } from '../kelasUtils'
 import { getPetName } from '../components/PetSVG'
+import MobileLandscapeDashboard from '../components/MobileLandscapeDashboard'
 
 function getPetEmoji(skinId, isDead, isStarving) {
   if (isDead) return '💀'
@@ -17,7 +19,7 @@ function getPetEmoji(skinId, isDead, isStarving) {
   return '🐾'
 }
 
-const ZONES = [
+const ZONES_MATEMATIKA = [
   {
     id: 'grade7',
     grade: 7,
@@ -56,6 +58,48 @@ const ZONES = [
     soft: 'rgba(52,211,153,0.08)',
     babs: ['BAB I: SPLDV', 'BAB II: Lingkaran', 'BAB III: Bangun Ruang'],
     missions: 31,
+  },
+]
+
+const ZONES_IPA = [
+  {
+    id: 'ipa7',
+    grade: 7,
+    label: 'KELAS VII IPA',
+    title: 'Lab Sains Kelas 7',
+    icon: '🌿',
+    subject: 'Pengukuran, Zat, Suhu & Gerak',
+    description: 'Eksplorasi dunia fisika dan kimia dasar.',
+    accent: '#22c55e',
+    soft: 'rgba(34,197,94,0.08)',
+    babs: ['BAB I: Besaran & Pengukuran', 'BAB II: Zat & Perubahannya', 'BAB III: Suhu & Kalor', 'BAB IV: Gaya & Gerak'],
+    missions: 4,
+  },
+  {
+    id: 'ipa8',
+    grade: 8,
+    label: 'KELAS VIII IPA',
+    title: 'Lab Biologi Kelas 8',
+    icon: '🔬',
+    subject: 'Sel, Pencernaan & Pernapasan',
+    description: 'Selami dunia sel dan sistem organ manusia.',
+    accent: '#3b82f6',
+    soft: 'rgba(59,130,246,0.08)',
+    babs: ['BAB I: Pengenalan Sel', 'BAB II: Pencernaan & Peredaran Darah', 'BAB III: Pernapasan & Ekskresi'],
+    missions: 3,
+  },
+  {
+    id: 'ipa9',
+    grade: 9,
+    label: 'KELAS IX IPA',
+    title: 'Lab Sains Kelas 9',
+    icon: '🧠',
+    subject: 'Koordinasi, Zat Adiktif & Reproduksi',
+    description: 'Pelajari sistem regulasi dan reproduksi makhluk hidup.',
+    accent: '#a855f7',
+    soft: 'rgba(168,85,247,0.08)',
+    babs: ['BAB I: Sistem Koordinasi', 'BAB II: Zat Adiktif & Psikotropika', 'BAB III: Sistem Reproduksi'],
+    missions: 3,
   },
 ]
 
@@ -100,7 +144,7 @@ function ZoneCard({ zone, locked, selected, onClick }) {
   )
 }
 
-export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop }) {
+export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop, openEventShop, onOpenApp }) {
   const { player } = usePlayer()
   const { tasks, grades } = useTask()
   const { user } = useAuth()
@@ -108,11 +152,13 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
   const isDesktop = useIsDesktop()
   const [activeZone, setActiveZone] = useState(null)
   const [notice, setNotice] = useState('')
+  const [activeSubject, setActiveSubject] = useState('matematika')
   const accessibleGrades = getAccessibleGradesForUser(user)
   const pendingTasks = tasks.filter(task => task.status === 'active')
   const nextTask = pendingTasks[0] || null
   const firstName = (user?.name || player?.name || 'Pelajar').split(' ')[0]
   const photoUrl = user?.photoUrl ?? user?.photo_url
+  const canUseDemoMoba = user?.role === 'siswa'
 
   useEffect(() => {
     if (!notice) return undefined
@@ -120,7 +166,8 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
     return () => clearTimeout(timer)
   }, [notice])
 
-  const zones = ZONES.map(zone => ({
+  const zonesSource = activeSubject === 'ipa' ? ZONES_IPA : ZONES_MATEMATIKA
+  const zones = zonesSource.map(zone => ({
     ...zone,
     locked: !accessibleGrades.includes(zone.grade),
   }))
@@ -136,15 +183,46 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
     else setActiveZone(zone.id)
   }
 
+  const handleSubjectSwitch = subject => {
+    setActiveSubject(subject)
+    setActiveZone(null)
+  }
+
   const quickLinks = [
+    ...(canUseDemoMoba
+      ? [{ id: 'moba-lobby', icon: '⚔️', label: 'Arena MOBA', sub: 'Duel belajar bersama', accent: '#F97316' }]
+      : []),
+    { id: 'hafalan', icon: '🧮', label: 'Hafalan', sub: 'Flash Card & Kuis', accent: '#818cf8' },
+    { id: 'latihan-ujian', icon: '📝', label: 'Latihan Ujian', sub: 'UN & TKA', accent: '#C084FC' },
     { id: 'grades', icon: '📊', label: 'Nilai & Tugas', sub: `${grades.length} nilai tersimpan`, accent: '#818CF8' },
     { id: 'komunikasi', icon: '💬', label: 'Chat Guru', sub: 'Tanya gurumu', accent: '#67E8F9' },
     { id: 'toko', icon: '🛒', label: 'Toko', sub: `${formatNumber(player.coins)} koin`, accent: '#FBBF24' },
     { id: 'lencana', icon: '🏅', label: 'Lencana', sub: 'Koleksimu', accent: '#FB923C' },
   ]
 
+  // New universal dashboard — shown on ALL devices for siswa (desktop + mobile landscape + portrait)
+  if (!guruMode && user?.role === 'siswa') {
+    return (
+      <MobileLandscapeDashboard
+        user={user}
+        player={player}
+        pet={pet}
+        nextTask={nextTask}
+        pendingTaskCount={pendingTasks.length}
+        grades={grades}
+        firstName={firstName}
+        zones={zones}
+        canUseDemoMoba={canUseDemoMoba}
+        navigate={navigate}
+        openPetShop={openPetShop}
+        openEventShop={openEventShop}
+        onOpenApp={onOpenApp}
+      />
+    )
+  }
+
   return (
-    <main className={`home-screen ${isDesktop ? 'home-screen--desktop' : 'home-screen--mobile'}`}>
+    <main className={`home-screen ${isDesktop ? 'home-screen--desktop' : 'home-screen--mobile'} ${guruMode ? 'home-screen--guru' : ''}`}>
       <div className="home-screen__glow home-screen__glow--one" />
       <div className="home-screen__glow home-screen__glow--two" />
       <div className="home-screen__glow home-screen__glow--three" />
@@ -195,6 +273,8 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
           </div>
         </section>
 
+        {!guruMode && <SeasonalEventBanner onOpenEventShop={openEventShop} />}
+
         {!guruMode && (
           <section className="home-mission">
             <div className="home-mission__rings" />
@@ -206,7 +286,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
               <h2>
                 {nextTask
                   ? nextTask.gameName || nextTask.gameKey
-                  : zones.find(zone => !zone.locked)?.title || 'Mulai petualangan matematikamu'}
+                  : zones.find(zone => !zone.locked)?.title || 'Mulai petualanganmu'}
               </h2>
               <p>
                 {nextTask
@@ -232,6 +312,37 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
           <div><h2>Zona petualangan <span>3 ZONA</span></h2><p>Pilih jalur yang ingin kamu taklukkan.</p></div>
           <button type="button" onClick={() => showNotice('Semua zona yang tersedia sudah tampil di sini.')}>Lihat semua →</button>
         </section>
+
+        {/* Subject toggle — Matematika / IPA */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, padding: '0 2px' }}>
+          <button
+            type="button"
+            onClick={() => handleSubjectSwitch('matematika')}
+            style={{
+              flex: 1, padding: '10px 16px', borderRadius: 12, border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 13, fontWeight: 800, transition: 'all 0.2s',
+              background: activeSubject === 'matematika' ? 'linear-gradient(135deg,#FBBF24,#F59E0B)' : 'rgba(255,255,255,0.06)',
+              color: activeSubject === 'matematika' ? '#071321' : '#94A3B8',
+              boxShadow: activeSubject === 'matematika' ? '0 2px 12px rgba(251,191,36,0.3)' : 'none',
+            }}
+          >
+            📐 Matematika
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSubjectSwitch('ipa')}
+            style={{
+              flex: 1, padding: '10px 16px', borderRadius: 12, border: 'none', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 13, fontWeight: 800, transition: 'all 0.2s',
+              background: activeSubject === 'ipa' ? 'linear-gradient(135deg,#22c55e,#16a34a)' : 'rgba(255,255,255,0.06)',
+              color: activeSubject === 'ipa' ? '#fff' : '#94A3B8',
+              boxShadow: activeSubject === 'ipa' ? '0 2px 12px rgba(34,197,94,0.3)' : 'none',
+            }}
+          >
+            🔬 IPA
+          </button>
+        </div>
+
         <section className="home-zones">
           {zones.map(zone => (
             <ZoneCard key={zone.id} zone={zone} locked={zone.locked} selected={activeZone === zone.id} onClick={() => openZone(zone)} />
@@ -264,26 +375,70 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
         )}
       </div>
 
-      {!isDesktop && (
-        <nav className="home-bottom-nav">
-          {[
-            ['home', '🏠', 'Beranda'],
-            [zones.find(zone => !zone.locked)?.id || 'grade7', '🗺️', 'Zona'],
-            ['toko', '🛒', 'Toko'],
-            ['papanperingkat', '🏆', 'Peringkat'],
-            ['profile', '👤', 'Profil'],
-          ].map(([id, icon, label]) => (
-            <button type="button" key={label} className={id === 'home' ? 'is-active' : ''} onClick={() => navigate(id)}>
-              <span>{icon}</span><small>{label}</small>
+
+        {/* Aplikasi Lain — akses cepat ke BLP (siswa) atau BLP+GURU (guru) */}
+        {!guruMode && user?.role === 'siswa' && (
+          <div style={{ marginTop: 24, padding: '0 2px' }}>
+            <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
+              APLIKASI LAIN
+            </div>
+            <button
+              onClick={() => onOpenApp?.({ src: 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io', title: 'BLP Harian' })}
+              style={{
+                width: '100%', background: 'rgba(16,185,129,0.1)',
+                border: '1px solid rgba(16,185,129,0.3)', borderRadius: 12,
+                padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                cursor: 'pointer', color: '#fff', fontFamily: 'inherit', textAlign: 'left',
+              }}
+            >
+              <span style={{ fontSize: 24 }}>📋</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>BLP Harian</div>
+                <div style={{ fontSize: 12, color: '#34d399', marginTop: 2 }}>Isi aktivitas BLP hari ini →</div>
+              </div>
+              <span style={{ marginLeft: 'auto', color: '#34d399' }}>→</span>
             </button>
-          ))}
-        </nav>
-      )}
+          </div>
+        )}
+
+        {!guruMode && user?.role === 'guru' && (
+          <div style={{ marginTop: 24, padding: '0 2px' }}>
+            <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>
+              APLIKASI LAIN
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button onClick={() => onOpenApp?.({ src: 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io', title: 'BLP Harian' })} style={{
+                background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
+                borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                cursor: 'pointer', color: '#fff', fontFamily: 'inherit', textAlign: 'left',
+              }}>
+                <span style={{ fontSize: 24 }}>📋</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>BLP Harian</div>
+                  <div style={{ fontSize: 12, color: '#34d399', marginTop: 2 }}>Rekap aktivitas siswa →</div>
+                </div>
+                <span style={{ marginLeft: 'auto', color: '#34d399' }}>→</span>
+              </button>
+              <button onClick={() => onOpenApp?.({ src: 'https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io', title: 'GURU (EOB5)' })} style={{
+                background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)',
+                borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
+                cursor: 'pointer', color: '#fff', fontFamily: 'inherit', textAlign: 'left',
+              }}>
+                <span style={{ fontSize: 24 }}>🏫</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>GURU (EOB5)</div>
+                  <div style={{ fontSize: 12, color: '#fbbf24', marginTop: 2 }}>Absensi, nilai, jadwal, soal AI →</div>
+                </div>
+                <span style={{ marginLeft: 'auto', color: '#fbbf24' }}>→</span>
+              </button>
+            </div>
+          </div>
+        )}
 
       {notice && <div className="home-notice">✦ {notice}<button type="button" onClick={() => setNotice('')}>×</button></div>}
 
       <style>{`
-        .home-screen { min-height: 100vh; position: relative; overflow: hidden; background: #071321; color: #F1F5F9; }
+        .home-screen { min-height: 100vh; position: relative; overflow-x: hidden; background: #071321; color: #F1F5F9; }
         .home-screen__glow { position: fixed; pointer-events: none; border-radius: 50%; filter: blur(130px); z-index: 0; }
         .home-screen__glow--one { width: 520px; height: 520px; left: -180px; top: -160px; background: rgba(6,182,212,.08); }
         .home-screen__glow--two { width: 580px; height: 580px; right: -180px; top: 38%; background: rgba(99,102,241,.10); }
@@ -378,13 +533,19 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
         .home-bottom-nav { display:none; }
         @media (max-width:1100px) and (min-width:901px) { .home-content { padding-inline:24px; } .home-topbar { padding-inline:24px; } }
         @media (max-width:900px) {
-          .home-screen { padding-bottom:84px; }
-          .home-topbar { min-height:62px; padding:10px 16px; }
+          /* Guru mode: banner kembali jadi fixed di bawah topbar agar tidak tertindih */
+          .home-screen--guru .home-teacher-mode {
+            position: fixed; top: calc(62px + env(safe-area-inset-top, 0px));
+            left: 0; right: 0; z-index: 11;
+          }
+          /* Tambah padding-top konten supaya tidak tertutup dua bar */
+          .home-screen--guru .home-content { padding-top: 122px; }
+          .home-topbar { position:fixed; top:0; left:0; right:0; z-index:10; min-height:62px; padding:calc(10px + env(safe-area-inset-top, 0px)) 16px 10px; }
           .home-topbar__date { display:none; }
           .home-topbar__actions { width:100%; justify-content:flex-end; }
           .home-profile-button > span, .home-profile-button > b { display:none; }
           .home-profile-button { padding:3px; border-radius:12px; }
-          .home-content { padding:20px 16px 20px; }
+          .home-content { padding:82px 16px 20px; }
           .home-greeting { display:block; margin-bottom:18px; }
           .home-eyebrow { font-size:9px; letter-spacing:.16em; }
           .home-greeting h1 { margin-top:6px; font-size:26px; }
@@ -416,13 +577,6 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
           .home-quick-links { grid-template-columns:repeat(2,1fr); gap:10px; }
           .home-quick-links button { padding:10px; }
           .home-pet { max-width:none; }
-          .home-bottom-nav { position:fixed; z-index:10; display:flex; left:0; right:0; bottom:0; justify-content:space-around; padding:10px 16px 22px; border-top:1px solid rgba(99,102,241,.10); background:rgba(7,19,33,.96); backdrop-filter:blur(16px); }
-          .home-bottom-nav button { position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; width:64px; border:0; background:none; color:#4B6480; cursor:pointer; font:inherit; }
-          .home-bottom-nav button span { font-size:20px; opacity:.55; }
-          .home-bottom-nav button small { font-size:10px; }
-          .home-bottom-nav button.is-active { color:#818CF8; font-weight:800; }
-          .home-bottom-nav button.is-active span { opacity:1; }
-          .home-bottom-nav button.is-active::before { content:''; position:absolute; top:-10px; width:20px; height:3px; border-radius:99px; background:#818CF8; }
         }
         @media (max-width:430px) { .home-topbar__actions { gap:6px; } .home-coins { padding-inline:9px; } .home-level { padding:10px 12px; } .home-level__xp { text-align:right; } }
       `}</style>

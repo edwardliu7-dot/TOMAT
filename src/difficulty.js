@@ -5,6 +5,9 @@
 // receive a fixed difficulty from the mode-select screen — instead it uses the `difficulty`
 // returned by useSurvival(), which starts at 'easy' and escalates automatically.
 import { useState, useRef, useCallback } from 'react'
+import { useAuth } from './AuthContext'
+import { useTask } from './TaskContext'
+import { getWrongImmunity } from './petBonuses'
 
 export const DIFFICULTY_LEVELS = ['easy', 'medium', 'hard']
 export const DIFFICULTY_LABELS = { easy: 'Mudah', medium: 'Sedang', hard: 'Sulit' }
@@ -46,12 +49,29 @@ function randomSurvivalStep() {
 // Shared Survival Mode state machine. Starts at 'easy'; games call recordResult(correct)
 // from their existing confirm()/scoring handler. On a correct answer, the streak grows and
 // the level may step up; on a wrong answer, `gameOver` is set (survival ends immediately).
+//
+// Nananaga immunity: if the student's equipped pet is a nananaga skin AND no task session is
+// active, wrong answers consume an immunity token instead of ending the game. When a token is
+// consumed a 'nananaga-shield' CustomEvent is dispatched on window so NananagaShieldToast in
+// App.jsx can show the global notification without touching individual game files.
 export function useSurvival(enabled) {
+  const { user } = useAuth()
+  const { activeSession } = useTask()
+
   const [difficulty, setDifficulty] = useState('easy')
   const [streak, setStreak] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const questionsAtLevel = useRef(0)
   const stepTarget = useRef(randomSurvivalStep())
+
+  // Immunity token tracking — derived from equipped skin, reset on each new game.
+  // immunityTotalRef tracks the current skin's token count (updates every render).
+  // immunityLeft tracks how many tokens remain for this survival run.
+  const immunityTotalRef = useRef(0)
+  immunityTotalRef.current = (!activeSession && user?.equippedPetSkin)
+    ? getWrongImmunity(user.equippedPetSkin)
+    : 0
+  const immunityLeft = useRef(immunityTotalRef.current)
 
   const recordResult = useCallback((correct) => {
     if (!enabled) return
@@ -64,7 +84,15 @@ export function useSurvival(enabled) {
         setDifficulty(d => nextLevel(d))
       }
     } else {
-      setGameOver(true)
+      if (immunityLeft.current > 0) {
+        immunityLeft.current -= 1
+        window.dispatchEvent(new CustomEvent('nananaga-shield', {
+          detail: { tokensLeft: immunityLeft.current },
+        }))
+        // Game over is NOT triggered — the game continues normally with the next question.
+      } else {
+        setGameOver(true)
+      }
     }
   }, [enabled])
 
@@ -74,6 +102,7 @@ export function useSurvival(enabled) {
     setGameOver(false)
     questionsAtLevel.current = 0
     stepTarget.current = randomSurvivalStep()
+    immunityLeft.current = immunityTotalRef.current
   }, [])
 
   return { difficulty, streak, gameOver, recordResult, reset }

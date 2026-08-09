@@ -1,0 +1,24 @@
+
+2026-08-02T06:22:34.652785668Z TOMAT server running on port 5000
+2026-08-02T06:22:37.944142977Z Failed to ensure database schema: error: foreign key constraint "prosem_items_subject_id_fkey" cannot be implemented
+2026-08-02T06:22:37.944165636Z     at /app/node_modules/.pnpm/pg-pool@3.14.0_pg@8.22.0/node_modules/pg-pool/index.js:45:11
+2026-08-02T06:22:37.944169613Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+2026-08-02T06:22:37.944172553Z     at async ensureSchema (file:///app/server/schema.js:976:3) {
+2026-08-02T06:22:37.944175392Z   length: 279,
+2026-08-02T06:22:37.944177813Z   severity: 'ERROR',
+2026-08-02T06:22:37.944180227Z   code: '42804',
+2026-08-02T06:22:37.944183124Z   detail: 'Key columns "subject_id" of the referencing table and "id" of the referenced table are of incompatible types: integer and uuid.',
+2026-08-02T06:22:37.944186270Z   hint: undefined,
+2026-08-02T06:22:37.944188804Z   position: undefined,
+2026-08-02T06:22:37.944191193Z   internalPosition: undefined,
+2026-08-02T06:22:37.944193579Z   internalQuery: undefined,
+2026-08-02T06:22:37.944195875Z   where: undefined,
+2026-08-02T06:22:37.944198152Z   schema: undefined,
+2026-08-02T06:22:37.944200439Z   table: undefined,
+2026-08-02T06:22:37.944202818Z   column: undefined,
+2026-08-02T06:22:37.944205100Z   dataType: undefined,
+2026-08-02T06:22:37.944207503Z   constraint: undefined,
+2026-08-02T06:22:37.944210309Z   file: 'tablecmds.c',
+2026-08-02T06:22:37.944212710Z   line: '10430',
+2026-08-02T06:22:37.944215080Z   routine: 'ATAddForeignKeyConstraint'
+2026-08-02T06:22:37.944217466Z }

@@ -1,47 +1,28 @@
-# TOMAT – Tantangan Otak MATematika
+# SMARTISA / TOMAT
 
-Game RPG Edukasi berbasis web untuk pelajar matematika SMP (Kelas 7–9).
+## Project overview
 
-## Stack
-- React 18 + Vite
-- Vanilla CSS-in-JS (inline styles)
-- No external UI library
+SMARTISA adalah platform pembelajaran TISA. TOMAT adalah modul siswa untuk
+game matematika, tugas, gamifikasi, Pet, komunikasi, duel, turnamen, dan
+mode multiplayer 2D yang direncanakan.
 
-## How to Run
-```
-npm run dev
-```
-Runs on port 5000.
+Modul BLP dan GURU berjalan sebagai aplikasi terpisah dan terhubung melalui
+tautan eksternal; jangan mengembalikan embedded module tersebut ke TOMAT.
 
-## Project Structure
-```
-src/
-  App.jsx              # Router (history stack)
-  PlayerContext.jsx    # Global player state (coins, level, EXP)
-  components/
-    shared.jsx         # Reusable UI components
-  screens/
-    HomeScreen.jsx     # Landing / zone picker
-    Grade7ZoneScreen.jsx
-    Grade8ZoneScreen.jsx
-    Grade9ZoneScreen.jsx
-  minigames/
-    SubmarineGame.jsx       # Kelas 7: Bilangan Bulat (slider)
-    LabKimiaGame.jsx        # Kelas 7: Pecahan & Persen (mixing)
-    ArsitekGame.jsx         # Kelas 7: Skala Peta (pilihan ganda)
-    JembatanGame.jsx        # Kelas 8: Pola Bilangan (pilihan ganda)
-    PabrikSenjataGame.jsx   # Kelas 8: Fungsi f(x) (input angka)
-    PemanahGame.jsx         # Kelas 8: Gradien (slider)
-    PasarBarterGame.jsx     # Kelas 8: Persamaan Simultan (pilihan)
-    SortirKargoGame.jsx     # Kelas 9: Aljabar (pilihan ganda)
-    WormholeGame.jsx        # Kelas 9: Bentuk Akar (pilihan ganda)
-    HologramGame.jsx        # Kelas 9: Kesebangunan (pilihan ganda)
-    ShieldGame.jsx          # Kelas 9: Lingkaran (slider)
-```
+## Development notes
 
-## Original Project
-Converted from Android (Kotlin/Jetpack Compose) exported from Google AI Studio.
-Original app name: TOMAT — Tantangan Otak MATematika.
+- Frontend: React 18 + Vite.
+- Backend: Node.js + Express.
+- Realtime: Socket.io dengan shared Express session.
+- Database: PostgreSQL yang sudah dipakai project; jangan mengganti atau
+  memigrasikan database tanpa permintaan eksplisit.
+- State pertandingan realtime harus authoritative di server.
+- Mode individu dan mode multiplayer harus memiliki lifecycle yang terisolasi.
 
-## User Preferences
-- Keep Indonesian language for all in-game text.
+## User preferences
+
+- Pertahankan struktur project yang ada.
+- Kerjakan scope roadmap per hari; jangan menggabungkan hari sebelum kriteria
+  hari sebelumnya diverifikasi.
+- Untuk mockup/UI, utamakan keterbacaan, responsif Android, dan reuse asset
+  Pet TOMAT yang sudah ada.

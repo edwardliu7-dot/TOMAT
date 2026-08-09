@@ -1,8 +1,7 @@
-import React, { useState, useCallback, Component, Suspense, useEffect } from 'react'
+import React, { useState, useCallback, Component, Suspense, useEffect, useRef } from 'react'
 import { PetProvider } from './PetContext'
-import FloatingPet from './components/FloatingPet'
-import { PlayerProvider } from './PlayerContext'
-import { TaskProvider } from './TaskContext'
+import { PlayerProvider, usePlayer } from './PlayerContext'
+import { TaskProvider, useTask } from './TaskContext'
 import { BabLockProvider } from './BabLockContext'
 import { useAuth } from './AuthContext'
 import AppShell from './components/AppShell'
@@ -12,6 +11,9 @@ import HomeScreen from './screens/HomeScreen'
 import Grade7ZoneScreen from './screens/Grade7ZoneScreen'
 import Grade8ZoneScreen from './screens/Grade8ZoneScreen'
 import Grade9ZoneScreen from './screens/Grade9ZoneScreen'
+import Ipa7ZoneScreen from './screens/Ipa7ZoneScreen'
+import Ipa8ZoneScreen from './screens/Ipa8ZoneScreen'
+import Ipa9ZoneScreen from './screens/Ipa9ZoneScreen'
 import ModeSelectScreen from './screens/ModeSelectScreen'
 import TaskResultScreen from './screens/TaskResultScreen'
 import GradesScreen from './screens/GradesScreen'
@@ -19,7 +21,10 @@ import ProfileScreen from './screens/ProfileScreen'
 import ShopScreen from './screens/ShopScreen'
 import LeaderboardScreen from './screens/LeaderboardScreen'
 import BadgesScreen from './screens/BadgesScreen'
+import HafalanScreen from './screens/HafalanScreen'
+import LatihanUjianScreen from './screens/LatihanUjianScreen'
 import TaskOverlay from './components/TaskOverlay'
+import TaskGuard from './components/TaskGuard'
 import CommunicationScreen from './screens/CommunicationScreen'
 import LobbyScreen from './screens/LobbyScreen'
 import DuelKatakScreen from './screens/DuelKatakScreen'
@@ -33,6 +38,38 @@ import { connectSocket } from './socket'
 import { DUEL_GAME_KEYS } from './gamesCatalog'
 import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
+import TentangScreen from './screens/TentangScreen'
+import MobaScreen from './features/moba/MobaScreen.jsx'
+import MobaLobbyScreen from './features/moba/MobaLobbyScreen.jsx'
+import OtaUpdateBanner from './components/OtaUpdateBanner'
+import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
+import MissionProgressToast from './components/MissionProgressToast'
+import MissionClaimNotification from './components/MissionClaimNotification'
+import { getActiveEvents } from './data/seasonalEvents'
+import { startBgm, stopBgm } from './bgm'
+import LandscapeArena from './screens/landscape/LandscapeArena'
+import LandscapeNilaiTugas from './screens/landscape/LandscapeNilaiTugas'
+import LandscapeLeaderboard from './screens/landscape/LandscapeLeaderboard'
+import LandscapeZonaMap from './screens/landscape/LandscapeZonaMap'
+import LandscapeZonaIPA from './screens/landscape/LandscapeZonaIPA'
+import LandscapeLencana from './screens/landscape/LandscapeLencana'
+import LandscapeProfil from './screens/landscape/LandscapeProfil'
+import LandscapePublicProfil from './screens/landscape/LandscapePublicProfil'
+import LandscapeChat from './screens/landscape/LandscapeChat'
+import LandscapeHafalan from './screens/landscape/LandscapeHafalan'
+import LandscapeLatihanUjian from './screens/landscape/LandscapeLatihanUjian'
+import LandscapeTokoScreen from './screens/landscape/LandscapeTokoScreen'
+import {
+  requestNotificationPermission,
+  createNotificationChannels,
+  showLocalNotification,
+} from './capacitorNotify'
+
+/** Returns 'tema_merahputih' during Jul 15–Aug 31, otherwise null. */
+function getSeasonalTema() {
+  const active = getActiveEvents()
+  return active.some(e => e.slug === 'kemerdekaan') ? 'tema_merahputih' : null
+}
 
 const DUEL_INVITE_GAMES = [
   { key: 'katak',       emoji: '🐸', name: 'Katak Pelompat' },
@@ -42,6 +79,108 @@ const DUEL_INVITE_GAMES = [
   { key: 'mercusuar',   emoji: '🏮', name: 'Mercusuar KPK' },
   { key: 'scanner',     emoji: '💎', name: 'Scanner Prima' },
 ]
+
+// MOBA rollout terbatas untuk dua akun demo sampai mode production-ready.
+const MOBA_TEST_ACCOUNT_IDS = new Set(['tomat-demo', 'tomat-demo-2'])
+const MOBA_TEST_ACCOUNT_USERNAMES = new Set(['tomat', 'tomat2'])
+
+function canUseDemoMoba(user) {
+  return user?.role === 'siswa'
+}
+
+// Toast shown when Nananaga's wrong-answer immunity activates during duel/tournament/survival.
+// Listens for the 'nananaga-shield' CustomEvent dispatched by useSurvival and the duel/
+// tournament screen handlers. Auto-dismisses after 2.5 s.
+function NananagaShieldToast() {
+  const [visible, setVisible] = React.useState(false)
+  const [tokensLeft, setTokensLeft] = React.useState(0)
+  const timerRef = React.useRef(null)
+
+  React.useEffect(() => {
+    function handleShield(e) {
+      setTokensLeft(e.detail?.tokensLeft ?? 0)
+      setVisible(true)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setVisible(false), 2500)
+    }
+    window.addEventListener('nananaga-shield', handleShield)
+    return () => {
+      window.removeEventListener('nananaga-shield', handleShield)
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  if (!visible) return null
+  return (
+    <div style={{
+      position: 'fixed', top: 72, left: '50%', transform: 'translateX(-50%)',
+      zIndex: 10003, maxWidth: 340, width: 'calc(100% - 32px)',
+      background: 'linear-gradient(135deg,rgba(20,10,40,0.97),rgba(30,10,10,0.97))',
+      border: '1.5px solid rgba(251,146,60,0.7)',
+      borderRadius: 18, padding: '14px 18px',
+      boxShadow: '0 0 40px rgba(251,146,60,0.35), 0 8px 32px rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', gap: 14,
+      animation: 'nanaShieldIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both',
+      fontFamily: 'system-ui, sans-serif',
+    }}>
+      <style>{`
+        @keyframes nanaShieldIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(-16px) scale(0.88); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1); }
+        }
+      `}</style>
+      <div style={{ fontSize: 36, lineHeight: 1, flexShrink: 0 }}>🐲</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 900, color: '#FB923C', marginBottom: 2 }}>
+          Nananaga melindungimu!
+        </div>
+        <div style={{ fontSize: 11, color: '#FED7AA', lineHeight: 1.4 }}>
+          Jawaban salah diabaikan. Kamu mendapat soal tambahan.
+          {tokensLeft > 0 && (
+            <span style={{ marginLeft: 4, color: '#FB923C', fontWeight: 700 }}>
+              ({tokensLeft} kebal tersisa)
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Toast shown when a tugas submission fails (pet dead, network error, etc.)
+// so students know their grade was not saved and can act accordingly.
+function SubmitErrorToast() {
+  const { submitError, clearSubmitError, retrySubmitGrade } = useTask()
+  if (!submitError) return null
+  return (
+    <div style={{
+      position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+      zIndex: 10002, maxWidth: 380, width: 'calc(100% - 32px)',
+      background: 'rgba(30,10,10,0.97)', border: '1.5px solid #ef4444',
+      borderRadius: 16, padding: '14px 16px',
+      boxShadow: '0 8px 32px rgba(239,68,68,0.25)',
+      display: 'flex', alignItems: 'flex-start', gap: 12,
+    }}>
+      <div style={{ fontSize: 22, flexShrink: 0, lineHeight: 1 }}>⚠️</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#f87171', marginBottom: 3 }}>Tugas Gagal Tersimpan</div>
+        <div style={{ fontSize: 12, color: '#FCA5A5', lineHeight: 1.5 }}>{submitError}</div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <button onClick={retrySubmitGrade} style={{
+            background: '#ef4444', border: '1px solid #ef4444',
+            borderRadius: 8, padding: '6px 14px', color: '#fff', fontSize: 12,
+            fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Coba Lagi</button>
+          <button onClick={clearSubmitError} style={{
+            background: 'rgba(239,68,68,0.2)', border: '1px solid #ef4444',
+            borderRadius: 8, padding: '6px 14px', color: '#f87171', fontSize: 12,
+            fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Tutup</button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function DuelGamePickerModal({ target, onPick, onCancel }) {
   return (
@@ -89,8 +228,104 @@ function DuelGamePickerModal({ target, onPick, onCancel }) {
     </div>
   )
 }
+// ── Daily login bonus modal ────────────────────────────────────────────────────
+// Shown once per day when the server confirms a fresh login streak reward.
+// dailyBonus shape: { coins, streak, nextMilestone }
+function DailyBonusModal({ bonus, onDismiss }) {
+  if (!bonus) return null
+
+  const { coins = 100, streak = 1, nextMilestone = 7 } = bonus
+  const cyclePos = streak % 7 === 0 ? 7 : streak % 7   // 1–7, never 0
+  const progressPct = (cyclePos / 7) * 100
+  const streakDisplay = cyclePos
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 10005,
+      background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '0 20px',
+      fontFamily: 'system-ui, sans-serif',
+    }}>
+      <div style={{
+        width: '100%', maxWidth: 380,
+        background: 'linear-gradient(135deg,#1a1020,#0d1a2e)',
+        border: '2px solid rgba(251,191,36,0.55)',
+        borderRadius: 28, padding: '32px 24px 24px',
+        boxShadow: '0 0 80px rgba(251,191,36,0.2), 0 24px 60px rgba(0,0,0,0.6)',
+        position: 'relative', overflow: 'hidden',
+        textAlign: 'center',
+      }}>
+        {/* Background glow */}
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 28, background: 'radial-gradient(circle at 50% 0%, rgba(251,191,36,0.09) 0%, transparent 65%)', pointerEvents: 'none' }} />
+
+        {/* Fire streak icon */}
+        <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>🔥</div>
+        <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 800, letterSpacing: 2, marginBottom: 6 }}>
+          BONUS LOGIN HARIAN
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>
+          Hari ke-{streak}!
+        </div>
+        <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 20, lineHeight: 1.5 }}>
+          Kamu sudah login berturut-turut {streak} hari.
+        </div>
+
+        {/* Coin badge */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 10,
+          background: 'linear-gradient(135deg,rgba(251,191,36,0.18),rgba(245,158,11,0.1))',
+          border: '1.5px solid rgba(251,191,36,0.45)',
+          borderRadius: 18, padding: '14px 28px',
+          marginBottom: 22,
+        }}>
+          <span style={{ fontSize: 28 }}>🪙</span>
+          <span style={{ fontSize: 30, fontWeight: 900, color: '#fbbf24' }}>+{coins}</span>
+        </div>
+
+        {/* 7-day progress bar */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748B', marginBottom: 6 }}>
+            <span>Streak mingguan</span>
+            <span style={{ color: '#fbbf24', fontWeight: 700 }}>{streakDisplay}/7 hari</span>
+          </div>
+          <div style={{ height: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${progressPct}%`,
+              background: 'linear-gradient(90deg,#f59e0b,#fbbf24)',
+              borderRadius: 8,
+              transition: 'width 0.6s cubic-bezier(0.34,1.56,0.64,1)',
+            }} />
+          </div>
+          {nextMilestone > 0 && (
+            <div style={{ fontSize: 10, color: '#475569', marginTop: 5 }}>
+              {cyclePos === 7
+                ? '🎁 Bonus spesial minggu ini tercapai!'
+                : `${7 - cyclePos} hari lagi menuju bonus spesial 🎁`}
+            </div>
+          )}
+        </div>
+
+        {/* Claim button */}
+        <button onClick={onDismiss} style={{
+          width: '100%', background: 'linear-gradient(90deg,#f59e0b,#fbbf24)',
+          border: 'none', borderRadius: 16, padding: '16px',
+          color: '#1a1020', fontSize: 16, fontWeight: 900,
+          cursor: 'pointer', fontFamily: 'inherit', letterSpacing: 0.3,
+          boxShadow: '0 4px 24px rgba(251,191,36,0.4)',
+        }}>
+          🎉 Klaim Bonus!
+        </button>
+      </div>
+    </div>
+  )
+}
+
+import IframeAppShell from './components/IframeAppShell'
 import GameDesktopWrapper from './components/GameDesktopWrapper'
-import { fetchPublicProfile, normalizeProfileTarget } from './components/shared'
+import { fetchPublicProfile, normalizeProfileTarget, PublicProfileModal } from './components/shared'
+import { getGameTheme, GameThemeOverlay, GameThemeStyles } from './gameTheme'
 
 // Auth-aware wrappers — need useAuth inside the PlayerProvider/AuthContext tree
 function TournamentMatchWithAuth({ matchData, goBack, onMatchOver }) {
@@ -106,6 +341,11 @@ function TournamentMatchWithAuth({ matchData, goBack, onMatchOver }) {
       myName={user?.name}
       goBack={goBack}
       onMatchOver={onMatchOver}
+      isKelompok={matchData.isKelompok || false}
+      teamId={matchData.teamId || null}
+      teamName={matchData.teamName || null}
+      teamRepUserId={matchData.teamRepUserId || null}
+      myTeamMembers={matchData.myTeamMembers || null}
     />
   )
 }
@@ -174,6 +414,25 @@ class ErrorBoundary extends Component {
   }
 }
 
+// Placeholder untuk game IPA yang belum diimplementasikan
+function IpaGamePlaceholder({ onBack }) {
+  return (
+    <div style={{ minHeight: '100vh', background: '#071321', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16 }}>
+      <div style={{ fontSize: 56 }}>🔬</div>
+      <div style={{ color: '#22c55e', fontSize: 20, fontWeight: 800, textAlign: 'center' }}>Segera Hadir!</div>
+      <div style={{ color: '#94A3B8', fontSize: 14, textAlign: 'center', maxWidth: 300, lineHeight: 1.6 }}>
+        Game IPA ini sedang dalam pengembangan. Pantau terus pembaruan aplikasi ya!
+      </div>
+      <button
+        onClick={onBack}
+        style={{ marginTop: 8, background: '#22c55e', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+      >
+        ← Kembali
+      </button>
+    </div>
+  )
+}
+
 // Lazy-load all game components — each is fetched only when the student first opens that game
 const GAME_ROUTES = {
   termometer:         { name: 'Termometer Penyelamat',          emoji: '🌡️', Component: React.lazy(() => import('./minigames/TermometerGame')) },
@@ -231,31 +490,213 @@ const GAME_ROUTES = {
   g9sinyalkerucut:    { name: 'Zona Pancaran Sinyal',         emoji: '📡', Component: React.lazy(() => import('./minigames/G9SinyalKerucutGame')) },
   g9bintang:          { name: 'Kompresi Inti Bintang',        emoji: '⭐', Component: React.lazy(() => import('./minigames/G9BintangGame')) },
   g9upgradekapal:     { name: 'Upgrade Kapal Induk',          emoji: '🚀', Component: React.lazy(() => import('./minigames/G9UpgradeKapalGame')) },
+  // IPA Kelas 7 — BAB 1
+  ipa7b1t1: { name: 'Unit Converter Dash',          emoji: '📏', Component: React.lazy(() => import('./minigames/Ipa7B1T1Game')) },
+  ipa7b1t2: { name: 'Baku vs Non-Baku Sort',        emoji: '⚖️', Component: React.lazy(() => import('./minigames/Ipa7B1T2Game')) },
+  ipa7b1t3: { name: 'Lab Measurement Simulator',    emoji: '🔬', Component: React.lazy(() => import('./minigames/Ipa7B1T3Game')) },
+  // IPA Kelas 7 — BAB 2
+  ipa7b2t1: { name: 'Matter Inspector',             emoji: '🧪', Component: React.lazy(() => import('./minigames/Ipa7B2T1Game')) },
+  ipa7b2t2: { name: 'Phase Change Master',          emoji: '❄️', Component: React.lazy(() => import('./minigames/Ipa7B2T2Game')) },
+  ipa7b2t3: { name: 'Cohesion vs Adhesion Lab',     emoji: '💧', Component: React.lazy(() => import('./minigames/Ipa7B2T3Game')) },
+  ipa7b2t4: { name: 'Capillary Tube Challenge',     emoji: '🌿', Component: React.lazy(() => import('./minigames/Ipa7B2T4Game')) },
+  // IPA Kelas 7 — BAB 3
+  ipa7b3t1: { name: 'Thermometer Reader',           emoji: '🌡️', Component: React.lazy(() => import('./minigames/Ipa7B3T1Game')) },
+  ipa7b3t2: { name: 'Temperature Converter Wheel',  emoji: '🔄', Component: React.lazy(() => import('./minigames/Ipa7B3T2Game')) },
+  ipa7b3t3: { name: 'Thermal Expansion Builder',    emoji: '🔩', Component: React.lazy(() => import('./minigames/Ipa7B3T3Game')) },
+  // IPA Kelas 7 — BAB 4
+  ipa7b4t1: { name: 'Force Application Quest',      emoji: '💪', Component: React.lazy(() => import('./minigames/Ipa7B4T1Game')) },
+  ipa7b4t2: { name: 'Resultant Tug of War',         emoji: '⚖️', Component: React.lazy(() => import('./minigames/Ipa7B4T2Game')) },
+  ipa7b4t3: { name: 'Motion Classifier',            emoji: '🏃', Component: React.lazy(() => import('./minigames/Ipa7B4T3Game')) },
+  ipa7b4t4: { name: 'Speed vs Velocity Pilot',      emoji: '✈️', Component: React.lazy(() => import('./minigames/Ipa7B4T4Game')) },
+  ipa7b4t5: { name: "Newton's Law Arena",            emoji: '⚡', Component: React.lazy(() => import('./minigames/Ipa7B4T5Game')) },
+  // IPA Kelas 8 — BAB 1
+  ipa8b1t1: { name: 'History Timeline Puzzle',      emoji: '🕰️', Component: React.lazy(() => import('./minigames/Ipa8B1T1Game')) },
+  ipa8b1t2: { name: 'Microscope Selector',          emoji: '🔭', Component: React.lazy(() => import('./minigames/Ipa8B1T2Game')) },
+  ipa8b1t3: { name: 'Cell Organelle Sorter',        emoji: '🧫', Component: React.lazy(() => import('./minigames/Ipa8B1T3Game')) },
+  ipa8b1t4: { name: 'Specialized Cell Match',       emoji: '🔬', Component: React.lazy(() => import('./minigames/Ipa8B1T4Game')) },
+  ipa8b1t5: { name: 'Stem Cell Regenerator',        emoji: '🌱', Component: React.lazy(() => import('./minigames/Ipa8B1T5Game')) },
+  // IPA Kelas 8 — BAB 2
+  ipa8b2t1: { name: 'Nutritional Plate Balance',    emoji: '🥗', Component: React.lazy(() => import('./minigames/Ipa8B2T1Game')) },
+  ipa8b2t2: { name: 'Virtual Food Reagent Test',    emoji: '🧪', Component: React.lazy(() => import('./minigames/Ipa8B2T2Game')) },
+  ipa8b2t3: { name: 'Digestive Track Runner',       emoji: '🫁', Component: React.lazy(() => import('./minigames/Ipa8B2T3Game')) },
+  ipa8b2t4: { name: 'Digestive Hospital Clinic',    emoji: '🏥', Component: React.lazy(() => import('./minigames/Ipa8B2T4Game')) },
+  ipa8b2t5: { name: 'Circulatory System Navigator', emoji: '❤️', Component: React.lazy(() => import('./minigames/Ipa8B2T5Game')) },
+  ipa8b2t6: { name: 'Blood Component Defender',     emoji: '🩸', Component: React.lazy(() => import('./minigames/Ipa8B2T6Game')) },
+  ipa8b2t7: { name: 'Blood Transfusion Match',      emoji: '💉', Component: React.lazy(() => import('./minigames/Ipa8B2T7Game')) },
+  ipa8b2t8: { name: 'Cardiovascular Healthy Life',  emoji: '🫀', Component: React.lazy(() => import('./minigames/Ipa8B2T8Game')) },
+  // IPA Kelas 8 — BAB 3
+  ipa8b3t1: { name: 'Organ Anatomy Builder',        emoji: '🫀', Component: React.lazy(() => import('./minigames/Ipa8B3T1Game')) },
+  ipa8b3t2: { name: 'Organ Function Cards',         emoji: '🃏', Component: React.lazy(() => import('./minigames/Ipa8B3T2Game')) },
+  ipa8b3t3: { name: 'Breathing Mechanism Pump',     emoji: '🫁', Component: React.lazy(() => import('./minigames/Ipa8B3T3Game')) },
+  ipa8b3t4: { name: 'Alveoli Gas Exchange',         emoji: '💨', Component: React.lazy(() => import('./minigames/Ipa8B3T4Game')) },
+  ipa8b3t5: { name: 'Nephron Urine Factory',        emoji: '🧫', Component: React.lazy(() => import('./minigames/Ipa8B3T5Game')) },
+  ipa8b3t6: { name: 'Medical Case Analyzer',        emoji: '🩺', Component: React.lazy(() => import('./minigames/Ipa8B3T6Game')) },
+  ipa8b3t7: { name: 'Healthy Habit Choice',         emoji: '🏃', Component: React.lazy(() => import('./minigames/Ipa8B3T7Game')) },
+  // IPA Kelas 9 — BAB 1
+  ipa9b1t1: { name: 'Body Command Center',           emoji: '🧠', Component: React.lazy(() => import('./minigames/Ipa9B1T1Game')) },
+  ipa9b1t2: { name: 'Neuron Network Relay',          emoji: '⚡', Component: React.lazy(() => import('./minigames/Ipa9B1T2Game')) },
+  ipa9b1t3: { name: 'Hormone Gland Factory',         emoji: '🏭', Component: React.lazy(() => import('./minigames/Ipa9B1T3Game')) },
+  ipa9b1t4: { name: 'Homeostasis Stabilizer',        emoji: '⚖️', Component: React.lazy(() => import('./minigames/Ipa9B1T4Game')) },
+  ipa9b1t5: { name: 'Daily Stress Survival',         emoji: '🧘', Component: React.lazy(() => import('./minigames/Ipa9B1T5Game')) },
+  // IPA Kelas 9 — BAB 2
+  ipa9b2t1: { name: 'Addictive Substance Quiz',      emoji: '⚠️', Component: React.lazy(() => import('./minigames/Ipa9B2T1Game')) },
+  ipa9b2t2: { name: 'Substance Categorizer',         emoji: '🗂️', Component: React.lazy(() => import('./minigames/Ipa9B2T2Game')) },
+  ipa9b2t3: { name: 'Impact Simulator',              emoji: '💔', Component: React.lazy(() => import('./minigames/Ipa9B2T3Game')) },
+  ipa9b2t4: { name: 'Substance Flashcards',          emoji: '🃏', Component: React.lazy(() => import('./minigames/Ipa9B2T4Game')) },
+  ipa9b2t5: { name: 'Consequence Analyzer',          emoji: '📊', Component: React.lazy(() => import('./minigames/Ipa9B2T5Game')) },
+  ipa9b2t6: { name: 'Say No Challenge',              emoji: '🛡️', Component: React.lazy(() => import('./minigames/Ipa9B2T6Game')) },
+  // IPA Kelas 9 — BAB 3
+  ipa9b3t1: { name: 'Reproductive Anatomy Puzzle',   emoji: '🧬', Component: React.lazy(() => import('./minigames/Ipa9B3T1Game')) },
+  ipa9b3t2: { name: 'Human Life Stages Timeline',    emoji: '👶', Component: React.lazy(() => import('./minigames/Ipa9B3T2Game')) },
+  ipa9b3t3: { name: 'Reproductive Health Guardian',  emoji: '🏥', Component: React.lazy(() => import('./minigames/Ipa9B3T3Game')) },
+  ipa9b3t4: { name: 'Flora & Fauna Breeder',         emoji: '🌱', Component: React.lazy(() => import('./minigames/Ipa9B3T4Game')) },
 }
 
-const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen, komunikasi: CommunicationScreen }
+const STATIC_ROUTES = { home: HomeScreen, grade7: Grade7ZoneScreen, grade8: Grade8ZoneScreen, grade9: Grade9ZoneScreen, ipa7: Ipa7ZoneScreen, ipa8: Ipa8ZoneScreen, ipa9: Ipa9ZoneScreen, komunikasi: CommunicationScreen }
 
 const SCREEN_TITLES = {
   home: 'Beranda',
+  arena: 'Arena Tanding',
   grade7: 'Zona Kelas 7',
   grade8: 'Zona Kelas 8',
   grade9: 'Zona Kelas 9',
+  ipa7: 'IPA Kelas 7',
+  ipa8: 'IPA Kelas 8',
+  ipa9: 'IPA Kelas 9',
   toko: 'Toko',
   papanperingkat: 'Papan Peringkat',
   lencana: 'Lencana',
   grades: 'Nilai & Tugas',
   komunikasi: 'Chat',
   profile: 'Profil',
+  hafalan: 'Hafalan Interaktif',
+  'latihan-ujian': 'Latihan Ujian',
   modeselect: 'Pilih Mode',
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
   'tournament-wait': 'Turnamen',
+  'moba-lobby': 'Lobby Arena MOBA',
+  'moba-match': 'Arena MOBA',
+}
+
+// Rendered inside PlayerProvider — safe to call usePlayer().
+// Handles the mission:progress socket event and renders mission toasts/claims.
+function MissionBridge() {
+  const {
+    missionToasts, missionClaims,
+    dismissMissionToast, dismissMissionClaim, pushMissionProgress,
+  } = usePlayer()
+
+  useEffect(() => {
+    const socket = connectSocket()
+    socket.on('mission:progress', pushMissionProgress)
+    return () => { socket.off('mission:progress', pushMissionProgress) }
+  }, [pushMissionProgress])
+
+  return (
+    <>
+      <MissionProgressToast
+        toasts={missionToasts}
+        onDismiss={dismissMissionToast}
+      />
+      <MissionClaimNotification
+        missions={missionClaims}
+        onDismiss={dismissMissionClaim}
+        onClaim={async (missionId) => {
+          try {
+            const res = await fetch(`/api/siswa/event-missions/${missionId}/claim`, {
+              method: 'POST', credentials: 'include',
+            })
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}))
+              console.error('[MissionClaim] gagal:', err.error)
+            }
+          } catch (err) {
+            console.error('[MissionClaim]', err)
+          } finally {
+            dismissMissionClaim(missionId)
+          }
+        }}
+      />
+    </>
+  )
 }
 
 // Shared game-playing shell. Used for students (normal play with tasks/nilai) and for
 // teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
-  const { user, logout } = useAuth()
+  const { user, logout, dailyBonus, dismissDailyBonus } = useAuth()
+  // Set data-tema on <html> so GameThemeStyles can target structural elements only.
+  // During Kemerdekaan event (Jul 15–Aug 31) tema_merahputih overrides the user's
+  // equipped theme automatically and reverts when the event window closes.
+  useEffect(() => {
+    function applyTema() {
+      const seasonal = getSeasonalTema()
+      const effective = seasonal || user?.equippedTema || null
+      if (effective) {
+        document.documentElement.setAttribute('data-tema', effective)
+      } else {
+        document.documentElement.removeAttribute('data-tema')
+      }
+    }
+    applyTema()
+    // Re-evaluate every minute so the override activates / deactivates live
+    const timer = setInterval(applyTema, 60_000)
+    return () => {
+      clearInterval(timer)
+      document.documentElement.removeAttribute('data-tema')
+    }
+  }, [user?.equippedTema])
+
+  // ── Background music ─────────────────────────────────────────────────────
+  // kemerdekaan event → event track; otherwise → default track
+  useEffect(() => {
+    const isKemerdekaan = getActiveEvents().some(e => e.slug === 'kemerdekaan')
+    const track = isKemerdekaan
+      ? '/videoplayback.weba'
+      : '/videoplayback (1).weba'
+    startBgm(track)
+    return () => stopBgm()
+  }, [])   // mount once — event window is static for a session
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ── Android APK: request notification permission + create channels ────────
+  useEffect(() => {
+    if (!window.Capacitor || guruMode) return
+    createNotificationChannels()
+    requestNotificationPermission()
+  }, [guruMode])
+
+  // ── Android APK: reconnect socket when app comes back to foreground ───────
+  // Android kills WebSocket connections when the app is suspended. Without an
+  // explicit reconnect on resume, all socket-based in-game notifications
+  // (duel invite, tournament match, mission progress) are permanently lost for
+  // the rest of the session.
+  useEffect(() => {
+    if (!window.Capacitor) return
+    let handle = null
+    ;(async () => {
+      try {
+        const { App: CapApp } = await import('@capacitor/app')
+        handle = await CapApp.addListener('appStateChange', ({ isActive }) => {
+          if (!isActive) return
+          // App returned to foreground — re-establish socket and recover state
+          const socket = connectSocket()
+          if (!socket.connected) socket.connect()
+          // Re-check tournament state in case we missed a 'tournament:your-match'
+          // event while the socket was down
+          if (!guruMode) {
+            socket.once('connect', () => socket.emit('tournament:check-active'))
+            if (socket.connected) socket.emit('tournament:check-active')
+          }
+        })
+      } catch {
+        // @capacitor/app not available (web build) — ignore silently
+      }
+    })()
+    return () => { handle?.remove?.() }
+  }, [guruMode])
+
   const [history, setHistory] = useState(['home'])
   const [pendingGame, setPendingGame] = useState(null) // { key, name, emoji }
   const [pendingTaskId, setPendingTaskId] = useState(null)
@@ -265,25 +706,34 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const current = history[history.length - 1]
 
   const [komunikasiTarget, setKomunikasiTarget]     = useState(null)
+  const [komunikasiInitialTab, setKomunikasiInitialTab] = useState(null)
   const [duelState, setDuelState]                   = useState(null) // { code, myIndex, question, round, maxRounds, scores }
   const [tournamentMatchData, setTournamentMatchData] = useState(null)  // from tournament:your-match
   const [tournamentBanner,    setTournamentBanner]    = useState(null)  // show notification banner
   const [activeTournamentId,  setActiveTournamentId]  = useState(null)  // when we are spectating bracket
   const [publicProfileData, setPublicProfileData]   = useState(null)   // { ...profile }
   const [publicProfileError, setPublicProfileError] = useState('')
+  // Popup modal shown before navigating to the full profile screen
+  const [publicProfileModal, setPublicProfileModal] = useState(null)   // { loading, profile, error } | null
   const [duelInvite, setDuelInvite]                 = useState(null)   // { code, gameKey, from: { userId, name } }
   const [duelInviteCode, setDuelInviteCode]         = useState(null)   // auto-join code for LobbyScreen
   const [tokoInitialTab, setTokoInitialTab]         = useState(null)   // pre-select shop tab on open
   const [duelInvitePending, setDuelInvitePending]   = useState(null)   // { id, role, name } — waiting for game pick
+  const [mobaMatchId, setMobaMatchId]               = useState(null)
+
+  const { open: whatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew()
+
+  const [iframeApp, setIframeApp] = useState(null)
+  const openIframeApp = useCallback(({ src, title }) => setIframeApp({ src, title }), [])
 
   // Update browser tab title whenever the active screen changes
   useEffect(() => {
     const gameRoute = GAME_ROUTES[current]
     if (gameRoute) {
-      document.title = `${gameRoute.emoji} ${gameRoute.name} — TOMAT`
+      document.title = `${gameRoute.emoji} ${gameRoute.name} — SMARTISA`
     } else {
       const label = SCREEN_TITLES[current]
-      document.title = label ? `${label} — TOMAT` : 'TOMAT — Tantangan Otak Matematika'
+      document.title = label ? `${label} — SMARTISA` : 'SMARTISA — Platform Pembelajaran TISA'
     }
   }, [current])
 
@@ -291,16 +741,32 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   //    the Temporal Dead Zone when referenced in dependency arrays. ──────────
   // Push a new route onto the stack
   const navigate = useCallback((route, options = {}) => {
+    if ((route === 'moba-lobby' || route === 'moba-match') && !canUseDemoMoba(user)) {
+      return
+    }
     if (GAME_ROUTES[route]) {
       // Intercept: show mode select before any game
       setPendingGame({ key: route, ...GAME_ROUTES[route] })
       setPendingTaskId(options.taskId || null)
       setHistory(h => [...h, 'modeselect'])
-    } else {
+      return
+    }
+    if (route === 'moba-match') {
+      setMobaMatchId(options.matchId || null)
+      setHistory(h => [...h, route])
+      return
+    }
+    if (route === 'komunikasi') {
+      if (options.initialTab) setKomunikasiInitialTab(options.initialTab)
+      setPendingTaskId(null)
+      setHistory(h => h.includes('komunikasi') ? h : [...h, route])
+      return
+    }
+    {
       setPendingTaskId(null)
       setHistory(h => [...h, route])
     }
-  }, [])
+  }, [user])
 
   const goBack = useCallback(() => {
     setHistory(h => h.length > 1 ? h.slice(0, -1) : h)
@@ -324,15 +790,16 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     const onVisitProfile = async e => {
       let target
       try { target = normalizeProfileTarget(e.detail) } catch { return }
-      setPublicProfileError('')
+      // Show popup immediately with loading state
+      setPublicProfileModal({ loading: true, profile: null, error: null })
       try {
-        setPublicProfileData(target.photoUrl !== undefined || target.bio !== undefined
+        const profile = target.photoUrl !== undefined || target.bio !== undefined
           ? target
-          : await fetchPublicProfile(target))
+          : await fetchPublicProfile(target)
+        setPublicProfileModal({ loading: false, profile, error: null })
       } catch (error) {
-        setPublicProfileData({ id: target.id, role: target.role, name: target.name || 'Pengguna', profileError: error.message || 'Gagal memuat profil.' })
+        setPublicProfileModal({ loading: false, profile: null, error: error.message || 'Gagal memuat profil.' })
       }
-      setHistory(h => [...h, 'public-profile'])
     }
     const onInviteDuel = e => {
       const target = e.detail
@@ -352,10 +819,33 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     if (guruMode) return  // guru tidak perlu socket di mode practice
     const socket = connectSocket()
 
+    // Server responds with active tournament state after page load / reconnect.
+    // Shape: { tournamentId, match: { matchId, opponent, gameKey, round } | null }
+    socket.on('tournament:active-state', ({ tournamentId, match } = {}) => {
+      if (!tournamentId) return
+      setActiveTournamentId(tournamentId)
+      if (match) {
+        // Student has a live pending match — show the full match notification
+        const matchData = { tournamentId, ...match }
+        setTournamentMatchData(matchData)
+        setTournamentBanner(matchData)
+      } else {
+        // Tournament active but no pending match — show bracket rejoin banner
+        setTournamentBanner({ type: 'bracket', tournamentId })
+      }
+    })
+
     // Server mengirim notifikasi match
     socket.on('tournament:your-match', (data) => {
       setTournamentMatchData(data)
       setTournamentBanner(data)
+      // Fire native OS banner so the student notices even while focused on a game
+      showLocalNotification({
+        id: 9001,
+        title: '🏆 Turnamen — Giliran Kamu!',
+        body: `Lawan: ${data?.opponent?.name ?? 'Lawan'} • Game siap dimulai`,
+        channel: 'tomat_game',
+      })
     })
 
     // Turnamen selesai (broadcast ke kelas)
@@ -363,9 +853,20 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       // Jika sedang di tournament-wait, setTournamentBanner cukup; bracket update via socket di screen
     })
 
-    // Turnamen baru dimulai oleh guru
-    socket.on('tournament:started', ({ tournamentId }) => {
+    // Turnamen baru dibuat guru — buka lobby (TournamentWaitScreen menangani lobbyOpen)
+    socket.on('tournament:started', ({ tournamentId, state }) => {
       setActiveTournamentId(tournamentId)
+      // Navigasi ke lobby wait screen jika siswa belum di sana
+      setHistory(h => {
+        if (h.includes('tournament-wait') || h.includes('tournament-match')) return h
+        return [...h, 'tournament-wait']
+      })
+      showLocalNotification({
+        id: 9003,
+        title: '🏆 Turnamen Dimulai!',
+        body: 'Guru membuka lobby turnamen — silakan masuk',
+        channel: 'tomat_game',
+      })
     })
 
     socket.on('tournament:cancelled', () => {
@@ -376,19 +877,34 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     socket.on('duel:incoming-invite', (data) => {
       setDuelInvite(data)  // { code, from: { userId, name } }
+      // Fire native OS banner so the student notices even while focused on a game
+      showLocalNotification({
+        id: 9002,
+        title: '⚔️ Tantangan Duel!',
+        body: `${data?.from?.name ?? 'Temanmu'} mengajakmu duel`,
+        channel: 'tomat_game',
+      })
     })
 
     socket.on('duel:invite-expired', () => {
       // Host: invite timed out — LobbyScreen handles its own state
     })
 
+    // Register listeners before requesting state. This prevents a fast socket
+    // response from arriving before tournament:active-state is subscribed.
+    const checkActiveTournament = () => socket.emit('tournament:check-active')
+    socket.on('connect', checkActiveTournament)
+    if (socket.connected) checkActiveTournament()
+
     return () => {
+      socket.off('tournament:active-state')
       socket.off('tournament:your-match')
       socket.off('tournament:finished')
       socket.off('tournament:started')
       socket.off('tournament:cancelled')
       socket.off('duel:incoming-invite')
       socket.off('duel:invite-expired')
+      socket.off('connect', checkActiveTournament)
     }
   }, [guruMode])
 
@@ -399,6 +915,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     setPendingTaskId(null)
     replaceTop(pendingGame.key)
   }, [pendingGame, replaceTop])
+
+  const handleSwitchModule = useCallback((homeScreen) => {
+    setHistory([homeScreen])
+  }, [])
 
   // Called by TaskContext when a task session is fully completed
   const handleTaskComplete = useCallback((gradeRecord) => {
@@ -417,6 +937,49 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
   // Render the current screen
   const renderScreen = () => {
+    // ── Landscape screen router (ALL siswa, ALL devices) ──────────────────────
+    // Every siswa screen uses the fullscreen landscape variant regardless of
+    // device size. Games, duel/tournament, and immersive screens are excluded
+    // and fall through to the normal router below.
+    if (!guruMode && user?.role === 'siswa') {
+      const landscapeMap = {
+        arena:         <LandscapeArena    navigate={navigate} goBack={goBack} canUseDemoMoba={canUseDemoMoba(user)} />,
+        grades:        <LandscapeNilaiTugas navigate={navigate} goBack={goBack} />,
+        papanperingkat:<LandscapeLeaderboard goBack={goBack} />,
+        grade7:        <LandscapeZonaMap navigate={navigate} goBack={goBack} grade={7} />,
+        grade8:        <LandscapeZonaMap navigate={navigate} goBack={goBack} grade={8} />,
+        grade9:        <LandscapeZonaMap navigate={navigate} goBack={goBack} grade={9} />,
+        'grade7-zone': <Grade7ZoneScreen navigate={navigate} goBack={goBack} />,
+        'grade8-zone': <Grade8ZoneScreen navigate={navigate} goBack={goBack} />,
+        'grade9-zone': <Grade9ZoneScreen navigate={navigate} goBack={goBack} />,
+        ipa7:          <LandscapeZonaIPA navigate={navigate} goBack={goBack} />,
+        ipa8:          <LandscapeZonaIPA navigate={navigate} goBack={goBack} />,
+        ipa9:          <LandscapeZonaIPA navigate={navigate} goBack={goBack} />,
+        'ipa7-zone':   <Ipa7ZoneScreen  navigate={navigate} goBack={goBack} />,
+        'ipa8-zone':   <Ipa8ZoneScreen  navigate={navigate} goBack={goBack} />,
+        'ipa9-zone':   <Ipa9ZoneScreen  navigate={navigate} goBack={goBack} />,
+        lencana:       <LandscapeLencana goBack={goBack} />,
+        profile:       <LandscapeProfil  navigate={navigate} goBack={goBack} />,
+        'public-profile': publicProfileData
+          ? <LandscapePublicProfil
+              profile={publicProfileData}
+              goBack={goBack}
+              onInviteDuel={(p) => setDuelInvitePending({ id: p.id, role: p.role || 'siswa', name: p.name || 'Siswa' })}
+            />
+          : null,
+        komunikasi:    <LandscapeChat    navigate={navigate} goBack={goBack} initialTarget={komunikasiTarget} initialTab={komunikasiInitialTab} />,
+        hafalan:       <LandscapeHafalan goBack={goBack} />,
+        'latihan-ujian':<LandscapeLatihanUjian goBack={goBack} />,
+        toko:          <LandscapeTokoScreen goBack={() => { setTokoInitialTab(null); goBack() }} />,
+      }
+      if (landscapeMap[current]) return landscapeMap[current]
+    }
+
+    // ── Arena screen (landscape entry point, also usable on desktop) ──────────
+    if (current === 'arena') {
+      return <LandscapeArena navigate={navigate} goBack={goBack} canUseDemoMoba={canUseDemoMoba(user)} />
+    }
+
     if (current === 'public-profile' && publicProfileData) {
       return (
         <PublicProfileScreen
@@ -457,7 +1020,11 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'profile') {
-      return <ProfileScreen goBack={goBack} />
+      return <ProfileScreen goBack={goBack} navigate={navigate} />
+    }
+
+    if (current === 'tentang') {
+      return <TentangScreen goBack={goBack} />
     }
 
     if (current === 'toko') {
@@ -470,6 +1037,14 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (current === 'lencana') {
       return <BadgesScreen goBack={goBack} />
+    }
+
+    if (current === 'hafalan') {
+      return <HafalanScreen goBack={goBack} />
+    }
+
+    if (current === 'latihan-ujian') {
+      return <LatihanUjianScreen goBack={goBack} />
     }
 
     if (current === 'komunikasi') {
@@ -503,6 +1078,25 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (current === 'boss-raid') {
       return <BossRaidScreen goBack={goBack} />
+    }
+
+    if (current === 'moba-match') {
+      return (
+        <MobaScreen
+          matchId={mobaMatchId}
+          goBack={goBack}
+          debug="auto"
+        />
+      )
+    }
+
+    if (current === 'moba-lobby') {
+      return (
+        <MobaLobbyScreen
+          goBack={goBack}
+          onEnterArena={matchId => navigate('moba-match', { matchId })}
+        />
+      )
     }
 
     if (current === 'tournament-match' && tournamentMatchData) {
@@ -541,7 +1135,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'home') {
-      return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} openPetShop={() => { setTokoInitialTab('pet_skin'); navigate('toko') }} />
+      return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} openPetShop={() => { setTokoInitialTab('pet_skin'); navigate('toko') }} openEventShop={() => { setTokoInitialTab('event'); navigate('toko') }} onOpenApp={openIframeApp} />
     }
 
     const StaticScreen = STATIC_ROUTES[current] || HomeScreen
@@ -549,33 +1143,93 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   }
 
   return (
+    <>
     <PlayerProvider>
       <PetProvider>
         <TaskProvider onTaskComplete={handleTaskComplete}>
           <BabLockProvider>
-            <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout}>
+            <AppShell user={user} navigate={navigate} currentScreen={current} onLogout={logout} onSwitchModule={handleSwitchModule} onOpenApp={openIframeApp}>
             <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
+              {/* Global responsive scaling for all siswa fullscreen screens */}
+              {user?.role === 'siswa' && !guruMode && (
+                <style>{`
+                  /* Remove any residual AppShell spacing for siswa */
+                  .with-sidebar { margin-left: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
+                  /* Viewport-fluid font sizes — landscape screen roots inherit these */
+                  :root {
+                    --ls-text-xs:  clamp(7px,  1.0vmin, 10px);
+                    --ls-text-sm:  clamp(9px,  1.3vmin, 13px);
+                    --ls-text-md:  clamp(11px, 1.6vmin, 16px);
+                    --ls-text-lg:  clamp(13px, 2.0vmin, 20px);
+                    --ls-text-xl:  clamp(16px, 2.4vmin, 26px);
+                    --ls-gap:      clamp(5px,  1.0vmin, 12px);
+                    --ls-pad:      clamp(8px,  1.4vmin, 16px);
+                    --ls-radius:   clamp(8px,  1.2vmin, 14px);
+                  }
+                `}</style>
+              )}
+              {/* Inject CSS that filters ONLY structural nav/chrome elements.
+                  Seasonal override (tema_merahputih during Jul 15–Aug 31) takes
+                  priority over the user's own equipped theme. */}
+              <GameThemeStyles temaId={getSeasonalTema() || user?.equippedTema} />
+              {/* Tema particles overlay — rendered on top of all screens */}
+              <GameThemeOverlay temaId={getSeasonalTema() || user?.equippedTema} />
               <ErrorBoundary key={current} onReset={goBack}>
                 {renderScreen()}
               </ErrorBoundary>
               {/* Floating task progress strip — shown during any task session */}
               <TaskOverlay />
-              {/* Tomi the guinea pig — walks across screen for students */}
-              <FloatingPet onHungryClick={() => {
-                setTokoInitialTab('pet_skin')
-                navigate('toko')
-              }} />
+              {/* Anti-cheat: resets task and warns student if they leave mid-session */}
+              <TaskGuard />
+              {/* Error toast when tugas submission fails */}
+              <SubmitErrorToast />
+              {/* Nananaga immunity activation toast */}
+              <NananagaShieldToast />
+              {/* Mission toasts + claim modal — inside PlayerProvider via MissionBridge */}
+              <MissionBridge />
+              {/* FloatingPet removed — pet now lives in the dashboard stage only */}
               {/* Tournament match notification banner */}
-              {tournamentBanner && current !== 'tournament-match' && (
+              {tournamentBanner && (
                 <TournamentNotificationBanner
                   matchData={tournamentBanner}
                   onAccept={(data) => {
-                    setTournamentMatchData(data)
-                    setActiveTournamentId(data.tournamentId)
                     setTournamentBanner(null)
-                    navigate('tournament-match')
+                    if (data?.type === 'bracket') {
+                      // Rejoin bracket view — no pending match yet
+                      setActiveTournamentId(data.tournamentId)
+                      setHistory(h => {
+                        const top = h[h.length - 1]
+                        if (top === 'tournament-wait') return h
+                        if (top === 'tournament-match') return [...h.slice(0, -1), 'tournament-wait']
+                        return [...h, 'tournament-wait']
+                      })
+                    } else {
+                      // Live match — go straight to arena
+                      setTournamentMatchData(data)
+                      setActiveTournamentId(data.tournamentId)
+                      setHistory(h => {
+                        const top = h[h.length - 1]
+                        if (top === 'tournament-match') return h
+                        if (top === 'tournament-wait') return [...h.slice(0, -1), 'tournament-match']
+                        return [...h, 'tournament-match']
+                      })
+                    }
                   }}
                   onDismiss={() => setTournamentBanner(null)}
+                />
+              )}
+              {/* Public profile popup — shown when clicking another user's avatar */}
+              {publicProfileModal && (
+                <PublicProfileModal
+                  profile={publicProfileModal.profile}
+                  loading={publicProfileModal.loading}
+                  error={publicProfileModal.error}
+                  onClose={() => setPublicProfileModal(null)}
+                  onVisitProfile={(profile) => {
+                    setPublicProfileData(profile)
+                    setPublicProfileModal(null)
+                    setHistory(h => [...h, 'public-profile'])
+                  }}
                 />
               )}
               {/* Duel game picker — shown before sending a direct invite */}
@@ -596,6 +1250,14 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
                   }}
                   onCancel={() => setDuelInvitePending(null)}
                 />
+              )}
+              {/* What's New modal — shown once per version after update */}
+              {whatsNewOpen && !guruMode && (
+                <WhatsNewModal onClose={dismissWhatsNew} />
+              )}
+              {/* Daily login bonus modal — shown once per day on first login */}
+              {dailyBonus && !guruMode && (
+                <DailyBonusModal bonus={dailyBonus} onDismiss={dismissDailyBonus} />
               )}
               {/* Duel invite banner */}
               {duelInvite && current !== 'duel-lobby' && current !== 'duel-katak' && (
@@ -619,13 +1281,27 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
         </TaskProvider>
       </PetProvider>
     </PlayerProvider>
+    {iframeApp && (
+      <IframeAppShell
+        src={iframeApp.src}
+        title={iframeApp.title}
+        onBack={() => setIframeApp(null)}
+      />
+    )}
+    </>
   )
 }
 
 export default function App() {
   const { user, logout, checking } = useAuth()
   const [guruPracticeMode, setGuruPracticeMode] = useState(false)
-  const { checking: checkingUpdate, updateRequired, downloadUrl } = useAppUpdateCheck()
+  const [guruIframeApp, setGuruIframeApp] = useState(null)
+  const openGuruIframeApp = useCallback(({ src, title }) => setGuruIframeApp({ src, title }), [])
+  const {
+    checking: checkingUpdate,
+    updateRequired, downloadUrl,
+    bundleUpdateAvailable, bundleVersion, bundleUrl, bundleSize, bundleNotes,
+  } = useAppUpdateCheck()
 
   // Hide the inline HTML splash once React has mounted and auth check is done
   useEffect(() => {
@@ -638,9 +1314,9 @@ export default function App() {
   useEffect(() => {
     if (checking) return
     if (user?.role === 'guru' && !guruPracticeMode) {
-      document.title = 'Dashboard Guru — TOMAT'
+      document.title = 'Dashboard Guru — SMARTISA'
     } else if (!user) {
-      document.title = 'TOMAT — Tantangan Otak Matematika'
+      document.title = 'SMARTISA — Platform Pembelajaran TISA'
     }
   }, [user, guruPracticeMode, checking])
 
@@ -667,19 +1343,43 @@ export default function App() {
         </div>
       )
     }
+
     const guruNavigate = (key) => {
+      if (key === 'guruMengajar') { setGuruPracticeMode(true); return }
       window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
     }
+
     return (
-      <AppShell user={user} navigate={guruNavigate} currentScreen="guruDashboard" onLogout={logout}>
-        <div style={{ width: '100%', minHeight: '100vh', position: 'relative' }}>
-          <ErrorBoundary onReset={() => {}}>
-            <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
-          </ErrorBoundary>
-        </div>
-      </AppShell>
+      <>
+        <AppShell user={user} navigate={guruNavigate} currentScreen="guru-dashboard" onLogout={logout} onSwitchModule={() => {}} onOpenApp={openGuruIframeApp}>
+          <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+            <ErrorBoundary onReset={() => {}}>
+              <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
+            </ErrorBoundary>
+          </div>
+        </AppShell>
+        {guruIframeApp && (
+          <IframeAppShell
+            src={guruIframeApp.src}
+            title={guruIframeApp.title}
+            onBack={() => setGuruIframeApp(null)}
+          />
+        )}
+      </>
     )
   }
 
-  return <PlayerExperience />
+  return (
+    <>
+      <PlayerExperience />
+      {bundleUpdateAvailable && (
+        <OtaUpdateBanner
+          bundleVersion={bundleVersion}
+          bundleUrl={bundleUrl}
+          bundleSize={bundleSize}
+          bundleNotes={bundleNotes}
+        />
+      )}
+    </>
+  )
 }

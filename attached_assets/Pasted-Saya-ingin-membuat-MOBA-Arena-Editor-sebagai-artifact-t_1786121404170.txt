@@ -1,0 +1,43 @@
+Saya ingin membuat "MOBA Arena Editor" sebagai artifact tersembunyi/internal di dalam proyek ini. Aplikasi utama TIDAK BOLEH terganggu atau tertimpa. Editor ini hanya akan diakses melalui rute URL khusus (misalnya /hidden-moba-editor) dan hanya digunakan untuk keperluan internal di Replit.
+
+Tugas 1: Setup Backend (Upload ke Lokal Replit)
+
+Buatkan folder baru bernama local_moba_assets di root direktori untuk menyimpan gambar.
+
+Buatkan API endpoint tersembunyi (misalnya di file server.js atau file routing utama proyek ini) menggunakan Node.js dan multer (atau solusi serupa) di rute /api/internal/upload-asset.
+
+Endpoint ini harus menerima file gambar (PNG/JPG) dan menyimpannya secara fisik ke dalam folder local_moba_assets di Replit.
+
+Buatkan juga route agar file di dalam folder local_moba_assets bisa diakses/dirender di frontend (static file serving).
+
+Tugas 2: Setup Frontend (Halaman Terisolasi)
+
+Buat komponen React baru di dalam folder /src/moba-editor/ (buat foldernya jika belum ada).
+
+Daftarkan rute /hidden-moba-editor di sistem routing utama proyek (misalnya di App.jsx menggunakan React Router) agar halaman ini bisa diakses tanpa mengubah homepage aplikasi utama.
+
+Tugas 3: Fitur Utama Editor (React & Tailwind CSS)
+Di dalam komponen editor tersebut, buatkan fitur berikut:
+
+Grid Map: Area kanvas 20x20 kotak di tengah layar sebagai representasi arena.
+
+Asset Manager (Sidebar):
+
+Sebuah sidebar yang memiliki form/tombol upload.
+
+Saat file diupload, kirimkan file tersebut ke endpoint /api/internal/upload-asset.
+
+Setelah berhasil, tampilkan thumbnail gambar tersebut di sidebar.
+
+Sistem Penempatan (Drag & Drop / Click to Place):
+
+Pengguna bisa memilih asset di sidebar, lalu mengkliknya ke dalam kotak grid di map.
+
+Asset yang sudah diletakkan di grid harus bisa di-drag atau diklik lagi untuk dipindahkan ke kordinat kotak lain.
+
+Hapus Asset:
+
+Tambahkan tombol (ikon 'X') pada asset yang ada di grid, atau gunakan tombol 'Delete' pada keyboard saat asset di map diklik/dipilih untuk menghapusnya dari arena.
+
+Aturan Eksekusi:
+Tolong berikan kode secara bertahap. Mulai dari konfigurasi backend/upload, lalu routing, dan terakhir UI editornya. Pastikan tidak menghapus kode aplikasi utama yang sudah berjalan.

@@ -5,11 +5,20 @@ import { getGuruGrades } from './kelas.js'
 import { notifyClassStudents } from './notifications.js'
 import { createBossRaid, endBossRaid, getBossRaid, bossRaids, raidToClient } from './boss-state.js'
 import { SUPPORTED_TOURNAMENT_GAMES, genTournamentQ } from './tournament-questions.js'
-import { tournaments, tournamentToClient, buildFirstRound, getTournamentIo } from './tournament-state.js'
+import { tournaments, tournamentToClient, buildFirstRound, buildTeams, buildFirstRoundFromTeams, getTournamentIo } from './tournament-state.js'
 import { startTournamentRound_all } from './tournament-engine.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('guru'))
+
+// Only fully-registered subject teachers (jabatan=guru_mapel + has subjects entry)
+// may create or modify content. Read-only routes remain open to all guru.
+function requireGuruMapelTerdaftar(req, res, next) {
+  if (!req.session.user?.hasMateriTerdaftar) {
+    return res.status(403).json({ error: 'Akses ditolak. Hanya guru mapel Matematika yang terdaftar yang dapat melakukan tindakan ini.' })
+  }
+  next()
+}
 
 // ── Boss Raid endpoints ───────────────────────────────────────────────────────
 
@@ -26,7 +35,7 @@ router.get('/boss-raid', async (req, res) => {
 })
 
 // POST /api/guru/boss-raid — create / start a new raid for a class
-router.post('/boss-raid', async (req, res) => {
+router.post('/boss-raid', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const kelasDiampu = await getMyKelasDiampu(req)
     const {
@@ -55,7 +64,7 @@ router.post('/boss-raid', async (req, res) => {
 })
 
 // DELETE /api/guru/boss-raid/:kelas — end a raid early
-router.delete('/boss-raid/:kelas', async (req, res) => {
+router.delete('/boss-raid/:kelas', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const kelas = decodeURIComponent(req.params.kelas)
     const kelasDiampu = await getMyKelasDiampu(req)
@@ -90,6 +99,44 @@ router.get('/students', async (req, res) => {
   }
 })
 
+// GET /api/guru/home-stats — lightweight aggregates for the dashboard home tab
+// Returns student counts per class + nilai count + average score (no raw rows)
+router.get('/home-stats', async (req, res) => {
+  try {
+    const kelasDiampu = await getMyKelasDiampu(req)
+    const guruId = req.session.user.id
+
+    const [studentsRes, nilaiRes] = await Promise.all([
+      kelasDiampu.length > 0
+        ? pool.query(
+            `select kelas, count(*)::int as cnt
+             from students where kelas = any($1)
+             group by kelas`,
+            [kelasDiampu]
+          )
+        : Promise.resolve({ rows: [] }),
+      pool.query(
+        `select count(*)::int as total_nilai,
+                coalesce(round(avg(n.score)::numeric, 1), 0)::float as avg_score
+         from nilai n
+         join tugas t on t.id = n.tugas_id
+         where t.guru_id = $1`,
+        [guruId]
+      ),
+    ])
+
+    const studentsByClass = {}
+    for (const row of studentsRes.rows) studentsByClass[row.kelas] = row.cnt
+    const studentCount = studentsRes.rows.reduce((s, r) => s + r.cnt, 0)
+    const { total_nilai: nilaiCount, avg_score: avgScore } = nilaiRes.rows[0]
+
+    res.json({ studentsByClass, studentCount, nilaiCount, avgScore })
+  } catch (err) {
+    console.error('guru/home-stats error', err)
+    res.status(500).json({ error: 'Terjadi kesalahan server.' })
+  }
+})
+
 // GET /api/guru/tugas — tasks created by this teacher
 router.get('/tugas', async (req, res) => {
   try {
@@ -105,7 +152,7 @@ router.get('/tugas', async (req, res) => {
 })
 
 // POST /api/guru/tugas — assign a new task to a class this teacher teaches
-router.post('/tugas', async (req, res) => {
+router.post('/tugas', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const { kelas, gameKey, gameName, gameEmoji, bab, type, totalQuestions, dueAt, difficulty } = req.body || {}
     if (!kelas || !gameKey || !gameName || !type || !totalQuestions) {
@@ -143,7 +190,7 @@ router.post('/tugas', async (req, res) => {
 })
 
 // PATCH /api/guru/tugas/:id — close/reopen or edit a task
-router.patch('/tugas/:id', async (req, res) => {
+router.patch('/tugas/:id', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const { status, type, totalQuestions, dueAt, difficulty } = req.body || {}
 
@@ -194,7 +241,7 @@ router.patch('/tugas/:id', async (req, res) => {
 })
 
 // DELETE /api/guru/tugas/:id — delete a task and its grades (cascade)
-router.delete('/tugas/:id', async (req, res) => {
+router.delete('/tugas/:id', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `delete from tugas where id = $1 and guru_id = $2 returning id`,
@@ -247,7 +294,7 @@ router.get('/bab-locks', async (req, res) => {
 })
 
 // POST /api/guru/bab-locks — lock/unlock a bab for a grade this teacher teaches
-router.post('/bab-locks', async (req, res) => {
+router.post('/bab-locks', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const { grade, bab, locked } = req.body || {}
     const gradeNum = parseInt(grade, 10)
@@ -286,7 +333,10 @@ router.get('/tournament', async (req, res) => {
   try {
     const kelasDiampu = await getMyKelasDiampu(req)
     const active = [...tournaments.values()]
-      .filter(t => kelasDiampu.includes(t.kelas))
+      .filter(t => {
+        const arr = t.kelasArr || [t.kelas]
+        return t.status !== 'finished' && arr.some(k => kelasDiampu.includes(k))
+      })
       .map(tournamentToClient)
     res.json({ tournaments: active })
   } catch (err) {
@@ -296,58 +346,127 @@ router.get('/tournament', async (req, res) => {
 })
 
 // POST /api/guru/tournament — mulai turnamen baru
-router.post('/tournament', async (req, res) => {
+router.post('/tournament', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const kelasDiampu = await getMyKelasDiampu(req)
-    const { kelas, gameKey } = req.body || {}
+    const {
+      kelas, kelasArr: rawKelasArr, gameKey,
+      selectedStudentIds,          // string[] | undefined
+      mode = 'individual',         // 'individual' | 'kelompok'
+      teamCount,                   // number (auto kelompok)
+      teams: manualTeams,          // [{name, memberIds}] (manual kelompok)
+    } = req.body || {}
 
-    if (!kelas || !kelasDiampu.includes(kelas))
-      return res.status(403).json({ error: 'Kelas tidak valid.' })
+    // Support multi-kelas (kelasArr) or single kelas (backward compat)
+    const kelasArr = Array.isArray(rawKelasArr) && rawKelasArr.length > 0
+      ? rawKelasArr
+      : (kelas ? [kelas] : [])
+
+    if (kelasArr.length === 0)
+      return res.status(400).json({ error: 'Pilih minimal satu kelas.' })
+    const invalidKelas = kelasArr.filter(k => !kelasDiampu.includes(k))
+    if (invalidKelas.length > 0)
+      return res.status(403).json({ error: `Kelas tidak valid: ${invalidKelas.join(', ')}` })
     if (!SUPPORTED_TOURNAMENT_GAMES.includes(gameKey))
       return res.status(400).json({ error: `Game '${gameKey}' belum didukung untuk turnamen.` })
 
-    // Cek tidak ada turnamen aktif untuk kelas ini
-    const existing = [...tournaments.values()].find(
-      t => t.kelas === kelas && t.status !== 'finished'
-    )
-    if (existing) return res.status(409).json({ error: 'Turnamen masih aktif untuk kelas ini.' })
+    // Cek tidak ada turnamen aktif untuk kelas-kelas ini
+    const existing = [...tournaments.values()].find(t => {
+      const tArr = t.kelasArr || [t.kelas]
+      return tArr.some(k => kelasArr.includes(k)) && t.status !== 'finished'
+    })
+    if (existing) return res.status(409).json({ error: 'Turnamen masih aktif untuk salah satu kelas yang dipilih.' })
 
-    // Ambil semua siswa di kelas
+    // Ambil semua siswa dari semua kelas yang dipilih
+    const placeholders = kelasArr.map((_, i) => `$${i + 1}`).join(',')
     const { rows } = await pool.query(
-      'SELECT id AS "userId", name FROM students WHERE kelas = $1',
-      [kelas]
+      `SELECT id AS "userId", name, kelas FROM students WHERE kelas IN (${placeholders})`,
+      kelasArr
     )
-    if (rows.length < 2)
+
+    // Filter berdasarkan selectedStudentIds jika diberikan
+    let filteredRows = rows
+    if (Array.isArray(selectedStudentIds) && selectedStudentIds.length > 0) {
+      const idSet = new Set(selectedStudentIds.map(String))
+      filteredRows = rows.filter(r => idSet.has(String(r.userId)))
+    }
+
+    if (filteredRows.length < 2)
       return res.status(400).json({ error: 'Minimal 2 siswa diperlukan untuk memulai turnamen.' })
 
-    const students    = rows.map(r => ({ ...r, socketId: null }))
+    const students    = filteredRows.map(r => ({ ...r, socketId: null }))
     const tournamentId = crypto.randomUUID()
-    const firstRound  = buildFirstRound(students)
+    const primaryKelas = kelasArr[0]
+
+    // Bangun ronde pertama berdasarkan mode
+    let firstRound
+    let teams = null
+
+    if (mode === 'kelompok') {
+      if (Array.isArray(manualTeams) && manualTeams.length >= 2) {
+        // Mode manual: bangun teams dari manualTeams
+        teams = manualTeams.map((t, i) => {
+          const members = (t.memberIds || [])
+            .map(mid => students.find(s => String(s.userId) === String(mid)))
+            .filter(Boolean)
+          return {
+            id:      crypto.randomUUID(),
+            name:    t.name || `Kelompok ${i + 1}`,
+            members,
+          }
+        })
+        // Validasi
+        const emptyTeam = teams.find(t => t.members.length === 0)
+        if (emptyTeam) return res.status(400).json({ error: 'Semua kelompok harus memiliki minimal 1 anggota.' })
+        const filledTeams = teams.filter(t => t.members.length > 0)
+        if (filledTeams.length < 2) return res.status(400).json({ error: 'Minimal 2 kelompok diperlukan.' })
+      } else {
+        // Mode auto
+        const n = Math.max(2, Math.min(8, Number(teamCount) || 2))
+        if (n > students.length) return res.status(400).json({ error: 'Jumlah kelompok melebihi jumlah siswa.' })
+        teams = buildTeams(students, n)
+      }
+      firstRound = buildFirstRoundFromTeams(teams, 1)
+    } else {
+      firstRound = buildFirstRound(students)
+    }
 
     const tournament = {
       id:           tournamentId,
-      kelas,
+      kelas:        primaryKelas,
+      kelasArr,
       guruId:       req.session.user.id,
       gameKey,
       status:       'in-progress',
+      lobbyOpen:    true,
+      lobby:        {},
+      mode:         mode === 'kelompok' ? 'kelompok' : 'individual',
+      teams,
       currentRound: 1,
       rounds:       [firstRound],
       students,
       champion:     null,
+      runnerUp:     null,
+      semifinalists: [],
       createdAt:    Date.now(),
     }
     tournaments.set(tournamentId, tournament)
 
-    // Notify semua siswa di kelas via socket
+    // Notify semua siswa di semua kelas via socket — buka lobby, belum mulai ronde
     const io = getTournamentIo()
-    io?.to(`kelas:${kelas}`).emit('tournament:started', {
-      tournamentId,
-      gameKey,
-      state: tournamentToClient(tournament),
+    kelasArr.forEach(k => {
+      io?.to(`kelas:${k}`).emit('tournament:started', {
+        tournamentId,
+        gameKey,
+        state: tournamentToClient(tournament),
+      })
     })
 
-    // Mulai ronde 1
-    startTournamentRound_all(io, tournament)
+    // Guru join room turnamen untuk menerima lobby updates
+    // (room join terjadi via socket, bukan REST — cukup emit state saja)
+    io?.to(`tournament:${tournamentId}`).emit('tournament:state', tournamentToClient(tournament))
+
+    // Tidak langsung mulai ronde — tunggu guru klik "Mulai" dari lobby
 
     res.json({ tournament: tournamentToClient(tournament) })
   } catch (err) {
@@ -356,22 +475,94 @@ router.post('/tournament', async (req, res) => {
   }
 })
 
-// DELETE /api/guru/tournament/:id — batalkan turnamen
-router.delete('/tournament/:id', async (req, res) => {
+// POST /api/guru/tournament/:id/start — guru menutup lobby dan memulai ronde 1
+router.post('/tournament/:id/start', requireGuruMapelTerdaftar, async (req, res) => {
   try {
     const t = tournaments.get(req.params.id)
     if (!t) return res.status(404).json({ error: 'Turnamen tidak ditemukan.' })
     const kelasDiampu = await getMyKelasDiampu(req)
-    if (!kelasDiampu.includes(t.kelas)) return res.status(403).json({ error: 'Akses ditolak.' })
+    const tKelas = t.kelasArr || [t.kelas]
+    const isOwner = t.guruId === req.session.user.id
+    const hasAccess = tKelas.some(k => kelasDiampu.includes(k))
+    if (!isOwner && !hasAccess) return res.status(403).json({ error: 'Akses ditolak.' })
+    if (!t.lobbyOpen) return res.status(400).json({ error: 'Lobby sudah ditutup atau turnamen sudah berjalan.' })
 
+    t.lobbyOpen = false
+    const io = getTournamentIo()
+    startTournamentRound_all(io, t)
+
+    res.json({ tournament: tournamentToClient(t) })
+  } catch (err) {
+    console.error('guru/tournament start error', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/guru/tournament/:id — batalkan turnamen
+router.delete('/tournament/:id', requireGuruMapelTerdaftar, async (req, res) => {
+  try {
+    const t = tournaments.get(req.params.id)
+    if (!t) return res.status(404).json({ error: 'Turnamen tidak ditemukan.' })
+    const kelasDiampu = await getMyKelasDiampu(req)
+    const tKelas = t.kelasArr || [t.kelas]
+    const isOwner = t.guruId === req.session.user.id
+    const hasAccess = tKelas.some(k => kelasDiampu.includes(k))
+    if (!isOwner && !hasAccess) return res.status(403).json({ error: 'Akses ditolak.' })
+
+    const wasFinished = t.status === 'finished'
     t.status = 'finished'
     const io = getTournamentIo()
     io?.to(`tournament:${t.id}`).emit('tournament:cancelled')
-    io?.to(`kelas:${t.kelas}`).emit('tournament:cancelled')
+    const tKelasArr = t.kelasArr || [t.kelas]
+    tKelasArr.forEach(k => io?.to(`kelas:${k}`).emit('tournament:cancelled'))
+
+    // Save to history with status 'cancelled' only if it wasn't already saved as 'finished'
+    if (!wasFinished) {
+      const totalParticipants = t.rounds?.[0]?.matches?.reduce(
+        (a, m) => a + (m.player1 ? 1 : 0) + (m.player2 ? 1 : 0), 0
+      ) ?? 0
+      await pool.query(
+        `insert into tournament_history
+           (id, kelas, guru_id, game_key, status, champion_name, champion_id,
+            total_participants, total_rounds, finished_at,
+            kelas_arr, runner_up_name, runner_up_id, third_place_names)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,now(),$10,$11,$12,$13)
+         on conflict (id) do nothing`,
+        [t.id, t.kelas, t.guruId, t.gameKey, 'cancelled',
+         t.champion?.name ?? null, t.champion?.userId ?? null,
+         totalParticipants, t.rounds?.length ?? 0,
+         t.kelasArr ?? [t.kelas],
+         t.runnerUp?.name ?? null, t.runnerUp?.userId ?? null,
+         t.semifinalists?.map(s => s.name) ?? null]
+      )
+    }
+
     tournaments.delete(req.params.id)
     res.json({ ok: true })
   } catch (err) {
     console.error('guru/tournament DELETE error', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/guru/tournament/history — riwayat turnamen untuk kelas guru ini
+router.get('/tournament/history', async (req, res) => {
+  try {
+    const kelasDiampu = await getMyKelasDiampu(req)
+    if (!kelasDiampu.length) return res.json({ history: [] })
+    const placeholders = kelasDiampu.map((_, i) => `$${i + 1}`).join(',')
+    const { rows } = await pool.query(
+      `select id, kelas, game_key, status, champion_name, champion_id,
+              total_participants, total_rounds, finished_at
+       from tournament_history
+       where kelas in (${placeholders})
+       order by finished_at desc
+       limit 50`,
+      kelasDiampu
+    )
+    res.json({ history: rows })
+  } catch (err) {
+    console.error('guru/tournament/history GET error', err)
     res.status(500).json({ error: err.message })
   }
 })

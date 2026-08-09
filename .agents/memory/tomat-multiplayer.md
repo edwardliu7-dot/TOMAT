@@ -44,3 +44,22 @@ description: Architecture and key decisions for the real-time Katak Duel multipl
 - Server-authoritative: client never sees the answer, server validates and scores — prevents position-guessing cheats.
 - Singleton socket: prevents duplicate connections when navigating back and forth.
 - Stale-closure fix via refs: socket event handlers registered once in useEffect cannot see React state updates without refs.
+
+## Recovery and timing
+
+- Arena events are not durable. Register client listeners before emitting readiness/join events, and have the server resend the currently active question when a player reconnects or re-enters the arena.
+- Duel/tournament speed tie-breaks must use server-recorded cumulative answer time, with each question's start timestamp set when the question is emitted. Never trust client clocks or UI timing.
+
+**Why:**
+- A socket can reconnect or a fast second player can trigger the first question before the React screen has subscribed. Without server-side recovery, the player sees a stuck arena or cannot answer even though the match is live.
+
+**How to apply:**
+- Any new real-time match mode should keep active question state server-side, update connection-scoped socket IDs on reconnect, and use explicit event handlers for cleanup rather than broad `off(event)` calls.
+
+## Immunity security
+
+- Nananaga immunity is a server-authorized bonus-question action: validate the player’s last answer was wrong, validate room/match ownership, serialize token consumption, and acknowledge success before the client decrements its local display.
+- Normal next-question timers must be cancelled only after a successful immunity claim; a rejected claim must leave the normal answer flow intact.
+
+**Why:**
+- Client-side token checks alone allowed repeated bonus-question emits and could desynchronize the round when a network response was lost or two emits arrived together.

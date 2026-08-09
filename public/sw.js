@@ -16,9 +16,60 @@ function isAsset(url) {
   return /\/assets\/[^/]+\.(js|css|png|webp|jpg|jpeg|gif|svg|woff2?)(\?.*)?$/.test(new URL(url).pathname)
 }
 
-// ─── Install: skip waiting agar SW langsung aktif ──────────────────────────
+// Aset yang di-precache saat install — tersedia offline tanpa harus dikunjungi dulu
+const PRECACHE_ASSETS = [
+  // PWA icons
+  '/icon-192.png',
+  '/icon-512.png',
+  // Pet sprites (core gameplay — diperlukan di semua game)
+  '/tomi-sprite.png',
+  '/kelinsay-sprite.png',
+  '/monyang-sprite.png',
+  '/nananaga-sprite.png',
+  // Pet skin sheets
+  '/tomi-silver-fluff.png',
+  '/tomi-cosmic-fluff.png',
+  '/tomi-void-emperor.png',
+  '/kelinsay-malam.png',
+  '/kelinsay-senja.png',
+  '/monyang-raja.png',
+  '/monyang-kosmik.png',
+  '/nananaga-api.png',
+  '/nananaga-es.png',
+  // Bingkai (frame frames) — ditampilkan di leaderboard & profil
+  '/bingkai-emas.png',
+  '/bingkai-neon.png',
+  '/bingkai-sakura.png',
+  '/bingkai-api.png',
+  '/bingkai-es.png',
+  '/bingkai-void-king.png',
+  '/bingkai-void-monarch.png',
+  '/bingkai-aurum-sovereign.png',
+  // Event kemerdekaan
+  '/banner event 81.png',
+  '/81.png',
+  '/hutri81.png',
+  '/81spanduk.png',
+  // Dekorasi umum
+  '/garuda.gif',
+  '/petal-rose.png',
+  '/celestia-relic.svg',
+  '/dekrit-mahaguru.svg',
+]
+
+// ─── Install: precache aset + skip waiting ─────────────────────────────────
 self.addEventListener('install', event => {
-  self.skipWaiting()
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.allSettled(
+        PRECACHE_ASSETS.map(url =>
+          fetch(url, { cache: 'reload' })
+            .then(res => { if (res.ok) cache.put(url, res) })
+            .catch(() => { /* abaikan jika gagal fetch satu file */ })
+        )
+      )
+    ).then(() => self.skipWaiting())
+  )
 })
 
 // ─── Activate: hapus cache lama ────────────────────────────────────────────

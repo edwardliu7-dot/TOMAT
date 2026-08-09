@@ -8,10 +8,25 @@ let _socket = null
 
 export function getSocket() {
   if (!_socket) {
-    _socket = io({
+    // Dibaca lazy di sini — bukan di level module — agar applyNativePatch()
+    // sudah sempat set window.__TOMAT_API__ sebelum io() pertama kali dipanggil.
+    // (ES module hoist semua import sebelum kode main.jsx jalan, sehingga
+    //  pembacaan di level module selalu dapat '' meskipun di APK.)
+    const SERVER = window.__TOMAT_API__ || ''
+    // Capacitor WebViews handle cross-origin XHR cookies unreliably — the default
+    // polling→websocket handshake silently fails because the session cookie is
+    // missing on XHR polling requests, causing the server to disconnect the socket.
+    // Forcing WebSocket-only transport skips polling entirely and connects reliably.
+    const transports = window.Capacitor
+      ? ['websocket']
+      : ['polling', 'websocket']
+    _socket = io(SERVER, {
       path: '/socket.io',
       autoConnect: false,
       withCredentials: true,
+      transports,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     })
   }
   return _socket

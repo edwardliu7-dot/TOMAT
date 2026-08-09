@@ -2,10 +2,15 @@ import express from 'express'
 import { pool } from './db.js'
 import { requireAuth, requireRole } from './auth.js'
 import { applyExp, checkAndAwardBadges } from './gamify.js'
+import { getPetBonus } from './pet-bonuses.js'
+import { onCorrectAnswerWithResult } from './gameplay-events.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
 
+// Cap on the RAW (pre-bonus) coin amount sent by the client — anti-cheat ceiling.
+// The server applies the pet-skin multiplier AFTER this check, so the stored value
+// may legitimately exceed this number.
 const MAX_GAMEPLAY_COIN_REWARD = 15
 
 function playerFields(row) {
@@ -39,7 +44,8 @@ router.post('/gain', async (req, res) => {
     await client.query('begin')
     const { rows } = await client.query(
       `select coins, level, exp, total_coins_earned, best_survival_streak,
-              equipped_bingkai, equipped_spanduk, equipped_tema, equipped_stiker
+              equipped_bingkai, equipped_spanduk, equipped_tema, equipped_stiker,
+              equipped_pet_skin
        from students where id = $1 for update`,
       [req.session.user.id]
     )
@@ -48,7 +54,13 @@ router.post('/gain', async (req, res) => {
       await client.query('rollback')
       return res.status(404).json({ error: 'Siswa tidak ditemukan.' })
     }
-    const { level, exp } = applyExp(student.level, student.exp, expGain)
+
+    // Apply pet-skin bonuses (server-authoritative; cap check already done above)
+    const petBonus = getPetBonus(student.equipped_pet_skin || 'golden')
+    const boostedCoins = Math.round(coinsGain * petBonus.coinMult)
+    const boostedExp   = Math.round(expGain   * petBonus.expMult)
+
+    const { level, exp } = applyExp(student.level, student.exp, boostedExp)
     const { rows: updatedRows } = await client.query(
       `update students set
         coins = coins + $2,
@@ -58,11 +70,20 @@ router.post('/gain', async (req, res) => {
        where id = $1
        returning coins, level, exp, total_coins_earned, best_survival_streak,
                  equipped_bingkai, equipped_spanduk, equipped_tema, equipped_stiker`,
-      [req.session.user.id, coinsGain, level, exp]
+      [req.session.user.id, boostedCoins, level, exp]
     )
     await client.query('commit')
     const newBadges = await checkAndAwardBadges(req.session.user.id)
-    res.json({ player: playerFields(updatedRows[0]), newBadges })
+    // One correct minigame answer = one /gain call with coinsGain > 0.
+    // Await mission progress so we can include delta info in the response for
+    // the client to show MissionProgressToast / MissionClaimNotification.
+    // onCorrectAnswerWithResult returns Array<MissionDelta> already formatted —
+    // no need to import EVENT_MISSIONS here (RULES.md §16: gameplay-events.js is
+    // the single source of truth for mission side-effects).
+    const missionDeltas = coinsGain > 0
+      ? await onCorrectAnswerWithResult(req.session.user.id)
+      : []
+    res.json({ player: playerFields(updatedRows[0]), newBadges, gainedCoins: boostedCoins, gainedExp: boostedExp, missionDeltas })
   } catch (err) {
     await client.query('rollback').catch(() => {})
     console.error('player/gain error', err)
