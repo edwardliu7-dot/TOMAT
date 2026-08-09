@@ -7,6 +7,7 @@ import { UserAvatar } from '../components/shared'
 import SeasonalEventBanner from '../components/SeasonalEventBanner'
 import { getAccessibleGradesForUser } from '../kelasUtils'
 import { getPetName } from '../components/PetSVG'
+import MobileLandscapeDashboard from '../components/MobileLandscapeDashboard'
 
 function getPetEmoji(skinId, isDead, isStarving) {
   if (isDead) return '💀'
@@ -201,6 +202,24 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
     { id: 'toko', icon: '🛒', label: 'Toko', sub: `${formatNumber(player.coins)} koin`, accent: '#FBBF24' },
     { id: 'lencana', icon: '🏅', label: 'Lencana', sub: 'Koleksimu', accent: '#FB923C' },
   ]
+
+  if (!isDesktop && !guruMode && user?.role === 'siswa') {
+    return (
+      <MobileLandscapeDashboard
+        user={user}
+        player={player}
+        pet={pet}
+        nextTask={nextTask}
+        pendingTaskCount={pendingTasks.length}
+        grades={grades}
+        firstName={firstName}
+        zones={zones}
+        canUseDemoMoba={canUseDemoMoba}
+        navigate={navigate}
+        openPetShop={openPetShop}
+      />
+    )
+  }
 
   return (
     <main className={`home-screen ${isDesktop ? 'home-screen--desktop' : 'home-screen--mobile'} ${guruMode ? 'home-screen--guru' : ''}`}>

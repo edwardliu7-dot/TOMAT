@@ -53,6 +53,23 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
   const isZoneActive = currentScreen === 'grade7' || currentScreen === 'grade8' || currentScreen === 'grade9'
   // Siswa-only bottom nav — never show for guru (guru has its own nav in GuruDashboardScreen)
   const showNav = !isDesktop && user?.role !== 'guru' && BOTTOM_NAV_SCREENS.has(currentScreen)
+  const isMobileStudentHome = !isDesktop && currentScreen === 'home' && user?.role === 'siswa'
+  const [isLandscapeHome, setIsLandscapeHome] = React.useState(() => (
+    !isDesktop && currentScreen === 'home' && window.innerWidth > window.innerHeight && window.innerWidth >= 620
+  ))
+
+  React.useEffect(() => {
+    const update = () => setIsLandscapeHome(
+      !isDesktop && currentScreen === 'home' && window.innerWidth > window.innerHeight && window.innerWidth >= 620
+    )
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', update)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('orientationchange', update)
+    }
+  }, [currentScreen, isDesktop])
 
   const activeModule = currentScreen?.startsWith('blp-') ? 'blp'
     : currentScreen?.startsWith('eob5-') ? 'eob5'
@@ -66,6 +83,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
   const moduleAccent = activeModule === 'blp' ? '#10b981'
     : activeModule === 'eob5' ? '#f59e0b'
     : '#6366f1'
+  const isImmersiveStudentHome = isMobileStudentHome
 
   const isGuru = user?.role === 'guru'
 
@@ -131,14 +149,14 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
           CSS var still adds 220 px of margin-left. Override it to 0 so those
           modules' own sidebars fill the full viewport width. */}
       <div
-        className={`with-sidebar${showNav ? ' with-nav' : ''}${!isDesktop && onSwitchModule ? ' with-module-header' : ''}`}
+        className={`with-sidebar${showNav && !isImmersiveStudentHome ? ' with-nav' : ''}${!isDesktop && onSwitchModule && !isImmersiveStudentHome ? ' with-module-header' : ''}${isLandscapeHome ? ' with-landscape-home' : ''}`}
         style={isDesktop && activeModule !== 'tomat' ? { marginLeft: 0 } : undefined}
       >
         {children}
       </div>
 
       {/* Mobile: unified top header — SMARTISA banner + profile info + AppSwitcher + notifications */}
-      {!isDesktop && user && onSwitchModule && (
+      {!isDesktop && user && onSwitchModule && !isImmersiveStudentHome && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0,
           zIndex: 300,
@@ -249,7 +267,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
       )}
 
       {/* Mobile-only audio panel — desktop has it in the Sidebar */}
-      {!isDesktop && (
+      {!isDesktop && !isImmersiveStudentHome && (
         <div style={{
           position: 'fixed', bottom: showNav ? 96 : 16, right: 16,
           zIndex: 200,
@@ -268,7 +286,7 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
         </div>
       )}
 
-      {showNav && (
+      {showNav && !isImmersiveStudentHome && (
         <nav className="appshell-bottom-nav">
           {[
             ['home',          '🏠', 'Beranda'],
