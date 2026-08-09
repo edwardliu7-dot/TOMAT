@@ -54,3 +54,4 @@
 - [Mockup preview verification](mockup-preview-verification.md) — jika proxy utama menampilkan shell TOMAT, verifikasi komponen lewat port workflow sandbox langsung sebelum menyimpulkan iframe rusak.
 - [TOMAT MOBA rollout gate](tomat-moba-rollout-gate.md) — akses demo dikendalikan MOBA_ENABLED + MOBA_ALLOWED_STUDENT_IDS; perubahan environment baru berlaku setelah workflow server direstart.
 - [TOMAT MOBA tile grid](tomat-moba-tile-grid.md) — dunia 8.000×8.000 memakai 32 unit/tile, menghasilkan grid 250×250; movement tetap kontinu dan authoritative.
+- [Personal AI Development Studio](personal-ai-development-studio.md) — rancangan alat coding pribadi lokal dengan GitHub, AI Gateway multi-provider, Build/Design Mode, preview, secret terenkripsi, dan checkpoint.
