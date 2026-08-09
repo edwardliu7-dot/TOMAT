@@ -438,8 +438,19 @@
 }
 .moba-jungle-board__world {
   position: absolute;
-  inset: 0;
+  /*
+   * The game world is 80000×80000 units — a perfect square.
+   * Render it as a square CSS box sized to the SHORTER viewport dimension
+   * so diagonal lanes stay symmetric regardless of screen aspect ratio.
+   * The containing .moba-jungle-board stays full-screen (the camera viewport).
+   */
+  width:  min(100%, 100vh);
+  height: min(100%, 100vh);
+  /* Centre the square in the rectangular viewport */
+  top:  50%;
+  left: 50%;
   transform:
+    translate(-50%, -50%)
     translate(var(--moba-camera-x, 0%), var(--moba-camera-y, 0%))
     perspective(1000px) rotateX(5deg) rotateZ(-1deg)
     scale(var(--moba-camera-zoom, 1));
