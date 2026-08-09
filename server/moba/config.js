@@ -101,21 +101,29 @@ export const MAP_LAYOUT = Object.freeze({
   ]),
 })
 
-// Deposit zones — diagonal X map layout
-// Team A deposits at top-left corner boxes + 1 center box (near river crossing upper)
-// Team B deposits at bottom-right corner boxes + 1 center box (near river crossing lower)
-// Symmetric: from Team B's flipped 180° view, their deposit zones appear at top-left too.
+// Deposit zones — 3-lane X map layout
+// Coordinates use SERVER space: origin top-left, Y increases downward.
+// Converted from user Cartesian (origin bottom-left): server_x = x, server_y = 80000 − y
+//
+// Top lane   A-turret : user (4000,68000)  → server (4000,12000)
+// Top lane   B-turret : user (12000,76000) → server (12000,4000)
+// Mid lane   A-turret : user (36000,36000) → server (36000,44000)
+// Mid lane   B-turret : user (44000,44000) → server (44000,36000)
+// Bot lane   A-turret : user (68000,4000)  → server (68000,76000)
+// Bot lane   B-turret : user (76000,12000) → server (76000,68000)
+// Base A              : user (4000,4000)   → server (4000,76000)
+// Base B              : user (76000,76000) → server (76000,4000)
 export const DEPOSIT_ZONES = Object.freeze([
-  // Team A scoring zones (A carries scrolls here)
-  Object.freeze({ id:'az-1',   team:'teamA', lane:'corner', x:  9_000, y:  8_000, maxPoints: 100,  isLibrary: false }),
-  Object.freeze({ id:'az-2',   team:'teamA', lane:'corner', x:  7_000, y: 13_500, maxPoints: 100,  isLibrary: false }),
-  Object.freeze({ id:'az-ctr', team:'teamA', lane:'center', x: 43_000, y: 33_000, maxPoints: 100,  isLibrary: false }),
-  Object.freeze({ id:'al-base',team:'teamA', lane:'base',   x:  5_000, y: 75_000, maxPoints: null, isLibrary: true  }),
-  // Team B scoring zones (B carries scrolls here)
-  Object.freeze({ id:'bz-1',   team:'teamB', lane:'corner', x: 71_000, y: 66_500, maxPoints: 100,  isLibrary: false }),
-  Object.freeze({ id:'bz-2',   team:'teamB', lane:'corner', x: 73_000, y: 71_000, maxPoints: 100,  isLibrary: false }),
-  Object.freeze({ id:'bz-ctr', team:'teamB', lane:'center', x: 35_000, y: 45_500, maxPoints: 100,  isLibrary: false }),
-  Object.freeze({ id:'bl-base',team:'teamB', lane:'base',   x: 75_000, y:  5_000, maxPoints: null, isLibrary: true  }),
+  // Team A scoring zones
+  Object.freeze({ id:'az-1',   team:'teamA', lane:'top',    x:  4_000, y: 12_000, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'az-2',   team:'teamA', lane:'top',    x: 12_000, y:  4_000, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'az-ctr', team:'teamA', lane:'mid',    x: 36_000, y: 44_000, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'al-base',team:'teamA', lane:'base',   x:  4_000, y: 76_000, maxPoints: null, isLibrary: true  }),
+  // Team B scoring zones
+  Object.freeze({ id:'bz-1',   team:'teamB', lane:'bot',    x: 68_000, y: 76_000, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'bz-2',   team:'teamB', lane:'bot',    x: 76_000, y: 68_000, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'bz-ctr', team:'teamB', lane:'mid',    x: 44_000, y: 36_000, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'bl-base',team:'teamB', lane:'base',   x: 76_000, y:  4_000, maxPoints: null, isLibrary: true  }),
 ])
 
 // Wall rectangles for server-side collision (player radius 28 checked against each rect)
@@ -178,10 +186,11 @@ export const DEFAULT_MOBA_CONFIG = Object.freeze({
 })
 
 // Team A spawns at bottom-left, Team B at top-right.
+// user A=(4000,4000) → server (4000,76000); user B=(76000,76000) → server (76000,4000)
 // Team B's view is flipped 180° on the client so both feel like they spawn at bottom-left.
 export const DEFAULT_POSITION_BY_TEAM = Object.freeze({
-  teamA: Object.freeze({ x:  4_500, y: 74_000, lane: 'base' }),
-  teamB: Object.freeze({ x: 74_000, y:  4_500, lane: 'base' }),
+  teamA: Object.freeze({ x:  4_000, y: 76_000, lane: 'base' }),
+  teamB: Object.freeze({ x: 76_000, y:  4_000, lane: 'base' }),
 })
 
 export function isValidTeamSize(teamSize) {

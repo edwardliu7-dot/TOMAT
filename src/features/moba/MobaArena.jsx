@@ -187,7 +187,7 @@ function MiniMap({ arena, players, nodes, selfId, onClose, compact = false, flip
         </button>
       </header>
       <div className="moba-jungle-map-large">
-        {/* Minimap SVG — same 3-lane X, preserveAspectRatio="none" keeps it correct */}
+        {/* Minimap SVG — mirrors the main arena lane layout */}
         <svg viewBox="0 0 100 100" preserveAspectRatio="none"
           style={{ position:'absolute', inset:0, width:'100%', height:'100%', zIndex:1, pointerEvents:'none' }}>
           <defs>
@@ -196,9 +196,14 @@ function MiniMap({ arena, players, nodes, selfId, onClose, compact = false, flip
               <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.85" />
             </linearGradient>
           </defs>
-          <line x1="2" y1="2" x2="98" y2="98" stroke="url(#mm-blue)" strokeWidth="13" strokeLinecap="round" />
-          <line x1="83" y1="1" x2="1" y2="83" stroke="#3d3d2e" strokeWidth="5" strokeLinecap="butt" strokeDasharray="5 3" />
-          <line x1="99" y1="16" x2="16" y2="99" stroke="#6b6a58" strokeWidth="13" strokeLinecap="butt" />
+          {/* Top lane L */}
+          <polyline points="5,95 5,5 95,5" fill="none" stroke="#6b6a58" strokeWidth="11" strokeLinecap="butt" strokeLinejoin="round" />
+          {/* Bottom lane L */}
+          <polyline points="5,95 95,95 95,5" fill="none" stroke="#6b6a58" strokeWidth="11" strokeLinecap="butt" strokeLinejoin="round" />
+          {/* Mid lane diagonal */}
+          <line x1="5" y1="95" x2="95" y2="5" stroke="#7a7963" strokeWidth="10" strokeLinecap="butt" />
+          {/* River */}
+          <line x1="10" y1="10" x2="90" y2="90" stroke="url(#mm-blue)" strokeWidth="13" strokeLinecap="round" />
         </svg>
         <i className="moba-jungle-map-base moba-jungle-map-base--a" />
         <i className="moba-jungle-map-base moba-jungle-map-base--b" />
@@ -339,6 +344,17 @@ export default function MobaArena({
            *   2. Dashed — NE→SW, offset toward top-right (upper road edge)
            *   3. Gray  — NE→SW, offset toward bottom-left (lower road, wider)
            */}
+          {/*
+           * ── SVG lane overlay ──────────────────────────────────────────────
+           * Coordinate system (server/CSS): origin top-left, Y increases down.
+           * User Cartesian coords are converted: server_y = 80000 − user_y.
+           *
+           * Layout (in SVG 0-100 space = % of container):
+           *   Top Lane    — L-shape: (5,95)→(5,5)→(95,5)   [left side ↑ then top →]
+           *   Bottom Lane — L-shape: (5,95)→(95,95)→(95,5) [bottom → then right ↑]
+           *   Mid Lane    — diagonal: (5,95)→(95,5)         [bottom-left→top-right]
+           *   River       — diagonal: (10,10)→(90,90)       [top-left→bottom-right, crosses all 3]
+           */}
           <svg
             className="moba-lanes-svg"
             viewBox="0 0 100 100"
@@ -348,31 +364,36 @@ export default function MobaArena({
             <defs>
               <linearGradient id="moba-blue-grad" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%"   stopColor="#7dd3fc" stopOpacity="0.92" />
-                <stop offset="48%"  stopColor="#38bdf8" stopOpacity="1" />
+                <stop offset="50%"  stopColor="#38bdf8" stopOpacity="1"   />
                 <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.92" />
               </linearGradient>
             </defs>
 
-            {/* Lane 1 — Blue (NW→SE). Round caps give the pill shape from the diagram. */}
-            <line x1="2" y1="2" x2="98" y2="98"
+            {/* Top Lane — L-shape: up left side, then across top */}
+            <polyline points="5,95 5,5 95,5"
+              fill="none" stroke="#6b6a58" strokeWidth="11"
+              strokeLinecap="butt" strokeLinejoin="round" />
+
+            {/* Bottom Lane — L-shape: across bottom, then up right side */}
+            <polyline points="5,95 95,95 95,5"
+              fill="none" stroke="#6b6a58" strokeWidth="11"
+              strokeLinecap="butt" strokeLinejoin="round" />
+
+            {/* Mid Lane — straight diagonal, bottom-left → top-right */}
+            <line x1="5" y1="95" x2="95" y2="5"
+              stroke="#7a7963" strokeWidth="10" strokeLinecap="butt" />
+            {/* Mid lane center dashed divider */}
+            <line x1="5" y1="95" x2="95" y2="5"
+              stroke="#3a3a2a" strokeWidth="2.5" strokeLinecap="butt"
+              strokeDasharray="4.5 3" />
+
+            {/* River — diagonal top-left → bottom-right, crosses all 3 lanes.
+                Round caps give the pill shape seen in the diagram. */}
+            <line x1="10" y1="10" x2="90" y2="90"
               stroke="url(#moba-blue-grad)" strokeWidth="13" strokeLinecap="round" />
-            {/* Blue inner shimmer */}
-            <line x1="2" y1="2" x2="98" y2="98"
-              stroke="rgba(186,230,253,0.32)" strokeWidth="5" strokeLinecap="round" />
-
-            {/* Lane 2 — Dashed road edge (NE→SW, upper/center-side).
-                x+y ≈ 84 → sits between center and the gray band. */}
-            <line x1="83" y1="1" x2="1" y2="83"
-              stroke="#3d3d2e" strokeWidth="5" strokeLinecap="butt"
-              strokeDasharray="5 3" />
-
-            {/* Lane 3 — Gray road (NE→SW, lower/bottom-left-side).
-                x+y ≈ 115 → offset toward bottom-left spawn area. */}
-            <line x1="99" y1="16" x2="16" y2="99"
-              stroke="#6b6a58" strokeWidth="13" strokeLinecap="butt" />
-            {/* Gray road highlight edge */}
-            <line x1="99" y1="16" x2="16" y2="99"
-              stroke="rgba(210,205,165,0.20)" strokeWidth="1.5" strokeLinecap="butt" />
+            {/* River inner shimmer */}
+            <line x1="10" y1="10" x2="90" y2="90"
+              stroke="rgba(186,230,253,0.30)" strokeWidth="5" strokeLinecap="round" />
           </svg>
 
           {/* ── Trees in 4 triangular jungle zones ───────────────── */}
@@ -415,16 +436,24 @@ export default function MobaArena({
           <img className="moba-jungle-relic" style={{ left:'82%', top:'38%', animationDelay:'2.8s'   }} src="/moba-arena/FG_Crystal_Gold_1.png"    alt="" />
           <img className="moba-jungle-relic" style={{ left:'82%', top:'61%', animationDelay:'1.1s'   }} src="/moba-arena/FG_Treasure_Small_1.png"  alt="" />
 
-          {/* ── Deposit boxes (6 total: 3 per team, positioned by world coords) */}
+          {/* ── Deposit boxes (6 total: 3 per team)
+           * Positions converted from user Cartesian (origin bottom-left):
+           *   server_x = user_x,  server_y = 80000 − user_y
+           *
+           * Top lane  A-side turret : user (4000,68000)  → server (4000,12000)
+           * Top lane  B-side turret : user (12000,76000) → server (12000,4000)
+           * Mid lane  A-side turret : user (36000,36000) → server (36000,44000)
+           * Bottom lane A-side turret: user (68000,4000) → server (68000,76000)
+           * Bottom lane B-side turret: user (76000,12000)→ server (76000,68000)
+           * Mid lane  B-side turret : user (44000,44000) → server (44000,36000)
+           */}
           {[
-            // Team A deposit zones (A carries scrolls here; world top-left area + center)
-            { id:'az-1',   team:'teamA', x:  9_000, y:  8_000 },
-            { id:'az-2',   team:'teamA', x:  7_000, y: 13_500 },
-            { id:'az-ctr', team:'teamA', x: 43_000, y: 33_000 },
-            // Team B deposit zones (B carries scrolls here; world bottom-right area + center)
-            { id:'bz-1',   team:'teamB', x: 71_000, y: 66_500 },
-            { id:'bz-2',   team:'teamB', x: 73_000, y: 71_000 },
-            { id:'bz-ctr', team:'teamB', x: 35_000, y: 45_500 },
+            { id:'az-1',   team:'teamA', x:  4_000, y: 12_000 },
+            { id:'az-2',   team:'teamA', x: 12_000, y:  4_000 },
+            { id:'az-ctr', team:'teamA', x: 36_000, y: 44_000 },
+            { id:'bz-1',   team:'teamB', x: 68_000, y: 76_000 },
+            { id:'bz-2',   team:'teamB', x: 76_000, y: 68_000 },
+            { id:'bz-ctr', team:'teamB', x: 44_000, y: 36_000 },
           ].map(z => {
             const pts = match?.teams?.[z.team]?.score || 0
             const cls = z.team === 'teamA' ? 'moba-deposit-box--a' : 'moba-deposit-box--b'
@@ -438,20 +467,21 @@ export default function MobaArena({
           })}
 
           {/* ── Base libraries ─────────────────────────────────── */}
+          {/* user A=(4000,4000) → server (4000,76000); user B=(76000,76000) → server (76000,4000) */}
           <div className="moba-deposit-library moba-deposit-library--a"
-            style={toPosition({ x: 5_000, y: 75_000 }, arena, isFlipped)}>
+            style={toPosition({ x: 4_000, y: 76_000 }, arena, isFlipped)}>
             <span>📖</span><small>Pustaka A</small>
           </div>
           <div className="moba-deposit-library moba-deposit-library--b"
-            style={toPosition({ x: 75_000, y: 5_000 }, arena, isFlipped)}>
+            style={toPosition({ x: 76_000, y: 4_000 }, arena, isFlipped)}>
             <span>📖</span><small>Pustaka B</small>
           </div>
 
-          {/* ── Team bases (corners: A=bottom-left, B=top-right) ── */}
+          {/* ── Team bases (A=bottom-left in screen, B=top-right in screen) ── */}
           <MobaBase team={match?.teams?.teamA} side="left"
-            style={{ ...toPosition({ x: 5_000, y: 75_000 }, arena, isFlipped), transform:'translateX(-50%) translateY(-50%)' }} />
+            style={{ ...toPosition({ x: 4_000, y: 76_000 }, arena, isFlipped), transform:'translateX(-50%) translateY(-50%)' }} />
           <MobaBase team={match?.teams?.teamB} side="right"
-            style={{ ...toPosition({ x: 75_000, y: 5_000 }, arena, isFlipped), transform:'translateX(-50%) translateY(-50%)' }} />
+            style={{ ...toPosition({ x: 76_000, y: 4_000 }, arena, isFlipped), transform:'translateX(-50%) translateY(-50%)' }} />
 
           {/* ── Question nodes ──────────────────────────────────── */}
           {nodes.map(node => (

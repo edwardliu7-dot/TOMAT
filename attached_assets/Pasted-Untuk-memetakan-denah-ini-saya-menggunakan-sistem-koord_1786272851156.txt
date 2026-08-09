@@ -1,0 +1,71 @@
+Untuk memetakan denah ini, saya menggunakan sistem koordinat Kartesius standar dengan titik awal (0, 0) berada di kiri bawah dan titik maksimal (80000, 80000) berada di kanan atas.
+
+Mengingat ukuran arena yang sangat besar (80.000 x 80.000 px) sedangkan ukuran aset relatif sangat kecil (20x20 px dan 25x25 px), koordinat di bawah ini mewakili titik tengah (center/anchor point) dari masing-masing aset berdasarkan proporsi visual pada gambarmu.
+
+Berikut adalah estimasi koordinat untuk masing-masing elemen di arena MOBA milikmu:
+
+1. Koordinat Turret Base / Stand Pustaka (Lingkaran Merah, 25x25)
+Ini adalah area spawn sekaligus base utama masing-masing tim yang terletak di sudut ekstrem arena.
+
+Base Tim A (Kiri Bawah): (4000, 4000)
+
+Base Tim B (Kanan Atas): (76000, 76000)
+
+2. Koordinat Turret Luar / Box Gulungan (Lingkaran Oranye, 20x20)
+Turret ini tersebar di tiga lane (Atas, Tengah, Bawah). Berdasarkan gambar, posisi mereka berada di titik-titik persimpangan strategis.
+
+Top Lane (Jalur Atas):
+
+Turret Vertikal (Sisi Tim A): (4000, 68000)
+
+Turret Horizontal (Sisi Tim B): (12000, 76000)
+
+Bottom Lane (Jalur Bawah):
+
+Turret Horizontal (Sisi Tim A): (68000, 4000)
+
+Turret Vertikal (Sisi Tim B): (76000, 12000)
+
+Mid Lane (Jalur Tengah):
+
+Turret Mid (Sisi Tim A): (36000, 36000)
+
+Turret Mid (Sisi Tim B): (44000, 44000)
+
+3. Koordinat Ujung Lane (Garis Abu-abu)
+Lane adalah jalur pergerakan minion dan pemain. Garis abu-abu ini membentang dari base ke base.
+
+Mid Lane (Jalur Tengah):
+
+Membentang lurus secara diagonal.
+
+Titik Awal (Tim A): (4000, 4000)
+
+Titik Akhir (Tim B): (76000, 76000)
+
+Top Lane (Jalur Atas):
+
+Berjalan vertikal ke atas, lalu berbelok horizontal ke kanan.
+
+Ujung Awal (Tim A): (4000, 4000)
+
+Titik Sudut Belokan (Pojok Kiri Atas): (4000, 76000)
+
+Ujung Akhir (Tim B): (76000, 76000)
+
+Bottom Lane (Jalur Bawah):
+
+Berjalan horizontal ke kanan, lalu berbelok vertikal ke atas.
+
+Ujung Awal (Tim A): (4000, 4000)
+
+Titik Sudut Belokan (Pojok Kanan Bawah): (76000, 4000)
+
+Ujung Akhir (Tim B): (76000, 76000)
+
+4. Koordinat Ujung Sungai (Garis Biru)
+Sungai membentang secara diagonal menyilang (tegak lurus) terhadap mid lane, memisahkan area jungle menjadi dua bagian.
+
+Ujung Kiri Atas: (8000, 72000)
+
+Ujung Kanan Bawah: (72000, 8000)
