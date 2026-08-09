@@ -736,17 +736,19 @@ const generators = {
 
   // Pasar Galaksi — SPLDV harga barang: p*x + q*y = total, cari x
   g9pasargalaksi: () => {
+    // answer = (t1 - t2) / qy; all entries verified: (t1-t2) divisible by qy
+    // price_A and price_B chosen first, then t2=px*pA, t1=t2+qy*pB, ans=pB
     const POOL = [
-      { px:3, qy:2, t1:16, t2:10, x:4, label1:'apel', label2:'jeruk' },
-      { px:4, qy:3, t1:23, t2:12, x:5, label1:'batu', label2:'kristal' },
-      { px:2, qy:5, t1:21, t2:10, x:3, label1:'logam', label2:'mineral' },
-      { px:5, qy:2, t1:19, t2:6,  x:3, label1:'alien', label2:'robot' },
-      { px:3, qy:4, t1:22, t2:12, x:4, label1:'bahan', label2:'sumber' },
+      { px:4, qy:3, t1:18, t2:12, ans:2, label1:'apel',  label2:'jeruk'   }, // pA=3,pB=2
+      { px:2, qy:2, t1:16, t2:10, ans:3, label1:'batu',  label2:'kristal' }, // pA=5,pB=3
+      { px:3, qy:2, t1:23, t2:15, ans:4, label1:'logam', label2:'mineral' }, // pA=5,pB=4
+      { px:5, qy:3, t1:27, t2:15, ans:4, label1:'alien', label2:'robot'   }, // pA=3,pB=4
+      { px:2, qy:2, t1:22, t2:12, ans:5, label1:'bahan', label2:'sumber'  }, // pA=6,pB=5
     ]
     const p = POOL[rand(0, POOL.length - 1)]
     return {
       question: { text: `Harga ${p.px} ${p.label1} + ${p.qy} ${p.label2} = ${p.t1}. Harga ${p.px} ${p.label1} saja = ${p.t2}. Harga 1 ${p.label2} = ?` },
-      answer: p.x,
+      answer: p.ans,
       sliderMin: 1,
       sliderMax: 12,
       gameLabel: 'Barter Di Pasar Galaksi',
@@ -891,7 +893,7 @@ const generators = {
       answer: p.v,
       sliderMin: 1,
       sliderMax: 220,
-      gameLabel: 'Manifest Kargo Alien',
+      gameLabel: 'Eksplorasi Kuil Alien',
     }
   },
 
@@ -942,7 +944,7 @@ const generators = {
       answer: p.sa,
       sliderMin: 1,
       sliderMax: 6000,
-      gameLabel: 'Kalkulasi Orbit Satelit',
+      gameLabel: 'Kompresi Inti Bintang',
     }
   },
 

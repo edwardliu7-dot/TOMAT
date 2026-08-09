@@ -61,6 +61,11 @@ const GAME_INFO = {
   // Grade 9 BAB III – Bangun Ruang
   g9boksbaterai: { label: 'Optimalisasi Boks Baterai',   emoji: '🔋', color: '#16a34a' },
   g9refraktor:   { label: 'Refraktor Kristal Energi',    emoji: '💎', color: '#0284c7' },
+  g9kuilalien:   { label: 'Eksplorasi Kuil Alien',        emoji: '🏛️', color: '#7c3aed' },
+  g9reaktorbahan:{ label: 'Pengisian Reaktor Bahan Bakar',emoji: '⚛️', color: '#0f766e' },
+  g9sinyalkerucut:{ label: 'Zona Pancaran Sinyal',        emoji: '📡', color: '#b45309' },
+  g9bintang:     { label: 'Kompresi Inti Bintang',        emoji: '⭐', color: '#ca8a04' },
+  g9upgradekapal:{ label: 'Upgrade Kapal Induk',          emoji: '🚀', color: '#1d4ed8' },
 }
 
 const DEFAULT_GAME_INFO = { label: 'Soal Arena', emoji: '🎮', color: '#6366f1' }

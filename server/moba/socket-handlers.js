@@ -401,7 +401,7 @@ export function createMobaSocketAdapter({
     const g8Keys = SUPPORTED_TOURNAMENT_GAMES.filter(k => k.startsWith('g8'))
     const g9Keys = SUPPORTED_TOURNAMENT_GAMES.filter(k => k.startsWith('g9'))
     const g7Keys = SUPPORTED_TOURNAMENT_GAMES.filter(k => !k.startsWith('g8') && !k.startsWith('g9'))
-    if (grade >= 9) return [...g9Keys, ...g8Keys, ...g7Keys].filter(Boolean)
+    if (grade >= 9) return [...g9Keys, ...g8Keys].filter(Boolean) // G9 siswa tidak dapat soal G7
     if (grade >= 8) return [...g8Keys, ...g7Keys].filter(Boolean)
     const keys = g7Keys.filter(Boolean)
     return keys.length > 0 ? keys : SUPPORTED_TOURNAMENT_GAMES
