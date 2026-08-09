@@ -21,7 +21,7 @@ const GRADE_DATA = {
     { label:'BAB III\nKel. Hidup', games:5, icon:'🌍' },
   ]},
 }
-const GRADE_ROUTES = { 7:'ipa7', 8:'ipa8', 9:'ipa9' }
+const GRADE_ROUTES = { 7:'ipa7-zone', 8:'ipa8-zone', 9:'ipa9-zone' }
 
 export default function LandscapeZonaIPA({ navigate, goBack }) {
   const { user } = useAuth()

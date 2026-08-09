@@ -3,14 +3,13 @@ import PetSVG, { getPetName } from './PetSVG'
 import { UserAvatar } from './shared'
 import SeasonalEventBanner from './SeasonalEventBanner'
 
+const BLP_URL = 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io'
+
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('id-ID')
 }
 
 // ── ZonaDashboard ─────────────────────────────────────────────────────────────
-// Layout: ZONA ATAS (header bar) + 3 kolom utama (kiri/tengah/kanan)
-// Responsif: desktop landscape, mobile landscape, portrait (stack)
-// ─────────────────────────────────────────────────────────────────────────────
 export default function MobileLandscapeDashboard({
   user,
   player,
@@ -27,6 +26,8 @@ export default function MobileLandscapeDashboard({
 }) {
   const [notice, setNotice] = useState('')
   const [petFed, setPetFed] = useState(false)
+  // Mini global-chat preview
+  const [globalPreview, setGlobalPreview] = useState(null)
 
   const toast = msg => { setNotice(msg); window.setTimeout(() => setNotice(''), 2400) }
 
@@ -42,6 +43,7 @@ export default function MobileLandscapeDashboard({
   const mathZoneId = gradeNum === 9 ? 'grade9' : gradeNum === 8 ? 'grade8' : 'grade7'
   const ipaZoneId  = gradeNum === 9 ? 'ipa9'   : gradeNum === 8 ? 'ipa8'   : 'ipa7'
 
+  // Feed pet (quick action)
   const handleFeed = () => {
     if (pet?.isDead) { openPetShop?.(); return }
     setPetFed(true)
@@ -50,17 +52,35 @@ export default function MobileLandscapeDashboard({
     window.setTimeout(() => setPetFed(false), 1200)
   }
 
+  // Load last global chat message for preview
+  useEffect(() => {
+    fetch('/api/komunikasi/global/messages', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const msgs = d?.messages || []
+        if (msgs.length > 0) setGlobalPreview(msgs[msgs.length - 1])
+      })
+      .catch(() => {})
+  }, [])
+
+  // Handle nav: BLP opens externally, others use navigate
+  const handleNav = (id) => {
+    if (id === 'blp') { window.open(BLP_URL, '_blank', 'noopener'); return }
+    navigate(id)
+  }
+
   const RIGHT_ZONES = [
     { id: mathZoneId, bg: 'linear-gradient(160deg,#4a3fa8,#3c3489)', shadow: 'rgba(60,52,137,0.45)', icon: '➕', title: 'Zona Matematika', sub: `Kelas ${gradeNum}`, textColor: '#eeedfe', subColor: '#cecbf6' },
     { id: ipaZoneId,  bg: 'linear-gradient(160deg,#0d6b55,#085041)', shadow: 'rgba(8,80,65,0.45)',   icon: '🧪', title: 'Zona IPA',        sub: `Kelas ${gradeNum}`, textColor: '#e1f5ee', subColor: '#9fe1cb' },
     { id: 'arena',    bg: 'linear-gradient(160deg,#8c3518,#712b13)', shadow: 'rgba(113,43,19,0.5)', icon: '⚔️', title: 'Arena Tanding',  sub: 'Duel · Boss · MOBA', textColor: '#faece7', subColor: '#f5c4b3', badge: 'LIVE' },
   ]
 
+  // Bottom nav items — Profil replaced by BLP
   const NAV_ITEMS = [
     { icon: '🛒', label: 'Toko',    id: 'toko' },
     { icon: '🏅', label: 'Lencana', id: 'lencana' },
     { icon: '👑', label: 'Rank',    id: 'papanperingkat' },
-    { icon: '👤', label: 'Profil',  id: 'profile' },
+    { icon: '📚', label: 'BLP',     id: 'blp' },
   ]
 
   return (
@@ -73,8 +93,8 @@ export default function MobileLandscapeDashboard({
 
       {/* ── ZONA ATAS ─────────────────────────────── */}
       <header className="zd-topbar">
-        {/* Avatar + Nama */}
-        <div className="zd-identity">
+        {/* Avatar + Nama — klik avatar masuk ke profil */}
+        <div className="zd-identity" onClick={() => navigate('profile')} style={{ cursor: 'pointer' }} title="Profil saya">
           <UserAvatar user={user} size={30} />
           <div>
             <div className="zd-name">{firstName || user?.name || 'Siswa'}</div>
@@ -94,11 +114,10 @@ export default function MobileLandscapeDashboard({
           <div className="zd-xp-track"><div className="zd-xp-fill" style={{ width: `${levelProgress}%` }} /></div>
         </div>
 
-        {/* Coins + utils */}
+        {/* Coins + nilai shortcut */}
         <div className="zd-top-right">
           <div className="zd-coin-pill">🪙 {formatNumber(player?.coins)}</div>
           <div className="zd-icon-btn" onClick={() => navigate('grades')} title="Nilai">📊</div>
-          <div className="zd-icon-btn" onClick={() => navigate('profile')} title="Profil">⚙️</div>
         </div>
       </header>
 
@@ -139,7 +158,6 @@ export default function MobileLandscapeDashboard({
           <div className="zd-quick-row">
             <div className="zd-quick-chip" onClick={() => navigate('hafalan')}>📖 <span>Hafalan</span></div>
             <div className="zd-quick-chip accent" onClick={() => navigate('latihan-ujian')}>✏️ <span>Ujian</span></div>
-            <div className="zd-quick-chip" onClick={() => navigate('komunikasi')}>💬 <span>Chat</span></div>
           </div>
         </div>
 
@@ -147,7 +165,23 @@ export default function MobileLandscapeDashboard({
         <div className="zd-col-center">
           {/* Pet area */}
           <div className="zd-pet-area">
-            <div className="zd-welcome">Selamat datang, {firstName}!</div>
+            {/* Welcome + global chat HUD */}
+            <div className="zd-welcome-row">
+              <div className="zd-welcome">Selamat datang, {firstName}!</div>
+              {/* Global Chat HUD */}
+              <div className="zd-global-chat-hud" onClick={() => navigate('komunikasi', { initialTab: 'global' })}>
+                <span className="zd-gchat-icon">🌐</span>
+                <div className="zd-gchat-body">
+                  <div className="zd-gchat-label">Chat Global</div>
+                  <div className="zd-gchat-preview">
+                    {globalPreview
+                      ? <><span className="zd-gchat-sender">{globalPreview.sender_name?.split(' ')[0] || '—'}:</span> {(globalPreview.body || '').slice(0, 36)}{(globalPreview.body || '').length > 36 ? '…' : ''}</>
+                      : 'Belum ada pesan — mulai dulu!'}
+                  </div>
+                </div>
+                <span className="zd-gchat-arrow">›</span>
+              </div>
+            </div>
 
             <div className="zd-pet-stage">
               <div className="zd-pet-shadow" />
@@ -158,35 +192,30 @@ export default function MobileLandscapeDashboard({
 
             <div className="zd-pet-name">{petName}</div>
 
-            {/* Hunger bar */}
-            <div className="zd-hunger-card">
-              <div className="zd-hunger-labels">
-                <span>Lapar</span>
-                <span style={{ color: hungerColor }}>{hungerPct}%</span>
-              </div>
-              <div className="zd-bar-wrap">
-                <div className="zd-bar-fill" style={{ width: `${hungerPct}%`, background: `linear-gradient(90deg,${hungerColor},${hungerColor}88)` }} />
-              </div>
-            </div>
-
-            {/* Pet actions */}
-            <div className="zd-pet-actions">
-              <button className="zd-feed-btn" onClick={handleFeed}>
-                {pet?.isDead ? '💊 Hidupkan' : '🍖 Beri Makan'}
-              </button>
-              <button className="zd-shop-btn" onClick={() => navigate('toko')}>🛍</button>
-            </div>
+            {/* Shop shortcut (small, stays in center) */}
+            <button className="zd-shop-btn-sm" onClick={() => navigate('toko')}>🛍 Toko</button>
           </div>
 
-          {/* Bottom nav bar */}
+          {/* Bottom bar: [hunger HUD] [nav items] */}
           <div className="zd-bottom-bar">
-            <div className="zd-chat-preview" onClick={() => navigate('komunikasi')}>
-              <span>💬</span>
-              <span className="zd-chat-text">Chat kelas...</span>
-              {pendingTaskCount > 0 && <div className="zd-badge">{pendingTaskCount}</div>}
+            {/* Hunger mini HUD — replaces chat kelas */}
+            <div className="zd-hunger-hud">
+              <div className="zd-hunger-hud-bar-row">
+                <span className="zd-hunger-hud-label">
+                  {pet?.isDead ? '💀' : hungerPct > 60 ? '😊' : hungerPct > 30 ? '😕' : '😩'}
+                </span>
+                <div className="zd-hunger-hud-track">
+                  <div className="zd-hunger-hud-fill" style={{ width: `${hungerPct}%`, background: `linear-gradient(90deg,${hungerColor},${hungerColor}88)` }} />
+                </div>
+                <span className="zd-hunger-hud-pct" style={{ color: hungerColor }}>{hungerPct}%</span>
+              </div>
+              <button className="zd-feed-btn-mini" onClick={handleFeed}>
+                {pet?.isDead ? '💊 Hidupkan' : '🍖 Makan'}
+              </button>
             </div>
+
             {NAV_ITEMS.map(n => (
-              <div key={n.id} className="zd-nav-item" onClick={() => navigate(n.id)}>
+              <div key={n.id} className="zd-nav-item" onClick={() => handleNav(n.id)}>
                 <span className="zd-nav-icon">{n.icon}</span>
                 <span className="zd-nav-label">{n.label}</span>
               </div>
@@ -264,7 +293,8 @@ const CSS = `
     flex-shrink: 0;
     gap: 10px;
   }
-  .zd-identity { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .zd-identity { display: flex; align-items: center; gap: 8px; flex-shrink: 0; transition: opacity .15s; }
+  .zd-identity:hover { opacity: 0.82; }
   .zd-name { color: #f2ede3; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; }
   .zd-sub-row { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
   .zd-level-badge { background: #3c3489; border-radius: 3px; padding: 1px 5px; color: #cecbf6; font-size: 8px; font-weight: 700; }
@@ -319,7 +349,34 @@ const CSS = `
   /* ── Center col ── */
   .zd-col-center { display: flex; flex-direction: column; gap: 6px; min-height: 0; min-width: 0; }
   .zd-pet-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 4px; gap: 4px; min-height: 0; }
-  .zd-welcome { color: #8b8f9e; font-size: 9px; flex-shrink: 0; margin-bottom: auto; margin-top: 4px; }
+
+  /* Welcome row + global chat HUD */
+  .zd-welcome-row { width: 100%; display: flex; flex-direction: column; gap: 5px; margin-bottom: auto; margin-top: 4px; }
+  .zd-welcome { color: #8b8f9e; font-size: 9px; flex-shrink: 0; }
+
+  /* Global chat HUD */
+  .zd-global-chat-hud {
+    width: 100%;
+    background: rgba(28,35,64,0.82);
+    border: 0.5px solid #313a5c;
+    border-radius: 8px;
+    padding: 5px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: background .15s;
+    flex-shrink: 0;
+  }
+  .zd-global-chat-hud:hover { background: #2a3158; }
+  .zd-gchat-icon { font-size: 13px; flex-shrink: 0; }
+  .zd-gchat-body { flex: 1; min-width: 0; }
+  .zd-gchat-label { color: #cecbf6; font-size: 8px; font-weight: 700; margin-bottom: 1px; }
+  .zd-gchat-preview { color: #5a6180; font-size: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .zd-gchat-sender { color: #5dcaa5; font-weight: 600; }
+  .zd-gchat-arrow { color: #5a6180; font-size: 12px; flex-shrink: 0; }
+
   .zd-pet-stage {
     position: relative;
     flex-shrink: 0;
@@ -332,23 +389,38 @@ const CSS = `
     height: 10px;
     background: radial-gradient(ellipse, rgba(0,0,0,0.38) 0%, transparent 70%);
     border-radius: 50%;
-    margin-top: -4px; /* tucked under the pet's feet */
+    margin-top: -4px;
     flex-shrink: 0;
   }
   .zd-pet-sprite { filter: drop-shadow(0 4px 4px rgba(12,8,25,0.28)); }
   .zd-pet-sprite.zd-pet-fed { animation: zd-fed .4s ease-out; }
   .zd-pet-name { color: #f2ede3; font-size: 11px; font-weight: 600; flex-shrink: 0; }
-  .zd-hunger-card { width: 88%; background: rgba(28,35,64,0.75); border-radius: 7px; padding: 5px 8px; flex-shrink: 0; backdrop-filter: blur(6px); }
-  .zd-hunger-labels { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 7.5px; color: #5a6180; }
-  .zd-pet-actions { display: flex; gap: 5px; width: 88%; flex-shrink: 0; }
-  .zd-feed-btn { flex: 1; background: linear-gradient(135deg,#e2653f,#c94f2d); border: none; border-radius: 7px; padding: 5px 0; color: #fff; font-size: 9px; font-weight: 700; cursor: pointer; }
-  .zd-shop-btn { background: rgba(28,35,64,0.82); border: 0.5px solid #313a5c; border-radius: 7px; padding: 5px 10px; color: #8b8f9e; font-size: 14px; cursor: pointer; }
+  .zd-shop-btn-sm { background: rgba(28,35,64,0.82); border: 0.5px solid #313a5c; border-radius: 7px; padding: 4px 12px; color: #8b8f9e; font-size: 9px; cursor: pointer; flex-shrink: 0; font-family: inherit; }
 
   /* Bottom bar */
-  .zd-bottom-bar { display: flex; gap: 5px; flex-shrink: 0; }
-  .zd-chat-preview { flex: 1; background: rgba(28,35,64,0.85); border: 0.5px solid #313a5c; border-radius: 8px; padding: 5px 8px; display: flex; align-items: center; gap: 5px; cursor: pointer; min-width: 0; backdrop-filter: blur(6px); }
-  .zd-chat-text { color: #5a6180; font-size: 9px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .zd-badge { background: #e2653f; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 7px; font-weight: 700; flex-shrink: 0; }
+  .zd-bottom-bar { display: flex; gap: 5px; flex-shrink: 0; align-items: stretch; }
+
+  /* Hunger mini HUD — replaces chat kelas */
+  .zd-hunger-hud {
+    flex: 1;
+    background: rgba(28,35,64,0.85);
+    border: 0.5px solid #313a5c;
+    border-radius: 8px;
+    padding: 4px 7px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    backdrop-filter: blur(6px);
+    min-width: 0;
+  }
+  .zd-hunger-hud-bar-row { display: flex; align-items: center; gap: 4px; }
+  .zd-hunger-hud-label { font-size: 11px; flex-shrink: 0; line-height: 1; }
+  .zd-hunger-hud-track { flex: 1; height: 3px; background: #2a3158; border-radius: 2px; overflow: hidden; }
+  .zd-hunger-hud-fill { height: 3px; border-radius: 2px; transition: width .5s; }
+  .zd-hunger-hud-pct { font-size: 8px; font-weight: 700; flex-shrink: 0; }
+  .zd-feed-btn-mini { width: 100%; padding: 3px 0; background: linear-gradient(135deg,#e2653f,#c94f2d); border: none; border-radius: 5px; color: #fff; font-size: 8px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
   .zd-nav-item { background: rgba(28,35,64,0.85); border: 0.5px solid #313a5c; border-radius: 8px; padding: 5px 7px; min-width: 34px; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer; backdrop-filter: blur(6px); flex-shrink: 0; }
   .zd-nav-item:hover { background: #2a3158; }
   .zd-nav-icon { font-size: 14px; }
@@ -408,9 +480,9 @@ const CSS = `
 
   /* ── Compact landscape (height < 430px) ── */
   @media (max-height: 430px) {
-    .zd-welcome { display: none; }
-    .zd-hunger-card { padding: 3px 7px; }
+    .zd-welcome-row { display: none; }
     .zd-pet-name { font-size: 9px; }
+    .zd-shop-btn-sm { display: none; }
   }
 
   /* ── Portrait mobile — stack vertically ── */
@@ -427,7 +499,6 @@ const CSS = `
     .zd-col-right { order: 3; flex-direction: row; }
     .zd-door { flex: 1; flex-direction: column; text-align: center; padding: 10px 6px; gap: 4px; }
     .zd-door-icon { font-size: 20px; }
-    .zd-door-title { font-size: 9px; }
     .zd-door-sub, .zd-door-cta { display: none; }
     .zd-bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(18,23,43,0.96); border-top: 0.5px solid #1e2644; padding: 6px 12px; z-index: 50; backdrop-filter: blur(10px); }
     .zd-xp-wrap { display: none; }

@@ -16,8 +16,6 @@ import {
 const TABS = [
   { id: 'event',    icon: '🎉' },
   { id: 'pet_skin', icon: '🐾' },
-  { id: 'bingkai',  icon: '🖼️' },
-  { id: 'spanduk',  icon: '🏳️' },
   { id: 'tema',     icon: '✨' },
 ]
 

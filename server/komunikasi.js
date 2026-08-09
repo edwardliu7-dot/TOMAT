@@ -595,4 +595,47 @@ router.post('/forum/:kelas/messages', async (req, res) => {
   }
 })
 
+// GET /api/komunikasi/global/messages — open channel for all authenticated users
+router.get('/global/messages', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `select g.id, g.sender_id, g.sender_role, g.body, g.created_at,
+         case when g.sender_role = 'guru'
+           then (select name from gurus where id = g.sender_id::int)
+           else (select name from students where id = g.sender_id::int)
+         end as sender_name,
+         case when g.sender_role = 'siswa'
+           then (select photo_url from students where id = g.sender_id::int)
+           else (select photo_url from gurus where id = g.sender_id::int)
+         end as sender_photo_url
+       from pesan_global g
+       order by g.created_at asc
+       limit 200`
+    )
+    res.json({ messages: rows })
+  } catch (err) {
+    console.error('komunikasi/global get error', err)
+    res.status(500).json({ error: 'Gagal memuat chat global.' })
+  }
+})
+
+// POST /api/komunikasi/global/messages
+router.post('/global/messages', async (req, res) => {
+  try {
+    const user = currentUser(req)
+    const body = cleanBody(req.body?.body)
+    if (!body) return res.status(400).json({ error: 'Pesan tidak boleh kosong.' })
+    const { rows } = await pool.query(
+      `insert into pesan_global (sender_id, sender_role, body)
+       values ($1,$2,$3)
+       returning id, sender_id, sender_role, body, created_at`,
+      [String(user.id), user.role, body]
+    )
+    res.status(201).json({ message: rows[0] })
+  } catch (err) {
+    console.error('komunikasi/global post error', err)
+    res.status(500).json({ error: 'Gagal mengirim pesan global.' })
+  }
+})
+
 export default router

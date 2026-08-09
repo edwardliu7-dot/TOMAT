@@ -42,7 +42,7 @@ export default function LandscapeZonaMap({ navigate, goBack, grade: gradeProp })
   const gradeInfo = GRADE_DATA[activeGrade] || GRADE_DATA[7]
   const { babs } = gradeInfo
 
-  const GRADE_ROUTES = { 7:'grade7', 8:'grade8', 9:'grade9' }
+  const GRADE_ROUTES = { 7:'grade7-zone', 8:'grade8-zone', 9:'grade9-zone' }
 
   return (
     <div style={{ width:'100vw', height:'100vh', background:C.bg, fontFamily:'system-ui,sans-serif', display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>

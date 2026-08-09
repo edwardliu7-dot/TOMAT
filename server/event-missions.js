@@ -42,7 +42,7 @@ export const EVENT_MISSIONS = [
     accent: '#E11D48',
     goal: 17,
     unit: 'jawaban benar',
-    rewardItemId: 'bingkai_kemerdekaan',
+    rewardItemId: null,
     requires: [],
   },
   {
@@ -54,7 +54,7 @@ export const EVENT_MISSIONS = [
     accent: '#E11D48',
     goal: 8,
     unit: 'kemenangan duel',
-    rewardItemId: 'spanduk_kemerdekaan',
+    rewardItemId: null,
     requires: [],
   },
   {
@@ -243,16 +243,18 @@ export async function claimMissionReward(studentId, missionId) {
     if (!row || !row.completed_at)    throw new Error('Misi belum selesai.')
     if (row.reward_claimed_at)         throw new Error('Hadiah sudah diambil sebelumnya.')
 
-    const { rows: itemRows } = await client.query(
-      'select id from shop_items where id = $1', [mission.rewardItemId]
-    )
-    if (itemRows.length === 0) throw new Error('Item hadiah tidak ditemukan di katalog.')
+    if (mission.rewardItemId) {
+      const { rows: itemRows } = await client.query(
+        'select id from shop_items where id = $1', [mission.rewardItemId]
+      )
+      if (itemRows.length === 0) throw new Error('Item hadiah tidak ditemukan di katalog.')
 
-    await client.query(`
-      insert into student_inventory (student_id, item_id)
-      values ($1, $2)
-      on conflict (student_id, item_id) do nothing
-    `, [studentId, mission.rewardItemId])
+      await client.query(`
+        insert into student_inventory (student_id, item_id)
+        values ($1, $2)
+        on conflict (student_id, item_id) do nothing
+      `, [studentId, mission.rewardItemId])
+    }
 
     await client.query(`
       update event_mission_progress

@@ -708,6 +708,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const current = history[history.length - 1]
 
   const [komunikasiTarget, setKomunikasiTarget]     = useState(null)
+  const [komunikasiInitialTab, setKomunikasiInitialTab] = useState(null)
   const [duelState, setDuelState]                   = useState(null) // { code, myIndex, question, round, maxRounds, scores }
   const [tournamentMatchData, setTournamentMatchData] = useState(null)  // from tournament:your-match
   const [tournamentBanner,    setTournamentBanner]    = useState(null)  // show notification banner
@@ -753,6 +754,12 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     if (route === 'moba-match') {
       setMobaMatchId(options.matchId || null)
       setHistory(h => [...h, route])
+      return
+    }
+    if (route === 'komunikasi') {
+      if (options.initialTab) setKomunikasiInitialTab(options.initialTab)
+      setPendingTaskId(null)
+      setHistory(h => h.includes('komunikasi') ? h : [...h, route])
       return
     }
     {
@@ -941,12 +948,18 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
         grade7:        <LandscapeZonaMap navigate={navigate} goBack={goBack} grade={7} />,
         grade8:        <LandscapeZonaMap navigate={navigate} goBack={goBack} grade={8} />,
         grade9:        <LandscapeZonaMap navigate={navigate} goBack={goBack} grade={9} />,
+        'grade7-zone': <Grade7ZoneScreen navigate={navigate} goBack={goBack} />,
+        'grade8-zone': <Grade8ZoneScreen navigate={navigate} goBack={goBack} />,
+        'grade9-zone': <Grade9ZoneScreen navigate={navigate} goBack={goBack} />,
         ipa7:          <LandscapeZonaIPA navigate={navigate} goBack={goBack} />,
         ipa8:          <LandscapeZonaIPA navigate={navigate} goBack={goBack} />,
         ipa9:          <LandscapeZonaIPA navigate={navigate} goBack={goBack} />,
+        'ipa7-zone':   <Ipa7ZoneScreen  navigate={navigate} goBack={goBack} />,
+        'ipa8-zone':   <Ipa8ZoneScreen  navigate={navigate} goBack={goBack} />,
+        'ipa9-zone':   <Ipa9ZoneScreen  navigate={navigate} goBack={goBack} />,
         lencana:       <LandscapeLencana goBack={goBack} />,
         profile:       <LandscapeProfil  navigate={navigate} goBack={goBack} />,
-        komunikasi:    <LandscapeChat    navigate={navigate} goBack={goBack} initialTarget={komunikasiTarget} />,
+        komunikasi:    <LandscapeChat    navigate={navigate} goBack={goBack} initialTarget={komunikasiTarget} initialTab={komunikasiInitialTab} />,
         hafalan:       <LandscapeHafalan goBack={goBack} />,
         'latihan-ujian':<LandscapeLatihanUjian goBack={goBack} />,
         toko:          <LandscapeTokoScreen goBack={() => { setTokoInitialTab(null); goBack() }} />,

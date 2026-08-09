@@ -31,7 +31,7 @@ async function apiCall(path, options = {}) {
   return data
 }
 
-const TABS = ['event', 'bingkai', 'spanduk', 'tema', 'pet_skin']
+const TABS = ['event', 'tema', 'pet_skin']
 
 // ── Rarity helpers ────────────────────────────────────────────────────────────
 function getItemRarity(item) {
