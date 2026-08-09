@@ -137,11 +137,11 @@ function applyServerEvent(state, event, payload = {}) {
   }
 
   if (event === 'question_opened') {
-    const isSelfQuestion = !payload.playerId ||
-      payload.playerId === state.selfId ||
-      payload.playerId === state.self?.id ||
-      payload.playerId === state.self?.userId
-    if (!isSelfQuestion) return next
+    // Server already targets this event exclusively to the claiming player's
+    // socket — no need to re-verify on the client.  The old isSelfQuestion
+    // check could silently drop the question when state.self is not yet
+    // hydrated (e.g. between snapshot and re-render) or when userId types
+    // differ (number vs string).
     return {
       ...next,
       activeQuestion: {

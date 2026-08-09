@@ -336,6 +336,10 @@ export function createMobaMatchManager({
     if (!isRunningPhase(match.phase)) return fail(ERROR_CODES.INVALID_PHASE, { actionId })
     if (!player.connected) return fail(ERROR_CODES.PLAYER_DISCONNECTED, { actionId })
     if (player.stunUntil > now()) return fail(ERROR_CODES.PLAYER_STUNNED, { actionId })
+    // Block movement while a question is open so stale client-side intervals
+    // (e.g. joystick setInterval that captured a canAct=true closure) cannot
+    // cause the player to move away before answering.
+    if (player.questionSession) return fail(ERROR_CODES.PLAYER_STUNNED, { actionId })
 
     const normalized = normalizeDirection(direction)
     if (!normalized) return fail(ERROR_CODES.MOVE_INVALID_INPUT, { actionId })

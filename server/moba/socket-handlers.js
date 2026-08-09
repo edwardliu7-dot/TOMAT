@@ -628,6 +628,9 @@ export function createMobaSocketAdapter({
         },
       }, ack)
     }
+    // Keep playerSockets fresh so private events (question_opened) always reach
+    // the correct socket even if the connection was recycled since the last join.
+    adapter.playerSockets.set(socket.data.userId, socket.id)
     const result = action({
       matchId: socket.data.mobaMatchId,
       playerId: player.id,

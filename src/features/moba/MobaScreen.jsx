@@ -84,11 +84,21 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
   // inverted before being sent to the server — regardless of whether the
   // input came from the keyboard, analog joystick, or d-pad buttons.
   const isTeamB = state.self?.teamId === 'teamB'
+
+  // Use a ref so sendMove is a stable function reference. MobaJoystick keeps
+  // a setInterval that captures onMove at creation time; if sendMove changed
+  // every time canAct flipped the old interval would hold a stale closure
+  // with canAct=true and keep sending moves while a question is open.
+  const canActRef = React.useRef(canAct)
+  const isTeamBRef = React.useRef(isTeamB)
+  useEffect(() => { canActRef.current = canAct }, [canAct])
+  useEffect(() => { isTeamBRef.current = isTeamB }, [isTeamB])
+
   const sendMove = useCallback(direction => {
-    if (!canAct || !direction) return
-    const sent = isTeamB ? { x: -direction.x, y: -direction.y } : direction
+    if (!canActRef.current || !direction) return
+    const sent = isTeamBRef.current ? { x: -direction.x, y: -direction.y } : direction
     move({ direction: sent }).catch(() => {})
-  }, [canAct, move, isTeamB])
+  }, [move]) // stable: canAct/isTeamB read from refs, not closure
 
   useEffect(() => {
     const heldDirections = new Map()
