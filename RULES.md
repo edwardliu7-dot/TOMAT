@@ -260,11 +260,37 @@ export default function NamaGame({ goBack, difficulty = 'medium', survival = fal
 - **Kelas 8:** 38 game (BAB I–VII) — prefix `G8`
 - **Kelas 9:** 31 game (BAB I–V) — prefix `G9`
 
+### Dukungan Duel / Turnamen / MOBA per BAB
+Semua 53 game key di bawah ini sudah punya generator soal dan aktif di Duel, Turnamen, dan MOBA:
+
+| Kelas | BAB | Game Keys | Count |
+|-------|-----|-----------|-------|
+| 7 | BAB I — Bilangan Bulat | `katak`, `termometer`, `pabrikrobot`, `gembok`, `mercusuar`, `sporajamur`, `scanner` | 7 |
+| 7 | BAB II — Bilangan Rasional | `kokipizza`, `pipaair`, `bortambang`, `kabataku`, `baterai`, `timbanganemas`, `fokusteleskop` | 7 |
+| 7 | BAB III — Rasio & Perbandingan | `ramuanjus`, `kasirsihir`, `benteng`, `nakhoda`, `relkereta`, `brankas` | 6 |
+| 8 | BAB I — Bilangan Berpangkat | `g8selramuan`, `g8racunminiatur`, `g8kristal`, `g8fusienergi`, `g8mantraakar`, `g8geolog` | 6 |
+| 8 | BAB II — Teorema Pythagoras | `g8trebuchet`, `g8perisai`, `g8hartakarun`, `g8inspeksisudut`, `g8petaradar`, `g8taligantung` | 6 |
+| 8 | BAB III — PLSV | `g8gerbanglogika`, `g8katrol`, `g8gulungan`, `g8keretakuda` | 4 |
+| 9 | BAB I — SPLDV | `g9manifest`, `g9plotrute`, `g9interseksi`, `g9konsol`, `g9pasargalaksi` | 5 |
+| 9 | BAB II — Lingkaran | `g9kalibrasirada`, `g9orbit`, `g9shieldgaya`, `g9laserjuring`, `g9asteroid` | 5 |
+| 9 | BAB III — Bangun Ruang | `g9boksbaterai`, `g9refraktor`, `g9kuilalien`, `g9reaktorbahan`, `g9sinyalkerucut`, `g9bintang`, `g9upgradekapal` | 7 |
+
+**Aturan matematika generator soal:**
+- Semua jawaban slider **harus bilangan bulat positif**.
+- G7 BAB II: pola `p/q × n` dengan `n` kelipatan `q`.
+- G7 BAB III: perbandingan senilai → hasil pembagian bulat.
+- G8 BAB III (PLSV): bentuk `ax = c` atau `ax + b = c` → x bilangan bulat.
+- G9 BAB I (SPLDV): eliminasi/substitusi → x bilangan bulat.
+- G9 BAB II (Lingkaran): gunakan `π = 22/7`, jari-jari kelipatan 7.
+- G9 BAB III: gunakan pool hardcoded dengan nilai integer terverifikasi.
+
 ### Mendaftarkan Game Baru
 Setelah membuat file game, daftarkan di:
 1. `src/screens/Grade7ZoneScreen.jsx` / `Grade8ZoneScreen.jsx` / `Grade9ZoneScreen.jsx` (katalog & tampilan)
-2. `server/tournament-questions.js` — jika game akan tersedia di **Duel** atau **Turnamen**
-3. Konstanta `DUEL_GAME_KEYS` di multiplayer jika relevan
+2. `server/tournament-questions.js` — tambahkan generator ke objek `generators` (jawaban harus integer)
+3. `src/gamesCatalog.js` — tambahkan key ke `DUEL_GAME_KEYS`
+4. `server/moba/socket-handlers.js` — tambahkan key ke `GAME_KEY_TO_BAB`
+5. `src/features/moba/MobaQuestionModal.jsx` — tambahkan entry ke `GAME_INFO` (emoji, label, color)
 
 ---
 
@@ -283,6 +309,7 @@ Setelah membuat file game, daftarkan di:
 | Turnamen | `tournament:join`, `tournament:question`, `tournament:match-won` | Bracket turnamen |
 | Nananaga | `duel:use-immunity`, `tournament:use-immunity` | Skill pet khusus |
 | Misi Event | `mission:progress` | Server → client: progress misi bertambah (duel/turnamen). Minigame via REST `/gain` response `missionDeltas[]`. |
+| MOBA | `moba:join`, `moba:snapshot`, `moba:move`, `moba:question_opened`, `moba:answer`, `moba:scroll_claimed`, `moba:player_stunned`, `moba:player_update`, `moba:match_end` | Mode multiplayer 2D (lihat §21) |
 
 ### Aturan Multiplayer
 - State lobby/room disimpan **in-memory** (Map) — tidak persisten antar restart server.
@@ -374,6 +401,7 @@ Setelah membuat file game, daftarkan di:
 | Duel | `server/multiplayer.js`, `DuelKatakScreen.jsx`, `LobbyScreen.jsx` | |
 | Boss Raid | `server/boss-state.js`, `BossRaidScreen.jsx` | |
 | Turnamen | `server/tournament-*.js`, `TournamentMatchScreen.jsx` | |
+| MOBA | `server/moba/`, `src/features/moba/` | Lihat §21 |
 | Leaderboard | `server/papan-peringkat.js`, `LeaderboardScreen.jsx`, `LandscapeLeaderboard.jsx` | |
 | Chat/Forum (siswa) | `server/komunikasi.js`, `CommunicationScreen.jsx`, `LandscapeChat.jsx` | **Hanya siswa & sisi siswa.** Guru tidak punya tab Chat di TOMAT — guru balas dari GuruEOB5 |
 | Notifikasi | `server/notifications.js`, `AppNotificationBell` di `shared.jsx` | Mendukung field `source`: `'tomat'` atau `'blp'` — tampil sebagai pill badge di bell |
@@ -470,6 +498,64 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 - **Boss Raid** jawaban benar tidak terhubung ke `onCorrectAnswer` (intentional: co-op event dengan alur reward sendiri).
 
 ---
+
+## 21. MOBA — Mode Multiplayer 2D
+
+> File server: `server/moba/` — file client: `src/features/moba/`
+
+### Konsep
+Mode permainan multiplayer 2D berbasis node soal di arena overhead-view. Format: 1v1 / 2v2 / 3v3 dengan pet siswa sebagai karakter. MOBA berjalan **berdampingan** dengan mode individu — jangan matikan mode individu saat MOBA aktif.
+
+### File Utama
+| File | Tanggung Jawab |
+|------|----------------|
+| `server/moba/match-manager.js` | State match in-memory; lifecycle absolute-timestamp; timer injectable untuk test |
+| `server/moba/socket-handlers.js` | Adapter Socket.io → match-manager; bab-filtering dari `bab_locks` |
+| `server/moba/questions.js` | `createCurriculumQuestionGenerator()` — ambil soal dari `tournament-questions.js` per game key |
+| `server/moba/player-state.js` | Validasi & update state pemain; semua buff pet dihitung di sini |
+| `server/moba/pet-effects.js` | `applyPetEffects(playerState)` — Kelinsay/Monyang/Tomi/Nananaga buff |
+| `src/features/moba/MobaScreen.jsx` | Root MOBA (socket lifecycle, input handling, Team B direction flip) |
+| `src/features/moba/MobaArena.jsx` | Canvas render arena (tile grid, pet sprites, node markers) |
+| `src/features/moba/MobaQuestionModal.jsx` | Popup soal mini-game bertema per game key (`GAME_INFO` map) |
+| `src/features/moba/moba.css` | Style MOBA (CSS classes untuk modal, timer bar, badge game) |
+| `src/features/moba/MobaBattleLoader.jsx` | Loading gate sebelum masuk match (countdown + curriculum sync) |
+| `src/features/moba/MobaArenaMap.jsx` | Render peta arena (river, lane, spawn points, deposit zones, library) |
+
+### Arena & Tile Grid
+- Dunia **8.000 × 8.000 unit**, tile **32 unit** → grid 250×250.
+- Movement tetap **kontinu** dan **server-authoritative** (bukan tile-by-tile).
+- Layout arena "Diagonal X": river (NW→SE), lane (NE→SW), Team A spawn bawah-kiri, Team B spawn atas-kanan.
+- **Team B view di-flip 180° client-side** — koordinat dunia tetap sama di server.
+
+### Movement & Direction Flip
+- `sendMove(direction)` di `MobaScreen.jsx` menerapkan flip Team B **sebelum** mengirim ke server: `isTeamB ? { x: -direction.x, y: -direction.y } : direction`.
+- `MobaArena.handleMove` meneruskan arah **tanpa perubahan** — flip sudah ditangani di `sendMove`.
+- Mobile/tablet: analog joystick; laptop/desktop: tombol arah.
+
+### Question Nodes & Mini-Game
+- Node dibuat server-side, di-validate per arena, ada TTL, ada jarak interaksi, dan klaim bersifat **first-come-first-served** (sinkron).
+- Server menyertakan `gameKey` dan `gameLabel` di payload `moba:question_opened`.
+- Saat node diklaim, **movement diblokir** sampai soal dijawab atau timeout.
+- Jawaban **benar** → `moba:scroll_claimed` → deposit zone → reward koin.
+- Jawaban **salah** → `moba:player_stunned` → stun 3 detik.
+
+### Bab Filtering (Matchmaking)
+- `server/moba/socket-handlers.js` — `GAME_KEY_TO_BAB` memetakan **semua 53 game key** ke BAB I/II/III.
+- `formMatchmakingGroup()` query `bab_locks` untuk grade **terendah** dalam group, lalu filter game key yang babnya terkunci.
+
+### GAME_INFO di Modal
+- `src/features/moba/MobaQuestionModal.jsx` punya map `GAME_INFO` dengan **53 entri** (emoji, label, accent color) untuk semua game key.
+- Jika game key baru ditambahkan: wajib tambahkan ke `GAME_INFO`, `GAME_KEY_TO_BAB`, `DUEL_GAME_KEYS`, dan `generators` di `tournament-questions.js`.
+
+### Rollout Gate
+- `MOBA_ENABLED=true` env var mengaktifkan mode MOBA untuk semua.
+- `MOBA_ALLOWED_STUDENT_IDS` (comma-separated) untuk allowlist demo.
+- Perubahan env baru berlaku setelah **workflow server di-restart**.
+
+### Reward & Settlement
+- Hasil match final disimpan ke DB (idempotent).
+- Reward pemenang: **1 koin per poin** yang dikumpulkan di deposit zone.
+- Durasi match: **7 menit** (gelombang-2 soal mulai menit ke-5).
 
 ---
 
@@ -611,4 +697,4 @@ Ke-11 screen landscape hanya dipakai saat `isLandscapeMobile = true` (hook `useL
 
 ---
 
-*Terakhir diperbarui: 9 Agustus 2026 — §20 ditambahkan: ZonaDashboard (beranda siswa 3-kolom universal). §5 diperbarui: landscape router + route `arena`. §9 diperbarui: FloatingPet dihapus dari render. §12 diperbarui: tabel fitur mencakup semua landscape screens. §2 diperbarui: struktur folder `src/hooks/`, `src/screens/landscape/`, `public/wallpaper-dashboard.png`, catatan FloatingPet. Update file ini setiap kali ada perubahan arsitektur signifikan.*
+*Terakhir diperbarui: 9 Agustus 2026 — §21 ditambahkan: MOBA mode multiplayer 2D (match manager, socket contract, arena map, question nodes, bab filtering, GAME\_KEY\_TO\_BAB, rollout gate). §7 diperbarui: tabel 53 game key per BAB yang sudah mendukung Duel/Turnamen/MOBA, aturan matematika generator soal, dan checklist 5 file wajib saat mendaftarkan game baru. §8 diperbarui: event MOBA. §12 diperbarui: baris MOBA. Update file ini setiap kali ada perubahan arsitektur signifikan.*
