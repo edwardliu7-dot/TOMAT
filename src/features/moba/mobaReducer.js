@@ -228,8 +228,21 @@ function applyServerEvent(state, event, payload = {}) {
         ...payload,
         status: 'matched',
         matchId: payload.matchId || payload.snapshot?.id || null,
+        countdownStarted: false,
       },
       lastEvent: event,
+    }
+  }
+
+  if (event === 'match_countdown') {
+    return {
+      ...next,
+      matchmaking: {
+        ...next.matchmaking,
+        countdownStarted: true,
+      },
+      lastEvent: event,
+      eventFeed: addFeed(next, event, payload),
     }
   }
 

@@ -9,7 +9,9 @@
 
 import { randomUUID } from 'node:crypto'
 import {
+  DEPOSIT_ZONES,
   ERROR_CODES,
+  DEFAULT_MOBA_CONFIG,
   DEFAULT_POSITION_BY_TEAM,
   MAP_WALLS,
   PHASES,
@@ -131,6 +133,7 @@ function clearLifecycleTimers(manager, match) {
   clearTimer(manager, match, 'countdown')
   clearTimer(manager, match, 'finish')
   clearTimer(manager, match, 'cleanup')
+  clearTimer(manager, match, 'wave2')
   // Reserved for the node subsystem added on Day 4.
   clearTimer(manager, match, 'spawn')
   for (const node of match.activeNodes.values()) {
@@ -401,7 +404,6 @@ export function createMobaMatchManager({
     matchId,
     playerId,
     actionId,
-    targetId,
     scrollId,
   } = {}) {
     if (!actionId) return fail(ERROR_CODES.ACTION_ID_REQUIRED)
@@ -415,95 +417,80 @@ export function createMobaMatchManager({
     if (!isRunningPhase(match.phase)) return fail(ERROR_CODES.INVALID_PHASE, { actionId })
     if (!player.connected) return fail(ERROR_CODES.PLAYER_DISCONNECTED, { actionId })
     if (player.stunUntil > now()) return fail(ERROR_CODES.PLAYER_STUNNED, { actionId })
-    if (!isTeamId(targetId) || targetId === player.teamId) {
-      return fail(ERROR_CODES.INVALID_DEPOSIT_TARGET, { actionId })
-    }
 
-    const targetTeam = match.teams[targetId]
-    const scoringTeam = match.teams[player.teamId]
-    const targetBase = getBasePosition(targetId)
-    if (distanceBetween(player.position, targetBase) > match.config.depositInteractionRadius) {
+    // Find the nearest scoring zone for this player's team (located in enemy territory).
+    // Zone.team === player.teamId means "this team scores here".
+    const scoringZones = DEPOSIT_ZONES.filter(z => z.team === player.teamId && !z.isLibrary)
+    let nearestZone = null
+    let nearestDist = Infinity
+    for (const zone of scoringZones) {
+      const d = distanceBetween(player.position, zone)
+      if (d < nearestDist) { nearestDist = d; nearestZone = zone }
+    }
+    if (!nearestZone || nearestDist > match.config.depositInteractionRadius) {
       return fail(ERROR_CODES.INVALID_DEPOSIT_TARGET, { actionId, reason: 'too_far' })
     }
+
     const scrollIndex = player.scrolls.findIndex(scroll => scroll.id === scrollId)
     if (scrollIndex < 0) return fail(ERROR_CODES.SCROLL_NOT_OWNED, { actionId })
 
     const scroll = player.scrolls[scrollIndex]
-    const multiplier = getDepositMultiplier({
-      player,
-      config: match.config,
-    })
+    const multiplier = getDepositMultiplier({ player, config: match.config })
     const awardedPoints = Math.round(scroll.points * multiplier)
 
     player.scrolls.splice(scrollIndex, 1)
     player.score += awardedPoints
     player.deposits++
+
+    const scoringTeam = match.teams[player.teamId]
     scoringTeam.score += awardedPoints
 
-    let towerDestroyed = false
-    let baseDestroyed = false
-    if (!targetTeam.tower.destroyed) {
-      targetTeam.tower.points = Math.min(
-        targetTeam.tower.maxPoints,
-        targetTeam.tower.points + awardedPoints,
-      )
-      if (targetTeam.tower.points >= targetTeam.tower.maxPoints) {
-        targetTeam.tower.destroyed = true
-        towerDestroyed = true
-        match.phase = PHASES.RUNNING_MAIN_BASE
-      }
-    } else {
-      targetTeam.base.points = Math.min(
-        targetTeam.base.maxPoints,
-        targetTeam.base.points + awardedPoints,
-      )
-      targetTeam.base.hp = Math.max(0, targetTeam.base.hp - awardedPoints)
-      baseDestroyed = targetTeam.base.hp === 0
+    // Box fill: fill this zone's box; complete when reaching boxCapacity.
+    const boxCapacity = match.config.boxCapacity || DEFAULT_MOBA_CONFIG.boxCapacity || 100
+    const depositBoxes = match.depositBoxes || new Map()
+    const zoneState = depositBoxes.get(nearestZone.id) || { fill: 0, completedBoxes: 0 }
+    zoneState.fill += awardedPoints
+    let boxCompleted = false
+    while (zoneState.fill >= boxCapacity) {
+      zoneState.fill -= boxCapacity
+      zoneState.completedBoxes++
+      boxCompleted = true
     }
+    depositBoxes.set(nearestZone.id, zoneState)
+    if (!match.depositBoxes) match.depositBoxes = depositBoxes
 
     match.eventSeq++
     const result = ok({
       actionId,
       playerId,
-      targetId,
+      zoneId: nearestZone.id,
       scrollId,
       awardedPoints,
-      tower: { ...targetTeam.tower },
-      base: { ...targetTeam.base },
-      towerDestroyed,
-      baseDestroyed,
-      phase: match.phase,
+      boxFill: zoneState.fill,
+      completedBoxes: zoneState.completedBoxes,
+      boxCompleted,
+      teamScore: scoringTeam.score,
       snapshot: sanitizeMatchState(match),
     })
     rememberAction(player, actionId, result, match)
     emit(match, 'scroll_deposited', {
       playerId,
-      targetId,
+      zoneId: nearestZone.id,
       scrollId,
       awardedPoints,
-      tower: { ...targetTeam.tower },
-      base: { ...targetTeam.base },
+      boxFill: zoneState.fill,
+      completedBoxes: zoneState.completedBoxes,
+      boxCompleted,
+      teamScore: scoringTeam.score,
       snapshot: result.snapshot,
     })
-    if (towerDestroyed) {
-      emit(match, 'tower_destroyed', {
-        targetId,
-        phase: match.phase,
+    if (boxCompleted) {
+      emit(match, 'box_completed', {
+        zoneId: nearestZone.id,
+        teamId: player.teamId,
+        completedBoxes: zoneState.completedBoxes,
         snapshot: result.snapshot,
       })
-    }
-
-    if (baseDestroyed) {
-      const finishResult = finishMatch(match.id, {
-        reason: 'base_destroyed',
-        result: { winner: player.teamId, defeated: targetId },
-      })
-      return {
-        ...result,
-        phase: finishResult.snapshot.phase,
-        winner: player.teamId,
-        snapshot: finishResult.snapshot,
-      }
     }
     return result
   }
@@ -531,7 +518,7 @@ export function createMobaMatchManager({
     return match || fail(ERROR_CODES.MATCH_NOT_FOUND)
   }
 
-  function createMatch({ matchId, teamSize = 1, config = {}, createdAt = now() } = {}) {
+  function createMatch({ matchId, teamSize = 1, config = {}, createdAt = now(), questionGeneratorOverride = null } = {}) {
     if (!isValidTeamSize(teamSize)) {
       return fail(ERROR_CODES.INVALID_TEAM_SIZE, {
         allowedTeamSizes: [...TEAM_SIZES],
@@ -549,6 +536,9 @@ export function createMobaMatchManager({
       config,
       now: createdAt,
     })
+    if (typeof questionGeneratorOverride === 'function') {
+      match.questionGeneratorOverride = questionGeneratorOverride
+    }
     matches.set(match.id, match)
     emit(match, 'match_created', { snapshot: sanitizeMatchState(match) })
     return ok({ matchId: match.id, snapshot: sanitizeMatchState(match) })
@@ -728,6 +718,17 @@ export function createMobaMatchManager({
     match.timers.finish = manager.setTimeout(() => {
       finishMatch(match.id, { reason: 'time_expired' })
     }, match.config.durationMs)
+
+    // Wave 2: increase node density at wave2StartMs (default 5 min into 7-min match)
+    if (match.config.wave2StartMs > 0) {
+      match.timers.wave2 = manager.setTimeout(() => {
+        if (!isRunningPhase(match.phase)) return
+        match.config.maxActiveNodes = match.config.wave2MaxActiveNodes || match.config.maxActiveNodes
+        match.config.nodeSpawnIntervalMs = match.config.wave2SpawnIntervalMs || match.config.nodeSpawnIntervalMs
+        clearTimer(manager, match, 'spawn')
+        scheduleNextNodeSpawn(match)
+      }, match.config.wave2StartMs)
+    }
     scheduleNextNodeSpawn(match)
   }
 
@@ -872,7 +873,8 @@ export function createMobaMatchManager({
 
     let question
     try {
-      question = questionGenerator({
+      const gen = match.questionGeneratorOverride || questionGenerator
+      question = gen({
         difficulty: node.difficulty,
         node,
         match,
@@ -1147,6 +1149,43 @@ export function createMobaMatchManager({
     return ok({ matchId, snapshot: sanitizeMatchState(match) })
   }
 
+  /**
+   * Marks a player as having loaded their client. Once all players in the
+   * match have reported loaded, triggers the countdown automatically.
+   */
+  function markClientLoaded({ matchId, playerId } = {}) {
+    const match = getMatch(matchId)
+    if (!match) return fail(ERROR_CODES.MATCH_NOT_FOUND)
+    if (match.phase !== PHASES.LOBBY) {
+      return ok({ alreadyStarted: true, phase: match.phase })
+    }
+    const player = match.players.get(playerId)
+    if (!player) return fail(ERROR_CODES.PLAYER_NOT_IN_MATCH)
+
+    if (!match.clientLoadedIds) match.clientLoadedIds = new Set()
+    match.clientLoadedIds.add(playerId)
+
+    const allLoaded = [...match.players.values()].every(p =>
+      match.clientLoadedIds.has(p.id))
+    if (!allLoaded) {
+      return ok({
+        loaded: true,
+        allLoaded: false,
+        loadedCount: match.clientLoadedIds.size,
+        totalCount: match.players.size,
+      })
+    }
+
+    // All clients loaded — mark everyone ready and trigger countdown.
+    for (const p of match.players.values()) {
+      p.ready = true
+    }
+    match.eventSeq++
+    const startResult = tryStart(match)
+    if (!startResult.ok) return startResult
+    return { ...startResult, allLoaded: true }
+  }
+
   manager.getMatch = getMatch
   manager.findPlayerMatch = findPlayerMatch
   manager.listMatches = () => [...matches.values()].map(sanitizeMatchState)
@@ -1173,6 +1212,7 @@ export function createMobaMatchManager({
   manager.answerQuestion = answerQuestion
   manager.movePlayer = movePlayer
   manager.depositScroll = depositScroll
+  manager.markClientLoaded = markClientLoaded
   manager.clearAll = () => {
     for (const match of matches.values()) clearLifecycleTimers(manager, match)
     matches.clear()

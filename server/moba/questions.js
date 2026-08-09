@@ -6,6 +6,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import { genTournamentQ, SUPPORTED_TOURNAMENT_GAMES } from '../tournament-questions.js'
 
 function createId(prefix) {
   return `${prefix}-${randomUUID()}`
@@ -67,5 +68,60 @@ export function defaultQuestionGenerator({ difficulty = 'easy', random = Math.ra
     options: [String(answer), String(answer + 2), String(Math.max(1, answer - 3))],
     answer: String(answer),
     difficulty,
+  }
+}
+
+/**
+ * Creates a synchronous curriculum-based question generator for MOBA.
+ * Pulls questions from tournament-questions.js generators and wraps them
+ * as 4-option multiple-choice questions for the arena question modal.
+ *
+ * @param {string[]} gameKeys – tournament game keys to draw from
+ * @returns {function} question generator compatible with createMobaMatchManager()
+ */
+export function createCurriculumQuestionGenerator(gameKeys = []) {
+  return function({ random = Math.random } = {}) {
+    const filteredPool = gameKeys.filter(k => SUPPORTED_TOURNAMENT_GAMES.includes(k))
+    const effectivePool = filteredPool.length > 0 ? filteredPool : SUPPORTED_TOURNAMENT_GAMES
+    if (effectivePool.length === 0) return defaultQuestionGenerator({ random })
+
+    const gameKey = effectivePool[Math.floor(random() * effectivePool.length)]
+    let tournamentQ
+    try {
+      tournamentQ = genTournamentQ(gameKey)
+    } catch {
+      return defaultQuestionGenerator({ random })
+    }
+
+    const { question, answer } = tournamentQ
+    const correct = Number(answer)
+    if (!Number.isFinite(correct)) return defaultQuestionGenerator({ random })
+
+    // Generate 3 distinct wrong options
+    const wrongSet = new Set()
+    let attempts = 0
+    while (wrongSet.size < 3 && attempts < 50) {
+      attempts++
+      const delta = Math.floor(random() * 9) + 1
+      const wrong = random() < 0.5 ? correct + delta : correct - delta
+      if (wrong !== correct && Number.isFinite(wrong)) wrongSet.add(wrong)
+    }
+    // Guaranteed fallbacks
+    if (wrongSet.size < 3) wrongSet.add(correct + wrongSet.size + 10)
+    if (wrongSet.size < 3) wrongSet.add(correct - wrongSet.size - 10)
+    if (wrongSet.size < 3) wrongSet.add(correct + 20)
+
+    // Shuffle all 4 options
+    const options = [String(correct), ...[...wrongSet].slice(0, 3).map(String)]
+    for (let i = options.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1))
+      ;[options[i], options[j]] = [options[j], options[i]]
+    }
+
+    return {
+      prompt: question.text || question.prompt || gameKey,
+      options,
+      answer: String(correct),
+    }
   }
 }

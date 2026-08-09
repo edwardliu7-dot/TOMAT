@@ -79,95 +79,74 @@ export const ERROR_CODES = Object.freeze({
 export const POINTS_BY_DIFFICULTY = Object.freeze({
   [DIFFICULTIES.EASY]: 10,
   [DIFFICULTIES.MEDIUM]: 25,
-  [DIFFICULTIES.HARD]: 50,
+  [DIFFICULTIES.HARD]: 60,
 })
 
 // ── Map layout constants (world units: 80 000 × 80 000) ──────────────────────
-// Lane bands (shared, symmetrical L↔R)
+// Diagonal X map: river (NW→SE, y≈x) crosses lane (NE→SW, y≈80 000−x) at center.
+// Team A spawns bottom-left (4 500, 74 000), Team B spawns top-right (74 000, 4 500).
+// Team B sees the map flipped 180° (client-side) so both teams feel they spawn at bottom-left.
 export const MAP_LAYOUT = Object.freeze({
-  // top lane  y = 2 000 – 13 000
-  // upper jungle y = 15 000 – 33 000
-  // mid lane  y = 35 000 – 45 000
-  // lower jungle y = 47 000 – 65 000
-  // bot lane  y = 67 000 – 78 000
-  topLane:      Object.freeze({ minY:  2_000, maxY: 13_000 }),
-  upperJungle:  Object.freeze({ minY: 15_000, maxY: 33_000 }),
-  midLane:      Object.freeze({ minY: 35_000, maxY: 45_000 }),
-  lowerJungle:  Object.freeze({ minY: 47_000, maxY: 65_000 }),
-  botLane:      Object.freeze({ minY: 67_000, maxY: 78_000 }),
-  // Gap X positions in every divider wall (3 gaps per divider)
-  gapRanges: Object.freeze([
-    Object.freeze({ minX: 18_000, maxX: 22_000 }),
-    Object.freeze({ minX: 38_000, maxX: 42_000 }),
-    Object.freeze({ minX: 58_000, maxX: 62_000 }),
-  ]),
-  // Jungle node spawn areas (combines both jungles + lane corridors)
+  // River band: main diagonal, from top-left (0,0) to bottom-right (80 000,80 000)
+  // A point (px,py) is in the river if |py - px| < river.halfWidth
+  river: Object.freeze({ halfWidth: 7_000 }),
+  // Lane band: anti-diagonal, from top-right (80 000,0) to bottom-left (0,80 000)
+  // A point (px,py) is in the lane if |py - (80 000 − px)| < lane.halfWidth
+  lane:  Object.freeze({ halfWidth: 6_000 }),
+  // No horizontal wall gaps needed for diagonal map
+  gapRanges: Object.freeze([]),
+  // Node spawn bounds: full playable area (forest + river + lane)
   jungleBounds: Object.freeze([
-    Object.freeze({ minX:  2_000, maxX: 78_000, minY: 15_000, maxY: 33_000 }),
-    Object.freeze({ minX:  2_000, maxX: 78_000, minY: 47_000, maxY: 65_000 }),
-    Object.freeze({ minX: 22_000, maxX: 58_000, minY:  2_000, maxY: 13_000 }), // mid top lane
-    Object.freeze({ minX: 22_000, maxX: 58_000, minY: 67_000, maxY: 78_000 }), // mid bot lane
-    Object.freeze({ minX: 22_000, maxX: 58_000, minY: 35_000, maxY: 45_000 }), // mid lane center
+    Object.freeze({ minX: 6_000, maxX: 74_000, minY: 6_000, maxY: 74_000 }),
   ]),
 })
 
-// Deposit zones — team A deposits at right side boxes + own left library
-// team B deposits at left side boxes + own right library
+// Deposit zones — diagonal X map layout
+// Team A deposits at top-left corner boxes + 1 center box (near river crossing upper)
+// Team B deposits at bottom-right corner boxes + 1 center box (near river crossing lower)
+// Symmetric: from Team B's flipped 180° view, their deposit zones appear at top-left too.
 export const DEPOSIT_ZONES = Object.freeze([
-  Object.freeze({ id:'az-top',  team:'teamA', lane:'top',    x: 73_500, y:  7_500, maxPoints: 100, isLibrary: false }),
-  Object.freeze({ id:'az-mid',  team:'teamA', lane:'middle', x: 73_500, y: 40_000, maxPoints: 100, isLibrary: false }),
-  Object.freeze({ id:'az-bot',  team:'teamA', lane:'bottom', x: 73_500, y: 72_500, maxPoints: 100, isLibrary: false }),
-  Object.freeze({ id:'al-base', team:'teamA', lane:'base',   x:  5_500, y: 40_000, maxPoints: null, isLibrary: true }),
-  Object.freeze({ id:'bz-top',  team:'teamB', lane:'top',    x:  6_500, y:  7_500, maxPoints: 100, isLibrary: false }),
-  Object.freeze({ id:'bz-mid',  team:'teamB', lane:'middle', x:  6_500, y: 40_000, maxPoints: 100, isLibrary: false }),
-  Object.freeze({ id:'bz-bot',  team:'teamB', lane:'bottom', x:  6_500, y: 72_500, maxPoints: 100, isLibrary: false }),
-  Object.freeze({ id:'bl-base', team:'teamB', lane:'base',   x: 74_500, y: 40_000, maxPoints: null, isLibrary: true }),
+  // Team A scoring zones (A carries scrolls here)
+  Object.freeze({ id:'az-1',   team:'teamA', lane:'corner', x:  9_000, y:  8_000, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'az-2',   team:'teamA', lane:'corner', x:  7_000, y: 13_500, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'az-ctr', team:'teamA', lane:'center', x: 43_000, y: 33_000, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'al-base',team:'teamA', lane:'base',   x:  5_000, y: 75_000, maxPoints: null, isLibrary: true  }),
+  // Team B scoring zones (B carries scrolls here)
+  Object.freeze({ id:'bz-1',   team:'teamB', lane:'corner', x: 71_000, y: 66_500, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'bz-2',   team:'teamB', lane:'corner', x: 73_000, y: 71_000, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'bz-ctr', team:'teamB', lane:'center', x: 35_000, y: 45_500, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'bl-base',team:'teamB', lane:'base',   x: 75_000, y:  5_000, maxPoints: null, isLibrary: true  }),
 ])
 
 // Wall rectangles for server-side collision (player radius 28 checked against each rect)
+// Diagonal X map: only outer boundary walls — river and lane are fully traversable.
 export const MAP_WALLS = Object.freeze([
-  // Outer boundary
-  { x1:      0, y1:      0, x2: 80_000, y2:  2_000 }, // top
-  { x1:      0, y1: 78_000, x2: 80_000, y2: 80_000 }, // bot
-  { x1:      0, y1:  2_000, x2:  2_000, y2: 78_000 }, // left
-  { x1: 78_000, y1:  2_000, x2: 80_000, y2: 78_000 }, // right
-  // Top divider (y=13000-15000) — 4 segs with gaps at 18k-22k, 38k-42k, 58k-62k
-  { x1:  2_000, y1: 13_000, x2: 18_000, y2: 15_000 },
-  { x1: 22_000, y1: 13_000, x2: 38_000, y2: 15_000 },
-  { x1: 42_000, y1: 13_000, x2: 58_000, y2: 15_000 },
-  { x1: 62_000, y1: 13_000, x2: 78_000, y2: 15_000 },
-  // Mid-top divider (y=33000-35000)
-  { x1:  2_000, y1: 33_000, x2: 18_000, y2: 35_000 },
-  { x1: 22_000, y1: 33_000, x2: 38_000, y2: 35_000 },
-  { x1: 42_000, y1: 33_000, x2: 58_000, y2: 35_000 },
-  { x1: 62_000, y1: 33_000, x2: 78_000, y2: 35_000 },
-  // Mid-bot divider (y=45000-47000)
-  { x1:  2_000, y1: 45_000, x2: 18_000, y2: 47_000 },
-  { x1: 22_000, y1: 45_000, x2: 38_000, y2: 47_000 },
-  { x1: 42_000, y1: 45_000, x2: 58_000, y2: 47_000 },
-  { x1: 62_000, y1: 45_000, x2: 78_000, y2: 47_000 },
-  // Bot divider (y=65000-67000)
-  { x1:  2_000, y1: 65_000, x2: 18_000, y2: 67_000 },
-  { x1: 22_000, y1: 65_000, x2: 38_000, y2: 67_000 },
-  { x1: 42_000, y1: 65_000, x2: 58_000, y2: 67_000 },
-  { x1: 62_000, y1: 65_000, x2: 78_000, y2: 67_000 },
+  { x1:      0, y1:      0, x2: 80_000, y2:  2_000 }, // top border
+  { x1:      0, y1: 78_000, x2: 80_000, y2: 80_000 }, // bot border
+  { x1:      0, y1:  2_000, x2:  2_000, y2: 78_000 }, // left border
+  { x1: 78_000, y1:  2_000, x2: 80_000, y2: 78_000 }, // right border
 ].map(Object.freeze))
 
 export const DEFAULT_MOBA_CONFIG = Object.freeze({
-  durationMs: 600_000,
+  durationMs: 420_000,
   countdownMs: 3_000,
   cleanupGraceMs: 30_000,
   nodeSpawnIntervalMs: 8_000,
   nodeTtlMs: 20_000,
   questionTimeMs: 15_000,
   actionIdTtlMs: 60_000,
-  movementSpeed: 240,
+  movementSpeed: 10_000,
   movementMinIntervalMs: 40,
   // Movement is input-driven, not idle-time-driven. Without a cap, the first
   // input after the lobby countdown would spend all elapsed lobby time in one
   // step and often jump straight out of the arena.
-  movementMaxDeltaMs: 120,
+  movementMaxDeltaMs: 150,
   maxActiveNodes: 12,
+  wave2StartMs: 300_000,
+  wave2MaxActiveNodes: 20,
+  wave2SpawnIntervalMs: 4_000,
+  clientLoadTimeoutMs: 30_000,
+  boxCapacity: 100,
   nodeInteractionRadius: 72,
   depositInteractionRadius: 110,
   playerCollisionRadius: 28,
@@ -198,9 +177,11 @@ export const DEFAULT_MOBA_CONFIG = Object.freeze({
   monyangScrollCapacity: 2,
 })
 
+// Team A spawns at bottom-left, Team B at top-right.
+// Team B's view is flipped 180° on the client so both feel like they spawn at bottom-left.
 export const DEFAULT_POSITION_BY_TEAM = Object.freeze({
-  teamA: Object.freeze({ x:  4_000, y: 40_000, lane: 'middle' }),
-  teamB: Object.freeze({ x: 76_000, y: 40_000, lane: 'middle' }),
+  teamA: Object.freeze({ x:  4_500, y: 74_000, lane: 'base' }),
+  teamB: Object.freeze({ x: 74_000, y:  4_500, lane: 'base' }),
 })
 
 export function isValidTeamSize(teamSize) {

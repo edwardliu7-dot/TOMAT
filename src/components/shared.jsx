@@ -506,7 +506,7 @@ export function BannerSparkles({ color = '#93c5fd', count = 14 }) {
   )
 }
 
-export function PublicProfileModal({ profile, loading, error, onClose }) {
+export function PublicProfileModal({ profile, loading, error, onClose, onVisitProfile }) {
   const { user: currentUser } = useAuth()
 
   // Close on Escape key
@@ -715,10 +715,14 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
             <div style={{ display: 'flex', gap: 8, padding: '0 22px 18px', marginTop: 8 }}>
               <button
                 onClick={() => {
-                  // The modal already has the complete, access-checked profile.
-                  // Pass it along so the full profile screen does not make a
-                  // second request that can race or fail independently.
-                  window.dispatchEvent(new CustomEvent('tomat:visit-profile', { detail: profile }))
+                  // Use callback if provided (avoids re-triggering the popup loop).
+                  // The modal already has the complete, access-checked profile so
+                  // the full profile screen does not need to make a second request.
+                  if (onVisitProfile) {
+                    onVisitProfile(profile)
+                  } else {
+                    window.dispatchEvent(new CustomEvent('tomat:visit-profile', { detail: profile }))
+                  }
                   onClose()
                 }}
                 style={{
@@ -727,7 +731,7 @@ export function PublicProfileModal({ profile, loading, error, onClose }) {
                   background: 'rgba(255,255,255,0.06)', color: '#E2E8F0',
                   fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                 }}
-              >👤 Lihat Profil</button>
+              >👤 Kunjungi Profil</button>
 
               {profile.role === 'siswa' && currentUser?.role === 'siswa' && profile.id !== currentUser?.id && (
                 <button

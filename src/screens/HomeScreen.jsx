@@ -158,10 +158,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
   const nextTask = pendingTasks[0] || null
   const firstName = (user?.name || player?.name || 'Pelajar').split(' ')[0]
   const photoUrl = user?.photoUrl ?? user?.photo_url
-  const canUseDemoMoba = user?.role === 'siswa' && (
-    ['tomat-demo', 'tomat-demo-2'].includes(String(user.id)) ||
-    ['tomat', 'tomat2'].includes(String(user.username).toLowerCase())
-  )
+  const canUseDemoMoba = user?.role === 'siswa'
 
   useEffect(() => {
     if (!notice) return undefined
@@ -219,6 +216,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
         navigate={navigate}
         openPetShop={openPetShop}
         openEventShop={openEventShop}
+        onOpenApp={onOpenApp}
       />
     )
   }

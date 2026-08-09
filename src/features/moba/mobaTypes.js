@@ -45,6 +45,7 @@ export const MOBA_SERVER_EVENTS = Object.freeze([
   'matchmaking_status',
   'matchmaking_found',
   'matchmaking_error',
+  'box_completed',
 ])
 
 /**

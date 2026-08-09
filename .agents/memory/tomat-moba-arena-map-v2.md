@@ -1,49 +1,54 @@
 ---
-name: TOMAT MOBA Arena Map v2
-description: Layout peta 3-lane resmi dengan koordinat dunia, wall rects, deposit zones, dan jungle tiles.
+name: TOMAT MOBA arena map v2
+description: Diagonal X-map layout replacing the old 3-lane horizontal map; spawn corners, deposit zones, flip mechanic for Team B.
 ---
 
-## Map Layout (world 80,000 × 80,000)
+# TOMAT MOBA Arena Map v2 — Diagonal X Design
 
-| Area | Y range | % |
-|------|---------|---|
-| Outer wall top | 0–2000 | 0–2.5% |
-| Top lane | 2000–13000 | 2.5–16.25% |
-| Top divider wall | 13000–15000 | 16.25–18.75% |
-| Upper jungle | 15000–33000 | 18.75–41.25% |
-| Mid-top wall | 33000–35000 | 41.25–43.75% |
-| Mid lane | 35000–45000 | 43.75–56.25% |
-| Mid-bot wall | 45000–47000 | 56.25–58.75% |
-| Lower jungle | 47000–65000 | 58.75–81.25% |
-| Bot divider wall | 65000–67000 | 81.25–83.75% |
-| Bot lane | 67000–78000 | 83.75–97.5% |
-| Outer wall bot | 78000–80000 | 97.5–100% |
+**Map size**: 80,000 × 80,000 world units
 
-**Gap positions** in each divider: x=18000-22000, x=38000-42000, x=58000-62000 (3 gaps = 4 wall segments per divider row).
+## Layout
+- **River** (blue, transparent water): main diagonal, top-LEFT → bottom-RIGHT (y ≈ x). `halfWidth: 7,000`. Spawns scrolls + is traversable.
+- **Lane** (gray path): anti-diagonal, top-RIGHT → bottom-LEFT (y ≈ 80,000 − x). `halfWidth: 6,000`. Traversable.
+- **Jungle** (forest): 4 triangular zones between the diagonals. Scrolls spawn here too.
+- **Spawn border**: outer 7.5% of map (each side) = gray border area in CSS.
 
-## Spawn Positions
-- Team A base: x=4000, y=40000 (left, mid lane)
-- Team B base: x=76000, y=40000 (right, mid lane)
+## Team Spawns
+- **Team A**: (4,500, 74,000) = bottom-left corner
+- **Team B**: (74,000, 4,500) = top-right corner
 
-## Deposit Zones
-- Team A attacks RIGHT → lane boxes at x≈73500 (top/mid/bot y) + library at x≈5500
-- Team B attacks LEFT → lane boxes at x≈6500 + library at x≈74500
-- Lane boxes show `tower.points/100` and hide when `tower.destroyed` (using existing tower state — per-zone tracking is a follow-up)
+## Team B Flip Mechanic (client-side)
+- `isFlipped = self?.teamId === 'teamB'`
+- `toPosition(pos, arena, flip)` — when flip=true: `x = 100−x, y = 100−y`
+- Movement direction negated for Team B: `{ x: -dx, y: -dy }`
+- All dynamic elements (nodes, players, deposit boxes, bases, minimap dots) use flip
+- Static terrain (river/lane CSS diagonals) is 180°-symmetric so no flip needed
 
-## Server: Wall Collision
-- `MAP_WALLS` array (20 rects) exported from `server/moba/config.js`
-- `isBlockedByWall(pos, radius)` in `server/moba/match-manager.js` — nearest-point-on-rect distance check
-- Called in `movePlayer()` after arena bounds check
+**Why:** Both teams see themselves at bottom-left on their screens. Symmetric UX.
 
-## Server: Node Spawn
-- `isInsideAnyJungle(position)` + `isOnWall(position, radius)` in `server/moba/nodes.js`
-- Nodes spawn only inside `MAP_LAYOUT.jungleBounds` rectangles
+## Deposit Zones (server: DEPOSIT_ZONES)
+- **Team A** scores at: `az-1` (9k,8k), `az-2` (7k,13.5k) [top-left border], `az-ctr` (43k,33k) [center upper]
+- **Team B** scores at: `bz-1` (71k,66.5k), `bz-2` (73k,71k) [bottom-right border], `bz-ctr` (35k,45.5k) [center lower]
+- Libraries: `al-base` (5k,75k) = Team A bottom-left, `bl-base` (75k,5k) = Team B top-right
+- After flip, Team B sees their deposit boxes at the same relative position as Team A sees theirs (top-left of screen) ✓
 
-## Client: Visual Elements
-- `MobaArena.jsx` world layer order: terrain → grid → outer walls → lane bands → jungle zones → wall segments → trees → rocks → relics → deposit boxes → bases → nodes → players
-- CSS classes: `.moba-map-outer`, `.moba-lane-band`, `.moba-jungle-zone`, `.moba-wall-seg`, `.moba-forest-tree`, `.moba-forest-rock`, `.moba-deposit-box`, `.moba-deposit-library`
-- 28 trees + 14 rocks scattered across upper/lower jungle at deterministic % positions
+## Walls
+- Only outer boundary (4 walls). No horizontal lane dividers. River + lane fully traversable.
 
-**Why:** User requested clear 3-lane MOBA structure (vs prior oval decorative lanes), impassable walls with gaps, and visible task collection boxes at lane ends.
+## Node Spawn (jungleBounds)
+- Single rect: { minX:6k, maxX:74k, minY:6k, maxY:74k } — whole playable area (forest + river + lane)
 
-**How to apply:** If adding new game elements to the arena (e.g. objectives, power-ups), place them inside `MAP_LAYOUT.jungleBounds` or lane area bounds. Never place at base positions (x<8000 for A, x>72000 for B).
+## CSS Classes
+- `.moba-diagonal-river` — 141.5% wide, 10% tall, `rotate(45deg)`, animated water flow
+- `.moba-diagonal-lane` — 141.5% wide, 8% tall, `rotate(-45deg)`, gray path
+- `.moba-map-outer--*` — 7.5% thick (was 2.5%)
+- `.moba-jungle-map-lane` + `.moba-jungle-map-river` — minimap indicators, same rotation logic
+
+## Tree/Rock Positions
+Trees in 4 triangular zones (% coordinates):
+- TOP: [25,12], [50,10], [75,12], [38,20], [62,20]
+- BOTTOM: [25,88], [50,90], [75,88], [38,80], [62,80]
+- LEFT: [11,30], [11,50], [11,70], [21,40], [21,60]
+- RIGHT: [89,30], [89,50], [89,70], [79,40], [79,60]
+
+**Why safe:** All positions satisfy |y−x| > 10% (away from river) and |y−(100−x)| > 10% (away from lane).

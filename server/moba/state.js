@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto'
 import {
   DEFAULT_MOBA_CONFIG,
   DEFAULT_POSITION_BY_TEAM,
+  DEPOSIT_ZONES,
   DIFFICULTIES,
   MOBA_MODE,
   PET_TYPES,
@@ -162,8 +163,17 @@ export function createMatchState({
       spawn: null,
       finish: null,
       cleanup: null,
+      wave2: null,
     },
     eventSeq: 0,
+    // Loading gate: tracks which players have reported ready-to-play.
+    clientLoadedIds: new Set(),
+    // Box fill state per deposit zone (scoring zones only).
+    depositBoxes: new Map(
+      DEPOSIT_ZONES
+        .filter(z => !z.isLibrary)
+        .map(z => [z.id, { fill: 0, completedBoxes: 0 }]),
+    ),
   }
 }
 
@@ -302,6 +312,9 @@ export function sanitizeMatchState(match) {
     players: [...match.players.values()].map(publicPlayer),
     activeNodes: [...match.activeNodes.values()].map(publicNode),
     eventSeq: match.eventSeq,
+    depositBoxes: [...(match.depositBoxes?.entries() || [])].map(
+      ([id, s]) => ({ id, fill: s.fill, completedBoxes: s.completedBoxes }),
+    ),
   }
 }
 

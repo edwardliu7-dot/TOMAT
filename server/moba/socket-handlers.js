@@ -6,10 +6,12 @@
  */
 
 import { createMobaMatchManager } from './match-manager.js'
-import { ERROR_CODES, PET_TYPES, TEAM_SIZES } from './config.js'
+import { DEFAULT_MOBA_CONFIG, ERROR_CODES, PHASES, PET_TYPES, TEAM_SIZES } from './config.js'
 import { canStudentUseMoba } from './access.js'
 import { createMobaResultStore } from './results.js'
 import { computeHunger, getHungerUntil, skinToPetType } from '../pet-state.js'
+import { createCurriculumQuestionGenerator } from './questions.js'
+import { SUPPORTED_TOURNAMENT_GAMES } from '../tournament-questions.js'
 
 const ROOM_PREFIX = 'moba:match:'
 const DEFAULT_RECONNECT_GRACE_MS = 30_000
@@ -61,6 +63,8 @@ export function createMobaSocketAdapter({
 
   const reconnectTimers = new Map()
   const matchmakingQueues = new Map(TEAM_SIZES.map(teamSize => [teamSize, []]))
+  /** Per-match timers for the client-load timeout fallback. */
+  const loadTimeouts = new Map()
   let adapter
   const resultStore = suppliedResultStore || (pool
     ? createMobaResultStore({ pool })
@@ -359,8 +363,52 @@ export function createMobaSocketAdapter({
     return manager.listMatches().find(item => item.id === matchId) || null
   }
 
+  /** Maps a grade number to the tournament game keys appropriate for that grade. */
+  function getGameKeysForGrade(grade) {
+    const g8Keys = SUPPORTED_TOURNAMENT_GAMES.filter(k => k.startsWith('g8'))
+    const g9Keys = SUPPORTED_TOURNAMENT_GAMES.filter(k => k.startsWith('g9'))
+    const g7Keys = SUPPORTED_TOURNAMENT_GAMES.filter(k => !k.startsWith('g8') && !k.startsWith('g9'))
+    if (grade >= 9) return [...g9Keys, ...g8Keys, ...g7Keys].filter(Boolean)
+    if (grade >= 8) return [...g8Keys, ...g7Keys].filter(Boolean)
+    const keys = g7Keys.filter(Boolean)
+    return keys.length > 0 ? keys : SUPPORTED_TOURNAMENT_GAMES
+  }
+
   async function formMatchmakingGroup(teamSize, group) {
-    const created = manager.createMatch({ teamSize })
+    // ── 1. Detect each player's grade from the DB ─────────────────────────────
+    let lowestGrade = 7
+    if (pool) {
+      try {
+        const userIds = group.map(e => String(e.userId))
+        const { rows } = await pool.query(
+          'SELECT kelas FROM students WHERE id = ANY($1::text[])',
+          [userIds],
+        )
+        const grades = rows.map(r => {
+          const k = String(r.kelas || '').trim()
+          if (k.startsWith('IX')) return 9
+          if (k.startsWith('VIII')) return 8
+          return 7
+        })
+        if (grades.length > 0) lowestGrade = Math.min(...grades)
+      } catch (err) {
+        console.error('[moba] grade detection error:', err.message)
+      }
+    }
+
+    // ── 2. Build curriculum question generator for the lowest grade ───────────
+    let questionGeneratorOverride = null
+    try {
+      const gameKeys = getGameKeysForGrade(lowestGrade)
+      if (gameKeys.length > 0) {
+        questionGeneratorOverride = createCurriculumQuestionGenerator(gameKeys)
+      }
+    } catch (err) {
+      console.error('[moba] curriculum build error:', err.message)
+    }
+
+    // ── 3. Create match ───────────────────────────────────────────────────────
+    const created = manager.createMatch({ teamSize, questionGeneratorOverride })
     if (!created.ok) {
       group.forEach(entry => entry.socket.emit('moba:matchmaking_error', {
         code: created.error?.code || 'MATCH_CREATE_FAILED',
@@ -369,6 +417,7 @@ export function createMobaSocketAdapter({
       return null
     }
 
+    // ── 4. Join all players ───────────────────────────────────────────────────
     const joinedPlayers = []
     for (const entry of group) {
       const result = manager.joinMatch({
@@ -390,28 +439,14 @@ export function createMobaSocketAdapter({
       joinedPlayers.push({ entry, player: result.player })
     }
 
-    // Put every socket in the room before the ready events can start the
-    // countdown. This makes the match found event and the first countdown
-    // snapshot visible to all players, including the last one matched.
+    // ── 5. Put every socket in the room before events flow ────────────────────
     for (const { entry, player } of joinedPlayers) {
       await sendSnapshot(entry.socket, created.matchId, player.id)
     }
-    for (const { player } of joinedPlayers) {
-      const ready = manager.setReady({
-        matchId: created.matchId,
-        playerId: player.id,
-        ready: true,
-      })
-      if (!ready.ok) {
-        manager.cleanupMatch(created.matchId)
-        group.forEach(item => item.socket.emit('moba:matchmaking_error', {
-          code: ready.error?.code || 'MATCH_READY_FAILED',
-          message: ready.error?.message || 'Pertandingan belum dapat dimulai. Coba lagi.',
-        }))
-        return null
-      }
-    }
 
+    // ── 6. Emit matchmaking_found WITHOUT auto-readying ───────────────────────
+    // Players emit moba:client_loaded when their client is ready; that triggers
+    // the countdown instead of immediate auto-ready here.
     const snapshot = matchSnapshot(created.matchId)
     joinedPlayers.forEach(({ entry, player }) => {
       entry.socket.emit('moba:matchmaking_found', {
@@ -421,6 +456,22 @@ export function createMobaSocketAdapter({
         snapshot,
       })
     })
+
+    // ── 7. Safety timeout: auto-ready if clients take too long to load ────────
+    const timeoutMs = DEFAULT_MOBA_CONFIG.clientLoadTimeoutMs || 30_000
+    const timeoutId = setTimeout(() => {
+      loadTimeouts.delete(created.matchId)
+      const match = manager.getMatch(created.matchId)
+      if (!match || match.phase !== PHASES.LOBBY) return
+      console.log(`[moba] client load timeout for ${created.matchId}, auto-readying all`)
+      for (const p of match.players.values()) {
+        if (!p.ready) {
+          manager.setReady({ matchId: created.matchId, playerId: p.id, ready: true })
+        }
+      }
+    }, timeoutMs)
+    loadTimeouts.set(created.matchId, timeoutId)
+
     return { matchId: created.matchId, snapshot }
   }
 
@@ -591,6 +642,30 @@ export function createMobaSocketAdapter({
         ready: payload.ready !== false,
       })
       if (!result.ok) return emitError(socket, result, ack)
+      return safeAck(ack, result)
+    })
+
+    socket.on('moba:client_loaded', (payload = {}, ack) => {
+      if (!requireStudent(socket, ack)) return
+      const player = currentPlayer(socket)
+      if (!player) {
+        return emitError(socket, {
+          ok: false,
+          error: {
+            code: ERROR_CODES.PLAYER_NOT_IN_MATCH,
+            message: 'Gabung ke pertandingan MOBA terlebih dahulu.',
+          },
+        }, ack)
+      }
+      const matchId = socket.data.mobaMatchId
+      const result = manager.markClientLoaded({ matchId, playerId: player.id })
+      if (result?.ok === false) return emitError(socket, result, ack)
+      // When all players have loaded, the countdown starts automatically.
+      // Clear the safety auto-ready timeout since it's no longer needed.
+      if (result?.allLoaded === true || result?.startedCountdown === true) {
+        const tid = loadTimeouts.get(matchId)
+        if (tid) { clearTimeout(tid); loadTimeouts.delete(matchId) }
+      }
       return safeAck(ack, result)
     })
 

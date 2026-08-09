@@ -54,6 +54,7 @@ import LandscapeZonaMap from './screens/landscape/LandscapeZonaMap'
 import LandscapeZonaIPA from './screens/landscape/LandscapeZonaIPA'
 import LandscapeLencana from './screens/landscape/LandscapeLencana'
 import LandscapeProfil from './screens/landscape/LandscapeProfil'
+import LandscapePublicProfil from './screens/landscape/LandscapePublicProfil'
 import LandscapeChat from './screens/landscape/LandscapeChat'
 import LandscapeHafalan from './screens/landscape/LandscapeHafalan'
 import LandscapeLatihanUjian from './screens/landscape/LandscapeLatihanUjian'
@@ -84,10 +85,7 @@ const MOBA_TEST_ACCOUNT_IDS = new Set(['tomat-demo', 'tomat-demo-2'])
 const MOBA_TEST_ACCOUNT_USERNAMES = new Set(['tomat', 'tomat2'])
 
 function canUseDemoMoba(user) {
-  return user?.role === 'siswa' && (
-    MOBA_TEST_ACCOUNT_IDS.has(String(user.id)) ||
-    MOBA_TEST_ACCOUNT_USERNAMES.has(String(user.username).toLowerCase())
-  )
+  return user?.role === 'siswa'
 }
 
 // Toast shown when Nananaga's wrong-answer immunity activates during duel/tournament/survival.
@@ -326,7 +324,7 @@ function DailyBonusModal({ bonus, onDismiss }) {
 
 import IframeAppShell from './components/IframeAppShell'
 import GameDesktopWrapper from './components/GameDesktopWrapper'
-import { fetchPublicProfile, normalizeProfileTarget } from './components/shared'
+import { fetchPublicProfile, normalizeProfileTarget, PublicProfileModal } from './components/shared'
 import { getGameTheme, GameThemeOverlay, GameThemeStyles } from './gameTheme'
 
 // Auth-aware wrappers — need useAuth inside the PlayerProvider/AuthContext tree
@@ -715,6 +713,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [activeTournamentId,  setActiveTournamentId]  = useState(null)  // when we are spectating bracket
   const [publicProfileData, setPublicProfileData]   = useState(null)   // { ...profile }
   const [publicProfileError, setPublicProfileError] = useState('')
+  // Popup modal shown before navigating to the full profile screen
+  const [publicProfileModal, setPublicProfileModal] = useState(null)   // { loading, profile, error } | null
   const [duelInvite, setDuelInvite]                 = useState(null)   // { code, gameKey, from: { userId, name } }
   const [duelInviteCode, setDuelInviteCode]         = useState(null)   // auto-join code for LobbyScreen
   const [tokoInitialTab, setTokoInitialTab]         = useState(null)   // pre-select shop tab on open
@@ -790,15 +790,16 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     const onVisitProfile = async e => {
       let target
       try { target = normalizeProfileTarget(e.detail) } catch { return }
-      setPublicProfileError('')
+      // Show popup immediately with loading state
+      setPublicProfileModal({ loading: true, profile: null, error: null })
       try {
-        setPublicProfileData(target.photoUrl !== undefined || target.bio !== undefined
+        const profile = target.photoUrl !== undefined || target.bio !== undefined
           ? target
-          : await fetchPublicProfile(target))
+          : await fetchPublicProfile(target)
+        setPublicProfileModal({ loading: false, profile, error: null })
       } catch (error) {
-        setPublicProfileData({ id: target.id, role: target.role, name: target.name || 'Pengguna', profileError: error.message || 'Gagal memuat profil.' })
+        setPublicProfileModal({ loading: false, profile: null, error: error.message || 'Gagal memuat profil.' })
       }
-      setHistory(h => [...h, 'public-profile'])
     }
     const onInviteDuel = e => {
       const target = e.detail
@@ -959,6 +960,13 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
         'ipa9-zone':   <Ipa9ZoneScreen  navigate={navigate} goBack={goBack} />,
         lencana:       <LandscapeLencana goBack={goBack} />,
         profile:       <LandscapeProfil  navigate={navigate} goBack={goBack} />,
+        'public-profile': publicProfileData
+          ? <LandscapePublicProfil
+              profile={publicProfileData}
+              goBack={goBack}
+              onInviteDuel={(p) => setDuelInvitePending({ id: p.id, role: p.role || 'siswa', name: p.name || 'Siswa' })}
+            />
+          : null,
         komunikasi:    <LandscapeChat    navigate={navigate} goBack={goBack} initialTarget={komunikasiTarget} initialTab={komunikasiInitialTab} />,
         hafalan:       <LandscapeHafalan goBack={goBack} />,
         'latihan-ujian':<LandscapeLatihanUjian goBack={goBack} />,
@@ -1208,6 +1216,20 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
                     }
                   }}
                   onDismiss={() => setTournamentBanner(null)}
+                />
+              )}
+              {/* Public profile popup — shown when clicking another user's avatar */}
+              {publicProfileModal && (
+                <PublicProfileModal
+                  profile={publicProfileModal.profile}
+                  loading={publicProfileModal.loading}
+                  error={publicProfileModal.error}
+                  onClose={() => setPublicProfileModal(null)}
+                  onVisitProfile={(profile) => {
+                    setPublicProfileData(profile)
+                    setPublicProfileModal(null)
+                    setHistory(h => [...h, 'public-profile'])
+                  }}
                 />
               )}
               {/* Duel game picker — shown before sending a direct invite */}

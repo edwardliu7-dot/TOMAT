@@ -202,6 +202,8 @@ export function useMobaSocket({
       action('moba:state_snapshot', { matchId: requestedMatchId }), [action, matchId]),
     leave: useCallback((requestedMatchId = matchId) =>
       action('moba:leave', { matchId: requestedMatchId }), [action, matchId]),
+    clientLoaded: useCallback((requestedMatchId = matchId) =>
+      action('moba:client_loaded', { matchId: requestedMatchId }), [action, matchId]),
     clearError: useCallback(() => dispatch({ type: MOBA_ACTIONS.CLEAR_ERROR }), []),
     clearQuestionResult: useCallback(() =>
       dispatch({ type: MOBA_ACTIONS.CLEAR_QUESTION_RESULT }), []),

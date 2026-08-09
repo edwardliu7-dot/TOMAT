@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Gem, Map, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
+import { Map, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
 import MobaBase from './MobaBase.jsx'
 import MobaNode from './MobaNode.jsx'
 import MobaPet from './MobaPet.jsx'
@@ -28,13 +28,16 @@ function getArenaBounds(arena = {}) {
   }
 }
 
-function toPosition(position = {}, arena = DEFAULT_ARENA) {
+// flip=true flips coordinates 180° — used for Team B so they see the map as if they
+// also spawn at the bottom-left, matching the symmetric X-diagonal arena design.
+function toPosition(position = {}, arena = DEFAULT_ARENA, flip = false) {
   const bounds = getArenaBounds(arena)
-  const x = ((Number(position.x) - bounds.minX) / (bounds.maxX - bounds.minX)) * 100
-  const y = ((Number(position.y) - bounds.minY) / (bounds.maxY - bounds.minY)) * 100
+  let x = ((Number(position.x) - bounds.minX) / (bounds.maxX - bounds.minX)) * 100
+  let y = ((Number(position.y) - bounds.minY) / (bounds.maxY - bounds.minY)) * 100
+  if (flip) { x = 100 - x; y = 100 - y }
   return {
     left: `${Math.max(2, Math.min(98, Number.isFinite(x) ? x : 50))}%`,
-    top: `${Math.max(3, Math.min(97, Number.isFinite(y) ? y : 50))}%`,
+    top:  `${Math.max(3, Math.min(97, Number.isFinite(y) ? y : 50))}%`,
   }
 }
 
@@ -170,7 +173,7 @@ function MobaJoystick({ disabled, onMove }) {
   )
 }
 
-function MiniMap({ arena, players, nodes, selfId, onClose, compact = false }) {
+function MiniMap({ arena, players, nodes, selfId, onClose, compact = false, flip = false }) {
   return (
     <div className={`moba-jungle-map-pop${compact ? ' is-persistent' : ''}`}>
       <header>
@@ -184,21 +187,24 @@ function MiniMap({ arena, players, nodes, selfId, onClose, compact = false }) {
         </button>
       </header>
       <div className="moba-jungle-map-large">
+        <i className="moba-jungle-map-lane--top" />
+        <i className="moba-jungle-map-lane" />
+        <i className="moba-jungle-map-lane--bot" />
         <i className="moba-jungle-map-river" />
         <i className="moba-jungle-map-base moba-jungle-map-base--a" />
         <i className="moba-jungle-map-base moba-jungle-map-base--b" />
         {nodes.map(node => (
-          <i className="moba-jungle-map-node" key={node.id} style={toPosition(node.position, arena)} />
+          <i className="moba-jungle-map-node" key={node.id} style={toPosition(node.position, arena, flip)} />
         ))}
         {players.map(player => (
           <i
             className={`moba-jungle-map-player ${player.id === selfId || player.userId === selfId ? 'is-self' : ''}`}
             key={player.id}
-            style={toPosition(player.position, arena)}
+            style={toPosition(player.position, arena, flip)}
           />
         ))}
       </div>
-      <small>Gulungan tersebar di jalur hutan</small>
+      <small>Gulungan tersebar di hutan dan sungai</small>
     </div>
   )
 }
@@ -224,6 +230,32 @@ export default function MobaArena({
   const [mapOpen, setMapOpen] = useState(false)
   const [muted, setMuted] = useState(false)
   const bounds = getArenaBounds(arena)
+  // Team B sees the map flipped 180° so they also feel like they spawn at bottom-left
+  const isFlipped = self?.teamId === 'teamB'
+  const handleMove = (direction) => {
+    if (!direction) return
+    onMove?.(isFlipped ? { x: -direction.x, y: -direction.y } : direction)
+  }
+
+  // ── Facing direction: track the last horizontal direction per player ──────
+  // facingLeft[playerId] = true  → sprite faces left (mirrored)
+  //                        false → sprite faces right (normal)
+  // Up/down movement keeps whatever the last horizontal state was.
+  const prevPositionsRef = useRef({})
+  const facingLeftRef     = useRef({})
+  players.forEach(player => {
+    const id   = player.id || player.userId
+    const prev = prevPositionsRef.current[id]
+    const cur  = player.position
+    if (prev && cur) {
+      const dx = Number(cur.x) - Number(prev.x)
+      // Only update horizontal facing when there is meaningful horizontal delta
+      if (Math.abs(dx) > 0.5) {
+        facingLeftRef.current[id] = dx < 0
+      }
+    }
+    prevPositionsRef.current[id] = cur
+  })
   const tileSize = Number(arena.tileSize) > 0 ? Number(arena.tileSize) : 16
   const tileColumns = Number(arena.columns) > 0
     ? Number(arena.columns)
@@ -276,58 +308,34 @@ export default function MobaArena({
               '--moba-tile-rows': tileRows,
             }}
           >
-          {/* ── Base terrain ─────────────────────────────────── */}
+          {/* ── Base terrain ─────────────────────────────────────── */}
           <div className="moba-jungle-terrain" aria-hidden="true" />
           <div className="moba-jungle-grid" />
 
-          {/* ── Outer boundary walls ─────────────────────────── */}
-          <div className="moba-map-outer moba-map-outer--top"    aria-hidden="true" />
-          <div className="moba-map-outer moba-map-outer--bot"    aria-hidden="true" />
-          <div className="moba-map-outer moba-map-outer--left"   aria-hidden="true" />
-          <div className="moba-map-outer moba-map-outer--right"  aria-hidden="true" />
+          {/* ── Outer boundary walls / spawn zones ───────────────── */}
+          <div className="moba-map-outer moba-map-outer--top"   aria-hidden="true" />
+          <div className="moba-map-outer moba-map-outer--bot"   aria-hidden="true" />
+          <div className="moba-map-outer moba-map-outer--left"  aria-hidden="true" />
+          <div className="moba-map-outer moba-map-outer--right" aria-hidden="true" />
 
-          {/* ── Lane bands ───────────────────────────────────── */}
-          <div className="moba-lane-band moba-lane-band--top"    aria-hidden="true" />
-          <div className="moba-lane-band moba-lane-band--mid"    aria-hidden="true" />
-          <div className="moba-lane-band moba-lane-band--bot"    aria-hidden="true" />
-          <span className="moba-lane-label" style={{ top:'9.375%', left:'50%' }}>Lajur Atas</span>
-          <span className="moba-lane-label" style={{ top:'50%', left:'50%' }}>Lajur Tengah</span>
-          <span className="moba-lane-label" style={{ top:'90.625%', left:'50%' }}>Lajur Bawah</span>
+          {/* ── 3 diagonal lanes (top-right → bottom-left, gray path) ── */}
+          <div className="moba-diagonal-lane moba-diagonal-lane--top" aria-hidden="true" />
+          <div className="moba-diagonal-lane" aria-hidden="true" />
+          <div className="moba-diagonal-lane moba-diagonal-lane--bot" aria-hidden="true" />
 
-          {/* ── Jungle zones (darker green) ──────────────────── */}
-          <div className="moba-jungle-zone moba-jungle-zone--upper" aria-hidden="true" />
-          <div className="moba-jungle-zone moba-jungle-zone--lower" aria-hidden="true" />
+          {/* ── Diagonal river (top-left → bottom-right, water) ─────── */}
+          <div className="moba-diagonal-river" aria-hidden="true" />
 
-          {/* ── Wall dividers (4 dividers × 4 segments each) ─── */}
+          {/* ── Trees in 4 triangular jungle zones ───────────────── */}
           {[
-            '16.25%', // top divider   y=13000-15000
-            '41.25%', // mid-top       y=33000-35000
-            '56.25%', // mid-bot       y=45000-47000
-            '81.25%', // bot divider   y=65000-67000
-          ].map((top, di) => (
-            [
-              { left:'2.5%',  width:'20%'  }, // x=2000-18000
-              { left:'27.5%', width:'20%'  }, // x=22000-38000
-              { left:'52.5%', width:'20%'  }, // x=42000-58000
-              { left:'77.5%', width:'20%'  }, // x=62000-78000
-            ].map((seg, si) => (
-              <div key={`w${di}-${si}`} className="moba-wall-seg" aria-hidden="true"
-                style={{ top, height:'2.5%', left: seg.left, width: seg.width }} />
-            ))
-          ))}
-
-          {/* ── Forest tiles — trees (impassable, 16×16 units) ─ */}
-          {[
-            // Upper jungle (y ≈ 21-36%)
-            [7.5,21.25,false],[20,21.25,true],[32.5,21.25,false],[47.5,21.25,true],
-            [62.5,21.25,false],[77.5,21.25,true],[92.5,21.25,false],
-            [12.5,28.75,true],[25,28.75,false],[37.5,31.25,true],[50,28.75,false],
-            [62.5,31.25,true],[75,28.75,false],[87.5,31.25,true],
-            // Lower jungle (y ≈ 61-76%)
-            [7.5,61.25,false],[20,61.25,true],[32.5,61.25,false],[47.5,61.25,true],
-            [62.5,61.25,false],[77.5,61.25,true],[92.5,61.25,false],
-            [12.5,68.75,true],[25,68.75,false],[37.5,71.25,true],[50,68.75,false],
-            [62.5,71.25,true],[75,68.75,false],[87.5,71.25,true],
+            // TOP triangle  (small y, middle x)
+            [25,12,false],[50,10,true],[75,12,false],[38,20,true],[62,20,false],
+            // BOTTOM triangle (large y, middle x)
+            [25,88,true],[50,90,false],[75,88,true],[38,80,false],[62,80,true],
+            // LEFT triangle  (small x, middle y)
+            [11,30,false],[11,50,true],[11,70,false],[21,40,true],[21,60,false],
+            // RIGHT triangle (large x, middle y)
+            [89,30,true],[89,50,false],[89,70,true],[79,40,false],[79,60,true],
           ].map(([lp, tp, alt], i) => (
             <img key={`tr${i}`} aria-hidden="true"
               src={alt ? '/moba-arena/moba-tree-spring-alt.png' : '/moba-arena/moba-tree-spring.png'}
@@ -336,12 +344,12 @@ export default function MobaArena({
             />
           ))}
 
-          {/* ── Forest tiles — rocks (impassable, 6×6 units) ─── */}
+          {/* ── Rocks in 4 triangular jungle zones ───────────────── */}
           {[
-            [22.5,24.375],[47.5,24.375],[72.5,24.375],
-            [17.5,35],[37.5,35],[57.5,35],[77.5,35],
-            [22.5,64.375],[47.5,64.375],[72.5,64.375],
-            [17.5,75],[37.5,75],[57.5,75],[77.5,75],
+            [32,16],[55,17],[44,22],        // TOP
+            [32,84],[55,83],[44,78],        // BOTTOM
+            [16,30],[15,52],[16,70],        // LEFT
+            [84,30],[85,52],[84,70],        // RIGHT
           ].map(([lp, tp], i) => (
             <img key={`rk${i}`} aria-hidden="true"
               src="/moba-arena/FG_Grounds.png"
@@ -350,74 +358,76 @@ export default function MobaArena({
             />
           ))}
 
-          {/* ── Crystals & relics in jungle ──────────────────── */}
-          <img className="moba-jungle-relic moba-jungle-relic--1" style={{ left:'30%', top:'25%' }} src="/moba-arena/FG_Crystal_Blue_1.png" alt="" />
-          <img className="moba-jungle-relic moba-jungle-relic--2" style={{ left:'55%', top:'33%' }} src="/moba-arena/FG_Crystal_Gold_1.png" alt="" />
-          <img className="moba-jungle-relic moba-jungle-relic--3" style={{ left:'45%', top:'26%' }} src="/moba-arena/FG_Treasure_Big.png" alt="" />
-          <img className="moba-jungle-relic moba-jungle-relic--4" style={{ left:'30%', top:'65%' }} src="/moba-arena/FG_Crystal_Blue_1.png" alt="" />
-          <img className="moba-jungle-relic moba-jungle-relic--5" style={{ left:'55%', top:'73%' }} src="/moba-arena/FG_Crystal_Gold_1.png" alt="" />
-          <img className="moba-jungle-relic moba-jungle-relic--6" style={{ left:'45%', top:'66%' }} src="/moba-arena/FG_Treasure_Small_1.png" alt="" />
+          {/* ── Crystals & relics (one per triangular zone, two each) */}
+          <img className="moba-jungle-relic" style={{ left:'35%', top:'17%', animationDelay:'0s'     }} src="/moba-arena/FG_Crystal_Blue_1.png"    alt="" />
+          <img className="moba-jungle-relic" style={{ left:'62%', top:'19%', animationDelay:'.7s'    }} src="/moba-arena/FG_Crystal_Gold_1.png"    alt="" />
+          <img className="moba-jungle-relic" style={{ left:'17%', top:'36%', animationDelay:'1.4s'   }} src="/moba-arena/FG_Treasure_Big.png"      alt="" />
+          <img className="moba-jungle-relic" style={{ left:'17%', top:'62%', animationDelay:'2.1s'   }} src="/moba-arena/FG_Crystal_Blue_1.png"    alt="" />
+          <img className="moba-jungle-relic" style={{ left:'82%', top:'38%', animationDelay:'2.8s'   }} src="/moba-arena/FG_Crystal_Gold_1.png"    alt="" />
+          <img className="moba-jungle-relic" style={{ left:'82%', top:'61%', animationDelay:'1.1s'   }} src="/moba-arena/FG_Treasure_Small_1.png"  alt="" />
 
-          {/* ── Deposit boxes — Team A (attack right) ────────── */}
-          {/* Lane-end boxes: right side top/mid/bot */}
+          {/* ── Deposit boxes (6 total: 3 per team, positioned by world coords) */}
           {[
-            { top:'9.375%',  label:'Kotak A Atas',   lane:'top'    },
-            { top:'50%',     label:'Kotak A Tengah',  lane:'middle' },
-            { top:'90.625%', label:'Kotak A Bawah',   lane:'bottom' },
-          ].map((z, i) => {
-            const pts = match?.teams?.teamA?.tower?.points || 0
-            const dest = match?.teams?.teamA?.tower?.destroyed
-            return !dest && (
-              <div key={`az${i}`} className="moba-deposit-box moba-deposit-box--a" style={{ left:'91%', top: z.top }} title={z.label}>
+            // Team A deposit zones (A carries scrolls here; world top-left area + center)
+            { id:'az-1',   team:'teamA', x:  9_000, y:  8_000 },
+            { id:'az-2',   team:'teamA', x:  7_000, y: 13_500 },
+            { id:'az-ctr', team:'teamA', x: 43_000, y: 33_000 },
+            // Team B deposit zones (B carries scrolls here; world bottom-right area + center)
+            { id:'bz-1',   team:'teamB', x: 71_000, y: 66_500 },
+            { id:'bz-2',   team:'teamB', x: 73_000, y: 71_000 },
+            { id:'bz-ctr', team:'teamB', x: 35_000, y: 45_500 },
+          ].map(z => {
+            const pts = match?.teams?.[z.team]?.score || 0
+            const cls = z.team === 'teamA' ? 'moba-deposit-box--a' : 'moba-deposit-box--b'
+            return (
+              <div key={z.id} className={`moba-deposit-box ${cls}`}
+                style={toPosition(z, arena, isFlipped)} title={z.id}>
                 <span className="moba-deposit-box__icon">📚</span>
-                <span className="moba-deposit-box__pts">{i === 0 ? `${pts}/100` : '–/100'}</span>
-                <span className="moba-deposit-box__lbl">{z.lane === 'top' ? 'Atas' : z.lane === 'middle' ? 'Tgah' : 'Bwh'}</span>
+                <span className="moba-deposit-box__pts">{pts}</span>
               </div>
             )
           })}
-          {/* Base library — Team A's own base */}
-          <div className="moba-deposit-library moba-deposit-library--a" style={{ left:'4%', top:'48%' }}>
+
+          {/* ── Base libraries ─────────────────────────────────── */}
+          <div className="moba-deposit-library moba-deposit-library--a"
+            style={toPosition({ x: 5_000, y: 75_000 }, arena, isFlipped)}>
             <span>📖</span><small>Pustaka A</small>
           </div>
-
-          {/* ── Deposit boxes — Team B (attack left) ─────────── */}
-          {[
-            { top:'9.375%',  label:'Kotak B Atas',   lane:'top'    },
-            { top:'50%',     label:'Kotak B Tengah',  lane:'middle' },
-            { top:'90.625%', label:'Kotak B Bawah',   lane:'bottom' },
-          ].map((z, i) => {
-            const pts = match?.teams?.teamB?.tower?.points || 0
-            const dest = match?.teams?.teamB?.tower?.destroyed
-            return !dest && (
-              <div key={`bz${i}`} className="moba-deposit-box moba-deposit-box--b" style={{ left:'7.5%', top: z.top }} title={z.label}>
-                <span className="moba-deposit-box__icon">📚</span>
-                <span className="moba-deposit-box__pts">{i === 0 ? `${pts}/100` : '–/100'}</span>
-                <span className="moba-deposit-box__lbl">{z.lane === 'top' ? 'Atas' : z.lane === 'middle' ? 'Tgah' : 'Bwh'}</span>
-              </div>
-            )
-          })}
-          {/* Base library — Team B's own base */}
-          <div className="moba-deposit-library moba-deposit-library--b" style={{ left:'93%', top:'48%' }}>
+          <div className="moba-deposit-library moba-deposit-library--b"
+            style={toPosition({ x: 75_000, y: 5_000 }, arena, isFlipped)}>
             <span>📖</span><small>Pustaka B</small>
           </div>
 
-          <MobaBase team={match?.teams?.teamA} side="left" />
-          <MobaBase team={match?.teams?.teamB} side="right" />
+          {/* ── Team bases (corners: A=bottom-left, B=top-right) ── */}
+          <MobaBase team={match?.teams?.teamA} side="left"
+            style={{ ...toPosition({ x: 5_000, y: 75_000 }, arena, isFlipped), transform:'translateX(-50%) translateY(-50%)' }} />
+          <MobaBase team={match?.teams?.teamB} side="right"
+            style={{ ...toPosition({ x: 75_000, y: 5_000 }, arena, isFlipped), transform:'translateX(-50%) translateY(-50%)' }} />
+
+          {/* ── Question nodes ──────────────────────────────────── */}
           {nodes.map(node => (
             <MobaNode
               key={node.id}
               node={node}
-              style={toPosition(node.position, arena)}
+              style={toPosition(node.position, arena, isFlipped)}
               isNearby={Boolean(self && distanceBetween(self.position, node.position) <= interactionRadius)}
               onClaim={onClaimNode}
             />
           ))}
-          {players.map(player => (
-            <div key={player.id} className="moba11-positioned" style={toPosition(player.position, arena)}>
-              <MobaPet player={player} isSelf={player.id === selfId || player.userId === selfId} />
-            </div>
-          ))}
-          <div className="moba11-arena__center"><Gem size={19} /></div>
+
+          {/* ── Players ─────────────────────────────────────────── */}
+          {players.map(player => {
+            const pid = player.id || player.userId
+            return (
+              <div key={player.id} className="moba11-positioned" style={toPosition(player.position, arena, isFlipped)}>
+                <MobaPet
+                  player={player}
+                  isSelf={player.id === selfId || player.userId === selfId}
+                  facingLeft={facingLeftRef.current[pid] ?? false}
+                />
+              </div>
+            )
+          })}
         </div>
       </div>
       <div className="moba-jungle-hud" aria-label="Kontrol arena">
@@ -452,28 +462,25 @@ export default function MobaArena({
           >
             <Map size={16} />
           </button>
-          <MobaJoystick disabled={!canAct} onMove={onMove} />
+          <MobaJoystick disabled={!canAct} onMove={handleMove} />
           <div className="moba12-move-pad" role="group" aria-label="Tombol gerak Pet">
-            <MoveButton direction={{ x: 0, y: -1 }} onMove={onMove} disabled={!canAct} label="Gerak ke atas">↑</MoveButton>
+            <MoveButton direction={{ x: 0, y: -1 }} onMove={handleMove} disabled={!canAct} label="Gerak ke atas">↑</MoveButton>
             <div>
-              <MoveButton direction={{ x: -1, y: 0 }} onMove={onMove} disabled={!canAct} label="Gerak ke kiri">←</MoveButton>
-              <MoveButton direction={{ x: 1, y: 0 }} onMove={onMove} disabled={!canAct} label="Gerak ke kanan">→</MoveButton>
+              <MoveButton direction={{ x: -1, y: 0 }} onMove={handleMove} disabled={!canAct} label="Gerak ke kiri">←</MoveButton>
+              <MoveButton direction={{ x: 1, y: 0 }} onMove={handleMove} disabled={!canAct} label="Gerak ke kanan">→</MoveButton>
             </div>
-            <MoveButton direction={{ x: 0, y: 1 }} onMove={onMove} disabled={!canAct} label="Gerak ke bawah">↓</MoveButton>
+            <MoveButton direction={{ x: 0, y: 1 }} onMove={handleMove} disabled={!canAct} label="Gerak ke bawah">↓</MoveButton>
           </div>
         </div>
         <div className="moba-jungle-hint" role="status" aria-live="polite">
           <Sparkles size={12} /> {self?.displayName || 'Pet'} bergerak mengikuti analog
         </div>
         <MiniMap
-          compact
-          arena={arena}
-          players={players}
-          nodes={nodes}
-          selfId={selfId}
+          compact flip={isFlipped}
+          arena={arena} players={players} nodes={nodes} selfId={selfId}
           onClose={() => setMapOpen(true)}
         />
-        {mapOpen && <MiniMap arena={arena} players={players} nodes={nodes} selfId={selfId} onClose={() => setMapOpen(false)} />}
+        {mapOpen && <MiniMap arena={arena} players={players} nodes={nodes} selfId={selfId} flip={isFlipped} onClose={() => setMapOpen(false)} />}
       </div>
     </div>
   )

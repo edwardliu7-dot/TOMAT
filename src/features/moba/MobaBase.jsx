@@ -1,7 +1,7 @@
 import React from 'react'
 import { Crown } from 'lucide-react'
 
-export default function MobaBase({ team, side }) {
+export default function MobaBase({ team, side, style }) {
   if (!team) return null
   const tower = team.tower || { points: 0, maxPoints: 100, destroyed: false }
   const base = team.base || { hp: 100, maxPoints: 100, points: 0 }
@@ -13,7 +13,7 @@ export default function MobaBase({ team, side }) {
     : 0
 
   return (
-    <div className={`moba11-base moba11-base--${side}`}>
+    <div className={`moba11-base moba11-base--${side}`} style={style}>
       <div className="moba11-base__glow" />
       <div className="moba11-base__icon"><Crown size={21} /></div>
       <div className="moba11-base__title">{team.name || (side === 'left' ? 'Tim A' : 'Tim B')}</div>

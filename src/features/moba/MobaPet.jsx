@@ -15,7 +15,7 @@ const TEAM_COLORS = {
   teamB: '#7180dc',
 }
 
-export default function MobaPet({ player, isSelf = false }) {
+export default function MobaPet({ player, isSelf = false, facingLeft = false }) {
   const visualState = player?.mobaPetState
   const [clock, setClock] = useState(() => Date.now())
 
@@ -47,7 +47,7 @@ export default function MobaPet({ player, isSelf = false }) {
         {player.displayName || 'Pemain'}
         {isSelf ? ' · kamu' : ''}
       </div>
-      <div className="moba11-pet__sprite">
+      <div className="moba11-pet__sprite" style={facingLeft ? { transform: 'scaleX(-1)' } : undefined}>
         <PetSVG state={spriteState} skinId={player.petSkinId || 'golden'} size={48} />
         {isStunned && <span className="moba11-pet__stun" aria-label="Terkena stun">!</span>}
         {player.immunityAvailable && (

@@ -23,6 +23,7 @@ export default function MobileLandscapeDashboard({
   navigate,
   openPetShop,
   openEventShop,
+  onOpenApp,
 }) {
   const [notice, setNotice] = useState('')
   const [petFed, setPetFed] = useState(false)
@@ -91,9 +92,9 @@ export default function MobileLandscapeDashboard({
       .catch(() => {})
   }, [])
 
-  // Handle nav: BLP opens externally, others use navigate
+  // Handle nav: BLP opens via IframeAppShell overlay (same as AppSwitcher)
   const handleNav = (id) => {
-    if (id === 'blp') { window.open(BLP_URL, '_blank', 'noopener'); return }
+    if (id === 'blp') { onOpenApp?.({ src: BLP_URL, title: 'BLP Harian' }); return }
     navigate(id)
   }
 
@@ -358,9 +359,9 @@ const CSS = `
   .zd-xp-track { height: 4px; background: #1c2340; border-radius: 2px; overflow: hidden; }
   .zd-xp-fill { height: 4px; background: linear-gradient(90deg,#5dcaa5,#3aaa85); border-radius: 2px; transition: width .5s; }
   .zd-top-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-  .zd-coin-pill { background: #1c2340; border: 0.5px solid #313a5c; border-radius: 7px; padding: 4px 9px; color: #fac775; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 3px; }
-  .zd-icon-btn { background: #1c2340; border: 0.5px solid #313a5c; border-radius: 7px; width: 28px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; transition: background .15s; }
-  .zd-icon-btn:hover { background: #2a3158; }
+  .zd-coin-pill { background: rgba(28,35,64,0.30); border: 0.5px solid rgba(49,58,92,0.55); border-radius: 7px; padding: 4px 9px; color: #fac775; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 3px; }
+  .zd-icon-btn { background: rgba(28,35,64,0.30); border: 0.5px solid rgba(49,58,92,0.55); border-radius: 7px; width: 28px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; transition: background .15s; }
+  .zd-icon-btn:hover { background: rgba(42,49,88,0.55); }
 
   /* ── Body 3 cols ── */
   .zd-body {
@@ -395,10 +396,10 @@ const CSS = `
   .zd-task-note { color: #5a6180; font-size: 7.5px; }
   .zd-task-btn { margin-top: 7px; padding: 4px 10px; background: linear-gradient(135deg,#e2653f,#c94f2d); border: none; border-radius: 6px; color: #fff; font-size: 9px; font-weight: 700; cursor: pointer; }
   .zd-quick-row { display: flex; gap: 5px; flex-shrink: 0; }
-  .zd-quick-chip { flex: 1; background: rgba(28,35,64,0.82); border: 0.5px solid #313a5c; border-radius: 8px; padding: 5px 6px; display: flex; align-items: center; gap: 4px; font-size: 9px; color: #c9cdd8; cursor: pointer; white-space: nowrap; overflow: hidden; backdrop-filter: blur(6px); }
+  .zd-quick-chip { flex: 1; background: rgba(28,35,64,0.30); border: 0.5px solid rgba(49,58,92,0.55); border-radius: 8px; padding: 5px 6px; display: flex; align-items: center; gap: 4px; font-size: 9px; color: #c9cdd8; cursor: pointer; white-space: nowrap; overflow: hidden; backdrop-filter: blur(6px); }
   .zd-quick-chip span { overflow: hidden; text-overflow: ellipsis; }
-  .zd-quick-chip:hover { background: #2a3158; }
-  .zd-quick-chip.accent { background: linear-gradient(135deg,rgba(26,58,42,0.9),rgba(15,42,30,0.9)); border-color: #2a5040; color: #5dcaa5; }
+  .zd-quick-chip:hover { background: rgba(42,49,88,0.55); }
+  .zd-quick-chip.accent { background: linear-gradient(135deg,rgba(26,58,42,0.32),rgba(15,42,30,0.32)); border-color: rgba(42,80,64,0.7); color: #5dcaa5; }
 
   /* ── Center col ── */
   .zd-col-center { display: flex; flex-direction: column; gap: 6px; min-height: 0; min-width: 0; }
@@ -411,8 +412,8 @@ const CSS = `
   /* Global chat HUD */
   .zd-global-chat-hud {
     width: 100%;
-    background: rgba(28,35,64,0.82);
-    border: 0.5px solid #313a5c;
+    background: rgba(28,35,64,0.30);
+    border: 0.5px solid rgba(49,58,92,0.55);
     border-radius: 8px;
     padding: 5px 8px;
     display: flex;
@@ -423,7 +424,7 @@ const CSS = `
     transition: background .15s;
     flex-shrink: 0;
   }
-  .zd-global-chat-hud:hover { background: #2a3158; }
+  .zd-global-chat-hud:hover { background: rgba(42,49,88,0.55); }
   .zd-gchat-icon { font-size: 13px; flex-shrink: 0; }
   .zd-gchat-body { flex: 1; min-width: 0; }
   .zd-gchat-label { color: #cecbf6; font-size: 8px; font-weight: 700; margin-bottom: 1px; }
@@ -491,7 +492,7 @@ const CSS = `
     80%  { opacity: 0.6; transform: translateY(-22px) scale(0.9); }
     100% { opacity: 0; transform: translateY(-30px) scale(0.8); }
   }
-  .zd-shop-btn-sm { background: rgba(28,35,64,0.82); border: 0.5px solid #313a5c; border-radius: 7px; padding: 4px 12px; color: #8b8f9e; font-size: 9px; cursor: pointer; flex-shrink: 0; font-family: inherit; }
+  .zd-shop-btn-sm { background: rgba(28,35,64,0.30); border: 0.5px solid rgba(49,58,92,0.55); border-radius: 7px; padding: 4px 12px; color: #8b8f9e; font-size: 9px; cursor: pointer; flex-shrink: 0; font-family: inherit; }
 
   /* Bottom bar */
   .zd-bottom-bar { display: flex; gap: 5px; flex-shrink: 0; align-items: stretch; }
@@ -499,8 +500,8 @@ const CSS = `
   /* Hunger mini HUD — replaces chat kelas */
   .zd-hunger-hud {
     flex: 1;
-    background: rgba(28,35,64,0.85);
-    border: 0.5px solid #313a5c;
+    background: rgba(28,35,64,0.30);
+    border: 0.5px solid rgba(49,58,92,0.55);
     border-radius: 8px;
     padding: 4px 7px;
     display: flex;
@@ -517,8 +518,8 @@ const CSS = `
   .zd-hunger-hud-pct { font-size: 8px; font-weight: 700; flex-shrink: 0; }
   .zd-feed-btn-mini { width: 100%; padding: 3px 0; background: linear-gradient(135deg,#e2653f,#c94f2d); border: none; border-radius: 5px; color: #fff; font-size: 8px; font-weight: 700; cursor: pointer; font-family: inherit; }
 
-  .zd-nav-item { background: rgba(28,35,64,0.85); border: 0.5px solid #313a5c; border-radius: 8px; padding: 5px 7px; min-width: 34px; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer; backdrop-filter: blur(6px); flex-shrink: 0; }
-  .zd-nav-item:hover { background: #2a3158; }
+  .zd-nav-item { background: rgba(28,35,64,0.30); border: 0.5px solid rgba(49,58,92,0.55); border-radius: 8px; padding: 5px 7px; min-width: 34px; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer; backdrop-filter: blur(6px); flex-shrink: 0; }
+  .zd-nav-item:hover { background: rgba(42,49,88,0.55); }
   .zd-nav-icon { font-size: 14px; }
   .zd-nav-label { color: #5a6180; font-size: 7px; }
 
@@ -576,7 +577,9 @@ const CSS = `
 
   /* ── Compact landscape (height < 430px) ── */
   @media (max-height: 430px) {
-    .zd-welcome-row { display: none; }
+    .zd-welcome-row { display: flex; flex-direction: row; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .zd-welcome { font-size: 8px; white-space: nowrap; }
+    .zd-global-chat-hud { flex: 1; min-width: 0; font-size: 10px; padding: 3px 7px; }
     .zd-pet-name { font-size: 9px; }
     .zd-shop-btn-sm { display: none; }
   }

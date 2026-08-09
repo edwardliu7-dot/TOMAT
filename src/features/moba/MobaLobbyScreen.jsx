@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ArrowLeft, LoaderCircle, Radio, Search, Shield, Swords, Users, X } from 'lucide-react'
 import { useAuth } from '../../AuthContext.jsx'
 import useMobaSocket from './useMobaSocket.js'
+import MobaBattleLoader from './MobaBattleLoader.jsx'
 import './moba.css'
 
 const TEAM_SIZES = [
@@ -22,6 +23,7 @@ export default function MobaLobbyScreen({ goBack, onEnterArena }) {
     connected,
     findMatch,
     cancelMatchmaking,
+    clientLoaded,
   } = useMobaSocket({
     enabled: true,
     userId: user?.id || user?.userId || null,
@@ -31,17 +33,23 @@ export default function MobaLobbyScreen({ goBack, onEnterArena }) {
   const matchmaking = state.matchmaking || {}
   const isSearching = matchmaking.status === 'queued'
   const isMatched = matchmaking.status === 'matched' && matchmaking.matchId
+  // Loading phase: match found but countdown hasn't started yet
+  const isLoadingBattle = isMatched && !matchmaking.countdownStarted
+  // Entering phase: countdown started → transition to arena
+  const isEnteringArena = isMatched && matchmaking.countdownStarted === true
   const selectedTeam = useMemo(
     () => TEAM_SIZES.find(option => option.value === teamSize) || TEAM_SIZES[0],
     [teamSize],
   )
   const errorMessage = state.lastError?.message || notice
 
+  // Transition to arena once the countdown starts (all clients loaded)
   useEffect(() => {
-    if (!isMatched || matchedRef.current === matchmaking.matchId) return
+    if (!isEnteringArena || !matchmaking.matchId) return
+    if (matchedRef.current === matchmaking.matchId) return
     matchedRef.current = matchmaking.matchId
     onEnterArena(matchmaking.matchId)
-  }, [isMatched, matchmaking.matchId, onEnterArena])
+  }, [isEnteringArena, matchmaking.matchId, onEnterArena])
 
   const run = async action => {
     setBusy(true)
@@ -70,6 +78,17 @@ export default function MobaLobbyScreen({ goBack, onEnterArena }) {
       return
     }
     goBack()
+  }
+
+  // Show loading screen while waiting for all clients to be ready
+  if (isLoadingBattle) {
+    return (
+      <MobaBattleLoader
+        matchmaking={matchmaking}
+        userId={user?.id || user?.userId}
+        clientLoaded={clientLoaded}
+      />
+    )
   }
 
   return (

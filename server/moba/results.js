@@ -66,15 +66,24 @@ export function createMobaResultStore({
         return { matchId, alreadySettled: true, rewardedPlayerIds: [] }
       }
 
+      // Award 1 coin per point scored by the winner team (min 1, max 500).
+      // Falls back to the fixed DEFAULT_REWARD_COINS for draws or zero-score wins.
+      const winnerScore = ['teamA', 'teamB'].includes(winner)
+        ? (snapshot.teams?.[winner]?.score ?? 0)
+        : 0
+      const coinsToAward = winnerScore > 0
+        ? Math.max(1, Math.min(winnerScore, 500))
+        : safeRewardCoins
+
       let rewardedPlayerIds = []
-      if (safeRewardCoins > 0 && winners.length > 0) {
+      if (coinsToAward > 0 && winners.length > 0) {
         const rewarded = await client.query(
           `UPDATE students
            SET coins = COALESCE(coins, 0) + $1,
                total_coins_earned = COALESCE(total_coins_earned, 0) + $1
            WHERE id = ANY($2::text[])
            RETURNING id`,
-          [safeRewardCoins, winners],
+          [coinsToAward, winners],
         )
         rewardedPlayerIds = rewarded.rows.map(row => String(row.id))
       }
@@ -82,12 +91,13 @@ export function createMobaResultStore({
       await client.query(
         `UPDATE moba_match_results
          SET rewarded_player_ids = $2::text[],
+             reward_coins = $3,
              reward_issued_at = CASE
                WHEN cardinality($2::text[]) > 0 THEN now()
                ELSE NULL
              END
          WHERE match_id = $1`,
-        [matchId, rewardedPlayerIds],
+        [matchId, rewardedPlayerIds, coinsToAward],
       )
       await client.query('COMMIT')
       return { matchId, alreadySettled: false, rewardedPlayerIds }
