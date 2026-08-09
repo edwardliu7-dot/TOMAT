@@ -44,7 +44,7 @@ export default function MobaPet({ player, isSelf = false, facingLeft = false }) 
       aria-label={`${player.displayName || 'Pemain'} menggunakan ${petName}`}
     >
       <div className="moba11-pet__name">
-        {player.displayName || 'Pemain'}
+        {(player.displayName || 'Pemain').split(' ')[0]}
         {isSelf ? ' · kamu' : ''}
       </div>
       <div className="moba11-pet__sprite" style={facingLeft ? { transform: 'scaleX(-1)' } : undefined}>

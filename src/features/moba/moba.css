@@ -204,7 +204,7 @@
 .moba11-empty__card p { margin: 0 0 20px; color: #7c7664; line-height: 1.6; font-size: 13px; }
 .moba11-empty__card button { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 10px; padding: 10px 14px; background: #193c46; color: #fff; font-weight: 700; cursor: pointer; }
 
-.moba12-modal-layer { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 18px; background: rgba(25, 60, 70, .42); backdrop-filter: blur(3px); }
+.moba12-modal-layer { position: fixed; inset: 0; z-index: 10010; display: grid; place-items: center; padding: 18px; background: rgba(25, 60, 70, .42); backdrop-filter: blur(3px); }
 .moba12-question-modal { width: min(100%, 460px); border: 2px solid #d7c998; border-radius: 22px; padding: 22px; background: #fffbeb; color: #193c46; box-shadow: 0 22px 60px rgba(25, 60, 70, .26); }
 .moba12-modal-kicker { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #8b7550; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
 .moba12-modal-kicker span { display: inline-flex; align-items: center; gap: 5px; }

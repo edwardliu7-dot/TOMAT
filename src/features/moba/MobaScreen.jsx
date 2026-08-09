@@ -80,10 +80,15 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
     Number(state.self?.stunUntil || 0) <= Date.now() &&
     !state.activeQuestion
 
+  // Team B sees the world flipped 180°, so all directional input must be
+  // inverted before being sent to the server — regardless of whether the
+  // input came from the keyboard, analog joystick, or d-pad buttons.
+  const isTeamB = state.self?.teamId === 'teamB'
   const sendMove = useCallback(direction => {
-    if (!canAct) return
-    move({ direction }).catch(() => {})
-  }, [canAct, move])
+    if (!canAct || !direction) return
+    const sent = isTeamB ? { x: -direction.x, y: -direction.y } : direction
+    move({ direction: sent }).catch(() => {})
+  }, [canAct, move, isTeamB])
 
   useEffect(() => {
     const heldDirections = new Map()
@@ -161,10 +166,10 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
   }
 
   // Auto-claim: when player walks onto a node, trigger claim without manual click.
-  // Uses a ref so rapid position updates don't fire duplicate requests.
-  const lastAutoClaimedRef = React.useRef(null)
+  // Uses a per-node timestamp throttle so failed claims (PLAYER_TOO_FAR, etc.)
+  // are retried after 2 s instead of being permanently blocked by a ref flag.
+  const claimThrottleRef = React.useRef(new Map())
   const self = state.self
-  const arena = state.match?.config?.arena || {}
   const interactionRadius = Number(state.match?.config?.nodeInteractionRadius) || 3000
   React.useEffect(() => {
     if (!canAct) return
@@ -178,8 +183,10 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
       ) <= interactionRadius
     )
     if (!nearby) return
-    if (lastAutoClaimedRef.current === nearby.id) return   // already sent
-    lastAutoClaimedRef.current = nearby.id
+    const now = Date.now()
+    const lastSent = claimThrottleRef.current.get(nearby.id) || 0
+    if (now - lastSent < 2000) return   // one attempt per node per 2 s
+    claimThrottleRef.current.set(nearby.id, now)
     claimNode({ nodeId: nearby.id }).catch(() => {})
   }, [canAct, self?.position?.x, self?.position?.y, nodes, interactionRadius, claimNode])
 

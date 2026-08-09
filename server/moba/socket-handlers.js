@@ -585,6 +585,39 @@ export function createMobaSocketAdapter({
     socket.on('moba:matchmaking_join', (payload = {}, ack) =>
       enterMatchmaking(socket, payload.teamSize, ack))
 
+    // Solo practice: bypass matchmaking, start immediately with 1 player
+    socket.on('moba:start_solo', async (payload = {}, ack) => {
+      handleAction(socket, 'moba:start_solo', payload, ack, async () => {
+        if (!requireStudent(socket, ack)) return { ok: false }
+        removeFromMatchmaking(socket)
+
+        let profile
+        try {
+          profile = await loadProfile(socket.data.userId)
+        } catch (err) {
+          return emitError(socket, {
+            ok: false,
+            error: { code: ERROR_CODES.PLAYER_NOT_IN_MATCH, message: 'Profil Pet belum dapat diperiksa. Coba lagi.' },
+          }, ack)
+        }
+        if (profile?.isDead) {
+          return emitError(socket, {
+            ok: false,
+            error: { code: ERROR_CODES.PLAYER_NOT_IN_MATCH, message: 'Tomi sedang mati. Hidupkan Tomi kembali sebelum bermain MOBA.' },
+          }, ack)
+        }
+
+        const entry = {
+          socket,
+          userId: socket.data.userId,
+          teamSize: 1,
+          profile,
+          queuedAt: Date.now(),
+        }
+        return formMatchmakingGroup(1, [entry])
+      })
+    })
+
     socket.on('moba:matchmaking_cancel', (payload = {}, ack) => {
       if (!requireStudent(socket, ack)) return
       const removed = removeFromMatchmaking(socket)

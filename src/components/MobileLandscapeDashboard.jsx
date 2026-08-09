@@ -99,9 +99,9 @@ export default function MobileLandscapeDashboard({
   }
 
   const RIGHT_ZONES = [
-    { id: mathZoneId, bg: 'linear-gradient(160deg,#4a3fa8,#3c3489)', shadow: 'rgba(60,52,137,0.45)', icon: '➕', title: 'Zona Matematika', sub: `Kelas ${gradeNum}`, textColor: '#eeedfe', subColor: '#cecbf6' },
-    { id: ipaZoneId,  bg: 'linear-gradient(160deg,#0d6b55,#085041)', shadow: 'rgba(8,80,65,0.45)',   icon: '🧪', title: 'Zona IPA',        sub: `Kelas ${gradeNum}`, textColor: '#e1f5ee', subColor: '#9fe1cb' },
-    { id: 'arena',    bg: 'linear-gradient(160deg,#8c3518,#712b13)', shadow: 'rgba(113,43,19,0.5)', icon: '/arena.png', title: 'Arena Tanding',  sub: 'Duel · Boss · MOBA', textColor: '#faece7', subColor: '#f5c4b3', badge: 'LIVE' },
+    { id: mathZoneId, bg: 'linear-gradient(160deg,rgba(74,63,168,0.30),rgba(60,52,137,0.30))',   shadow: 'rgba(60,52,137,0.25)',  icon: '➕', title: 'Zona Matematika', sub: `Kelas ${gradeNum}`, textColor: '#eeedfe', subColor: '#cecbf6' },
+    { id: ipaZoneId,  bg: 'linear-gradient(160deg,rgba(13,107,85,0.30),rgba(8,80,65,0.30))',     shadow: 'rgba(8,80,65,0.25)',    icon: '🧪', title: 'Zona IPA',        sub: `Kelas ${gradeNum}`, textColor: '#e1f5ee', subColor: '#9fe1cb' },
+    { id: 'arena',    bg: 'linear-gradient(160deg,rgba(140,53,24,0.30),rgba(113,43,19,0.30))',   shadow: 'rgba(113,43,19,0.25)', icon: '/arena.png', title: 'Arena Tanding',  sub: 'Duel · Boss · MOBA', textColor: '#faece7', subColor: '#f5c4b3', badge: 'LIVE', iconOnly: true },
   ]
 
   // Bottom nav items — Profil replaced by BLP
@@ -297,19 +297,34 @@ export default function MobileLandscapeDashboard({
         {/* ZONA KANAN — 3 pintu */}
         <div className="zd-col-right">
           {RIGHT_ZONES.map(z => (
-            <div key={z.id} className="zd-door" style={{ background: z.bg, boxShadow: `0 3px 10px ${z.shadow}` }} onClick={() => navigate(z.id)}>
+            <div
+              key={z.id}
+              className={`zd-door${z.iconOnly ? ' zd-door--icon-only' : ''}`}
+              style={{ background: z.bg, boxShadow: `0 3px 10px ${z.shadow}` }}
+              onClick={() => navigate(z.id)}
+            >
               {z.badge && <div className="zd-door-badge">{z.badge}</div>}
               <div className="zd-door-shimmer" />
-              <span className="zd-door-icon">
-                {typeof z.icon === 'string' && z.icon.startsWith('/')
-                  ? <img src={z.icon} alt="" style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }} />
-                  : z.icon}
-              </span>
-              <div>
-                <div className="zd-door-title" style={{ color: z.textColor }}>{z.title}</div>
-                <div className="zd-door-sub" style={{ color: z.subColor }}>{z.sub}</div>
-                <div className="zd-door-cta" style={{ color: z.textColor }}>▶ Masuk</div>
-              </div>
+              {z.iconOnly ? (
+                /* Full-icon layout — no text, icon fills the card */
+                <img
+                  src={z.icon} alt={z.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', position: 'relative', zIndex: 1 }}
+                />
+              ) : (
+                <>
+                  <span className="zd-door-icon">
+                    {typeof z.icon === 'string' && z.icon.startsWith('/')
+                      ? <img src={z.icon} alt="" style={{ width: 22, height: 22, objectFit: 'contain', display: 'block' }} />
+                      : z.icon}
+                  </span>
+                  <div>
+                    <div className="zd-door-title" style={{ color: z.textColor }}>{z.title}</div>
+                    <div className="zd-door-sub" style={{ color: z.subColor }}>{z.sub}</div>
+                    <div className="zd-door-cta" style={{ color: z.textColor }}>▶ Masuk</div>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -399,8 +414,8 @@ const CSS = `
   .zd-col-left { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .zd-event-slot > * { font-size: 9px !important; border-radius: 9px !important; margin: 0 !important; }
   .zd-task-card {
-    background: rgba(28,35,64,0.82);
-    border: 0.5px solid #313a5c;
+    background: rgba(28,35,64,0.30);
+    border: 0.5px solid rgba(49,58,92,0.55);
     border-radius: 10px;
     padding: 9px 10px;
     flex: 1;
@@ -558,6 +573,8 @@ const CSS = `
     transition: transform .15s, filter .15s;
   }
   .zd-door:hover { transform: translateX(-3px); filter: brightness(1.08); }
+  .zd-door--icon-only { justify-content: center; align-items: center; padding: 6px; }
+  .zd-door--icon-only img { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; }
   .zd-door-shimmer { position: absolute; top: -20px; right: -20px; width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.06); pointer-events: none; }
   .zd-door-badge { position: absolute; top: 5px; right: 7px; background: #f0997b; border-radius: 3px; padding: 1px 5px; color: #4a1b0c; font-size: 7px; font-weight: 700; }
   .zd-door-icon { font-size: 22px; flex-shrink: 0; }

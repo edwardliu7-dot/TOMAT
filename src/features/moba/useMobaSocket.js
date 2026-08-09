@@ -186,6 +186,8 @@ export function useMobaSocket({
       action('moba:create', { teamSize, config }), [action]),
     findMatch: useCallback((teamSize = 1) =>
       action('moba:matchmaking_join', { teamSize }), [action]),
+    startSolo: useCallback(() =>
+      action('moba:start_solo', {}), [action]),
     cancelMatchmaking: useCallback(() =>
       action('moba:matchmaking_cancel'), [action]),
     ready: useCallback((ready = true) =>

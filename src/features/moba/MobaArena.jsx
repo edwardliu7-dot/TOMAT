@@ -248,7 +248,7 @@ export default function MobaArena({
   const isFlipped = self?.teamId === 'teamB'
   const handleMove = (direction) => {
     if (!direction) return
-    onMove?.(isFlipped ? { x: -direction.x, y: -direction.y } : direction)
+    onMove?.(direction) // flip already applied in sendMove (MobaScreen)
   }
 
   // ── Facing direction: track the last horizontal direction per player ──────
@@ -263,9 +263,10 @@ export default function MobaArena({
     const cur  = player.position
     if (prev && cur) {
       const dx = Number(cur.x) - Number(prev.x)
-      // Only update horizontal facing when there is meaningful horizontal delta
+      // Only update horizontal facing when there is meaningful horizontal delta.
+      // Team B sees the world flipped 180°: world +x = screen −x, so facing is inverted.
       if (Math.abs(dx) > 0.5) {
-        facingLeftRef.current[id] = dx < 0
+        facingLeftRef.current[id] = isFlipped ? dx > 0 : dx < 0
       }
     }
     prevPositionsRef.current[id] = cur
@@ -290,14 +291,14 @@ export default function MobaArena({
   const selfXPercent = isFlipped ? 100 - selfXRaw : selfXRaw
   const selfYPercent = isFlipped ? 100 - selfYRaw : selfYRaw
 
-  // Keep a camera dead-zone so the Pet visibly travels through the arena
-  // instead of being perfectly pinned to the center on every server update.
-  const cameraTargetX = Math.max(35, Math.min(65, selfXPercent))
-  const cameraTargetY = Math.max(35, Math.min(65, selfYPercent))
+  // Camera tightly follows the player (no dead-zone).
+  // CSS: translate(T) … scale(S) → to center player at P% of world div,
+  // T must equal (50 − P) * S so the scaled element lands at screen 50%.
+  const ZOOM = 2.0
   const cameraStyle = {
-    '--moba-camera-x': `${(50 - cameraTargetX) * 0.78}%`,
-    '--moba-camera-y': `${(50 - cameraTargetY) * 0.78}%`,
-    '--moba-camera-zoom': 0.80,
+    '--moba-camera-x': `${(50 - selfXPercent) * ZOOM}%`,
+    '--moba-camera-y': `${(50 - selfYPercent) * ZOOM}%`,
+    '--moba-camera-zoom': ZOOM,
   }
 
   return (

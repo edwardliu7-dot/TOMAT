@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { usePlayer } from '../PlayerContext'
 import { useAuth } from '../AuthContext'
 import { useTask, TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
@@ -942,6 +943,16 @@ export function AppNotificationBell({ onCommunicationClick }) {
   const appNotifications = useAppNotifications(true)
   const push = usePushNotifications(true)
   const [open, setOpen] = React.useState(false)
+  const [panelRect, setPanelRect] = React.useState(null)
+  const btnRef = React.useRef(null)
+
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setPanelRect({ top: r.bottom + 8, right: window.innerWidth - r.right })
+    }
+    setOpen(v => !v)
+  }
 
   const openNotification = async notification => {
     await appNotifications.markRead(notification.id)
@@ -956,7 +967,8 @@ export function AppNotificationBell({ onCommunicationClick }) {
   return (
     <div style={{ position: 'relative', flexShrink: 0 }}>
       <button
-        onClick={() => setOpen(value => !value)}
+        ref={btnRef}
+        onClick={toggle}
         title="Pusat notifikasi"
         aria-label={`Pusat notifikasi${appNotifications.unreadCount ? `, ${appNotifications.unreadCount} belum dibaca` : ''}`}
         aria-expanded={open}
@@ -978,12 +990,19 @@ export function AppNotificationBell({ onCommunicationClick }) {
           }}>{appNotifications.unreadCount > 99 ? '99+' : appNotifications.unreadCount}</span>
         )}
       </button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: 46, right: 0, width: 310, maxWidth: 'calc(100vw - 32px)',
-          background: '#151923', border: '1px solid rgba(167,139,250,0.3)',
-          borderRadius: 16, boxShadow: '0 14px 34px rgba(0,0,0,0.45)', overflow: 'hidden', zIndex: 70,
-        }}>
+      {/* Portal: renders backdrop + panel directly on document.body so
+          backdrop-filter / transform on any ancestor cannot create a new
+          containing block and bury the panel. */}
+      {open && createPortal(
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 10019 }} />
+          {panelRect && (
+          <div style={{
+            position: 'fixed', top: panelRect.top, right: panelRect.right,
+            width: 310, maxWidth: 'calc(100vw - 32px)',
+            background: '#151923', border: '1px solid rgba(167,139,250,0.3)',
+            borderRadius: 16, boxShadow: '0 14px 34px rgba(0,0,0,0.45)', overflow: 'hidden', zIndex: 10020,
+          }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px',
             borderBottom: '1px solid rgba(255,255,255,0.08)',
@@ -1051,7 +1070,10 @@ export function AppNotificationBell({ onCommunicationClick }) {
             </div>
           )}
         </div>
-      )}
+        )}
+      </>,
+      document.body
+    )}
     </div>
   )
 }

@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react'
+import PetSVG from '../../components/PetSVG'
 
 const LOADING_STEPS = [
   'Memuat arena...',
@@ -16,17 +17,9 @@ const LOADING_STEPS = [
 
 const STEP_DELAYS = [500, 900, 700, 500] // ms per step
 
-const PET_EMOJI = {
-  tomi: '🐱',
-  kelinsay: '🐰',
-  monyang: '🐒',
-  nananaga: '🐉',
-  komodih: '🦎',
-}
-
 function PetCard({ player, label, color }) {
-  const emoji = PET_EMOJI[player?.petType] || '❓'
-  const name = player?.displayName || label
+  const skinId = player?.petSkinId || player?.petType || 'golden'
+  const name = (player?.displayName || label).split(' ')[0]
   return (
     <div style={{
       flex: 1,
@@ -36,18 +29,18 @@ function PetCard({ player, label, color }) {
       gap: 6,
     }}>
       <div style={{
-        width: 72,
-        height: 72,
+        width: 80,
+        height: 80,
         borderRadius: '50%',
-        background: `${color}22`,
-        border: `2px solid ${color}66`,
+        background: `${color}18`,
+        border: `2px solid ${color}55`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: 36,
-        boxShadow: `0 0 16px ${color}44`,
+        boxShadow: `0 0 20px ${color}44`,
+        overflow: 'hidden',
       }}>
-        {emoji}
+        <PetSVG skinId={skinId} state="happy" size={72} />
       </div>
       <div style={{ fontSize: 13, fontWeight: 700, color, textAlign: 'center', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {name}
