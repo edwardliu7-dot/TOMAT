@@ -187,10 +187,19 @@ function MiniMap({ arena, players, nodes, selfId, onClose, compact = false, flip
         </button>
       </header>
       <div className="moba-jungle-map-large">
-        <i className="moba-jungle-map-lane--top" />
-        <i className="moba-jungle-map-lane" />
-        <i className="moba-jungle-map-lane--bot" />
-        <i className="moba-jungle-map-river" />
+        {/* Minimap SVG — same 3-lane X, preserveAspectRatio="none" keeps it correct */}
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+          style={{ position:'absolute', inset:0, width:'100%', height:'100%', zIndex:1, pointerEvents:'none' }}>
+          <defs>
+            <linearGradient id="mm-blue" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#7dd3fc" stopOpacity="0.85" />
+              <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.85" />
+            </linearGradient>
+          </defs>
+          <line x1="2" y1="2" x2="98" y2="98" stroke="url(#mm-blue)" strokeWidth="13" strokeLinecap="round" />
+          <line x1="83" y1="1" x2="1" y2="83" stroke="#3d3d2e" strokeWidth="5" strokeLinecap="butt" strokeDasharray="5 3" />
+          <line x1="99" y1="16" x2="16" y2="99" stroke="#6b6a58" strokeWidth="13" strokeLinecap="butt" />
+        </svg>
         <i className="moba-jungle-map-base moba-jungle-map-base--a" />
         <i className="moba-jungle-map-base moba-jungle-map-base--b" />
         {nodes.map(node => (
@@ -318,13 +327,52 @@ export default function MobaArena({
           <div className="moba-map-outer moba-map-outer--left"  aria-hidden="true" />
           <div className="moba-map-outer moba-map-outer--right" aria-hidden="true" />
 
-          {/* ── 3 diagonal lanes (top-right → bottom-left, gray path) ── */}
-          <div className="moba-diagonal-lane moba-diagonal-lane--top" aria-hidden="true" />
-          <div className="moba-diagonal-lane" aria-hidden="true" />
-          <div className="moba-diagonal-lane moba-diagonal-lane--bot" aria-hidden="true" />
+          {/*
+           * ── SVG lane overlay ─────────────────────────────────────────────
+           * preserveAspectRatio="none" maps viewBox 0-100 directly to % of
+           * the container — so corner-to-corner lines are always geometrically
+           * correct regardless of screen aspect ratio (no more skewed X).
+           *
+           * 3 lanes from the diagram:
+           *   1. Blue  — NW→SE (top-left → bottom-right), thick, rounded ends
+           *   2. Dashed — NE→SW, offset toward top-right (upper road edge)
+           *   3. Gray  — NE→SW, offset toward bottom-left (lower road, wider)
+           */}
+          <svg
+            className="moba-lanes-svg"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <defs>
+              <linearGradient id="moba-blue-grad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%"   stopColor="#7dd3fc" stopOpacity="0.92" />
+                <stop offset="48%"  stopColor="#38bdf8" stopOpacity="1" />
+                <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.92" />
+              </linearGradient>
+            </defs>
 
-          {/* ── Diagonal river (top-left → bottom-right, water) ─────── */}
-          <div className="moba-diagonal-river" aria-hidden="true" />
+            {/* Lane 1 — Blue (NW→SE). Round caps give the pill shape from the diagram. */}
+            <line x1="2" y1="2" x2="98" y2="98"
+              stroke="url(#moba-blue-grad)" strokeWidth="13" strokeLinecap="round" />
+            {/* Blue inner shimmer */}
+            <line x1="2" y1="2" x2="98" y2="98"
+              stroke="rgba(186,230,253,0.32)" strokeWidth="5" strokeLinecap="round" />
+
+            {/* Lane 2 — Dashed road edge (NE→SW, upper/center-side).
+                x+y ≈ 84 → sits between center and the gray band. */}
+            <line x1="83" y1="1" x2="1" y2="83"
+              stroke="#3d3d2e" strokeWidth="5" strokeLinecap="butt"
+              strokeDasharray="5 3" />
+
+            {/* Lane 3 — Gray road (NE→SW, lower/bottom-left-side).
+                x+y ≈ 115 → offset toward bottom-left spawn area. */}
+            <line x1="99" y1="16" x2="16" y2="99"
+              stroke="#6b6a58" strokeWidth="13" strokeLinecap="butt" />
+            {/* Gray road highlight edge */}
+            <line x1="99" y1="16" x2="16" y2="99"
+              stroke="rgba(210,205,165,0.20)" strokeWidth="1.5" strokeLinecap="butt" />
+          </svg>
 
           {/* ── Trees in 4 triangular jungle zones ───────────────── */}
           {[
