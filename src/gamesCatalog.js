@@ -171,8 +171,22 @@ export function getGameInfo(key) {
 // Game keys that support both Tournament and Duel mode.
 // Keep in sync with generators in server/tournament-questions.js.
 export const DUEL_GAME_KEYS = new Set([
+  // Grade 7 BAB I — Bilangan Bulat
   'katak', 'termometer', 'pabrikrobot', 'gembok', 'mercusuar', 'sporajamur', 'scanner',
+  // Grade 7 BAB II — Bilangan Rasional
+  'kokipizza', 'pipaair', 'bortambang', 'kabataku', 'baterai', 'timbanganemas', 'fokusteleskop',
+  // Grade 7 BAB III — Rasio & Perbandingan
+  'ramuanjus', 'kasirsihir', 'benteng', 'nakhoda', 'relkereta', 'brankas',
+  // Grade 8 BAB I — Bilangan Berpangkat
   'g8selramuan', 'g8racunminiatur', 'g8kristal', 'g8fusienergi', 'g8mantraakar', 'g8geolog',
-  // Grade 8 Bab II — Teorema Pythagoras
+  // Grade 8 BAB II — Teorema Pythagoras
   'g8trebuchet', 'g8perisai', 'g8hartakarun', 'g8inspeksisudut', 'g8petaradar', 'g8taligantung',
+  // Grade 8 BAB III — Persamaan Linear Satu Variabel
+  'g8gerbanglogika', 'g8katrol', 'g8gulungan', 'g8keretakuda',
+  // Grade 9 BAB I — SPLDV
+  'g9manifest', 'g9plotrute', 'g9interseksi', 'g9konsol', 'g9pasargalaksi',
+  // Grade 9 BAB II — Lingkaran
+  'g9kalibrasirada', 'g9orbit', 'g9shieldgaya', 'g9laserjuring', 'g9asteroid',
+  // Grade 9 BAB III — Bangun Ruang
+  'g9boksbaterai', 'g9refraktor', 'g9kuilalien', 'g9reaktorbahan', 'g9sinyalkerucut', 'g9bintang', 'g9upgradekapal',
 ])

@@ -368,15 +368,32 @@ export function createMobaSocketAdapter({
    * Used to filter keys when a guru has locked a bab for the class grade.
    */
   const GAME_KEY_TO_BAB = {
-    // Grade 7
-    katak: 'BAB I', termometer: 'BAB I', pabrikrobot: 'BAB I', scanner: 'BAB I',
-    gembok: 'BAB II', mercusuar: 'BAB II',
-    sporajamur: 'BAB III',
-    // Grade 8
+    // Grade 7 BAB I — Bilangan Bulat
+    katak: 'BAB I', termometer: 'BAB I', pabrikrobot: 'BAB I',
+    scanner: 'BAB I', gembok: 'BAB I', mercusuar: 'BAB I', sporajamur: 'BAB I',
+    // Grade 7 BAB II — Bilangan Rasional
+    kokipizza: 'BAB II', pipaair: 'BAB II', bortambang: 'BAB II',
+    kabataku: 'BAB II', baterai: 'BAB II', timbanganemas: 'BAB II', fokusteleskop: 'BAB II',
+    // Grade 7 BAB III — Rasio & Perbandingan
+    ramuanjus: 'BAB III', kasirsihir: 'BAB III', benteng: 'BAB III',
+    nakhoda: 'BAB III', relkereta: 'BAB III', brankas: 'BAB III',
+    // Grade 8 BAB I — Bilangan Berpangkat
     g8selramuan: 'BAB I', g8racunminiatur: 'BAB I', g8kristal: 'BAB I',
     g8fusienergi: 'BAB I', g8mantraakar: 'BAB I', g8geolog: 'BAB I',
+    // Grade 8 BAB II — Teorema Pythagoras
     g8trebuchet: 'BAB II', g8perisai: 'BAB II', g8hartakarun: 'BAB II',
     g8inspeksisudut: 'BAB II', g8petaradar: 'BAB II', g8taligantung: 'BAB II',
+    // Grade 8 BAB III — PLSV
+    g8gerbanglogika: 'BAB III', g8katrol: 'BAB III', g8gulungan: 'BAB III', g8keretakuda: 'BAB III',
+    // Grade 9 BAB I — SPLDV
+    g9manifest: 'BAB I', g9plotrute: 'BAB I', g9interseksi: 'BAB I',
+    g9konsol: 'BAB I', g9pasargalaksi: 'BAB I',
+    // Grade 9 BAB II — Lingkaran
+    g9kalibrasirada: 'BAB II', g9orbit: 'BAB II', g9shieldgaya: 'BAB II',
+    g9laserjuring: 'BAB II', g9asteroid: 'BAB II',
+    // Grade 9 BAB III — Bangun Ruang
+    g9boksbaterai: 'BAB III', g9refraktor: 'BAB III', g9kuilalien: 'BAB III',
+    g9reaktorbahan: 'BAB III', g9sinyalkerucut: 'BAB III', g9bintang: 'BAB III', g9upgradekapal: 'BAB III',
   }
 
   /** Maps a grade number to the tournament game keys appropriate for that grade. */

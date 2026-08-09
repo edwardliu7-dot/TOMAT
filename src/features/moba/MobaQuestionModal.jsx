@@ -4,7 +4,7 @@ import { Check, Clock3, LoaderCircle, Shield, X } from 'lucide-react'
 // ── Game identity map (mirroring App.jsx GAME_MAP but as plain static data) ──
 // Used to give each question a themed look without importing heavy components.
 const GAME_INFO = {
-  // Grade 7
+  // Grade 7 BAB I — Bilangan Bulat
   katak:         { label: 'Katak Pelompat',              emoji: '🐸', color: '#22c55e' },
   termometer:    { label: 'Termometer Ajaib',            emoji: '🌡️', color: '#f97316' },
   pabrikrobot:   { label: 'Pabrik Robot',                emoji: '🤖', color: '#6366f1' },
@@ -12,6 +12,21 @@ const GAME_INFO = {
   mercusuar:     { label: 'Sinyal Mercusuar',            emoji: '🏮', color: '#f59e0b' },
   sporajamur:    { label: 'Spora Jamur',                 emoji: '🍄', color: '#84cc16' },
   scanner:       { label: 'Scanner Batu Permata',        emoji: '💎', color: '#06b6d4' },
+  // Grade 7 BAB II — Bilangan Rasional
+  kokipizza:     { label: 'Koki Pizza',                  emoji: '🍕', color: '#ef4444' },
+  pipaair:       { label: 'Pipa Air Ajaib',              emoji: '🚿', color: '#06b6d4' },
+  bortambang:    { label: 'Bor Tambang',                 emoji: '⛏️', color: '#78716c' },
+  kabataku:      { label: 'KaBaTaKu Pecahan',            emoji: '📐', color: '#8b5cf6' },
+  baterai:       { label: 'Baterai Ajaib',               emoji: '🔋', color: '#16a34a' },
+  timbanganemas: { label: 'Timbangan Emas',              emoji: '⚖️', color: '#d97706' },
+  fokusteleskop: { label: 'Fokus Teleskop',              emoji: '🔭', color: '#0284c7' },
+  // Grade 7 BAB III — Rasio & Perbandingan
+  ramuanjus:     { label: 'Ramuan Jus',                  emoji: '🧃', color: '#f59e0b' },
+  kasirsihir:    { label: 'Kasir Sihir',                 emoji: '🪄', color: '#a855f7' },
+  benteng:       { label: 'Benteng Kerajaan',            emoji: '🏰', color: '#64748b' },
+  nakhoda:       { label: 'Petualangan Nakhoda',         emoji: '⚓', color: '#0369a1' },
+  relkereta:     { label: 'Rel Kereta Ekspres',          emoji: '🚂', color: '#dc2626' },
+  brankas:       { label: 'Brankas Rahasia',             emoji: '🔐', color: '#92400e' },
   // Grade 8 BAB I – Bilangan Berpangkat
   g8selramuan:   { label: 'Penggandaan Sel Ramuan',      emoji: '🧪', color: '#a855f7' },
   g8racunminiatur:{ label: 'Ekstraksi Racun Miniatur',   emoji: '☠️', color: '#ef4444' },
