@@ -11,8 +11,26 @@ import {
   DEFAULT_POSITION_BY_TEAM,
   DIFFICULTIES,
   POINTS_BY_DIFFICULTY,
+  MAP_WALLS,
+  MAP_LAYOUT,
   isValidDifficulty,
 } from './config.js'
+
+function isInsideAnyJungle(position) {
+  return MAP_LAYOUT.jungleBounds.some(b =>
+    position.x >= b.minX && position.x <= b.maxX &&
+    position.y >= b.minY && position.y <= b.maxY
+  )
+}
+
+function isOnWall(position, radius = 44) {
+  for (const w of MAP_WALLS) {
+    const nearX = Math.max(w.x1, Math.min(w.x2, position.x))
+    const nearY = Math.max(w.y1, Math.min(w.y2, position.y))
+    if (Math.hypot(position.x - nearX, position.y - nearY) < radius) return true
+  }
+  return false
+}
 
 const LANES = Object.freeze(['top', 'middle', 'bottom'])
 
@@ -51,6 +69,11 @@ export function isValidNodeSpawnPosition({
   if (!match || !isInsideArena(position, match.config.arena)) return false
 
   const { arena } = match.config
+
+  // Must spawn in an allowed jungle/lane zone, not on walls or base areas
+  if (!isInsideAnyJungle(position)) return false
+  if (isOnWall(position, arena.nodeSafeRadius)) return false
+
   if (basePositions().some(base =>
     distanceBetween(position, base) < arena.baseSafeRadius)) {
     return false

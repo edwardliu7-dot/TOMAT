@@ -11,10 +11,20 @@ import { randomUUID } from 'node:crypto'
 import {
   ERROR_CODES,
   DEFAULT_POSITION_BY_TEAM,
+  MAP_WALLS,
   PHASES,
   TEAM_SIZES,
   isValidTeamSize,
 } from './config.js'
+
+function isBlockedByWall(pos, radius = 28) {
+  for (const w of MAP_WALLS) {
+    const nearX = Math.max(w.x1, Math.min(w.x2, pos.x))
+    const nearY = Math.max(w.y1, Math.min(w.y2, pos.y))
+    if (Math.hypot(pos.x - nearX, pos.y - nearY) < radius) return true
+  }
+  return false
+}
 import {
   createMatchState,
   createPlayerState,
@@ -350,6 +360,9 @@ export function createMobaMatchManager({
       lane: player.position.lane,
     }
     if (!isInsideArena(candidate, match.config.arena)) {
+      return fail(ERROR_CODES.MOVE_OUT_OF_BOUNDS, { actionId })
+    }
+    if (isBlockedByWall(candidate, match.config.playerCollisionRadius)) {
       return fail(ERROR_CODES.MOVE_OUT_OF_BOUNDS, { actionId })
     }
 

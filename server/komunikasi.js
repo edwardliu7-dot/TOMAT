@@ -600,15 +600,14 @@ router.get('/global/messages', async (req, res) => {
   try {
     const { rows } = await pool.query(
       `select g.id, g.sender_id, g.sender_role, g.body, g.created_at,
-         case when g.sender_role = 'guru'
-           then (select name from gurus where id = g.sender_id::int)
-           else (select name from students where id = g.sender_id::int)
-         end as sender_name,
-         case when g.sender_role = 'siswa'
-           then (select photo_url from students where id = g.sender_id::int)
-           else (select photo_url from gurus where id = g.sender_id::int)
-         end as sender_photo_url
+         coalesce(
+           case when g.sender_role = 'guru' then gu.name else st.name end,
+           g.sender_id
+         ) as sender_name,
+         case when g.sender_role = 'guru' then gu.photo_url else st.photo_url end as sender_photo_url
        from pesan_global g
+       left join gurus    gu on g.sender_role = 'guru'  and gu.id = g.sender_id
+       left join students st on g.sender_role = 'siswa' and st.id = g.sender_id
        order by g.created_at asc
        limit 200`
     )

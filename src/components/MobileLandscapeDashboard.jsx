@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import PetSVG, { getPetName } from './PetSVG'
-import { UserAvatar } from './shared'
+import { UserAvatar, AppNotificationBell } from './shared'
 import SeasonalEventBanner from './SeasonalEventBanner'
 
 const BLP_URL = 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io'
@@ -26,6 +26,10 @@ export default function MobileLandscapeDashboard({
 }) {
   const [notice, setNotice] = useState('')
   const [petFed, setPetFed] = useState(false)
+  // Pet playful interaction
+  const [petAction, setPetAction] = useState('idle') // 'idle' | 'happy' | 'sleep'
+  const holdTimerRef = useRef(null)
+  const actionTimerRef = useRef(null)
   // Mini global-chat preview
   const [globalPreview, setGlobalPreview] = useState(null)
 
@@ -42,6 +46,30 @@ export default function MobileLandscapeDashboard({
   const gradeNum = parseInt(user?.kelas?.match(/\d+/)?.[0] || '7')
   const mathZoneId = gradeNum === 9 ? 'grade9' : gradeNum === 8 ? 'grade8' : 'grade7'
   const ipaZoneId  = gradeNum === 9 ? 'ipa9'   : gradeNum === 8 ? 'ipa8'   : 'ipa7'
+
+  // Pet playful interactions
+  const handlePetTap = () => {
+    if (pet?.isDead) return
+    clearTimeout(holdTimerRef.current)
+    clearTimeout(actionTimerRef.current)
+    // If already in hold sequence, do nothing
+    if (petAction === 'sleep') { setPetAction('idle'); return }
+    setPetAction('happy')
+    actionTimerRef.current = window.setTimeout(() => setPetAction('idle'), 1500)
+  }
+  const handlePetPointerDown = () => {
+    if (pet?.isDead) return
+    holdTimerRef.current = window.setTimeout(() => {
+      clearTimeout(actionTimerRef.current)
+      setPetAction('sleep')
+    }, 650)
+  }
+  const handlePetPointerUp = () => {
+    clearTimeout(holdTimerRef.current)
+    if (petAction === 'sleep') {
+      actionTimerRef.current = window.setTimeout(() => setPetAction('idle'), 1200)
+    }
+  }
 
   // Feed pet (quick action)
   const handleFeed = () => {
@@ -114,9 +142,10 @@ export default function MobileLandscapeDashboard({
           <div className="zd-xp-track"><div className="zd-xp-fill" style={{ width: `${levelProgress}%` }} /></div>
         </div>
 
-        {/* Coins + nilai shortcut */}
+        {/* Coins + notif + nilai shortcut */}
         <div className="zd-top-right">
           <div className="zd-coin-pill">🪙 {formatNumber(player?.coins)}</div>
+          <AppNotificationBell onCommunicationClick={() => navigate('komunikasi')} />
           <div className="zd-icon-btn" onClick={() => navigate('grades')} title="Nilai">📊</div>
         </div>
       </header>
@@ -133,13 +162,17 @@ export default function MobileLandscapeDashboard({
 
           {/* Tugas aktif */}
           <div className="zd-task-card">
-            <div className="zd-eyebrow green">TUGAS AKTIF</div>
+            <div className="zd-eyebrow green">
+              TUGAS AKTIF{pendingTaskCount > 1 ? ` (${pendingTaskCount})` : ''}
+            </div>
             {nextTask ? (
               <>
                 <div className="zd-task-title">{nextTask.gameName || 'Tugas'}</div>
-                <div className="zd-task-sub">Kerjakan sebelum batas waktu</div>
+                <div className="zd-task-sub">
+                  {nextTask.type === 'sumatif' ? '🏆 Sumatif' : nextTask.type === 'formatif' ? '📊 Formatif' : '📝 Harian'} · Kerjakan sebelum batas waktu
+                </div>
                 <div className="zd-bar-wrap">
-                  <div className="zd-bar-fill" style={{ width: '20%', background: '#5dcaa5' }} />
+                  <div className="zd-bar-fill" style={{ width: '0%', background: '#5dcaa5' }} />
                 </div>
                 <div className="zd-task-note">0 / {nextTask.totalQuestions || 5} soal</div>
                 <button className="zd-task-btn" onClick={() => navigate(nextTask.gameKey, { taskId: nextTask.id })}>Kerjakan ›</button>
@@ -185,8 +218,29 @@ export default function MobileLandscapeDashboard({
 
             <div className="zd-pet-stage">
               <div className="zd-pet-shadow" />
-              <div className={`zd-pet-sprite ${petFed ? 'zd-pet-fed' : ''}`}>
-                <PetSVG skinId={pet?.skin || 'golden'} state={petState} size={110} />
+              <div
+                className={`zd-pet-sprite ${petFed ? 'zd-pet-fed' : ''} ${petAction === 'sleep' ? 'zd-pet-sleeping' : ''}`}
+                onClick={handlePetTap}
+                onPointerDown={handlePetPointerDown}
+                onPointerUp={handlePetPointerUp}
+                onPointerLeave={handlePetPointerUp}
+                style={{ cursor: pet?.isDead ? 'not-allowed' : 'pointer', userSelect:'none', WebkitUserSelect:'none' }}
+                title={pet?.isDead ? 'Pet mati' : 'Tap untuk happy, tahan untuk tidur 😴'}
+              >
+                <PetSVG skinId={pet?.skin || 'golden'} state={pet?.isDead ? 'dead' : pet?.isStarving ? 'hungry' : petAction === 'happy' ? 'happy' : 'idle'} size={110} />
+                {petAction === 'sleep' && !pet?.isDead && (
+                  <div className="zd-pet-zzz" aria-hidden>
+                    <span style={{ animationDelay:'0s' }}>z</span>
+                    <span style={{ animationDelay:'0.4s' }}>z</span>
+                    <span style={{ animationDelay:'0.8s' }}>Z</span>
+                  </div>
+                )}
+                {petAction === 'happy' && !pet?.isDead && (
+                  <div className="zd-pet-hearts" aria-hidden>
+                    <span style={{ animationDelay:'0s' }}>💕</span>
+                    <span style={{ animationDelay:'0.3s' }}>✨</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -392,9 +446,51 @@ const CSS = `
     margin-top: -4px;
     flex-shrink: 0;
   }
-  .zd-pet-sprite { filter: drop-shadow(0 4px 4px rgba(12,8,25,0.28)); }
+  .zd-pet-sprite { filter: drop-shadow(0 4px 4px rgba(12,8,25,0.28)); position: relative; }
   .zd-pet-sprite.zd-pet-fed { animation: zd-fed .4s ease-out; }
+  .zd-pet-sprite.zd-pet-sleeping { animation: zd-sway 2.2s ease-in-out infinite; }
   .zd-pet-name { color: #f2ede3; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+
+  /* Pet zzz/hearts particle overlays */
+  .zd-pet-zzz {
+    position: absolute; top: -10px; right: -8px;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+    pointer-events: none;
+  }
+  .zd-pet-zzz span {
+    display: inline-block;
+    color: #9fe1cb; font-size: 10px; font-weight: 900;
+    animation: zd-zzz-float 2.4s ease-in infinite;
+    opacity: 0;
+  }
+  .zd-pet-hearts {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 6px;
+    pointer-events: none;
+  }
+  .zd-pet-hearts span {
+    display: inline-block;
+    font-size: 13px;
+    animation: zd-heart-pop 1.5s ease-out forwards;
+    opacity: 0;
+  }
+
+  @keyframes zd-sway {
+    0%,100% { transform: rotate(-3deg); }
+    50%      { transform: rotate(3deg);  }
+  }
+  @keyframes zd-zzz-float {
+    0%   { opacity: 0; transform: translate(0,0) scale(0.7); }
+    20%  { opacity: 1; }
+    80%  { opacity: 0.6; }
+    100% { opacity: 0; transform: translate(6px,-22px) scale(1.1); }
+  }
+  @keyframes zd-heart-pop {
+    0%   { opacity: 0; transform: translateY(0) scale(0.5); }
+    30%  { opacity: 1; transform: translateY(-12px) scale(1.1); }
+    80%  { opacity: 0.6; transform: translateY(-22px) scale(0.9); }
+    100% { opacity: 0; transform: translateY(-30px) scale(0.8); }
+  }
   .zd-shop-btn-sm { background: rgba(28,35,64,0.82); border: 0.5px solid #313a5c; border-radius: 7px; padding: 4px 12px; color: #8b8f9e; font-size: 9px; cursor: pointer; flex-shrink: 0; font-family: inherit; }
 
   /* Bottom bar */

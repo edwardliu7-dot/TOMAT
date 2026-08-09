@@ -276,42 +276,131 @@ export default function MobaArena({
               '--moba-tile-rows': tileRows,
             }}
           >
+          {/* ── Base terrain ─────────────────────────────────── */}
           <div className="moba-jungle-terrain" aria-hidden="true" />
-          <div className="moba-jungle-river" aria-hidden="true" />
           <div className="moba-jungle-grid" />
-          <div className="moba-jungle-lane moba-jungle-lane--top" />
-          <div className="moba-jungle-lane moba-jungle-lane--middle" />
-          <div className="moba-jungle-lane moba-jungle-lane--bottom" />
-          <span className="moba-jungle-lane-label moba-jungle-lane-label--top">Lajur utara</span>
-          <span className="moba-jungle-lane-label moba-jungle-lane-label--middle">Lajur tengah</span>
-          <span className="moba-jungle-lane-label moba-jungle-lane-label--bottom">Lajur selatan</span>
-          <div className="moba-jungle-decor moba-jungle-decor--trees" aria-hidden="true">
-            <img className="moba-jungle-brush moba-jungle-brush--1" src="/moba-arena/moba-tree-spring.png" alt="" />
-            <img className="moba-jungle-brush moba-jungle-brush--2" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
-            <img className="moba-jungle-brush moba-jungle-brush--3" src="/moba-arena/moba-tree-spring.png" alt="" />
-            <img className="moba-jungle-brush moba-jungle-brush--4" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
-            <img className="moba-jungle-brush moba-jungle-brush--5" src="/moba-arena/moba-tree-spring.png" alt="" />
-            <img className="moba-jungle-brush moba-jungle-brush--6" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
-            <img className="moba-jungle-brush moba-jungle-brush--7" src="/moba-arena/moba-tree-spring.png" alt="" />
-            <img className="moba-jungle-brush moba-jungle-brush--8" src="/moba-arena/moba-tree-spring-alt.png" alt="" />
+
+          {/* ── Outer boundary walls ─────────────────────────── */}
+          <div className="moba-map-outer moba-map-outer--top"    aria-hidden="true" />
+          <div className="moba-map-outer moba-map-outer--bot"    aria-hidden="true" />
+          <div className="moba-map-outer moba-map-outer--left"   aria-hidden="true" />
+          <div className="moba-map-outer moba-map-outer--right"  aria-hidden="true" />
+
+          {/* ── Lane bands ───────────────────────────────────── */}
+          <div className="moba-lane-band moba-lane-band--top"    aria-hidden="true" />
+          <div className="moba-lane-band moba-lane-band--mid"    aria-hidden="true" />
+          <div className="moba-lane-band moba-lane-band--bot"    aria-hidden="true" />
+          <span className="moba-lane-label" style={{ top:'9.375%', left:'50%' }}>Lajur Atas</span>
+          <span className="moba-lane-label" style={{ top:'50%', left:'50%' }}>Lajur Tengah</span>
+          <span className="moba-lane-label" style={{ top:'90.625%', left:'50%' }}>Lajur Bawah</span>
+
+          {/* ── Jungle zones (darker green) ──────────────────── */}
+          <div className="moba-jungle-zone moba-jungle-zone--upper" aria-hidden="true" />
+          <div className="moba-jungle-zone moba-jungle-zone--lower" aria-hidden="true" />
+
+          {/* ── Wall dividers (4 dividers × 4 segments each) ─── */}
+          {[
+            '16.25%', // top divider   y=13000-15000
+            '41.25%', // mid-top       y=33000-35000
+            '56.25%', // mid-bot       y=45000-47000
+            '81.25%', // bot divider   y=65000-67000
+          ].map((top, di) => (
+            [
+              { left:'2.5%',  width:'20%'  }, // x=2000-18000
+              { left:'27.5%', width:'20%'  }, // x=22000-38000
+              { left:'52.5%', width:'20%'  }, // x=42000-58000
+              { left:'77.5%', width:'20%'  }, // x=62000-78000
+            ].map((seg, si) => (
+              <div key={`w${di}-${si}`} className="moba-wall-seg" aria-hidden="true"
+                style={{ top, height:'2.5%', left: seg.left, width: seg.width }} />
+            ))
+          ))}
+
+          {/* ── Forest tiles — trees (impassable, 16×16 units) ─ */}
+          {[
+            // Upper jungle (y ≈ 21-36%)
+            [7.5,21.25,false],[20,21.25,true],[32.5,21.25,false],[47.5,21.25,true],
+            [62.5,21.25,false],[77.5,21.25,true],[92.5,21.25,false],
+            [12.5,28.75,true],[25,28.75,false],[37.5,31.25,true],[50,28.75,false],
+            [62.5,31.25,true],[75,28.75,false],[87.5,31.25,true],
+            // Lower jungle (y ≈ 61-76%)
+            [7.5,61.25,false],[20,61.25,true],[32.5,61.25,false],[47.5,61.25,true],
+            [62.5,61.25,false],[77.5,61.25,true],[92.5,61.25,false],
+            [12.5,68.75,true],[25,68.75,false],[37.5,71.25,true],[50,68.75,false],
+            [62.5,71.25,true],[75,68.75,false],[87.5,71.25,true],
+          ].map(([lp, tp, alt], i) => (
+            <img key={`tr${i}`} aria-hidden="true"
+              src={alt ? '/moba-arena/moba-tree-spring-alt.png' : '/moba-arena/moba-tree-spring.png'}
+              className="moba-forest-tree"
+              style={{ left:`${lp}%`, top:`${tp}%` }}
+            />
+          ))}
+
+          {/* ── Forest tiles — rocks (impassable, 6×6 units) ─── */}
+          {[
+            [22.5,24.375],[47.5,24.375],[72.5,24.375],
+            [17.5,35],[37.5,35],[57.5,35],[77.5,35],
+            [22.5,64.375],[47.5,64.375],[72.5,64.375],
+            [17.5,75],[37.5,75],[57.5,75],[77.5,75],
+          ].map(([lp, tp], i) => (
+            <img key={`rk${i}`} aria-hidden="true"
+              src="/moba-arena/FG_Grounds.png"
+              className="moba-forest-rock"
+              style={{ left:`${lp}%`, top:`${tp}%` }}
+            />
+          ))}
+
+          {/* ── Crystals & relics in jungle ──────────────────── */}
+          <img className="moba-jungle-relic moba-jungle-relic--1" style={{ left:'30%', top:'25%' }} src="/moba-arena/FG_Crystal_Blue_1.png" alt="" />
+          <img className="moba-jungle-relic moba-jungle-relic--2" style={{ left:'55%', top:'33%' }} src="/moba-arena/FG_Crystal_Gold_1.png" alt="" />
+          <img className="moba-jungle-relic moba-jungle-relic--3" style={{ left:'45%', top:'26%' }} src="/moba-arena/FG_Treasure_Big.png" alt="" />
+          <img className="moba-jungle-relic moba-jungle-relic--4" style={{ left:'30%', top:'65%' }} src="/moba-arena/FG_Crystal_Blue_1.png" alt="" />
+          <img className="moba-jungle-relic moba-jungle-relic--5" style={{ left:'55%', top:'73%' }} src="/moba-arena/FG_Crystal_Gold_1.png" alt="" />
+          <img className="moba-jungle-relic moba-jungle-relic--6" style={{ left:'45%', top:'66%' }} src="/moba-arena/FG_Treasure_Small_1.png" alt="" />
+
+          {/* ── Deposit boxes — Team A (attack right) ────────── */}
+          {/* Lane-end boxes: right side top/mid/bot */}
+          {[
+            { top:'9.375%',  label:'Kotak A Atas',   lane:'top'    },
+            { top:'50%',     label:'Kotak A Tengah',  lane:'middle' },
+            { top:'90.625%', label:'Kotak A Bawah',   lane:'bottom' },
+          ].map((z, i) => {
+            const pts = match?.teams?.teamA?.tower?.points || 0
+            const dest = match?.teams?.teamA?.tower?.destroyed
+            return !dest && (
+              <div key={`az${i}`} className="moba-deposit-box moba-deposit-box--a" style={{ left:'91%', top: z.top }} title={z.label}>
+                <span className="moba-deposit-box__icon">📚</span>
+                <span className="moba-deposit-box__pts">{i === 0 ? `${pts}/100` : '–/100'}</span>
+                <span className="moba-deposit-box__lbl">{z.lane === 'top' ? 'Atas' : z.lane === 'middle' ? 'Tgah' : 'Bwh'}</span>
+              </div>
+            )
+          })}
+          {/* Base library — Team A's own base */}
+          <div className="moba-deposit-library moba-deposit-library--a" style={{ left:'4%', top:'48%' }}>
+            <span>📖</span><small>Pustaka A</small>
           </div>
-          <div className="moba-jungle-decor moba-jungle-decor--rocks" aria-hidden="true">
-            <img className="moba-jungle-rock moba-jungle-rock--1" src="/moba-arena/FG_Grounds.png" alt="" />
-            <img className="moba-jungle-rock moba-jungle-rock--2" src="/moba-arena/FG_Grounds.png" alt="" />
-            <img className="moba-jungle-rock moba-jungle-rock--3" src="/moba-arena/FG_Grounds.png" alt="" />
-            <img className="moba-jungle-rock moba-jungle-rock--4" src="/moba-arena/FG_Grounds.png" alt="" />
-            <img className="moba-jungle-rock moba-jungle-rock--5" src="/moba-arena/FG_Grounds.png" alt="" />
-            <img className="moba-jungle-rock moba-jungle-rock--6" src="/moba-arena/FG_Grounds.png" alt="" />
+
+          {/* ── Deposit boxes — Team B (attack left) ─────────── */}
+          {[
+            { top:'9.375%',  label:'Kotak B Atas',   lane:'top'    },
+            { top:'50%',     label:'Kotak B Tengah',  lane:'middle' },
+            { top:'90.625%', label:'Kotak B Bawah',   lane:'bottom' },
+          ].map((z, i) => {
+            const pts = match?.teams?.teamB?.tower?.points || 0
+            const dest = match?.teams?.teamB?.tower?.destroyed
+            return !dest && (
+              <div key={`bz${i}`} className="moba-deposit-box moba-deposit-box--b" style={{ left:'7.5%', top: z.top }} title={z.label}>
+                <span className="moba-deposit-box__icon">📚</span>
+                <span className="moba-deposit-box__pts">{i === 0 ? `${pts}/100` : '–/100'}</span>
+                <span className="moba-deposit-box__lbl">{z.lane === 'top' ? 'Atas' : z.lane === 'middle' ? 'Tgah' : 'Bwh'}</span>
+              </div>
+            )
+          })}
+          {/* Base library — Team B's own base */}
+          <div className="moba-deposit-library moba-deposit-library--b" style={{ left:'93%', top:'48%' }}>
+            <span>📖</span><small>Pustaka B</small>
           </div>
-          <div className="moba-jungle-decor moba-jungle-decor--relics" aria-hidden="true">
-            <img className="moba-jungle-relic moba-jungle-relic--1" src="/moba-arena/FG_Crystal_Blue_1.png" alt="" />
-            <img className="moba-jungle-relic moba-jungle-relic--2" src="/moba-arena/FG_Crystal_Gold_1.png" alt="" />
-            <img className="moba-jungle-relic moba-jungle-relic--3" src="/moba-arena/FG_Treasure_Big.png" alt="" />
-            <img className="moba-jungle-relic moba-jungle-relic--4" src="/moba-arena/FG_Treasure_Small_1.png" alt="" />
-            <img className="moba-jungle-relic moba-jungle-relic--5" src="/moba-arena/FG_Crystal_Blue_1.png" alt="" />
-            <img className="moba-jungle-relic moba-jungle-relic--6" src="/moba-arena/FG_Treasure_Small_1.png" alt="" />
-          </div>
-          <div className="moba-jungle-bridge" aria-label="Jembatan tengah" />
+
           <MobaBase team={match?.teams?.teamA} side="left" />
           <MobaBase team={match?.teams?.teamB} side="right" />
           {nodes.map(node => (
