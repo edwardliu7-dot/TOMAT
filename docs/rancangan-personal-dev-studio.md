@@ -1,858 +1,750 @@
 # Rancangan Personal AI Development Studio
 
-> Status: **Rancangan awal**  
-> Target pengguna: **satu pengguna pribadi**  
-> Tujuan: menyediakan lingkungan pengembangan mandiri yang mengambil fitur penting dari Replit tanpa bergantung pada langganan Replit.
+> Status: **Rancangan aktif**
+> Diperbarui: 9 Agustus 2026
+> Target pengguna: **satu pengguna pribadi**
+> Deployment: **laptop lokal saja**
+> Scope: **satu proyek/aplikasi aktif pada satu waktu**
 
 ---
 
 ## 1. Ringkasan
 
-Personal AI Development Studio adalah aplikasi pribadi untuk mengembangkan, menjalankan, memperbaiki, dan mem-preview proyek software melalui browser.
+Personal AI Development Studio adalah aplikasi pribadi yang berjalan di laptop sendiri, dapat diakses melalui browser di `localhost`. Tujuannya menggantikan ketergantungan pada Replit untuk kebutuhan pengembangan sehari-hari.
 
-Fokusnya bukan membuat platform publik seperti Replit, melainkan membuat alat kerja pribadi yang memiliki fitur yang paling sering dibutuhkan:
+Fitur inti:
 
-- Mengambil repository dari GitHub.
-- Mengedit kode melalui browser.
-- Memiliki AI Agent untuk coding dan problem solving.
-- Memiliki mode **Build** dan **Design**.
-- Menjalankan aplikasi dan menampilkan preview.
-- Menyimpan secret dengan aman.
-- Melakukan Git pull, commit, diff, branch, push, dan pull request.
-- Menjalankan build, test, dan debugging otomatis.
-- Menyimpan checkpoint serta menyediakan rollback.
+- Membuka dan mengedit proyek dari GitHub atau folder lokal.
+- Editor kode di browser.
+- Terminal di browser.
+- Preview aplikasi yang sedang dikerjakan.
+- AI Agent untuk coding, debugging, dan problem solving.
+- Mode Build dan Design.
+- Penyimpanan secret aman per proyek.
+- Git pull, diff, commit, dan push.
+- Checkpoint dan rollback.
 
-Seluruh biaya infrastruktur dan AI berada di luar Replit. Aplikasi dapat menggunakan API key milik sendiri, provider AI yang lebih murah/gratis, model lokal, atau kombinasi beberapa provider.
-
----
-
-## 2. Prinsip Utama
-
-### 2.1 Pribadi, bukan multi-tenant
-
-Pengguna aplikasi hanya satu orang. Karena itu, versi awal tidak membutuhkan:
-
-- Registrasi pengguna.
-- Sistem organisasi atau tim.
-- Billing.
-- Quota per pengguna.
-- Kolaborasi realtime.
-- Permission kompleks antar pengguna.
-- Autoscaling multi-tenant.
-
-Tetap diperlukan autentikasi atau akses privat agar aplikasi dan secret tidak terbuka ke publik.
-
-### 2.2 Provider AI tidak boleh mengunci aplikasi
-
-AI harus melalui satu lapisan abstraksi bernama **AI Gateway**. Agent tidak boleh terikat langsung ke satu provider.
-
-Provider dapat diganti berdasarkan:
-
-- Harga.
-- Kualitas.
-- Kecepatan.
-- Dukungan vision.
-- Ketersediaan free tier.
-- Apakah model berjalan lokal atau melalui API.
-
-### 2.3 Pengguna menyetujui perubahan berisiko
-
-Agent boleh melakukan pekerjaan rutin secara otomatis, tetapi operasi berisiko harus meminta persetujuan:
-
-- Menghapus banyak file.
-- Mengubah database atau schema.
-- Mengubah dependency besar.
-- Mengubah konfigurasi deployment.
-- Menggunakan atau menghapus secret.
-- Push ke branch utama.
-- Menjalankan command yang berpotensi merusak sistem.
-
-### 2.4 Workspace harus dapat dipulihkan
-
-Setiap perubahan agent perlu dapat dilihat melalui diff dan dikembalikan melalui:
-
-- Undo perubahan terakhir.
-- Checkpoint sebelum agent bekerja.
-- Git branch.
-- Git reset/restore.
-- Rollback ke checkpoint sebelumnya.
+Tidak ada VPS. Tidak ada Docker. Tidak ada multi-user. Tidak ada billing.
+Semua berjalan di laptop, semua data tersimpan lokal.
 
 ---
 
-## 3. Sasaran Penggunaan
+## 2. Batasan dan Scope
 
-Alur utama yang ingin didukung:
+### Yang dibuat
+
+- Satu aplikasi berjalan lokal di laptop.
+- Satu proyek aktif pada satu waktu.
+- Satu pengguna.
+- Akses hanya dari browser di laptop yang sama.
+
+### Yang tidak dibuat
+
+- Multi-user.
+- Akses dari internet atau luar laptop.
+- VPS atau cloud deployment.
+- Docker atau container isolation.
+- Billing atau quota.
+- Kolaborasi atau sharing.
+- Marketplace atau plugin publik.
+- Editor visual setara Figma.
+- Hosting aplikasi untuk orang lain.
+
+Fitur di luar scope ini dapat ditambahkan nanti jika dibutuhkan, tanpa harus menulis ulang fondasi.
+
+---
+
+## 3. Arsitektur
+
+Semua komponen berjalan di satu laptop:
 
 ```text
-Login ke Personal Dev Studio
-        ↓
-Import atau buka repository GitHub
-        ↓
-Pilih Build atau Design Mode
-        ↓
-Minta agent mengerjakan perubahan
-        ↓
-Agent membaca kode dan membuat rencana
-        ↓
-Agent mengubah file
-        ↓
-Build, test, dan preview dijalankan
-        ↓
-Agent membaca error jika ada
-        ↓
-Pengguna memeriksa diff dan preview
-        ↓
-Commit dan push ke GitHub
+Browser (localhost:3000)
+        │
+        ▼
+┌───────────────────────────────────────┐
+│ Personal Dev Studio                   │
+│                                       │
+│  Backend — Node.js + Express          │
+│  ├── Auth lokal (password tunggal)    │
+│  ├── Project Manager                  │
+│  ├── File System API                  │
+│  ├── Workspace Runner (node-pty)      │
+│  ├── Build Runner                     │
+│  ├── Preview Proxy                    │
+│  ├── AI Gateway                       │
+│  ├── GitHub Service (simple-git)      │
+│  ├── Secret Manager                   │
+│  └── Checkpoint Manager               │
+│                                       │
+│  Database — SQLite (satu file)        │
+│  Storage  — folder ~/dev-studio/      │
+└───────────────────────────────────────┘
+        │
+        ├── Proyek aktif (folder lokal)
+        │     └── source code
+        │
+        ├── Preview (localhost:3100)
+        │     └── proses aplikasi berjalan
+        │
+        └── AI
+              ├── API key sendiri (eksternal)
+              └── Ollama (lokal, opsional)
 ```
 
-Contoh instruksi:
+### Cara kerja umum
 
-- “Perbaiki halaman login agar responsif di Android.”
-- “Cari penyebab build gagal dan perbaiki tanpa mengubah API publik.”
-- “Buat tiga variasi desain dashboard ini.”
-- “Tarik perubahan terbaru dari GitHub lalu jelaskan konflik yang terjadi.”
-- “Jalankan test, perbaiki error, dan jangan push sebelum saya setujui.”
+```text
+Buka browser → localhost:3000
+        ↓
+Login dengan password lokal
+        ↓
+Pilih atau import proyek
+        ↓
+Edit kode / minta agent bekerja
+        ↓
+Build dan preview di localhost:3100
+        ↓
+Lihat diff → commit → push ke GitHub
+```
 
 ---
 
-## 4. Arsitektur Tingkat Tinggi
+## 4. Stack
 
-```text
-┌────────────────────────────────────────────────────────┐
-│ Browser                                                │
-│                                                        │
-│ Project Manager │ Code Editor │ AI Agent │ Preview     │
-│ Build Mode      │ Design Mode│ Terminal │ Git         │
-└───────────────────────────┬────────────────────────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│ Personal Dev Studio Backend                            │
-│                                                        │
-│ Auth & Session                                         │
-│ Project Manager                                        │
-│ Workspace Runner                                       │
-│ AI Gateway                                             │
-│ GitHub Service                                         │
-│ Secret Manager                                         │
-│ Preview Proxy                                          │
-│ Checkpoint Manager                                     │
-└───────────────┬────────────────┬───────────────────────┘
-                │                │
-                ▼                ▼
-       ┌────────────────┐  ┌────────────────────┐
-       │ Workspace       │  │ External Services  │
-       │ terisolasi      │  │                    │
-       │                 │  │ GitHub             │
-       │ source code     │  │ AI providers       │
-       │ terminal       │  │ Ollama              │
-       │ build server    │  │ Storage/backup     │
-       └────────────────┘  └────────────────────┘
-```
-
-### Komponen utama
-
-| Komponen | Tanggung jawab |
-|---|---|
-| Dashboard | Antarmuka proyek, agent, editor, preview, dan Git |
-| Project Manager | Daftar proyek, lokasi workspace, branch aktif, dan status |
-| Code Editor | Membaca dan mengubah file melalui browser |
-| AI Gateway | Memilih provider, model, quota, retry, dan pencatatan pemakaian |
-| AI Agent | Merencanakan, membaca, mengubah, menjalankan, dan memverifikasi |
-| Workspace Runner | Menjalankan command dan server proyek |
-| Preview Proxy | Meneruskan port workspace ke browser |
-| GitHub Service | Clone, pull, branch, diff, commit, push, dan pull request |
-| Secret Manager | Menyimpan dan menginjeksi secret proyek |
-| Checkpoint Manager | Snapshot perubahan dan pemulihan |
+| Lapisan | Pilihan | Alasan |
+|---|---|---|
+| Backend | Node.js + Express | Mudah, cukup untuk kebutuhan ini |
+| Database | SQLite | Satu file, tanpa setup, cukup untuk satu pengguna |
+| Terminal | node-pty + xterm.js | Terminal nyata di browser |
+| Editor | Monaco Editor | Sama dengan VS Code, berjalan di browser |
+| Git | simple-git | Library Node.js untuk git |
+| Preview proxy | http-proxy + express | Teruskan port lokal ke browser |
+| Secret | SQLite + AES-256-GCM | Enkripsi di kolom database |
+| AI API | Groq, OpenAI, Gemini, dll | Sesuai API key yang dimiliki |
+| AI lokal | Ollama (opsional) | Model lokal jika tidak ingin pakai API |
+| Frontend | React + Vite | Konsisten dengan proyek TOMAT |
+| Auth | Session + bcrypt | Password tunggal, satu akun lokal |
 
 ---
 
-## 5. Pilihan Deployment
-
-### 5.1 Lokal — pilihan awal yang direkomendasikan
-
-Semua komponen berjalan di komputer pribadi:
+## 5. Struktur Folder Aplikasi
 
 ```text
-Browser → Personal Dev Studio lokal → Workspace lokal
-                              ├── GitHub
-                              ├── AI API
-                              └── Ollama opsional
+~/dev-studio/                    ← root aplikasi
+├── studio/                      ← source code Personal Dev Studio
+│   ├── server/                  ← backend Node.js
+│   │   ├── index.js
+│   │   ├── auth.js
+│   │   ├── projects.js
+│   │   ├── workspace.js
+│   │   ├── preview.js
+│   │   ├── ai-gateway.js
+│   │   ├── github.js
+│   │   ├── secrets.js
+│   │   └── checkpoints.js
+│   ├── src/                     ← frontend React
+│   │   ├── App.jsx
+│   │   ├── screens/
+│   │   │   ├── ProjectList.jsx
+│   │   │   ├── BuildMode.jsx
+│   │   │   └── DesignMode.jsx
+│   │   └── components/
+│   │       ├── Editor.jsx
+│   │       ├── Terminal.jsx
+│   │       ├── FileExplorer.jsx
+│   │       ├── AIAgent.jsx
+│   │       ├── GitPanel.jsx
+│   │       └── PreviewFrame.jsx
+│   ├── studio.db                ← database SQLite
+│   └── package.json
+│
+└── projects/                    ← semua proyek yang dikelola
+    ├── tomat/                   ← clone proyek TOMAT
+    ├── website/                 ← proyek lain
+    └── api/
 ```
-
-**Kelebihan:**
-
-- Biaya bulanan hampir nol.
-- Source code dan secret tetap di komputer pribadi.
-- Workspace dapat memakai CPU, RAM, dan storage lokal.
-- Tidak perlu VPS atau reverse proxy publik.
-- Cocok untuk tahap pengembangan awal.
-
-**Kekurangan:**
-
-- Hanya tersedia ketika komputer menyala.
-- Akses dari luar membutuhkan VPN atau tunnel privat.
-- Backup harus dirancang sendiri.
-
-### 5.2 VPS pribadi
-
-Dashboard, agent, workspace, dan preview berjalan di satu VPS.
-
-**Kelebihan:**
-
-- Dapat diakses dari mana saja.
-- Bisa memiliki domain dan preview online.
-- Komputer pribadi tidak harus menyala.
-
-**Kekurangan:**
-
-- Ada biaya VPS dan storage.
-- Workspace dan command harus diisolasi dengan benar.
-- Model lokal berat mungkin tidak nyaman dijalankan.
-
-### 5.3 Hybrid
-
-```text
-VPS:
-- Dashboard
-- Backend
-- GitHub integration
-- Metadata proyek
-- Preview ringan
-
-Komputer pribadi:
-- Source workspace
-- Terminal dan build berat
-- Docker
-- Ollama dan model lokal
-```
-
-Koneksi dapat memakai Tailscale atau WireGuard. Hybrid cocok jika aplikasi perlu diakses dari luar, tetapi compute utama tetap ingin dilakukan di komputer pribadi.
-
-### Keputusan awal
-
-Mulai dari **lokal**, kemudian tambahkan mode hybrid atau VPS setelah alur Build, Design, dan AI Agent stabil.
 
 ---
 
-## 6. Stack yang Disarankan
+## 6. Auth Lokal
 
-Stack dapat berubah sesuai kebutuhan, tetapi rancangan awal:
+Karena hanya satu pengguna dan hanya diakses dari laptop sendiri, sistem auth bisa sangat sederhana:
 
-### Frontend
+- Satu password yang di-hash dengan bcrypt.
+- Session disimpan di SQLite atau file.
+- Cookie httpOnly.
+- Tidak ada registrasi.
+- Tidak ada reset password melalui email.
+- Password hanya bisa diubah langsung dari terminal atau file konfigurasi.
 
-- React atau Next.js.
-- Monaco Editor.
-- Terminal berbasis xterm.js.
-- Panel preview iframe.
-- State management sederhana.
+Cara mengakses:
 
-### Backend
+```text
+Buka browser → localhost:3000
+→ Masukkan password
+→ Session aktif selama browser terbuka atau sampai logout
+```
 
-- Node.js.
-- Express atau Fastify.
-- WebSocket untuk status agent, terminal, dan log realtime.
-- Worker terpisah untuk pekerjaan agent dan build.
+Jika ingin lebih sederhana lagi, versi pertama dapat memakai autentikasi berbasis token statis yang disimpan di file `.env` studio.
 
-### Data
+---
 
-- SQLite untuk versi lokal pertama.
-- PostgreSQL jika metadata, job queue, atau sinkronisasi bertambah.
-- Filesystem workspace untuk source code.
+## 7. Project Manager
 
-### Workspace
+Project Manager mengelola daftar proyek yang dikerjakan.
 
-- Docker container untuk isolasi dasar.
-- User dan filesystem terbatas.
-- Limit CPU, RAM, proses, dan durasi.
-- Network dibatasi jika tidak dibutuhkan.
+Data per proyek yang disimpan di SQLite:
 
-### Preview
+```text
+id
+nama
+path lokal (misalnya ~/dev-studio/projects/tomat)
+url github
+branch aktif
+port preview
+perintah start (misalnya: npm run dev)
+perintah build (misalnya: npm run build)
+env/secret yang aktif
+waktu terakhir dibuka
+```
 
-- Reverse proxy internal.
-- Port dinamis per workspace.
-- Restart process.
+Fitur:
+
+- Tambah proyek baru dari GitHub URL.
+- Tambah proyek dari folder lokal yang sudah ada.
+- Clone repository.
+- Pilih branch.
+- Buka proyek di Build Mode atau Design Mode.
+- Lihat status proyek: berjalan, berhenti, atau error.
+
+---
+
+## 8. File Explorer dan Editor
+
+### File Explorer
+
+- Menampilkan struktur folder proyek.
+- Klik file untuk membuka di editor.
+- Klik kanan untuk rename, hapus, buat file/folder baru.
+- Navigasi keyboard.
+- Indikator file yang sudah diubah.
+
+### Editor
+
+Monaco Editor berjalan di browser dan berkomunikasi dengan backend untuk:
+
+- Membaca konten file dari disk.
+- Menyimpan perubahan ke disk.
+- Menampilkan diff terhadap git.
+- Highlight syntax sesuai bahasa.
+- Search dan replace.
+- Multiple tab.
+
+Backend endpoint yang diperlukan:
+
+```text
+GET  /api/files?path=...        → baca file
+POST /api/files                 → tulis file
+GET  /api/tree?root=...         → daftar file/folder
+POST /api/files/rename          → rename
+POST /api/files/delete          → hapus
+POST /api/files/mkdir           → buat folder
+```
+
+---
+
+## 9. Terminal
+
+Terminal menggunakan `node-pty` di backend dan `xterm.js` di frontend melalui WebSocket.
+
+```text
+Browser (xterm.js)
+    ↕ WebSocket
+Backend (node-pty)
+    ↕
+Shell (bash/sh) — di dalam folder proyek
+```
+
+Terminal berjalan di direktori proyek aktif. Pengguna dapat:
+
+- Menjalankan command apa pun seperti terminal biasa.
+- Menjalankan `npm install`, `npm run dev`, `git status`, dll.
+- Melihat output secara realtime.
+
+Pembatasan ringan yang disarankan:
+
+- Timeout per command opsional.
+- Tidak menjalankan lebih dari satu proses berat secara bersamaan.
+
+---
+
+## 10. Preview
+
+Preview menampilkan aplikasi yang sedang berjalan di dalam iframe:
+
+```text
+Browser
+├── Dev Studio (localhost:3000)
+│   └── Panel Preview (iframe)
+│         └── Mengarah ke localhost:3100
+│
+└── Proyek aktif (localhost:3100)
+      └── npm run dev / server Node.js / dll
+```
+
+Backend meneruskan port preview ke iframe melalui proxy:
+
+```text
+localhost:3000/preview → localhost:3100
+```
+
+Fitur preview:
+
+- Status server: berjalan, berhenti, crash.
+- Tombol restart server.
 - Log startup.
-- Screenshot preview.
+- Refresh otomatis setelah build berhasil.
+- Screenshot preview untuk dikirim ke agent.
+- Buka di tab baru.
 
-### AI lokal
-
-- Ollama sebagai adapter opsional.
-- Model lokal dipilih berdasarkan kemampuan hardware.
+Port preview dapat dikonfigurasi per proyek jika proyek menggunakan port berbeda.
 
 ---
 
-## 7. AI Gateway
+## 11. AI Gateway
 
-AI Gateway menyediakan interface yang sama untuk semua provider.
+AI Gateway adalah lapisan tengah yang menghubungkan agent ke provider AI.
 
 ```text
 Agent
   ↓
 AI Gateway
-  ├── Provider API murah/gratis
-  ├── Provider API premium dengan API key sendiri
-  ├── Model lokal melalui Ollama
-  └── Model vision untuk screenshot
+  ├── Groq (API key sendiri)
+  ├── OpenAI (API key sendiri)
+  ├── Gemini (API key sendiri)
+  ├── Provider lain (API key sendiri)
+  └── Ollama (lokal, opsional)
 ```
 
-### Tanggung jawab AI Gateway
+Karena ini penggunaan pribadi, AI Gateway tidak perlu mengelola billing atau quota pengguna. Cukup:
 
-- Memilih provider dan model.
-- Membaca konfigurasi proyek.
-- Mengatur token limit.
-- Mengatur timeout.
-- Retry terbatas.
-- Menyimpan metrik pemakaian.
-- Menyensor secret dari input dan output.
-- Menghentikan loop agent yang tidak produktif.
+- Membaca konfigurasi provider dari secret studio.
+- Memilih provider berdasarkan konfigurasi pengguna.
+- Mengirim request ke provider.
+- Meneruskan respons ke agent.
+- Mencatat penggunaan token di SQLite.
+- Menyensor secret dari input sebelum dikirim ke provider.
 
-### Routing berdasarkan jenis tugas
+### Routing sederhana
 
-| Jenis tugas | Provider yang disarankan |
-|---|---|
-| Ringkasan file | Model lokal atau API murah |
-| Pencarian lokasi bug | Model lokal/API murah |
-| Menjelaskan error | API murah |
-| Perubahan satu atau dua file | Model lokal atau API murah |
-| Refactor besar | API terbaik milik pengguna |
-| Analisis screenshot | Model vision |
-| Autocomplete | Model lokal atau provider khusus autocomplete |
+```text
+Tugas ringan      → provider utama yang dipilih pengguna
+Tugas vision      → provider yang mendukung image
+Tugas lokal       → Ollama (jika dikonfigurasi)
+```
 
 ### Penghematan token
 
-- Jangan mengirim `node_modules`, `dist`, cache, binary, dan file besar.
-- Kirim hanya file yang relevan.
-- Buat index struktur proyek.
-- Cache ringkasan file.
-- Ringkas log sebelum dikirim ke model.
-- Batasi jumlah tool call.
-- Hentikan agent setelah beberapa kegagalan berturut-turut.
+Karena API key milik sendiri, pengguna menanggung biaya sendiri. Tetap disarankan:
 
-Contoh batas awal:
-
-```text
-Maksimal langkah agent per permintaan: 20
-Maksimal kegagalan build otomatis: 3
-Maksimal ukuran log ke model: 20 KB
-Screenshot otomatis: hanya saat diperlukan
-```
+- Jangan mengirim `node_modules`, `dist`, cache, dan binary.
+- Batasi ukuran log yang dikirim (misalnya maksimal 20 KB).
+- Kirim hanya file yang relevan, bukan seluruh repository.
+- Cache ringkasan proyek agar tidak dibaca ulang setiap permintaan.
+- Hentikan agent jika gagal tiga kali berturut-turut.
 
 ---
 
-## 8. AI Agent dan Tools
+## 12. AI Agent
 
-Agent menggunakan tools, bukan hanya chat teks.
+Agent adalah komponen yang menjalankan instruksi coding secara otomatis menggunakan tools.
 
-### Tools inti
+### Tools yang tersedia
 
 ```text
-read_file
-list_files
-search_code
-inspect_project
-write_file
-apply_patch
-run_command
-run_build
-run_tests
-read_logs
-take_screenshot
-get_preview_status
-git_status
-git_diff
-git_branch
-git_commit
-git_pull
-git_push
+read_file           → membaca isi file
+list_files          → daftar file/folder
+search_code         → cari teks atau pola dalam proyek
+inspect_project     → ringkasan struktur proyek
+write_file          → membuat atau mengubah file
+apply_patch         → menerapkan diff
+run_command         → menjalankan command di terminal
+run_build           → menjalankan build command
+run_tests           → menjalankan test
+read_logs           → membaca output log terakhir
+take_screenshot     → screenshot preview
+git_status          → status git
+git_diff            → melihat perubahan
+git_branch          → membuat atau pindah branch
+git_commit          → commit lokal
+git_pull            → pull dari remote
+git_push            → push ke remote (perlu approval)
 ```
 
 ### Siklus kerja agent
 
 ```text
-1. Memahami permintaan.
+1. Memahami instruksi pengguna.
 2. Menginspeksi struktur proyek.
 3. Membuat rencana singkat.
-4. Meminta konfirmasi jika risikonya tinggi.
-5. Membuat checkpoint.
-6. Mengubah kode.
-7. Menjalankan build atau test.
-8. Membaca error.
-9. Memperbaiki secara terbatas jika diperlukan.
-10. Menampilkan ringkasan dan diff.
-11. Menunggu persetujuan commit/push.
+4. Membuat checkpoint.
+5. Mengubah file.
+6. Menjalankan build atau test.
+7. Membaca error jika ada.
+8. Memperbaiki secara terbatas.
+9. Menampilkan ringkasan dan diff.
+10. Menunggu approval untuk commit/push.
 ```
 
-### Guardrail agent
+### Guardrail
 
 Agent tidak boleh:
 
 - Membaca nilai secret.
-- Menampilkan credential di chat atau log.
-- Push branch utama tanpa persetujuan.
-- Menghapus repository.
-- Mengubah file di luar workspace.
-- Menjalankan command destruktif tanpa approval.
+- Menampilkan secret di chat atau log.
+- Push ke remote tanpa approval pengguna.
+- Mengubah file di luar folder proyek aktif.
+- Menjalankan command destruktif tanpa konfirmasi.
 - Mengulangi langkah yang sama tanpa perubahan strategi.
 
----
-
-## 9. Mode Build
-
-Mode Build adalah ruang kerja utama untuk coding dan debugging.
+Batas awal:
 
 ```text
-┌───────────────┬───────────────────────────────┬───────────────┐
-│ File Explorer │ Editor                        │ AI Agent      │
-│               │                               │               │
-│ src/          │ Monaco Editor                 │ Chat          │
-│ public/       │ Tabs                          │ Plan          │
-│ package.json  │ Search                        │ Tool status   │
-├───────────────┴───────────────────────────────┴───────────────┤
-│ Terminal │ Build Log │ Test Result │ Git Diff │ Checkpoints    │
-└────────────────────────────────────────────────────────────────┘
+Maksimal langkah per permintaan   : 20
+Maksimal kegagalan build otomatis : 3
+Maksimal ukuran log ke model      : 20 KB
+Screenshot otomatis               : hanya saat diperlukan
 ```
-
-### Fitur MVP
-
-- File explorer.
-- Membuka dan menyimpan file.
-- Search kode.
-- Monaco Editor.
-- Terminal.
-- Menjalankan command.
-- Build dan test.
-- Log realtime.
-- AI Agent.
-- Git diff.
-- Checkpoint.
-
-### Fitur lanjutan
-
-- Multi-tab.
-- Inline diagnostic.
-- Command palette.
-- Auto-format.
-- LSP.
-- Review diff per file.
-- Apply/reject perubahan per hunks.
-- Perbandingan checkpoint.
 
 ---
 
-## 10. Mode Design
+## 13. Mode Build
 
-Mode Design dimulai sebagai visual workflow, bukan editor seperti Figma penuh.
+```text
+┌──────────────┬─────────────────────────┬──────────────────┐
+│ File Explorer│ Editor (Monaco)         │ AI Agent         │
+│              │                         │                  │
+│ src/         │ kode file aktif         │ chat             │
+│ public/      │                         │ rencana          │
+│ package.json │                         │ status tool      │
+├──────────────┴─────────────────────────┴──────────────────┤
+│ Terminal │ Build Log │ Git Diff │ Checkpoints              │
+└──────────────────────────────────────────────────────────-─┘
+```
+
+Fitur MVP:
+
+- File explorer.
+- Buka dan simpan file.
+- Monaco Editor.
+- Terminal.
+- Jalankan build.
+- Log realtime.
+- AI Agent.
+- Git status, diff, commit.
+- Checkpoint.
+
+Fitur lanjutan:
+
+- Multi-tab editor.
+- Search seluruh proyek.
+- Inline diagnostic.
+- Auto-format.
+- Perbandingan checkpoint.
+- Apply/reject perubahan per baris.
+
+---
+
+## 14. Mode Design
+
+Mode Design membantu mengubah tampilan aplikasi berdasarkan visual, bukan hanya instruksi teks.
+
+### Alur
+
+```text
+Pengguna membuka preview
+        ↓
+Pengguna klik elemen di preview
+        ↓
+Sistem mengambil screenshot + info komponen
+        ↓
+Pengguna memberi instruksi visual
+        ↓
+Agent membuat beberapa variasi
+        ↓
+Pengguna memilih variasi
+        ↓
+Agent menerapkan perubahan + checkpoint
+        ↓
+Build dan preview diverifikasi
+```
 
 ### MVP Design Mode
 
 - Preview live.
 - Screenshot preview.
-- Tombol inspect.
-- Pemilihan elemen UI.
-- Informasi komponen atau selector terkait.
+- Klik elemen, kirim konteks komponen ke agent.
 - Chat agent dengan konteks visual.
-- Generate beberapa variasi.
-- Compare variasi.
-- Apply variasi ke workspace.
-
-### Alur desain
-
-```text
-Pengguna membuka preview
-        ↓
-Pengguna memilih elemen
-        ↓
-Sistem mengumpulkan screenshot dan konteks kode
-        ↓
-Pengguna memberi instruksi visual
-        ↓
-Agent membuat Variant A, B, dan C
-        ↓
-Pengguna memilih variasi
-        ↓
-Agent menerapkan perubahan ke branch/checkpoint
-        ↓
-Build dan preview diverifikasi
-```
+- Generate dua atau tiga variasi desain.
+- Tampilkan variasi berdampingan.
+- Apply variasi yang dipilih.
 
 ### Contoh instruksi
 
-- “Buat kartu ini lebih mudah dibaca di layar Android.”
-- “Pertahankan warna brand, tetapi buat hierarkinya lebih kuat.”
-- “Buat tiga variasi hero section tanpa mengubah fungsinya.”
-- “Jadikan layout ini landscape-only di mobile.”
+- "Buat kartu ini lebih mudah dibaca di layar Android."
+- "Buat tiga variasi hero section tanpa mengubah fungsinya."
+- "Jadikan layout ini landscape-only di mobile."
+- "Pertahankan warna brand tetapi kuatkan hierarkinya."
 
 ---
 
-## 11. GitHub Integration
+## 15. GitHub Integration
 
 ### Fitur
 
-- Import repository.
-- Clone repository.
-- Memilih branch awal.
-- Pull perubahan.
-- Melihat status Git.
-- Melihat diff.
-- Membuat branch.
-- Commit.
-- Push.
-- Membuat pull request.
-- Menangani konflik secara terbantu.
+- Import proyek dari GitHub URL.
+- Clone repository ke folder lokal.
+- Pilih branch.
+- Pull perubahan terbaru.
+- Lihat status dan diff.
+- Buat branch baru.
+- Commit perubahan.
+- Push ke remote (dengan approval).
 
 ### Alur branch yang disarankan
 
 ```text
-main/master
-    ↓
-agent/workspace-YYYYMMDD
-    ↓
-Agent bekerja dan membuat checkpoint
-    ↓
-Pengguna meninjau diff
-    ↓
-Commit dan push
-    ↓
-Merge atau Pull Request
+main (branch utama di GitHub)
+    ↓ clone
+lokal main
+    ↓ agent membuat branch
+agent/YYYYMMDD-nama-tugas
+    ↓ agent bekerja
+commit lokal + checkpoint
+    ↓ pengguna lihat diff
+push ke GitHub
+    ↓ opsional
+Pull Request
 ```
 
-Agent boleh membuat commit lokal otomatis setelah perubahan selesai, tetapi push ke remote sebaiknya tetap membutuhkan persetujuan.
+### Token GitHub
 
-### GitHub credential
-
-Gunakan GitHub OAuth atau GitHub App jika memungkinkan. Token harus disimpan sebagai secret dan tidak boleh masuk ke prompt agent.
+Token GitHub disimpan sebagai secret di studio, tidak pernah ditampilkan ke browser atau agent.
 
 ---
 
-## 12. Secret Manager
+## 16. Secret Manager
 
-Secret harus dipisahkan per proyek.
+Secret dipisahkan per proyek dan disimpan terenkripsi di SQLite.
 
 Contoh:
 
 ```text
-Project TOMAT
+Proyek TOMAT
 ├── DATABASE_URL
 ├── GROQ_API_KEY
-└── SESSION_SECRET
+├── SESSION_SECRET
+└── VAPID_PRIVATE_KEY
 
-Project Website
+Proyek Website
 ├── GITHUB_TOKEN
 └── DEPLOY_TOKEN
+
+Studio (internal)
+├── GITHUB_TOKEN_STUDIO
+└── AI_PROVIDER_KEY
 ```
 
-### Persyaratan minimum
+### Cara kerja
 
-- Secret disimpan terenkripsi.
-- Kunci enkripsi tidak disimpan bersama plaintext secret.
-- Secret hanya diinjeksi ke proses yang membutuhkan.
-- Nilai secret tidak dikirim ke browser.
-- Nilai secret tidak ditampilkan ke agent.
-- Secret disensor dari terminal dan log.
-- Pengguna dapat menambah, mengganti, menghapus, dan merotasi secret.
-- Secret memiliki scope proyek.
+- Secret dienkripsi dengan AES-256-GCM.
+- Kunci enkripsi disimpan terpisah di file konfigurasi studio, bukan di database.
+- Secret hanya diinjeksi sebagai environment variable ke proses workspace.
+- Nilai secret tidak pernah dikirim ke browser.
+- Nilai secret tidak pernah masuk ke prompt agent.
+- Output terminal dan log disensor otomatis.
 
-### Representasi ke agent
-
-Agent hanya boleh menerima informasi seperti:
+### Yang dilihat agent
 
 ```text
-GROQ_API_KEY tersedia untuk proyek ini.
+Secret yang tersedia untuk proyek ini:
+- DATABASE_URL ✓
+- GROQ_API_KEY ✓
+- SESSION_SECRET ✓
 ```
 
-Agent tidak boleh menerima:
+Bukan:
 
 ```text
-GROQ_API_KEY=nilai-rahasia
+DATABASE_URL=postgresql://user:password@host/db
 ```
 
-### Pilihan implementasi
+### Operasi yang tersedia
 
-Untuk versi lokal pribadi:
-
-- File environment terenkripsi.
-- SOPS + age.
-- SQLite dengan kolom terenkripsi.
-
-Untuk versi lebih kuat:
-
-- Infisical self-hosted.
-- Vault self-hosted.
+- Tambah secret.
+- Lihat daftar nama secret (bukan nilai).
+- Ubah nilai secret.
+- Hapus secret.
+- Salin secret dari proyek lain.
 
 ---
 
-## 13. Workspace dan Preview
+## 17. Checkpoint dan Rollback
 
-### Workspace
-
-Setiap proyek memiliki:
-
-- Direktori source.
-- Branch aktif.
-- Environment variable terpilih.
-- Port preview.
-- Riwayat checkpoint.
-- Status proses.
-
-### Isolasi minimum
-
-Kode repository tidak boleh dijalankan langsung di proses backend utama.
-
-Workspace runner harus membatasi:
-
-- CPU.
-- RAM.
-- Jumlah proses.
-- Durasi command.
-- Filesystem.
-- Akses network.
-- Port.
-- Akses ke host.
-
-### Preview
-
-Contoh pemetaan lokal:
-
-```text
-Project TOMAT    → localhost:3101
-Project Website  → localhost:3102
-Project API      → localhost:3103
-```
-
-Jika menggunakan VPS atau hybrid:
-
-```text
-https://preview.domain-pribadi.example/tomat
-https://preview.domain-pribadi.example/website
-```
-
-Preview harus memiliki:
-
-- Status server.
-- Tombol restart.
-- Log startup.
-- Deteksi crash.
-- Screenshot.
-- Refresh otomatis setelah build berhasil.
-
----
-
-## 14. Checkpoint dan Rollback
-
-Checkpoint dibuat:
+Checkpoint dibuat otomatis:
 
 - Sebelum agent mulai mengubah kode.
 - Sebelum refactor besar.
-- Sebelum perubahan dependency.
-- Sebelum perubahan database.
 - Sebelum pengguna memilih variasi Design Mode.
+- Secara manual oleh pengguna kapan saja.
 
-Checkpoint dapat berupa:
+Implementasi sederhana untuk laptop lokal:
 
-- Git commit lokal.
-- Git branch sementara.
-- Snapshot filesystem.
-- Kombinasi commit dan metadata agent.
+- Git commit lokal dengan pesan checkpoint otomatis.
+- Metadata checkpoint disimpan di SQLite.
 
-Setiap checkpoint perlu menyimpan:
+Data per checkpoint:
 
-- Waktu.
-- Permintaan pengguna.
-- Ringkasan agent.
-- Daftar file yang berubah.
-- Hasil build/test.
+```text
+id
+waktu
+instruksi pengguna
+ringkasan agent
+daftar file yang berubah
+hash commit git
+hasil build/test
+```
+
+Rollback berarti:
+
+```text
+git reset --hard <hash-checkpoint>
+```
+
+Metadata checkpoint tetap tersimpan walaupun kode sudah di-rollback.
 
 ---
 
-## 15. Keamanan
+## 18. Biaya Operasional
 
-Walaupun hanya digunakan oleh satu orang, aplikasi tetap harus menjaga keamanan karena menangani source code, token, dan secret.
+Karena berjalan lokal tanpa VPS:
 
-### Minimum security baseline
-
-- Akses lokal atau VPN secara default.
-- Tidak membuka terminal ke internet tanpa autentikasi.
-- Session menggunakan cookie aman.
-- Secret tidak masuk ke frontend.
-- Log disensor.
-- Workspace tidak memiliki akses bebas ke host.
-- Command timeout.
-- Upload dan repository dibatasi ke lokasi workspace.
-- Backup terenkripsi.
-- Audit log untuk secret, push, dan command berisiko.
-
-### Risiko yang perlu diperhatikan
-
-| Risiko | Mitigasi |
+| Komponen | Biaya |
 |---|---|
-| Repository berisi script berbahaya | Jalankan di container/runner terisolasi |
-| Secret terbaca dari log | Masking output dan filter environment |
-| Agent menghapus kode | Checkpoint sebelum perubahan |
-| Agent push ke branch salah | Branch terpisah dan approval |
-| Preview mengambil alih host | Port/proses/network isolation |
-| Token GitHub bocor | Secret manager dan scope token minimal |
-| Model mengulang loop | Batas tool call dan retry |
+| Server/hosting | Rp 0 |
+| Database | Rp 0 (SQLite lokal) |
+| Storage | Rp 0 (disk laptop) |
+| Preview | Rp 0 (port lokal) |
+| GitHub | Rp 0 (paket gratis) |
+| Ollama (model lokal) | Rp 0 (sekali download) |
+| AI API | Sesuai pemakaian, API key sendiri |
+| Listrik laptop | Normal, tidak ada tambahan signifikan |
 
----
+Satu-satunya biaya variabel adalah **pemakaian AI API** jika tidak memakai model lokal.
 
-## 16. Strategi Biaya
+### Cara meminimalkan biaya AI API
 
-### Mode biaya paling rendah
-
-```text
-GitHub Free
-SQLite
-Workspace lokal
-Docker
-Ollama
-Backup lokal/encrypted drive
-Provider AI gratis atau API key sendiri
-```
-
-Biaya bulanan dapat mendekati nol selain biaya listrik dan pemakaian API AI.
-
-### Pembagian provider
-
-```text
-Tugas ringan      → Ollama/model lokal
-Tugas rutin       → provider gratis atau murah
-Tugas kompleks    → API key pribadi
-Vision/design     → provider yang mendukung image
-```
-
-### Pengendalian biaya
-
-- Batasi token per permintaan.
-- Batasi jumlah langkah agent.
+- Gunakan Ollama untuk tugas ringan seperti ringkasan, pencarian, dan perubahan kecil.
+- Gunakan API hanya untuk debugging kompleks atau perubahan besar.
+- Pilih provider dengan harga per token paling hemat.
+- Batasi ukuran konteks yang dikirim ke model.
 - Cache ringkasan proyek.
-- Jangan mengirim file yang tidak relevan.
-- Gunakan model lokal untuk pekerjaan sederhana.
-- Minta approval sebelum tugas besar.
-- Catat pemakaian token per provider.
+- Jangan kirim `node_modules`, `dist`, dan file tidak relevan.
 
 ---
 
-## 17. Roadmap Implementasi
+## 19. Roadmap
 
-### Fase 0 — Fondasi
+### Fase 1 — Fondasi (MVP)
 
-- Menentukan target deployment lokal.
-- Membuat struktur backend dan frontend.
-- Menentukan format project metadata.
-- Menentukan format secret terenkripsi.
-- Menentukan lifecycle workspace.
+- [ ] Setup project: Node.js + Express + React + Vite + SQLite.
+- [ ] Auth lokal dengan password tunggal.
+- [ ] Project Manager: tambah, buka, dan hapus proyek.
+- [ ] Import dari GitHub: clone repository.
+- [ ] File Explorer.
+- [ ] Monaco Editor: baca dan simpan file.
+- [ ] Terminal: node-pty + xterm.js.
+- [ ] Preview: jalankan server proyek dan tampilkan di iframe.
 
-### Fase 1 — Personal Workspace MVP
+### Fase 2 — Git dan AI Dasar
 
-- Login lokal atau akses privat.
-- Project manager.
-- Import GitHub.
-- Clone repository.
-- File explorer.
-- Monaco Editor.
-- Save file.
-- Git status/diff.
-- Terminal dasar.
-- Preview satu workspace.
+- [ ] Git status, diff, branch, commit, pull, push.
+- [ ] AI Gateway: satu provider (Groq atau OpenAI).
+- [ ] AI Agent: `read_file`, `search_code`, `write_file`, `run_command`.
+- [ ] Build runner: jalankan build command dan tampilkan log.
+- [ ] Checkpoint otomatis sebelum agent bekerja.
+- [ ] Review diff dan approval push.
 
-### Fase 2 — Build Mode
+### Fase 3 — Secret dan Keamanan Lokal
 
-- AI Gateway.
-- AI Agent dengan `read_file`, `search_code`, `apply_patch`, dan `run_command`.
-- Build/test runner.
-- Log realtime.
-- Checkpoint otomatis.
-- Review diff.
-- Commit lokal.
-- Pull dan push GitHub.
+- [ ] Secret Manager: CRUD + enkripsi AES-256-GCM.
+- [ ] Injeksi secret ke environment workspace.
+- [ ] Masking secret dari terminal dan log.
+- [ ] Audit log operasi secret.
 
-### Fase 3 — Secret dan Workspace yang Lebih Aman
+### Fase 4 — Build Mode Lengkap
 
-- Secret manager per proyek.
-- Masking log.
-- Container workspace.
-- CPU/RAM/timeout limit.
-- Branch agent otomatis.
-- Rollback.
+- [ ] Agent dengan semua tools Git.
+- [ ] Checkpoint rollback.
+- [ ] Multi-tab editor.
+- [ ] Search seluruh proyek.
+- [ ] Log dan error realtime yang lebih baik.
+- [ ] Auto-retry perbaikan build terbatas.
 
-### Fase 4 — Design Mode
+### Fase 5 — Design Mode
 
-- Live preview.
-- Screenshot.
-- Inspect elemen.
-- Konteks komponen.
-- Variasi desain.
-- Compare dan apply.
+- [ ] Screenshot preview.
+- [ ] Inspect elemen.
+- [ ] Konteks komponen ke agent.
+- [ ] Generate variasi desain.
+- [ ] Compare dan apply variasi.
 
-### Fase 5 — AI Multi-Provider
+### Fase 6 — AI Multi-Provider
 
-- Ollama adapter.
-- Provider API murah/gratis.
-- Provider API premium dengan API key sendiri.
-- Routing model berdasarkan tugas.
-- Metrik pemakaian dan batas biaya.
-
-### Fase 6 — Akses dari Luar
-
-- Tailscale atau WireGuard.
-- VPS opsional.
-- Preview melalui domain pribadi.
-- Backup otomatis.
-- Hybrid runner.
+- [ ] Ollama adapter.
+- [ ] Dukungan beberapa API provider.
+- [ ] Konfigurasi provider dari UI.
+- [ ] Catat pemakaian token per provider.
 
 ---
 
-## 18. Di Luar Scope Versi Awal
+## 20. Kriteria Sukses MVP
 
-Fitur berikut tidak perlu dibuat pada versi pertama:
+MVP berhasil jika:
 
-- Multi-user.
-- Billing.
-- Marketplace plugin publik.
-- Kolaborasi realtime.
-- Deployment multi-region.
-- Autoscaling.
-- Kubernetes.
-- IDE mobile penuh.
-- Editor visual setara Figma.
-- Public app hosting untuk orang lain.
-
----
-
-## 19. Kriteria Sukses MVP
-
-MVP dianggap berhasil jika pengguna dapat:
-
-1. Mengimpor repository GitHub.
-2. Membuka dan mengubah file melalui browser.
-3. Menjalankan command di workspace.
-4. Melihat preview aplikasi.
-5. Meminta AI Agent memperbaiki perubahan sederhana.
-6. Melihat build log dan error.
-7. Mengembalikan perubahan melalui checkpoint.
-8. Menyimpan secret tanpa menampilkan nilainya ke browser atau agent.
-9. Melakukan Git pull, diff, commit, dan push setelah approval.
-10. Bekerja tanpa langganan Replit sebagai runtime utama.
+1. Aplikasi berjalan di `localhost:3000` cukup dengan `npm start`.
+2. Dapat login dengan password lokal.
+3. Dapat import proyek dari GitHub.
+4. Dapat membuka dan menyimpan file dari browser.
+5. Dapat menjalankan terminal dari browser.
+6. Dapat melihat preview aplikasi proyek di iframe.
+7. Dapat meminta agent memperbaiki perubahan sederhana.
+8. Dapat melihat diff sebelum commit.
+9. Dapat commit dan push ke GitHub.
+10. Dapat rollback ke checkpoint sebelumnya.
+11. Secret tersimpan dan tidak pernah ditampilkan ke browser atau agent.
+12. Semua ini bekerja tanpa koneksi internet, kecuali untuk GitHub dan AI API.
 
 ---
 
-## 20. Keputusan Awal yang Direkomendasikan
+## 21. Keputusan Desain
 
-```text
-Target pengguna       : satu pengguna pribadi
-Deployment awal       : lokal
-Database awal         : SQLite
-Source of truth kode  : GitHub
-AI utama              : AI Gateway multi-provider
-AI lokal              : Ollama opsional
-Workspace runner      : Docker
-Editor                : Monaco Editor
-Terminal              : xterm.js
-Preview               : port lokal + proxy internal
-Secret                : terenkripsi per proyek
-Git workflow          : branch agent + approval push
-Design Mode           : preview + inspect + variasi desain
-```
+| Keputusan | Pilihan | Alasan |
+|---|---|---|
+| Deployment | Lokal saja | Tidak perlu VPS, tidak ada biaya hosting |
+| Database | SQLite | Satu file, tanpa setup, cukup untuk satu pengguna |
+| Isolasi workspace | Proses Node.js biasa | Tidak perlu Docker untuk penggunaan pribadi |
+| Auth | Password lokal tunggal | Hanya satu pengguna, tidak perlu sistem akun |
+| Secret | SQLite + AES-256-GCM | Cukup aman untuk lokal, tidak perlu Vault |
+| AI | Gateway multi-provider | Provider dapat diganti kapan saja |
+| Model lokal | Ollama opsional | Hemat biaya API untuk tugas ringan |
+| Editor | Monaco | Sama dengan VS Code, open source |
+| Terminal | node-pty + xterm.js | Terminal nyata, bukan simulasi |
+| Git | simple-git | Library Node.js, tidak perlu install tambahan |
+| Frontend | React + Vite | Konsisten dengan proyek yang sedang dikerjakan |
+| Satu proyek aktif | Ya | Sesuai kebutuhan nyata, tidak perlu multi-workspace |
 
-Rancangan ini sengaja dimulai dari alat pribadi yang sederhana. Setelah alur kerja lokal stabil, deployment VPS, hybrid runner, dan fitur Design Mode yang lebih kaya dapat ditambahkan tanpa mengubah fondasi utama.
+---
+
+*Dokumen ini adalah acuan pengembangan. Fitur di luar scope fase yang sedang dikerjakan tidak perlu diimplementasikan dulu.*
