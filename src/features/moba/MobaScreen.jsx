@@ -202,12 +202,40 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
 
   const handleAnswer = payload => answerQuestion(payload)
 
+  // Auto-deposit: when the player walks onto a deposit zone and holds scrolls,
+  // deposit all scrolls automatically — one per tick with a 400 ms gap so
+  // successive deposits each produce their own event feed entry.
+  const depositThrottleRef = React.useRef(0)
+  const selfScrolls = state.self?.scrolls
+  const selfTeamId  = state.self?.teamId
+  const depositZones = state.match?.config?.depositZones
+  const depositRadius = Number(state.match?.config?.depositInteractionRadius) || 110
+  React.useEffect(() => {
+    if (!canAct || !selfScrolls?.length || !selfTeamId || !depositZones?.length) return
+    const selfPos = self?.position
+    if (!selfPos) return
+    // Find own team's nearest scoring zone (server uses same filter).
+    const myZones = depositZones.filter(z => z.team === selfTeamId)
+    let nearestDist = Infinity
+    for (const z of myZones) {
+      const d = Math.hypot(Number(z.x) - Number(selfPos.x), Number(z.y) - Number(selfPos.y))
+      if (d < nearestDist) nearestDist = d
+    }
+    if (nearestDist > depositRadius) return
+    // Throttle: one deposit attempt every 400 ms so rapid re-renders don't spam.
+    const now = Date.now()
+    if (now - depositThrottleRef.current < 400) return
+    depositThrottleRef.current = now
+    // Deposit the first scroll (server will return updated scrolls via snapshot;
+    // next tick picks up remaining scrolls automatically).
+    const scroll = selfScrolls[0]
+    depositScroll({ scrollId: scroll.id }).catch(() => {})
+  }, [canAct, selfScrolls, selfTeamId, depositZones, depositRadius,
+      self?.position?.x, self?.position?.y, depositScroll])
+
   const handleDeposit = scroll => {
-    if (!canAct || !scroll || !targetTeamId) return
-    depositScroll({
-      targetId: targetTeamId,
-      scrollId: scroll.id,
-    }).catch(() => {})
+    if (!canAct || !scroll) return
+    depositScroll({ scrollId: scroll.id }).catch(() => {})
   }
 
   const dismissQuestionResult = () => {
