@@ -557,6 +557,8 @@ export default function MobaArena({
         >
           {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
         </button>
+        {/* Analog joystick — fixed bottom-left, outside the actions cluster */}
+        <MobaJoystick disabled={!canAct} onMove={handleMove} />
         <div className="moba-jungle-actions">
           <button
             type="button"
@@ -566,7 +568,6 @@ export default function MobaArena({
           >
             <Map size={16} />
           </button>
-          <MobaJoystick disabled={!canAct} onMove={handleMove} />
           <div className="moba12-move-pad" role="group" aria-label="Tombol gerak Pet">
             <MoveButton direction={{ x: 0, y: -1 }} onMove={handleMove} disabled={!canAct} label="Gerak ke atas">↑</MoveButton>
             <div>

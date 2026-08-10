@@ -388,18 +388,21 @@ export function createMobaMatchManager({
     player.position = candidate
     player.lastInputAt = now()
     match.eventSeq++
+    const pub = publicPlayer(player)
     const result = ok({
       actionId,
       playerId,
       position: { ...player.position },
-      player: publicPlayer(player),
-      snapshot: sanitizeMatchState(match),
+      player: pub,
+      // Deliberately no snapshot: movePlayer fires every 40 ms per player.
+      // Serialising the full match on every move floods the event loop.
+      // Client state stays authoritative via the player_updated broadcast below.
     })
     rememberAction(player, actionId, result, match)
     emit(match, 'player_updated', {
-      player: publicPlayer(player),
+      player: pub,
       actionId,
-      snapshot: result.snapshot,
+      // No snapshot: mobaReducer handles player_updated via mergePlayer alone.
     })
     return result
   }

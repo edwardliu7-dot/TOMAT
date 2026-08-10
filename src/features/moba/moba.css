@@ -951,13 +951,13 @@
 .moba-jungle-map-zone.is-a { background: rgba(255,140,80,.85); }
 .moba-jungle-map-zone.is-b { background: rgba(110,140,255,.85); }
 .moba-jungle-map-pop small { display: block; margin-top: 8px; color: #b5c998; font-size: 9px; }
-.moba-jungle-arena .moba12-joystick { display: grid; position: relative; left: auto; bottom: auto; width: 184px; height: 184px; border: 1px solid rgba(239,222,155,.32); background: radial-gradient(circle at 34% 27%, rgba(46,117,109,.82), rgba(4,38,43,.86) 62%); box-shadow: inset 0 0 0 9px rgba(5,31,36,.34), 0 7px 16px rgba(1,26,30,.28); }
+.moba-jungle-arena .moba12-joystick { display: grid; position: absolute; left: clamp(14px, 2vw, 24px); bottom: clamp(72px, 9vh, 104px); width: 147px; height: 147px; border: 1px solid rgba(239,222,155,.32); background: radial-gradient(circle at 34% 27%, rgba(46,117,109,.82), rgba(4,38,43,.86) 62%); box-shadow: inset 0 0 0 9px rgba(5,31,36,.34), 0 7px 16px rgba(1,26,30,.28); }
 .moba-jungle-arena .moba12-joystick__ring { border: 1px solid rgba(239,222,155,.2); }
-.moba-jungle-arena .moba12-joystick__knob { width: 54px; height: 54px; margin: -27px; border: 2px solid #ffe6a5; background: radial-gradient(circle at 32% 25%, #ffb98a, #d96d58 58%, #8e4b4c); box-shadow: 0 7px 0 rgba(3,28,33,.42), inset 0 4px 8px rgba(255,240,180,.24); }
-.moba-jungle-map-pop.is-persistent { position: absolute; z-index: 22; top: clamp(18px, 2.4vw, 30px); right: clamp(18px, 2.5vw, 36px); width: clamp(142px, 12vw, 190px); padding: 8px; border-radius: 12px; }
-.moba-jungle-map-pop.is-persistent header { margin-bottom: 6px; font-size: 9px; }
-.moba-jungle-map-pop.is-persistent header svg { width: 12px; height: 12px; }
-.moba-jungle-map-pop.is-persistent .moba-jungle-map-large { height: clamp(82px, 7vw, 104px); border-radius: 7px; }
+.moba-jungle-arena .moba12-joystick__knob { width: 43px; height: 43px; margin: -21.5px; border: 2px solid #ffe6a5; background: radial-gradient(circle at 32% 25%, #ffb98a, #d96d58 58%, #8e4b4c); box-shadow: 0 7px 0 rgba(3,28,33,.42), inset 0 4px 8px rgba(255,240,180,.24); }
+.moba-jungle-map-pop.is-persistent { position: absolute; z-index: 22; top: clamp(14px, 2vw, 24px); right: clamp(14px, 2vw, 24px); width: clamp(100px, 9vw, 140px); padding: 6px; border-radius: 10px; }
+.moba-jungle-map-pop.is-persistent header { margin-bottom: 5px; font-size: 8px; }
+.moba-jungle-map-pop.is-persistent header svg { width: 10px; height: 10px; }
+.moba-jungle-map-pop.is-persistent .moba-jungle-map-large { height: clamp(60px, 5.5vw, 80px); border-radius: 6px; }
 .moba-jungle-map-pop.is-persistent small { display: none; }
 @keyframes moba-jungle-water { 0%, 100% { margin-left: 0; opacity: .86; } 50% { margin-left: 1.5%; opacity: 1; } }
 @keyframes moba-jungle-base-glow {
@@ -978,13 +978,13 @@
   .moba-jungle-brand > span:last-child, .moba-jungle-time { display: none; }
   .moba-jungle-score { top: 6px; gap: 8px; padding: 7px 9px; }
   .moba-jungle-sound { top: 182px; right: 14px; }
-  .moba-jungle-actions { right: 82px; bottom: 56px; gap: 7px; }
-  .moba-jungle-arena .moba12-joystick { width: 148px; height: 148px; }
-  .moba-jungle-arena .moba12-joystick__knob { width: 48px; height: 48px; margin: -24px; }
+  .moba-jungle-actions { right: 14px; bottom: 56px; gap: 7px; }
+  .moba-jungle-arena .moba12-joystick { left: 12px; bottom: 56px; width: 120px; height: 120px; }
+  .moba-jungle-arena .moba12-joystick__knob { width: 36px; height: 36px; margin: -18px; }
   .moba-jungle-map-pop { top: 62px; right: 14px; width: min(225px, calc(100% - 28px)); }
   .moba-jungle-map-large { height: 124px; }
-  .moba-jungle-map-pop.is-persistent { top: 66px; right: 14px; width: 136px; }
-  .moba-jungle-map-pop.is-persistent .moba-jungle-map-large { height: 84px; }
+  .moba-jungle-map-pop.is-persistent { top: 12px; right: 12px; width: 100px; }
+  .moba-jungle-map-pop.is-persistent .moba-jungle-map-large { height: 60px; }
   .moba-jungle-hint { bottom: 19px; max-width: calc(100% - 28px); overflow: hidden; padding: 8px 12px; font-size: 9px; text-overflow: ellipsis; }
   .moba11-game-panel__note, .moba11-game-panel__status { display: none; }
 }

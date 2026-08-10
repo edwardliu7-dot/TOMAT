@@ -1,5 +1,5 @@
 import React from 'react'
-import { Activity, BookOpen, Clock3, Radio, RefreshCw, ScrollText, Shield, Trophy, Wifi } from 'lucide-react'
+import { Activity, Clock3, Wifi } from 'lucide-react'
 
 const PHASE_LABELS = {
   lobby: 'Menunggu pemain',
@@ -86,51 +86,6 @@ export default function MobaHud({
         </div>
       </div>
 
-      <aside className="moba11-side-panel">
-        <div className="moba11-side-heading"><h2>Pos Komando</h2><span>{self?.displayName || 'Pemain'}</span></div>
-        <div className="moba11-inventory">
-          <div className="moba11-inventory__title">
-            <ScrollText size={15} /> Gulungan milikmu <span>{scrolls.length} / {capacity}</span>
-          </div>
-          <div className="moba11-scroll-row">
-            {scrolls.map(scroll => (
-              <div className="moba11-scroll-card" key={scroll.id}>
-                <BookOpen size={16} />
-                <b>+{scroll.points}</b>
-                <span>{scroll.difficulty || 'soal'}</span>
-                <button
-                  type="button"
-                  className="moba12-deposit-button"
-                  onClick={() => onDeposit?.(scroll)}
-                  disabled={!canAct || !targetTeamId}
-                >
-                  Setor ke {targetTeamId === 'teamA' ? 'Tim A' : 'Tim B'}
-                </button>
-              </div>
-            ))}
-            {Array.from({ length: Math.max(0, capacity - scrolls.length) }).map((_, index) => (
-              <div className="moba11-scroll-card is-empty" key={`empty-${index}`}>
-                <ScrollText size={16} />
-                <b>—</b>
-                <span>Slot kosong</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="moba11-feed">
-          <div className="moba11-feed__title"><Trophy size={15} /> Kilasan arena</div>
-          {feed.length ? (
-            <ul>
-              {feed.map(item => <li key={item.id}>{item.event.replaceAll('_', ' ')}</li>)}
-            </ul>
-          ) : <p className="moba11-feed__empty">Belum ada event penting.</p>}
-        </div>
-        <button className="moba11-sync-button" onClick={onSnapshot} disabled={snapshotPending || !match?.id}>
-          <RefreshCw size={13} className={snapshotPending ? 'moba11-spin' : ''} />
-          {snapshotPending ? 'Meminta snapshot…' : 'Minta snapshot terbaru'}
-        </button>
-        <div className="moba11-footer-note"><Radio size={13} /> State server menjadi sumber kebenaran <span>•</span> <Shield size={13} /> Non-combat</div>
-      </aside>
     </>
   )
 }
