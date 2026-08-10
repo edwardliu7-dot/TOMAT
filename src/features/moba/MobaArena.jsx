@@ -237,7 +237,7 @@ function formatArenaTime(remainingMs) {
   return `${String(Math.floor(totalSeconds / 60)).padStart(2, '0')}:${String(totalSeconds % 60).padStart(2, '0')}`
 }
 
-function formatMatchElapsedTime(timestamp, startedAt) {
+function formatDepositTime(timestamp, startedAt) {
   const depositedAt = Number(timestamp)
   const matchStartedAt = Number(startedAt)
   if (!Number.isFinite(depositedAt) || !Number.isFinite(matchStartedAt)) return '--:--'
@@ -318,7 +318,7 @@ function MobaMatchResultOverlay({ match, self, onBack }) {
                 <div>
                   <strong>
                     {entry.displayName || 'Pemain'} setor poin pada{' '}
-                    {formatMatchElapsedTime(entry.depositedAt, startedAt)}
+                    {formatDepositTime(entry.depositedAt, startedAt)}
                   </strong>
                   <small>{entry.teamId === 'teamA' ? teamA?.name || 'Tim A' : teamB?.name || 'Tim B'}</small>
                 </div>
