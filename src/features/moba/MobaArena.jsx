@@ -409,16 +409,15 @@ export default function MobaArena({
           {/* ── Trees in 4 triangular jungle zones ───────────────── */}
           {[
             // TOP triangle  (small y, middle x)
-            [25,12,false],[50,10,true],[75,12,false],[38,20,true],[62,20,false],
+            [25,12],[50,10],[75,12],[38,20],[62,20],
             // BOTTOM triangle (large y, middle x)
-            [25,88,true],[50,90,false],[75,88,true],[38,80,false],[62,80,true],
+            [25,88],[50,90],[75,88],[38,80],[62,80],
             // LEFT triangle  (small x, middle y)
-            [11,30,false],[11,50,true],[11,70,false],[21,40,true],[21,60,false],
+            [11,30],[11,50],[11,70],[21,40],[21,60],
             // RIGHT triangle (large x, middle y)
-            [89,30,true],[89,50,false],[89,70,true],[79,40,false],[79,60,true],
-          ].map(([lp, tp, alt], i) => (
-            <img key={`tr${i}`} aria-hidden="true"
-              src={alt ? '/moba-arena/moba-tree-spring-alt.png' : '/moba-arena/moba-tree-spring.png'}
+            [89,30],[89,50],[89,70],[79,40],[79,60],
+          ].map(([lp, tp], i) => (
+            <div key={`tr${i}`} aria-hidden="true"
               className="moba-forest-tree"
               style={{ left:`${lp}%`, top:`${tp}%` }}
             />
@@ -431,8 +430,7 @@ export default function MobaArena({
             [16,30],[15,52],[16,70],        // LEFT
             [84,30],[85,52],[84,70],        // RIGHT
           ].map(([lp, tp], i) => (
-            <img key={`rk${i}`} aria-hidden="true"
-              src="/moba-arena/FG_Grounds.png"
+            <div key={`rk${i}`} aria-hidden="true"
               className="moba-forest-rock"
               style={{ left:`${lp}%`, top:`${tp}%` }}
             />
@@ -474,7 +472,9 @@ export default function MobaArena({
                   {isMine && hasScrolls && (
                     <span className="moba-deposit-box__arrow" aria-hidden="true">▼</span>
                   )}
-                  <span className="moba-deposit-box__icon">{isMine ? '📦' : '🏛️'}</span>
+                  <span className="moba-deposit-box__icon">
+                    {isMine ? <span className="moba-sprite-box" aria-hidden="true" /> : '🏛️'}
+                  </span>
                   {isMine && (
                     <>
                       <div className="moba-deposit-box__bar" aria-hidden="true">
