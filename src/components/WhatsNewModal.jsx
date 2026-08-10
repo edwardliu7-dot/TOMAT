@@ -5,6 +5,12 @@ const STORAGE_KEY = `tomat_seen_whats_new_v${APP_VERSION}`
 
 const CHANGES = [
   {
+    icon: '📦',
+    title: 'Setoran Box & Pustaka MOBA',
+    body: 'Box hanya berputar saat menerima setoran. Setelah terisi 100 poin, box selesai dan menghilang; pustaka tim kemudian terbuka dengan bonus setoran 1,5×.',
+    highlight: true,
+  },
+  {
     icon: '⚔️',
     title: 'Hasil Arena MOBA Lebih Jelas',
     body: 'Setelah pertandingan selesai, arena diburamkan dan hasil menang atau kalah ditampilkan bersama skor kedua tim, riwayat setor poin, serta hadiah koin untuk tim pemenang.',

@@ -448,7 +448,8 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 - Sumber kebenaran: `src/version.js` — ekspor `APP_VERSION`.
 - `WhatsNewModal` ditampilkan sekali per versi via localStorage.
-- Saat rilis baru: bump `version.js` **dan** `build.gradle` bersamaan.
+- Saat rilis baru: bump `version.js`, `android/app/build.gradle` (`versionName` dan `versionCode`), serta `android/app/src/main/AndroidManifest.xml` agar metadata APK konsisten.
+- `versionCode` harus selalu naik untuk setiap APK yang didistribusikan; `versionName` mengikuti `APP_VERSION`.
 
 ---
 
@@ -556,6 +557,9 @@ Mode permainan multiplayer 2D berbasis node soal di arena overhead-view. Format:
 - Hasil match final disimpan ke DB (idempotent).
 - Reward pemenang: **1 koin per poin** yang dikumpulkan di deposit zone.
 - Durasi match: **7 menit** (gelombang-2 soal mulai menit ke-5).
+- Deposit box memiliki kapasitas tetap **100 poin**. Box yang selesai (`completed`) tidak lagi menjadi target setor dan memicu event `box_completed`.
+- Pustaka tim terbuka setelah minimal satu box tim selesai. Setoran ke pustaka memakai multiplier server-authoritative **1,5×**, sebelum bonus Pet yang berlaku.
+- Animasi sprite box bersifat diam secara default dan hanya diputar satu kali setelah setoran sukses; box selesai boleh tetap terlihat selama burst singkat sebelum dihapus dari arena.
 
 ---
 
