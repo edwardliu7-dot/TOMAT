@@ -225,7 +225,7 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
   const selfScrolls = state.self?.scrolls
   const selfTeamId  = state.self?.teamId
   const depositZones = state.match?.config?.depositZones
-  const depositRadius = Number(state.match?.config?.depositInteractionRadius) || 110
+  const depositRadius = Number(state.match?.config?.depositInteractionRadius) || 2000
   React.useEffect(() => {
     if (!canAct || !selfScrolls?.length || !selfTeamId || !depositZones?.length) return
     const selfPos = self?.position
@@ -357,6 +357,7 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
             onMove={sendMove}
             canAct={canAct}
             remainingMs={remainingMs}
+             onBack={goBack}
           />
           <div className="moba11-game-panel__note">
             <Radio size={13} /> Posisi, node, skor, dan gulungan berasal dari snapshot server.

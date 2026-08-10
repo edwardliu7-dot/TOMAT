@@ -835,6 +835,19 @@ test('answer and deposit retries are idempotent and never duplicate rewards', as
   assert.equal(depositRetry.duplicate, true)
   assert.equal(match.teams.teamA.score, deposit.awardedPoints)
   assert.equal(player.deposits, 1)
+  assert.equal(match.depositHistory.length, 1)
+  assert.deepEqual(match.depositHistory[0], {
+    id: match.depositHistory[0].id,
+    playerId: player.id,
+    displayName: player.displayName,
+    teamId: 'teamA',
+    awardedPoints: deposit.awardedPoints,
+    depositedAt: clock.now(),
+    zoneId: deposit.zoneId,
+  })
+  const snapshot = manager.listMatches()[0]
+  assert.deepEqual(snapshot.depositHistory, match.depositHistory)
+  assert.equal(JSON.stringify(snapshot).includes('correctAnswer'), false)
   manager.clearAll()
 })
 

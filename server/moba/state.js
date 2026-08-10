@@ -174,6 +174,9 @@ export function createMatchState({
         .filter(z => !z.isLibrary)
         .map(z => [z.id, { fill: 0, completedBoxes: 0 }]),
     ),
+    // Public audit trail for the result screen. Keep this bounded so a
+    // reconnect/final snapshot cannot grow without limit during a long match.
+    depositHistory: [],
   }
 }
 
@@ -323,6 +326,15 @@ export function sanitizeMatchState(match) {
     depositBoxes: [...(match.depositBoxes?.entries() || [])].map(
       ([id, s]) => ({ id, fill: s.fill, completedBoxes: s.completedBoxes }),
     ),
+    depositHistory: (match.depositHistory || []).map(entry => ({
+      id: entry.id,
+      playerId: entry.playerId,
+      displayName: entry.displayName,
+      teamId: entry.teamId,
+      awardedPoints: entry.awardedPoints,
+      depositedAt: entry.depositedAt,
+      zoneId: entry.zoneId,
+    })),
   }
 }
 

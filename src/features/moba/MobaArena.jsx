@@ -52,7 +52,7 @@ function distanceBetween(left, right) {
 // (40ms by default). Keep a little headroom so pointer events and network
 // jitter cannot turn a continuous analog gesture into a stream of rejected
 // MOVE_RATE_LIMITED actions.
-const MOVE_REPEAT_MS = 80
+const MOVE_REPEAT_MS = 150
 const JOYSTICK_RADIUS = 42
 const JOYSTICK_DEAD_ZONE = 0.16
 
@@ -237,6 +237,108 @@ function formatArenaTime(remainingMs) {
   return `${String(Math.floor(totalSeconds / 60)).padStart(2, '0')}:${String(totalSeconds % 60).padStart(2, '0')}`
 }
 
+function formatMatchElapsedTime(timestamp, startedAt) {
+  const depositedAt = Number(timestamp)
+  const matchStartedAt = Number(startedAt)
+  if (!Number.isFinite(depositedAt) || !Number.isFinite(matchStartedAt)) return '--:--'
+  const elapsedSeconds = Math.max(0, Math.floor((depositedAt - matchStartedAt) / 1000))
+  return `${String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:${String(elapsedSeconds % 60).padStart(2, '0')}`
+}
+
+function getMatchWinner(match) {
+  const teamAScore = Number(match?.teams?.teamA?.score || 0)
+  const teamBScore = Number(match?.teams?.teamB?.score || 0)
+  if (teamAScore === teamBScore) return 'draw'
+  return teamAScore > teamBScore ? 'teamA' : 'teamB'
+}
+
+function MobaMatchResultOverlay({ match, self, onBack }) {
+  const winner = getMatchWinner(match)
+  const isDraw = winner === 'draw'
+  const isWinner = !isDraw && self?.teamId === winner
+  const winningScore = Number(match?.teams?.[winner]?.score || 0)
+  const rewardCoins = isWinner && winningScore > 0
+    ? Math.max(1, Math.min(winningScore, 500))
+    : 0
+  const history = [...(match?.depositHistory || [])].reverse()
+  const startedAt = match?.startedAt
+  const teamA = match?.teams?.teamA
+  const teamB = match?.teams?.teamB
+
+  return (
+    <div className="moba-match-result-layer" role="dialog" aria-modal="true" aria-labelledby="moba-match-result-title">
+      <div className="moba-match-result-card">
+        <div className={`moba-match-result-kicker ${isDraw ? 'is-draw' : isWinner ? 'is-win' : 'is-loss'}`}>
+          {isDraw ? 'PERTANDINGAN SELESAI' : isWinner ? 'KEMENANGAN TIMMU' : 'PERTANDINGAN SELESAI'}
+        </div>
+        <h1 id="moba-match-result-title">
+          {isDraw ? 'HASIL SERI' : isWinner ? 'KAMU MENANG!' : 'KAMU KALAH'}
+        </h1>
+        <p className="moba-match-result-subtitle">
+          {isDraw
+            ? 'Kedua tim mengumpulkan poin yang sama.'
+            : `${winner === 'teamA' ? teamA?.name || 'Tim A' : teamB?.name || 'Tim B'} menjadi pemenang.`}
+        </p>
+
+        <div className="moba-match-result-scores" aria-label="Skor akhir kedua tim">
+          <div className="moba-match-result-score moba-match-result-score--a">
+            <span>{teamA?.name || 'Tim A'}</span>
+            <b>{teamA?.score || 0}</b>
+            <small>POIN</small>
+          </div>
+          <div className="moba-match-result-score-vs">VS</div>
+          <div className="moba-match-result-score moba-match-result-score--b">
+            <span>{teamB?.name || 'Tim B'}</span>
+            <b>{teamB?.score || 0}</b>
+            <small>POIN</small>
+          </div>
+        </div>
+
+        {rewardCoins > 0 && (
+          <div className="moba-match-result-reward">
+            <span>🪙</span>
+            <div>
+              <strong>+{rewardCoins} koin untukmu</strong>
+              <small>Poin pemenang dikonversi otomatis dan sudah diberikan ke akunmu.</small>
+            </div>
+          </div>
+        )}
+
+        <div className="moba-match-result-history">
+          <div className="moba-match-result-history__heading">
+            <span>RIWAYAT SETOR POIN</span>
+            <small>{history.length} setoran</small>
+          </div>
+          <div className="moba-match-result-history__list">
+            {history.length === 0 ? (
+              <div className="moba-match-result-history__empty">Belum ada poin yang disetor.</div>
+            ) : history.map(entry => (
+              <div className="moba-match-result-history__row" key={entry.id}>
+                <span className={`moba-match-result-history__dot ${entry.teamId === 'teamA' ? 'is-a' : 'is-b'}`} />
+                <div>
+                  <strong>
+                    {entry.displayName || 'Pemain'} setor poin pada{' '}
+                    {formatMatchElapsedTime(entry.depositedAt, startedAt)}
+                  </strong>
+                  <small>{entry.teamId === 'teamA' ? teamA?.name || 'Tim A' : teamB?.name || 'Tim B'}</small>
+                </div>
+                <b>+{entry.awardedPoints}</b>
+                <time>{formatDepositTime(entry.depositedAt)}</time>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {onBack && (
+          <button type="button" className="moba-match-result-back" onClick={onBack}>
+            Kembali ke menu
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function MobaArena({
   match,
   players = [],
@@ -246,12 +348,14 @@ export default function MobaArena({
   onMove,
   canAct = false,
   remainingMs = 0,
+  onBack,
 }) {
   const arena = match?.config?.arena || DEFAULT_ARENA
   const self = players.find(player => player.id === selfId || player.userId === selfId)
   const interactionRadius = Number(match?.config?.nodeInteractionRadius) || 72
   const [mapOpen, setMapOpen] = useState(false)
   const [muted, setMuted] = useState(false)
+  const isFinished = match?.phase === 'finished'
 
   // ── Deposit burst animation ───────────────────────────────────────────────
   // burstZones: Set of zone IDs that should show the burst class right now.
@@ -349,7 +453,7 @@ export default function MobaArena({
 
   return (
     <div
-      className="moba11-arena moba-jungle-arena"
+      className={`moba11-arena moba-jungle-arena${isFinished ? ' is-finished' : ''}`}
       role="img"
       aria-label="Arena pertandingan dua sisi TOMAT"
       data-arena-min-x={getArenaBounds(arena).minX}
@@ -572,6 +676,7 @@ export default function MobaArena({
           })}
         </div>
       </div>
+      {isFinished && <MobaMatchResultOverlay match={match} self={self} onBack={onBack} />}
       <div className="moba-jungle-hud" aria-label="Kontrol arena">
         <div className="moba-jungle-brand">
           <span className="moba-jungle-brand__mark">T</span>
