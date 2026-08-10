@@ -130,6 +130,23 @@
   text-transform: uppercase;
   color: #7a9a9f;
 }
+/* ≤ 60 s: oranye */
+.moba11-versus__timer--warning {
+  color: #f59e0b;
+}
+/* ≤ 20 s: merah + kedip */
+.moba11-versus__timer--critical {
+  color: #ef4444;
+  animation: moba-timer-blink .6s ease-in-out infinite;
+}
+/* 0:00 / finished: hijau cerah */
+.moba11-versus__timer--done {
+  color: #4ade80;
+}
+@keyframes moba-timer-blink {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: .55; transform: scale(1.08); }
+}
 
 .moba11-arena {
   position: relative;

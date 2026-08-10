@@ -79,7 +79,12 @@ export default function MobaHud({
           <div className="moba11-score-line"><i style={{ width: `${Math.min(100, teamA?.score || 0)}%` }} /></div>
         </div>
         <div className="moba11-versus">
-          <span className="moba11-versus__timer">
+          <span className={
+            'moba11-versus__timer' +
+            (match?.phase === 'finished' ? ' moba11-versus__timer--done' :
+             remainingMs <= 20_000 ? ' moba11-versus__timer--critical' :
+             remainingMs <= 60_000 ? ' moba11-versus__timer--warning' : '')
+          }>
             {match?.endsAt ? formatRemaining(remainingMs) : '--:--'}
           </span>
           <span className="moba11-versus__label">
