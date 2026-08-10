@@ -10,3 +10,5 @@ MOBA memisahkan state realtime in-memory dari hasil final durable. Settlement me
 **How to apply:** Pertahankan tabel hasil sebagai audit/idempotensi walau fitur dimatikan. Gunakan kill switch akses MOBA tanpa memutus Socket.io global, dan pantau settlement gagal atau hasil tanpa timestamp reward.
 
 MOBA saat ini aktif untuk rollout terbatas pada akun demo `tomat-demo` dan `tomat-demo-2` melalui `MOBA_ENABLED=true` dan allowlist ID; entry point siswa tetap tersembunyi untuk akun lain. Kode, hasil pertandingan, dan Socket.io tetap dipertahankan untuk pengembangan berikutnya.
+
+Hasil pertandingan menampilkan riwayat setor poin dengan waktu relatif sejak match dimulai (format `MM:SS`), sementara reward pemenang tetap dihitung dan diberikan server-side berdasarkan skor final.

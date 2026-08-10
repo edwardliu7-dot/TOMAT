@@ -71,6 +71,8 @@ test('settles a finished match once and rewards only the winning team', async ()
     alreadySettled: true,
     rewardedPlayerIds: [],
   })
+  const rewardQuery = pool.queries.find(query => /^UPDATE students/i.test(query.text))
+  assert.equal(rewardQuery.values[0], 25)
   assert.equal(pool.queries.filter(query => /^UPDATE students/i.test(query.text)).length, 1)
 })
 

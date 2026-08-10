@@ -452,6 +452,21 @@ export function createMobaMatchManager({
     const scoringTeam = match.teams[player.teamId]
     scoringTeam.score += awardedPoints
 
+    const depositEntry = {
+      id: `deposit-${match.eventSeq + 1}-${player.id}`,
+      playerId: player.id,
+      displayName: player.displayName,
+      teamId: player.teamId,
+      awardedPoints,
+      depositedAt: now(),
+      zoneId: nearestZone.id,
+    }
+    if (!match.depositHistory) match.depositHistory = []
+    match.depositHistory.push(depositEntry)
+    if (match.depositHistory.length > 200) {
+      match.depositHistory.splice(0, match.depositHistory.length - 200)
+    }
+
     // Box fill: fill this zone's box; complete when reaching boxCapacity.
     const boxCapacity = match.config.boxCapacity || DEFAULT_MOBA_CONFIG.boxCapacity || 100
     const depositBoxes = match.depositBoxes || new Map()
@@ -477,6 +492,7 @@ export function createMobaMatchManager({
       completedBoxes: zoneState.completedBoxes,
       boxCompleted,
       teamScore: scoringTeam.score,
+      deposit: { ...depositEntry },
       snapshot: sanitizeMatchState(match),
     })
     rememberAction(player, actionId, result, match)
@@ -489,6 +505,7 @@ export function createMobaMatchManager({
       completedBoxes: zoneState.completedBoxes,
       boxCompleted,
       teamScore: scoringTeam.score,
+      deposit: { ...depositEntry },
       snapshot: result.snapshot,
     })
     if (boxCompleted) {

@@ -357,6 +357,7 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
             onMove={sendMove}
             canAct={canAct}
             remainingMs={remainingMs}
+             onBack={goBack}
           />
           <div className="moba11-game-panel__note">
             <Radio size={13} /> Posisi, node, skor, dan gulungan berasal dari snapshot server.

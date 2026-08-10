@@ -532,6 +532,24 @@
   transition: transform .18s ease-out;
   background: linear-gradient(135deg, rgba(16,71,55,.82), rgba(22,90,66,.72));
 }
+
+/* The finished match remains visible as context, but all gameplay details
+   recede behind the result card. Keep the blur on the world only so the
+   result overlay stays crisp and readable. */
+.moba-jungle-arena.is-finished .moba-jungle-board__world {
+  filter: blur(7px) saturate(.72);
+  transform:
+    translate(var(--moba-camera-x, 0%), var(--moba-camera-y, 0%))
+    scale(var(--moba-camera-zoom, 1.02));
+}
+.moba-jungle-arena.is-finished::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  background: rgba(3, 19, 25, .52);
+  pointer-events: none;
+}
 .moba-jungle-river {
   content: '';
   position: absolute;
@@ -985,6 +1003,165 @@
 .moba-jungle-board .moba11-pet__shield { left: 2px; top: 29px; }
 .moba-jungle-hud { position: absolute; z-index: 20; inset: 0; pointer-events: none; }
 .moba-jungle-hud > * { pointer-events: auto; }
+
+.moba-match-result-layer {
+  position: absolute;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: clamp(72px, 9vh, 104px) 16px 24px;
+  background: radial-gradient(circle at 50% 18%, rgba(238, 194, 89, .14), transparent 34%);
+  pointer-events: auto;
+}
+.moba-match-result-card {
+  width: min(560px, 100%);
+  max-height: min(760px, calc(100dvh - 120px));
+  overflow: auto;
+  box-sizing: border-box;
+  padding: clamp(20px, 4vw, 30px);
+  border: 1px solid rgba(239, 222, 155, .42);
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(9, 45, 49, .98), rgba(5, 28, 34, .98)),
+    #071c24;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .62), 0 0 0 1px rgba(255, 230, 151, .06);
+  color: #fff4c6;
+  text-align: center;
+}
+.moba-match-result-kicker {
+  font: 800 10px 'Space Mono', monospace;
+  letter-spacing: .2em;
+  color: #e7c866;
+}
+.moba-match-result-kicker.is-win { color: #8fffb0; }
+.moba-match-result-kicker.is-loss { color: #ffad91; }
+.moba-match-result-kicker.is-draw { color: #b9d7e2; }
+.moba-match-result-card h1 {
+  margin: 9px 0 5px;
+  font-size: clamp(29px, 7vw, 46px);
+  letter-spacing: -.04em;
+  line-height: 1;
+  color: #fff5cf;
+  text-shadow: 0 0 28px rgba(255, 218, 119, .24);
+}
+.moba-match-result-subtitle {
+  margin: 0 auto;
+  color: rgba(222, 225, 185, .72);
+  font-size: 12px;
+}
+.moba-match-result-scores {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 14px;
+  padding: 14px;
+  border: 1px solid rgba(239, 222, 155, .2);
+  border-radius: 15px;
+  background: rgba(255, 244, 198, .055);
+}
+.moba-match-result-score {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.moba-match-result-score span {
+  overflow: hidden;
+  color: #ffbd9a;
+  font-size: 11px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.moba-match-result-score--b span { color: #b8c2ff; }
+.moba-match-result-score b {
+  font: 800 clamp(29px, 7vw, 42px) 'Space Mono', monospace;
+  line-height: 1.05;
+}
+.moba-match-result-score--a b { color: #ffb18e; }
+.moba-match-result-score--b b { color: #b8c2ff; }
+.moba-match-result-score small {
+  color: rgba(222, 225, 185, .55);
+  font: 700 8px 'Space Mono', monospace;
+  letter-spacing: .15em;
+}
+.moba-match-result-score-vs {
+  color: #a7b39a;
+  font: 700 10px 'Space Mono', monospace;
+}
+.moba-match-result-reward {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 12px 0 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(245, 201, 74, .4);
+  border-radius: 13px;
+  background: rgba(245, 201, 74, .11);
+  text-align: left;
+}
+.moba-match-result-reward > span { font-size: 25px; }
+.moba-match-result-reward strong,
+.moba-match-result-reward small { display: block; }
+.moba-match-result-reward strong { color: #ffe57f; font-size: 14px; }
+.moba-match-result-reward small { margin-top: 3px; color: rgba(255, 239, 175, .65); font-size: 10px; line-height: 1.4; }
+.moba-match-result-history {
+  padding: 13px 14px 8px;
+  border: 1px solid rgba(239, 222, 155, .18);
+  border-radius: 15px;
+  background: rgba(1, 20, 27, .38);
+  text-align: left;
+}
+.moba-match-result-history__heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: #d9c274;
+  font: 700 9px 'Space Mono', monospace;
+  letter-spacing: .12em;
+}
+.moba-match-result-history__heading small { color: rgba(222, 225, 185, .5); letter-spacing: 0; }
+.moba-match-result-history__list { display: grid; gap: 2px; }
+.moba-match-result-history__row {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  border-top: 1px solid rgba(239, 222, 155, .08);
+}
+.moba-match-result-history__dot { width: 7px; height: 7px; border-radius: 50%; background: #ff9e7a; }
+.moba-match-result-history__dot.is-b { background: #91a0ff; }
+.moba-match-result-history__row strong,
+.moba-match-result-history__row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.moba-match-result-history__row strong { color: #fff3c8; font-size: 11px; }
+.moba-match-result-history__row small { margin-top: 2px; color: rgba(222, 225, 185, .53); font-size: 9px; }
+.moba-match-result-history__row > b { color: #ffe58c; font: 700 11px 'Space Mono', monospace; }
+.moba-match-result-history__row time { color: rgba(222, 225, 185, .6); font: 700 9px 'Space Mono', monospace; white-space: nowrap; }
+.moba-match-result-history__empty { padding: 12px 0 8px; color: rgba(222, 225, 185, .55); font-size: 11px; text-align: center; }
+.moba-match-result-back {
+  margin-top: 18px;
+  border: 1px solid rgba(239, 222, 155, .36);
+  border-radius: 10px;
+  padding: 10px 18px;
+  background: rgba(239, 222, 155, .1);
+  color: #fff1b5;
+  cursor: pointer;
+  font: 700 11px 'Space Mono', monospace;
+}
+.moba-match-result-back:hover { background: rgba(239, 222, 155, .18); }
+
+@media (max-width: 520px) {
+  .moba-match-result-layer { padding: 58px 10px 12px; }
+  .moba-match-result-card { border-radius: 17px; padding: 17px 13px; max-height: calc(100dvh - 74px); }
+  .moba-match-result-scores { gap: 6px; padding: 10px 7px; }
+  .moba-match-result-history { padding-inline: 10px; }
+  .moba-match-result-history__row { gap: 6px; grid-template-columns: 7px minmax(0, 1fr) auto; }
+  .moba-match-result-history__row time { grid-column: 2 / -1; margin-top: -7px; font-size: 8px; }
+}
 .moba-jungle-brand { position: absolute; top: 22px; left: 28px; display: flex; gap: 9px; align-items: center; color: #fff3c9; text-shadow: 0 3px 9px rgba(2,22,28,.5); }
 .moba-jungle-brand__mark { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px 12px 12px 3px; background: #e6755b; color: #fff3c9; font: 800 18px 'Space Mono', monospace; box-shadow: 3px 3px 0 rgba(0,25,30,.28); }
 .moba-jungle-brand strong, .moba-jungle-brand small { display: block; }
