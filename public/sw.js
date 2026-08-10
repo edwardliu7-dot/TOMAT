@@ -16,12 +16,31 @@ function isAsset(url) {
   return /\/assets\/[^/]+\.(js|css|png|webp|jpg|jpeg|gif|svg|woff2?)(\?.*)?$/.test(new URL(url).pathname)
 }
 
+function isStaticFile(url) {
+  // Semua gambar, font, svg, gif, weba di public/ → cache-first
+  return /\.(png|jpg|jpeg|webp|gif|svg|woff2?|mp3|weba|ico)(\?.*)?$/.test(new URL(url).pathname)
+}
+
 // Aset yang di-precache saat install — tersedia offline tanpa harus dikunjungi dulu
+// Mencakup SEMUA asset di public/ agar APK tidak perlu unduh apapun dari server.
 const PRECACHE_ASSETS = [
-  // PWA icons
+  // PWA icons & manifest
   '/icon-192.png',
   '/icon-512.png',
-  // Pet sprites (core gameplay — diperlukan di semua game)
+  // Dashboard wallpaper
+  '/wallpaper-dashboard.png',
+  // Logo & UI umum
+  '/logo-smartisa.png',
+  '/arena.png',
+  '/toko.png',
+  '/lencana.png',
+  '/rank.png',
+  '/nilai.png',
+  '/notif.png',
+  '/komodih.png',
+  '/blp.png',
+  '/guru.png',
+  // Pet sprites (core gameplay)
   '/tomi-sprite.png',
   '/kelinsay-sprite.png',
   '/monyang-sprite.png',
@@ -36,7 +55,7 @@ const PRECACHE_ASSETS = [
   '/monyang-kosmik.png',
   '/nananaga-api.png',
   '/nananaga-es.png',
-  // Bingkai (frame frames) — ditampilkan di leaderboard & profil
+  // Bingkai profil
   '/bingkai-emas.png',
   '/bingkai-neon.png',
   '/bingkai-sakura.png',
@@ -50,6 +69,22 @@ const PRECACHE_ASSETS = [
   '/81.png',
   '/hutri81.png',
   '/81spanduk.png',
+  // MOBA arena sprites
+  '/rumput.png',
+  '/pohon.png',
+  '/box.png',
+  // MOBA arena assets
+  '/moba-arena/FG_Crystal_Blue_1.png',
+  '/moba-arena/FG_Crystal_Gold_1.png',
+  '/moba-arena/FG_Grasslands_Spring.png',
+  '/moba-arena/FG_Grass_Spring.png',
+  '/moba-arena/FG_Grass_Summer.png',
+  '/moba-arena/FG_Grounds.png',
+  '/moba-arena/FG_Treasure_Big.png',
+  '/moba-arena/FG_Treasure_Small_1.png',
+  '/moba-arena/moba-grass-tile-spring.png',
+  '/moba-arena/moba-tree-spring-alt.png',
+  '/moba-arena/moba-tree-spring.png',
   // Dekorasi umum
   '/garuda.gif',
   '/petal-rose.png',
@@ -95,17 +130,22 @@ self.addEventListener('fetch', event => {
   // API & socket.io → network only, jangan cache
   if (isNetworkOnly(url)) return
 
-  // Aset dengan hash (JS, CSS, gambar) → cache-first
-  // File ini tidak pernah berubah namanya kalau kontennya sama,
-  // jadi aman di-cache selamanya
+  // Aset Vite dengan hash (JS, CSS) → cache-first selamanya
   if (isAsset(url)) {
     event.respondWith(cacheFirst(request))
     return
   }
 
-  // HTML & file lain → network-first, fallback cache
-  // Ini yang memastikan update terdeteksi: browser ambil HTML baru dari server,
-  // HTML baru referensi asset baru (nama berbeda), asset baru di-fetch & cached
+  // Semua file gambar/font/media di public/ → cache-first.
+  // Di APK (Capacitor) ini dilayani dari bundle lokal, tanpa internet.
+  // Di browser pertama kali → diambil dari server, lalu cache untuk offline.
+  if (isStaticFile(url)) {
+    event.respondWith(cacheFirst(request))
+    return
+  }
+
+  // HTML & file lain → network-first, fallback cache.
+  // Memastikan app shell selalu up-to-date saat ada koneksi.
   event.respondWith(networkFirst(request))
 })
 

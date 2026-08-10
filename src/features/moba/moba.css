@@ -88,11 +88,11 @@
   font-weight: 700;
 }
 .moba11-error { gap: 5px; color: #b34e44; font-weight: 600; }
-.moba11-match-head { justify-content: space-between; padding: 2px 6px 14px; }
+.moba11-match-head { justify-content: flex-start; padding: 2px 6px 14px; }
 .moba11-phase { gap: 9px; font-size: 11px; letter-spacing: .11em; color: #827a61; font-weight: 700; text-transform: uppercase; }
 .moba11-phase b { display: inline-flex; align-items: center; gap: 5px; color: #d35c4b; background: #fde1d7; padding: 5px 8px; border-radius: 6px; }
-.moba11-timer { font-weight: 800; font-size: 23px; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
-.moba11-timer small { font-size: 10px; color: #8b8269; margin-left: 5px; letter-spacing: .12em; }
+/* Timer moved into scoreboard (moba11-versus__timer). Hide the old standalone timer. */
+.moba11-timer { display: none; }
 .moba11-scoreboard { justify-content: center; gap: 22px; padding: 0 8px 14px; }
 .moba11-team-score { flex: 1; display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 13px; }
 .moba11-team-score--right { justify-content: flex-end; text-align: right; }
@@ -102,7 +102,34 @@
 .moba11-score-line i { display: block; height: 100%; background: #ef765e; border-radius: inherit; }
 .moba11-team-score--right .moba11-score-line { background: #d6d7f2; }
 .moba11-team-score--right .moba11-score-line i { background: #7b89e8; }
-.moba11-versus { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #193c46; color: #f8e8b6; font-size: 11px; font-weight: 800; box-shadow: 0 4px 0 #c8b888; }
+.moba11-versus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 64px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: #0d2a33;
+  border: 1.5px solid rgba(200,184,136,.25);
+  box-shadow: 0 3px 0 rgba(0,0,0,.35);
+}
+.moba11-versus__timer {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  font-variant-numeric: tabular-nums;
+  color: #f8e8b6;
+  line-height: 1;
+}
+.moba11-versus__label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #7a9a9f;
+}
 
 .moba11-arena {
   position: relative;
@@ -416,7 +443,9 @@
   .moba11-team-score { gap: 5px; font-size: 10px; }
   .moba11-team-score strong { font-size: 18px; }
   .moba11-score-line { max-width: 55px; }
-  .moba11-versus { width: 29px; height: 29px; }
+  .moba11-versus { min-width: 52px; padding: 3px 7px; }
+  .moba11-versus__timer { font-size: 16px; }
+  .moba11-versus__label { font-size: 7px; }
   .moba11-arena { min-height: 430px; border-width: 3px; }
   .moba11-base { transform: scale(.78); transform-origin: center; }
   .moba11-side-panel { display: flex; flex-direction: column; }

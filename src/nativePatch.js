@@ -16,26 +16,34 @@ export function applyNativePatch() {
   // Simpan URL produksi agar socket.js bisa membacanya sebelum io() dipanggil
   window.__TOMAT_API__ = PROD
 
-  // Patch fetch → tambahkan host ke URL relatif /api/ dan /socket.io/
+  // Hanya redirect path API dan socket — asset statis (gambar, CSS, JS)
+  // sudah ada di dalam APK (dist/) dan tidak perlu diambil dari server.
+  function needsServer(path) {
+    return path.startsWith('/api/') || path.startsWith('/socket.io/')
+  }
+
+  // Patch fetch → redirect HANYA /api/ dan /socket.io/ ke server produksi
   const _fetch = window.fetch.bind(window)
   window.fetch = function (resource, init) {
     if (typeof resource === 'string' && resource.startsWith('/')) {
-      resource = PROD + resource
+      if (needsServer(resource)) resource = PROD + resource
     } else if (
       resource instanceof Request &&
       new URL(resource.url).hostname === 'localhost'
     ) {
       const u = new URL(resource.url)
-      resource = new Request(PROD + u.pathname + u.search, resource)
+      if (needsServer(u.pathname)) {
+        resource = new Request(PROD + u.pathname + u.search, resource)
+      }
     }
     return _fetch(resource, init)
   }
 
-  // Patch XMLHttpRequest → same treatment for any library that bypasses fetch
+  // Patch XMLHttpRequest → same treatment
   const _XHR = window.XMLHttpRequest
   window.XMLHttpRequest = class extends _XHR {
     open(method, url, ...rest) {
-      if (typeof url === 'string' && url.startsWith('/')) {
+      if (typeof url === 'string' && url.startsWith('/') && needsServer(url)) {
         url = PROD + url
       }
       return super.open(method, url, ...rest)

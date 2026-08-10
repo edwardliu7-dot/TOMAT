@@ -78,7 +78,14 @@ export default function MobaHud({
           <span>{teamA?.name || 'Tim A'}</span>
           <div className="moba11-score-line"><i style={{ width: `${Math.min(100, teamA?.score || 0)}%` }} /></div>
         </div>
-        <div className="moba11-versus">VS</div>
+        <div className="moba11-versus">
+          <span className="moba11-versus__timer">
+            {match?.endsAt ? formatRemaining(remainingMs) : '--:--'}
+          </span>
+          <span className="moba11-versus__label">
+            {match?.phase === 'finished' ? 'SELESAI' : match?.phase === 'countdown' ? 'BERSIAP' : 'TERSISA'}
+          </span>
+        </div>
         <div className="moba11-team-score moba11-team-score--right">
           <div className="moba11-score-line"><i style={{ width: `${Math.min(100, teamB?.score || 0)}%` }} /></div>
           <span>{teamB?.name || 'Tim B'}</span>
