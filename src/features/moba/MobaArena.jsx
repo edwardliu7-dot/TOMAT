@@ -52,7 +52,7 @@ function distanceBetween(left, right) {
 // (40ms by default). Keep a little headroom so pointer events and network
 // jitter cannot turn a continuous analog gesture into a stream of rejected
 // MOVE_RATE_LIMITED actions.
-const MOVE_REPEAT_MS = 80
+const MOVE_REPEAT_MS = 150
 const JOYSTICK_RADIUS = 42
 const JOYSTICK_DEAD_ZONE = 0.16
 
