@@ -5,6 +5,12 @@ const STORAGE_KEY = `tomat_seen_whats_new_v${APP_VERSION}`
 
 const CHANGES = [
   {
+    icon: '⚔️',
+    title: 'Hasil Arena MOBA Lebih Jelas',
+    body: 'Setelah pertandingan selesai, arena diburamkan dan hasil menang atau kalah ditampilkan bersama skor kedua tim, riwayat setor poin, serta hadiah koin untuk tim pemenang.',
+    highlight: true,
+  },
+  {
     icon: '🏆',
     title: 'Bracket Turnamen Lebih Jelas',
     body: 'Bracket turnamen kini tampil live saat menunggu ronde berikutnya. Tampilan bracket guru dan siswa disamakan, sementara guru tetap bisa memantau pertandingan yang sedang berlangsung secara real-time.',
