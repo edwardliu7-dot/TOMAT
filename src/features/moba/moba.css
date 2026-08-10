@@ -806,6 +806,28 @@
   }
 }
 
+/* Burst flash on successful deposit */
+.moba-deposit-box--burst {
+  animation: moba-deposit-burst 0.55s ease-out forwards !important;
+  z-index: 12;
+}
+@keyframes moba-deposit-burst {
+  0%   { transform: translateX(-50%) translateY(-50%) scale(1);    box-shadow: 0 4px 14px rgba(0,0,0,.5), 0 0 0 4px rgba(255,230,100,.2); }
+  25%  { transform: translateX(-50%) translateY(-50%) scale(1.22); box-shadow: 0 6px 28px rgba(0,0,0,.55), 0 0 0 18px rgba(255,230,100,.5); }
+  55%  { transform: translateX(-50%) translateY(-50%) scale(1.1);  box-shadow: 0 4px 20px rgba(0,0,0,.5),  0 0 0 10px rgba(255,230,100,.3); }
+  100% { transform: translateX(-50%) translateY(-50%) scale(1);    box-shadow: 0 4px 14px rgba(0,0,0,.5),  0 0 0 4px  rgba(255,230,100,.1); }
+}
+/* Team-coloured burst glow for team-B zone */
+.moba-deposit-box--b.moba-deposit-box--burst {
+  animation: moba-deposit-burst-b 0.55s ease-out forwards !important;
+}
+@keyframes moba-deposit-burst-b {
+  0%   { transform: translateX(-50%) translateY(-50%) scale(1);    box-shadow: 0 4px 14px rgba(0,0,0,.5), 0 0 0 4px rgba(140,170,255,.2); }
+  25%  { transform: translateX(-50%) translateY(-50%) scale(1.22); box-shadow: 0 6px 28px rgba(0,0,0,.55), 0 0 0 18px rgba(140,170,255,.55); }
+  55%  { transform: translateX(-50%) translateY(-50%) scale(1.1);  box-shadow: 0 4px 20px rgba(0,0,0,.5),  0 0 0 10px rgba(140,170,255,.3); }
+  100% { transform: translateX(-50%) translateY(-50%) scale(1);    box-shadow: 0 4px 14px rgba(0,0,0,.5),  0 0 0 4px  rgba(140,170,255,.1); }
+}
+
 /* Arrow hint shown above zone when carrying scrolls */
 .moba-deposit-box__arrow {
   display: block;

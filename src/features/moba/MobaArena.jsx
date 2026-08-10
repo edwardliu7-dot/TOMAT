@@ -252,6 +252,43 @@ export default function MobaArena({
   const interactionRadius = Number(match?.config?.nodeInteractionRadius) || 72
   const [mapOpen, setMapOpen] = useState(false)
   const [muted, setMuted] = useState(false)
+
+  // ── Deposit burst animation ───────────────────────────────────────────────
+  // burstZones: Set of zone IDs that should show the burst class right now.
+  const [burstZones, setBurstZones] = useState(() => new Set())
+  const prevFillsRef = useRef({})
+  const burstTimersRef = useRef({})
+
+  // Detect fill increases after each render and schedule the burst class.
+  // Using useEffect keeps this out of the render phase (no side effects during render).
+  const depositBoxes = match?.depositBoxes || []
+  useEffect(() => {
+    const triggered = []
+    depositBoxes.forEach(box => {
+      if (!box?.id) return
+      const prev = prevFillsRef.current[box.id] ?? box.fill
+      if (box.fill > prev) {
+        triggered.push(box.id)
+      }
+      prevFillsRef.current[box.id] = box.fill
+    })
+    if (triggered.length === 0) return
+    setBurstZones(s => {
+      const n = new Set(s)
+      triggered.forEach(id => n.add(id))
+      return n
+    })
+    triggered.forEach(id => {
+      if (burstTimersRef.current[id]) clearTimeout(burstTimersRef.current[id])
+      burstTimersRef.current[id] = setTimeout(() => {
+        setBurstZones(s => { const n = new Set(s); n.delete(id); return n })
+      }, 600)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [depositBoxes])
+
+  // Clean up timers on unmount.
+  useEffect(() => () => Object.values(burstTimersRef.current).forEach(clearTimeout), [])
   const bounds = getArenaBounds(arena)
   // Team B sees the map flipped 180° so they also feel like they spawn at bottom-left
   const isFlipped = self?.teamId === 'teamB'
@@ -460,12 +497,13 @@ export default function MobaArena({
               const teamCls = z.team === 'teamA' ? 'moba-deposit-box--a' : 'moba-deposit-box--b'
               const mineCls = isMine ? 'moba-deposit-box--mine' : 'moba-deposit-box--enemy'
               const pulseCls = isMine && hasScrolls ? 'moba-deposit-box--pulsing' : ''
+              const burstCls = burstZones.has(z.id) ? 'moba-deposit-box--burst' : ''
               const fillPct = Math.min(100, Math.round((fill / boxCapacity) * 100))
 
               return (
                 <div
                   key={z.id}
-                  className={`moba-deposit-box ${teamCls} ${mineCls} ${pulseCls}`}
+                  className={`moba-deposit-box ${teamCls} ${mineCls} ${pulseCls} ${burstCls}`}
                   style={toPosition(z, arena, isFlipped)}
                   title={isMine ? `Zona setormu — ${fill}/${boxCapacity}` : `Zona lawan (${z.team})`}
                 >
