@@ -118,14 +118,16 @@ export default function MobaQuestionModal({
   const isExpired = remainingMs <= 0
   const isDisabled = disabled || submitting || isExpired || !question
 
-  const submit = async event => {
-    event.preventDefault()
-    if (isDisabled || selectedAnswer === '') return
+  const submit = async (answerValue, event) => {
+    if (event?.preventDefault) event.preventDefault()
+    const value = answerValue ?? selectedAnswer
+    if (isDisabled || value === '') return
     setSubmitting(true)
+    setSelectedAnswer(value)
     try {
       await onAnswer({
         questionSessionId: questionState.questionSessionId,
-        answer: selectedAnswer,
+        answer: value,
       })
     } catch {
       setSubmitting(false)
@@ -175,7 +177,7 @@ export default function MobaQuestionModal({
         <h2 id="moba12-question-title" className="moba12-prompt">{question.prompt}</h2>
 
         {/* ── Answer options ───────────────────────────────────────────── */}
-        <form onSubmit={submit}>
+        <form onSubmit={e => submit(null, e)}>
           {options.length ? (
             <div className="moba12-answer-options">
               {options.map((option, index) => {
@@ -184,9 +186,9 @@ export default function MobaQuestionModal({
                 return (
                   <button
                     type="button"
-                    className={`moba12-answer-option ${isSelected ? 'is-selected' : ''}`}
+                    className={`moba12-answer-option ${isSelected ? 'is-selected' : ''} ${submitting && isSelected ? 'is-submitting' : ''}`}
                     key={`${value}-${index}`}
-                    onClick={() => setSelectedAnswer(value)}
+                    onClick={() => submit(value)}
                     disabled={isDisabled}
                     style={isSelected ? {
                       background: accentColor + '22',
@@ -196,32 +198,37 @@ export default function MobaQuestionModal({
                   >
                     <span className="moba12-option-letter"
                       style={isSelected ? { background: accentColor, color: '#fff' } : undefined}
-                    >{String.fromCharCode(65 + index)}</span>
+                    >
+                      {submitting && isSelected
+                        ? <LoaderCircle size={13} className="moba11-spin" />
+                        : String.fromCharCode(65 + index)}
+                    </span>
                     {value}
                   </button>
                 )
               })}
             </div>
           ) : (
-            <input
-              className="moba12-answer-input"
-              value={selectedAnswer}
-              onChange={event => setSelectedAnswer(event.target.value)}
-              placeholder="Tulis jawabanmu"
-              disabled={isDisabled}
-              autoFocus
-            />
+            <>
+              <input
+                className="moba12-answer-input"
+                value={selectedAnswer}
+                onChange={event => setSelectedAnswer(event.target.value)}
+                placeholder="Tulis jawabanmu"
+                disabled={isDisabled}
+                autoFocus
+              />
+              <button
+                className="moba12-submit-answer"
+                type="submit"
+                disabled={isDisabled || selectedAnswer === ''}
+                style={{ background: accentColor }}
+              >
+                {submitting ? <LoaderCircle size={17} className="moba11-spin" /> : <Check size={17} />}
+                {submitting ? 'Memeriksa…' : isExpired ? 'Waktu habis' : 'Kirim jawaban'}
+              </button>
+            </>
           )}
-
-          <button
-            className="moba12-submit-answer"
-            type="submit"
-            disabled={isDisabled || selectedAnswer === ''}
-            style={{ background: accentColor }}
-          >
-            {submitting ? <LoaderCircle size={17} className="moba11-spin" /> : <Check size={17} />}
-            {submitting ? 'Memeriksa…' : isExpired ? 'Waktu habis' : 'Kirim jawaban'}
-          </button>
         </form>
 
         <div className="moba12-modal-note">
