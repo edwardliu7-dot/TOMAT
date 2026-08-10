@@ -60,12 +60,16 @@ export function useMobaSocket({
     const onConnect = () => {
       log('connected', socket.id)
       dispatch({ type: MOBA_ACTIONS.CONNECTION, status: MOBA_CONNECTION.CONNECTED })
-      // A requested match still needs to be joined first. Requesting a
-      // snapshot here races MobaScreen's join effect when the shared socket is
-      // already connected (for example, after leaving the lobby).
       const activeMatchId = stateRef.current.matchId
       if (activeMatchId && (!matchId || activeMatchId === matchId)) {
+        // Already tracked a match in reducer — request a fresh snapshot.
         socket.emit('moba:state_snapshot', { matchId: activeMatchId })
+      } else if (matchId && !activeMatchId) {
+        // Page was refreshed: reducer state is empty but a matchId was passed
+        // in (e.g. from the active-match REST check). Emit moba:join so the
+        // server can reconnect the existing player and push a state_snapshot.
+        log('reconnect join', matchId)
+        socket.emit('moba:join', { matchId })
       }
     }
     const onDisconnect = reason => {
