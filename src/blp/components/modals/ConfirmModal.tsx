@@ -53,7 +53,7 @@ export default function ConfirmModal({
           onClick={(e) => e.stopPropagation()}
           className="bg-white dark:bg-slate-900 w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800"
         >
-          <div className="p-6 space-y-4">
+          <div className="p-3 space-y-3">
             <div className="flex items-start justify-between">
               <div className={`p-2.5 rounded-xl ${danger ? 'bg-red-100 dark:bg-red-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
                 <AlertTriangle className={danger ? 'text-red-600 dark:text-red-400 w-5 h-5' : 'text-amber-600 dark:text-amber-400 w-5 h-5'} />

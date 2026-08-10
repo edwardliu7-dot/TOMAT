@@ -466,9 +466,15 @@
   .moba11-arena { min-height: 430px; border-width: 3px; }
   .moba11-base { transform: scale(.78); transform-origin: center; }
   .moba11-side-panel { display: flex; flex-direction: column; }
-  .moba12-modal-layer { align-items: end; padding: 10px; }
-  .moba12-question-modal { border-radius: 18px; padding: 17px; }
-  .moba12-answer-options { grid-template-columns: 1fr; }
+  .moba12-modal-layer { align-items: center; padding: 8px; }
+  .moba12-question-modal { border-radius: 14px; padding: 12px 14px; }
+  .moba12-answer-options { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .moba12-answer-option { min-height: 38px; padding: 7px 9px; }
+  .moba12-prompt { font-size: clamp(14px, 3.5vw, 20px); margin: 6px 0 8px; }
+  .moba12-game-header { margin-bottom: 6px; }
+  .moba12-timer-track { margin-bottom: 8px; }
+  .moba12-modal-note { margin-top: 8px; font-size: 9px; }
+  .moba12-result { bottom: 8px; }
   .moba12-move-pad { right: 9px; bottom: 9px; }
 }
 

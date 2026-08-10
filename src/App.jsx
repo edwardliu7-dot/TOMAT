@@ -187,40 +187,41 @@ function DuelGamePickerModal({ target, onPick, onCancel }) {
     <div style={{
       position: 'fixed', inset: 0, zIndex: 10001,
       background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-      padding: '0 0 24px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '8px 12px',
     }}>
       <div style={{
-        width: '100%', maxWidth: 480,
+        width: '100%', maxWidth: 560,
         background: 'linear-gradient(135deg,#0e1a2e,#0d1f3c)',
         border: '2px solid rgba(99,102,241,0.55)',
-        borderRadius: 24, padding: '24px 20px 20px',
+        borderRadius: 18, padding: '16px 16px 12px',
         boxShadow: '0 0 60px rgba(99,102,241,0.25)',
+        maxHeight: '88dvh', overflowY: 'auto',
       }}>
-        <div style={{ fontSize: 11, color: '#818CF8', fontWeight: 800, letterSpacing: 1.5, marginBottom: 4 }}>PILIH GAME DUEL</div>
-        <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 4 }}>Ajak {target.name}</div>
-        <div style={{ fontSize: 12, color: '#64748B', marginBottom: 18 }}>Pilih game yang akan dimainkan dalam duel ini</div>
+        <div style={{ fontSize: 10, color: '#818CF8', fontWeight: 800, letterSpacing: 1.5, marginBottom: 3 }}>PILIH GAME DUEL</div>
+        <div style={{ fontSize: 15, fontWeight: 900, color: '#fff', marginBottom: 2 }}>Ajak {target.name}</div>
+        <div style={{ fontSize: 11, color: '#64748B', marginBottom: 12 }}>Pilih game yang akan dimainkan dalam duel ini</div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 7, marginBottom: 10 }}>
           {DUEL_INVITE_GAMES.map(g => (
             <button key={g.key} onClick={() => onPick(g.key)} style={{
               background: 'rgba(99,102,241,0.08)', border: '1.5px solid rgba(99,102,241,0.25)',
-              borderRadius: 14, padding: '14px 10px',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+              borderRadius: 11, padding: '10px 8px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
               cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
             }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.18)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.25)' }}
             >
-              <span style={{ fontSize: 28 }}>{g.emoji}</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#C4B5FD', textAlign: 'center', lineHeight: 1.3 }}>{g.name}</span>
+              <span style={{ fontSize: 22 }}>{g.emoji}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#C4B5FD', textAlign: 'center', lineHeight: 1.3 }}>{g.name}</span>
             </button>
           ))}
         </div>
 
         <button onClick={onCancel} style={{
           width: '100%', background: 'transparent', border: 'none',
-          color: '#475569', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', padding: '8px',
+          color: '#475569', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', padding: '6px',
         }}>
           Batal
         </button>
@@ -248,48 +249,48 @@ function DailyBonusModal({ bonus, onDismiss }) {
       fontFamily: 'system-ui, sans-serif',
     }}>
       <div style={{
-        width: '100%', maxWidth: 380,
+        width: '100%', maxWidth: 440,
         background: 'linear-gradient(135deg,#1a1020,#0d1a2e)',
         border: '2px solid rgba(251,191,36,0.55)',
-        borderRadius: 28, padding: '32px 24px 24px',
+        borderRadius: 20, padding: '18px 20px 16px',
         boxShadow: '0 0 80px rgba(251,191,36,0.2), 0 24px 60px rgba(0,0,0,0.6)',
         position: 'relative', overflow: 'hidden',
         textAlign: 'center',
       }}>
         {/* Background glow */}
-        <div style={{ position: 'absolute', inset: 0, borderRadius: 28, background: 'radial-gradient(circle at 50% 0%, rgba(251,191,36,0.09) 0%, transparent 65%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 20, background: 'radial-gradient(circle at 50% 0%, rgba(251,191,36,0.09) 0%, transparent 65%)', pointerEvents: 'none' }} />
 
         {/* Fire streak icon */}
-        <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>🔥</div>
-        <div style={{ fontSize: 11, color: '#fbbf24', fontWeight: 800, letterSpacing: 2, marginBottom: 6 }}>
+        <div style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>🔥</div>
+        <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 800, letterSpacing: 2, marginBottom: 3 }}>
           BONUS LOGIN HARIAN
         </div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', marginBottom: 4 }}>
+        <div style={{ fontSize: 17, fontWeight: 900, color: '#fff', marginBottom: 2 }}>
           Hari ke-{streak}!
         </div>
-        <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 20, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 11, color: '#94A3B8', marginBottom: 12, lineHeight: 1.4 }}>
           Kamu sudah login berturut-turut {streak} hari.
         </div>
 
         {/* Coin badge */}
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 10,
+          display: 'inline-flex', alignItems: 'center', gap: 8,
           background: 'linear-gradient(135deg,rgba(251,191,36,0.18),rgba(245,158,11,0.1))',
           border: '1.5px solid rgba(251,191,36,0.45)',
-          borderRadius: 18, padding: '14px 28px',
-          marginBottom: 22,
+          borderRadius: 14, padding: '8px 20px',
+          marginBottom: 12,
         }}>
-          <span style={{ fontSize: 28 }}>🪙</span>
-          <span style={{ fontSize: 30, fontWeight: 900, color: '#fbbf24' }}>+{coins}</span>
+          <span style={{ fontSize: 22 }}>🪙</span>
+          <span style={{ fontSize: 24, fontWeight: 900, color: '#fbbf24' }}>+{coins}</span>
         </div>
 
         {/* 7-day progress bar */}
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748B', marginBottom: 6 }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#64748B', marginBottom: 4 }}>
             <span>Streak mingguan</span>
             <span style={{ color: '#fbbf24', fontWeight: 700 }}>{streakDisplay}/7 hari</span>
           </div>
-          <div style={{ height: 8, background: 'rgba(255,255,255,0.07)', borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{ height: 6, background: 'rgba(255,255,255,0.07)', borderRadius: 8, overflow: 'hidden' }}>
             <div style={{
               height: '100%',
               width: `${progressPct}%`,
@@ -299,7 +300,7 @@ function DailyBonusModal({ bonus, onDismiss }) {
             }} />
           </div>
           {nextMilestone > 0 && (
-            <div style={{ fontSize: 10, color: '#475569', marginTop: 5 }}>
+            <div style={{ fontSize: 10, color: '#475569', marginTop: 4 }}>
               {cyclePos === 7
                 ? '🎁 Bonus spesial minggu ini tercapai!'
                 : `${7 - cyclePos} hari lagi menuju bonus spesial 🎁`}
@@ -310,8 +311,8 @@ function DailyBonusModal({ bonus, onDismiss }) {
         {/* Claim button */}
         <button onClick={onDismiss} style={{
           width: '100%', background: 'linear-gradient(90deg,#f59e0b,#fbbf24)',
-          border: 'none', borderRadius: 16, padding: '16px',
-          color: '#1a1020', fontSize: 16, fontWeight: 900,
+          border: 'none', borderRadius: 12, padding: '11px',
+          color: '#1a1020', fontSize: 13, fontWeight: 900,
           cursor: 'pointer', fontFamily: 'inherit', letterSpacing: 0.3,
           boxShadow: '0 4px 24px rgba(251,191,36,0.4)',
         }}>

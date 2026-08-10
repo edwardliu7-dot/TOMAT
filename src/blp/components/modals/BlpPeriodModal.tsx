@@ -65,7 +65,7 @@ export default function BlpPeriodModal({ kelasOptions, monthDate, blpPeriods, ge
           onClick={(e) => e.stopPropagation()}
           className="bg-white dark:bg-slate-900 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800"
         >
-          <div className="p-6 space-y-4">
+          <div className="p-3 space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">

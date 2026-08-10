@@ -547,8 +547,9 @@ export function PublicProfileModal({ profile, loading, error, onClose, onVisitPr
     }} onClick={onClose}>
       <div style={{
         width: '100%', maxWidth: 360, background: '#0f172a',
-        border: cardBorder, borderRadius: 22,
+        border: cardBorder, borderRadius: 18,
         boxShadow: cardGlow, overflow: 'hidden', position: 'relative',
+        maxHeight: '88dvh', overflowY: 'auto',
       }} onClick={e => e.stopPropagation()}>
 
         {loading ? (
@@ -560,7 +561,7 @@ export function PublicProfileModal({ profile, loading, error, onClose, onVisitPr
             {/* ── BANNER BACKGROUND (fullscreen top section) ── */}
             <div style={{
               position: 'relative',
-              height: 140,
+              height: 90,
               background: spanduk
                 ? (spanduk.image
                     ? `url(${spanduk.image}) right center / auto 100% no-repeat, ${spanduk.gradient}`

@@ -39,9 +39,9 @@ export default function TextSubmissionModal({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 40 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto"
+          className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 max-h-[85dvh] overflow-y-auto"
         >
-          <div className="p-6 space-y-4">
+          <div className="p-3 space-y-3">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">

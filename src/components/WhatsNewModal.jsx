@@ -89,45 +89,45 @@ export default function WhatsNewModal({ onClose }) {
       style={{
         position: 'fixed', inset: 0, zIndex: 10050,
         background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-        padding: '0 0 env(safe-area-inset-bottom,0)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '8px 12px',
       }}
       onClick={onClose}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          width: '100%', maxWidth: 460,
+          width: '100%', maxWidth: 560,
           background: 'linear-gradient(160deg,#12151f,#0d1018)',
           border: '1px solid rgba(255,255,255,0.09)',
-          borderRadius: '24px 24px 0 0',
-          padding: '28px 22px 32px',
-          maxHeight: '92dvh', overflowY: 'auto',
-          boxShadow: '0 -16px 60px rgba(0,0,0,0.6)',
+          borderRadius: 18,
+          padding: '14px 16px 16px',
+          maxHeight: '88dvh', overflowY: 'auto',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 22 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <div style={{
-            width: 46, height: 46, borderRadius: 14,
+            width: 36, height: 36, borderRadius: 10,
             background: headerBg,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 22, flexShrink: 0,
+            fontSize: 17, flexShrink: 0,
             boxShadow: headerGlow,
           }}>
             {isAugust ? '🇮🇩' : '🎉'}
           </div>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#f1f5f9', letterSpacing: 0.2 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#f1f5f9', letterSpacing: 0.2 }}>
               Yang Baru di SMARTISA
             </div>
             <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4,
+              display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3,
               background: accentSoft, border: `1px solid ${accentBorder}`,
-              borderRadius: 20, padding: '2px 10px',
+              borderRadius: 20, padding: '1px 8px',
             }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: accent }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: accentLight, letterSpacing: 0.5 }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: accent }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: accentLight, letterSpacing: 0.5 }}>
                 Versi {APP_VERSION}
               </span>
             </div>
@@ -135,26 +135,26 @@ export default function WhatsNewModal({ onClose }) {
         </div>
 
         {/* Change list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           {CHANGES.map((c, i) => (
             <div
               key={i}
               style={{
                 background: c.highlight ? hlBg : 'rgba(255,255,255,0.04)',
                 border: c.highlight ? hlBorder : '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 14, padding: '14px 16px',
-                display: 'flex', gap: 14, alignItems: 'flex-start',
+                borderRadius: 11, padding: '9px 12px',
+                display: 'flex', gap: 10, alignItems: 'flex-start',
               }}
             >
-              <div style={{ fontSize: 22, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{c.icon}</div>
+              <div style={{ fontSize: 17, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{c.icon}</div>
               <div>
                 <div style={{
-                  fontSize: 13, fontWeight: 700, marginBottom: 4,
+                  fontSize: 12, fontWeight: 700, marginBottom: 2,
                   color: c.highlight ? hlTitle : '#e2e8f0',
                 }}>
                   {c.title}
                 </div>
-                <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.55 }}>{c.body}</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.45 }}>{c.body}</div>
               </div>
             </div>
           ))}
@@ -163,29 +163,29 @@ export default function WhatsNewModal({ onClose }) {
         {/* Event misi quick-ref — only during kemerdekaan window */}
         {isAugust && (
           <div style={{
-            marginTop: 16,
+            marginTop: 10,
             background: 'rgba(220,38,38,0.05)', border: '1px solid rgba(220,38,38,0.18)',
-            borderRadius: 14, padding: '12px 16px',
+            borderRadius: 11, padding: '8px 12px',
           }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: 1, marginBottom: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: 1, marginBottom: 7 }}>
               MISI KEMERDEKAAN
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               {[
                 { num: '1', label: '17 Soal Benar', reward: 'Bingkai Kemerdekaan', icon: '🏅' },
                 { num: '2', label: '8 Duel Menang',  reward: 'Spanduk HUT RI ke-81', icon: '🎌' },
                 { num: '3', label: 'Selesaikan keduanya', reward: 'Kelinsay Merah Putih', icon: '🐰' },
               ].map(m => (
-                <div key={m.num} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div key={m.num} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{
-                    width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+                    width: 22, height: 22, borderRadius: 6, flexShrink: 0,
                     background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.30)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 13,
+                    fontSize: 11,
                   }}>{m.icon}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#e2e8f0' }}>{m.label}</div>
-                    <div style={{ fontSize: 10, color: '#fca5a5', fontWeight: 600 }}>→ {m.reward}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0' }}>{m.label}</div>
+                    <div style={{ fontSize: 9, color: '#fca5a5', fontWeight: 600 }}>→ {m.reward}</div>
                   </div>
                 </div>
               ))}
@@ -197,10 +197,10 @@ export default function WhatsNewModal({ onClose }) {
         <button
           onClick={onClose}
           style={{
-            width: '100%', marginTop: 20,
-            padding: '14px', borderRadius: 14, border: 'none',
+            width: '100%', marginTop: 12,
+            padding: '10px', borderRadius: 11, border: 'none',
             background: btnBg,
-            color: '#fff', fontSize: 14, fontWeight: 800,
+            color: '#fff', fontSize: 13, fontWeight: 800,
             cursor: 'pointer', fontFamily: 'inherit',
             boxShadow: btnGlow,
           }}

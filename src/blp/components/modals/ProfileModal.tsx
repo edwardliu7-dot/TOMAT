@@ -81,9 +81,9 @@ export default function ProfileModal({ name, currentPhotoUrl, currentBio, onClos
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 40 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-slate-900 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto"
+          className="bg-white dark:bg-slate-900 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 max-h-[85dvh] overflow-y-auto"
         >
-          <div className="p-6 space-y-5">
+          <div className="p-3 space-y-3">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-white leading-tight">Edit Profil</h3>
