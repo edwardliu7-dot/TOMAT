@@ -105,22 +105,22 @@ export const MAP_LAYOUT = Object.freeze({
 // Coordinates use SERVER space: origin top-left, Y increases downward.
 // Converted from user Cartesian (origin bottom-left): server_x = x, server_y = 80000 − y
 //
-// Top lane   A-turret : user (4000,68000)  → server (4000,12000)
-// Top lane   B-turret : user (12000,76000) → server (12000,4000)
+// Top lane   A-turret : user (68000,4000)  → server (68000,76000)
+// Top lane   B-turret : user (76000,76000) → server (76000,4000)
 // Mid lane   A-turret : user (36000,36000) → server (36000,44000)
 // Mid lane   B-turret : user (44000,44000) → server (44000,36000)
-// Bot lane   A-turret : user (68000,4000)  → server (68000,76000)
-// Bot lane   B-turret : user (76000,12000) → server (76000,68000)
+// Bot lane   A-turret : user (12000,4000)  → server (12000,76000)
+// Bot lane   B-turret : user (4000,12000)  → server (4000,68000)
 // Base A              : user (4000,4000)   → server (4000,76000)
 // Base B              : user (76000,76000) → server (76000,4000)
 export const DEPOSIT_ZONES = Object.freeze([
   // Team A scoring zones
   Object.freeze({ id:'az-1',   team:'teamA', lane:'top',    x:  4_000, y: 12_000, maxPoints: 100,  isLibrary: false }),
-  Object.freeze({ id:'az-2',   team:'teamA', lane:'top',    x: 12_000, y:  4_000, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'az-2',   team:'teamA', lane:'bot',    x: 68_000, y: 76_000, maxPoints: 100,  isLibrary: false }),
   Object.freeze({ id:'az-ctr', team:'teamA', lane:'mid',    x: 36_000, y: 44_000, maxPoints: 100,  isLibrary: false }),
   Object.freeze({ id:'al-base',team:'teamA', lane:'base',   x:  4_000, y: 76_000, maxPoints: null, isLibrary: true  }),
   // Team B scoring zones
-  Object.freeze({ id:'bz-1',   team:'teamB', lane:'bot',    x: 68_000, y: 76_000, maxPoints: 100,  isLibrary: false }),
+  Object.freeze({ id:'bz-1',   team:'teamB', lane:'top',    x: 12_000, y:  4_000, maxPoints: 100,  isLibrary: false }),
   Object.freeze({ id:'bz-2',   team:'teamB', lane:'bot',    x: 76_000, y: 68_000, maxPoints: 100,  isLibrary: false }),
   Object.freeze({ id:'bz-ctr', team:'teamB', lane:'mid',    x: 44_000, y: 36_000, maxPoints: 100,  isLibrary: false }),
   Object.freeze({ id:'bl-base',team:'teamB', lane:'base',   x: 76_000, y:  4_000, maxPoints: null, isLibrary: true  }),

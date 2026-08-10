@@ -27,8 +27,8 @@ description: Diagonal X-map layout replacing the old 3-lane horizontal map; spaw
 **Why:** Both teams see themselves at bottom-left on their screens. Symmetric UX.
 
 ## Deposit Zones (server: DEPOSIT_ZONES)
-- **Team A** scores at: `az-1` (9k,8k), `az-2` (7k,13.5k) [top-left border], `az-ctr` (43k,33k) [center upper]
-- **Team B** scores at: `bz-1` (71k,66.5k), `bz-2` (73k,71k) [bottom-right border], `bz-ctr` (35k,45.5k) [center lower]
+- **Team A** scores at: `az-1` (4k,12k), `az-2` (68k,76k) [bottom-right], `az-ctr` (36k,44k) [center]
+- **Team B** scores at: `bz-1` (12k,4k) [top-left], `bz-2` (76k,68k) [bottom-right], `bz-ctr` (44k,36k) [center]
 - Libraries: `al-base` (5k,75k) = Team A bottom-left, `bl-base` (75k,5k) = Team B top-right
 - After flip, Team B sees their deposit boxes at the same relative position as Team A sees theirs (top-left of screen) ✓
 
