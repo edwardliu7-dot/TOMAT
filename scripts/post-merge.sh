@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# CI=true prevents pnpm from prompting when it needs to remove node_modules in a non-TTY environment.
+export CI=true
+
 # Install dependencies for the main app.
 pnpm install --frozen-lockfile
 
