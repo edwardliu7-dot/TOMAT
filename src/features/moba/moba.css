@@ -475,7 +475,6 @@
   inset: 0;
   transform:
     translate(var(--moba-camera-x, 0%), var(--moba-camera-y, 0%))
-    perspective(1000px) rotateX(5deg) rotateZ(-1deg)
     scale(var(--moba-camera-zoom, 1));
   transform-origin: center;
   transition: transform .18s ease-out;
