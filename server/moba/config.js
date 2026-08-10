@@ -138,7 +138,7 @@ export const MAP_WALLS = Object.freeze([
 export const DEFAULT_MOBA_CONFIG = Object.freeze({
   durationMs: 420_000,
   countdownMs: 3_000,
-  cleanupGraceMs: 30_000,
+  cleanupGraceMs: 120_000, // 2 menit — cukup untuk perangkat mid-low-end reconnect
   nodeSpawnIntervalMs: 8_000,
   nodeTtlMs: 20_000,
   questionTimeMs: 15_000,

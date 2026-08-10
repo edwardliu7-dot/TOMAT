@@ -14,7 +14,7 @@ import { createCurriculumQuestionGenerator } from './questions.js'
 import { SUPPORTED_TOURNAMENT_GAMES } from '../tournament-questions.js'
 
 const ROOM_PREFIX = 'moba:match:'
-const DEFAULT_RECONNECT_GRACE_MS = 30_000
+const DEFAULT_RECONNECT_GRACE_MS = 120_000 // 2 menit — cukup untuk perangkat lambat reconnect
 
 function roomFor(matchId) {
   return `${ROOM_PREFIX}${matchId}`
