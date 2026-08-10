@@ -156,7 +156,7 @@ export const DEFAULT_MOBA_CONFIG = Object.freeze({
   clientLoadTimeoutMs: 30_000,
   boxCapacity: 100,
   nodeInteractionRadius: 3000,
-  depositInteractionRadius: 110,
+  depositInteractionRadius: 2500,
   playerCollisionRadius: 28,
   arena: Object.freeze({
     // The gameplay world uses a square 80,000 × 80,000 coordinate space.

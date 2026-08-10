@@ -48,9 +48,12 @@ function useServerRemaining(match, serverNow) {
   return match.endsAt - estimatedServerNow
 }
 
-export default function MobaScreen({ goBack, matchId: requestedMatchId = null, debug = false }) {
+export default function MobaScreen({ goBack, matchId: requestedMatchId = null, debug = false, reconnect = false, onReconnectDone }) {
   const { user } = useAuth()
   const [snapshotPending, setSnapshotPending] = useState(false)
+  // Reconnect overlay — shown when returning to an active match after page reload/exit.
+  // Fades out once the socket joins and the match state is loaded from server.
+  const [showReconnectOverlay, setShowReconnectOverlay] = useState(reconnect)
   const {
     state,
     connected,
@@ -68,6 +71,19 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
     matchId: requestedMatchId,
     debug,
   })
+
+  // Dismiss the reconnect overlay once the match state arrives from the server.
+  useEffect(() => {
+    if (!showReconnectOverlay) return
+    if (state.match) {
+      // Small delay so the user sees the "Melanjutkan…" screen briefly
+      const t = setTimeout(() => {
+        setShowReconnectOverlay(false)
+        onReconnectDone?.()
+      }, 1200)
+      return () => clearTimeout(t)
+    }
+  }, [showReconnectOverlay, state.match, onReconnectDone])
 
   const matchId = requestedMatchId || state.matchId
   const players = useMemo(() => selectMobaPlayers(state), [state])
@@ -266,6 +282,48 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
           <p>State pertandingan sedang diminta dari server.</p>
         </div>
       </main>
+    )
+  }
+
+  // ── Reconnect overlay ──────────────────────────────────────────────────────
+  if (showReconnectOverlay) {
+    const matchLoaded = Boolean(state.match)
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'linear-gradient(160deg,#060b18 0%,#0e1a2e 50%,#060b18 100%)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', gap: 24, color: '#fff', padding: 24,
+        fontFamily: 'inherit',
+      }}>
+        <div style={{ fontSize: 40 }}>⚔️</div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.15em', color: '#f59e0b', marginBottom: 6, textTransform: 'uppercase' }}>
+            Arena MOBA
+          </div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>
+            {matchLoaded ? 'Melanjutkan pertandingan…' : 'Menghubungkan ke arena…'}
+          </h1>
+          <p style={{ margin: '10px 0 0', fontSize: 13, color: '#64748b' }}>
+            {matchLoaded
+              ? 'Pertandingan ditemukan, memuat arena…'
+              : 'Mendeteksi pertandingan aktif…'}
+          </p>
+        </div>
+        {/* Animated progress bar */}
+        <div style={{ width: '100%', maxWidth: 300, height: 4, background: '#1e293b', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%',
+            background: 'linear-gradient(90deg,#3b82f6,#8b5cf6)',
+            borderRadius: 2,
+            width: matchLoaded ? '100%' : '60%',
+            transition: 'width 0.8s ease',
+          }} />
+        </div>
+        <div style={{ fontSize: 12, color: '#475569' }}>
+          🔄 {matchLoaded ? 'Menunggu sebentar…' : 'Memeriksa server…'}
+        </div>
+      </div>
     )
   }
 

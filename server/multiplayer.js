@@ -197,6 +197,10 @@ async function canPlayStudentMode(socket, eventName) {
   }
 }
 
+// ─── Shared MOBA adapter reference (for REST routes in index.js) ─────────────
+let _mobaAdapter = null
+export function getMobaAdapter() { return _mobaAdapter }
+
 // ─── Socket.io ───────────────────────────────────────────────────────────────
 export function setupMultiplayer(httpServer, sessionMiddleware) {
   const io = new Server(httpServer, {
@@ -218,6 +222,7 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
   // Share Express session so socket.request.session works
   io.engine.use((req, res, next) => sessionMiddleware(req, res, next))
   const moba = createMobaSocketAdapter({ io, pool })
+  _mobaAdapter = moba
 
   io.on('connection', (socket) => {
     const session = socket.request?.session

@@ -720,6 +720,29 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [tokoInitialTab, setTokoInitialTab]         = useState(null)   // pre-select shop tab on open
   const [duelInvitePending, setDuelInvitePending]   = useState(null)   // { id, role, name } — waiting for game pick
   const [mobaMatchId, setMobaMatchId]               = useState(null)
+  const [mobaReconnect, setMobaReconnect]           = useState(false)
+
+  // Auto-reconnect: jika siswa kembali ke app saat pertandingan MOBA masih berjalan,
+  // langsung arahkan kembali ke arena tanpa harus masuk lobby terlebih dahulu.
+  useEffect(() => {
+    if (guruMode || !user || user.role !== 'siswa' || !canUseDemoMoba(user)) return
+    // Hanya cek sekali saat user pertama kali di-set (bukan saat navigasi antar screen)
+    fetch('/api/siswa/moba/active-match', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { matchId: null })
+      .then(({ matchId, phase }) => {
+        if (!matchId) return
+        const RUNNING = ['running_outer_tower', 'running_main_base', 'countdown']
+        if (!RUNNING.includes(phase)) return
+        setMobaMatchId(matchId)
+        setMobaReconnect(true)
+        setHistory(h => {
+          // Hanya tambahkan jika belum di arena
+          if (h.includes('moba-match')) return h
+          return [...h, 'moba-match']
+        })
+      })
+      .catch(() => {})
+  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { open: whatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew()
 
@@ -1086,6 +1109,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
           matchId={mobaMatchId}
           goBack={goBack}
           debug="auto"
+          reconnect={mobaReconnect}
+          onReconnectDone={() => setMobaReconnect(false)}
         />
       )
     }

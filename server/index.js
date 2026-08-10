@@ -24,7 +24,7 @@ import videoMateriGuruRouter from './video-materi.js'
 import videoMateriSiswaRouter from './video-materi-siswa.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
-import { setupMultiplayer } from './multiplayer.js'
+import { setupMultiplayer, getMobaAdapter } from './multiplayer.js'
 import { setIo } from './boss-state.js'
 import { setTournamentIo } from './tournament-state.js'
 
@@ -209,6 +209,19 @@ async function createServer() {
   const io = setupMultiplayer(httpServer, sessionMiddleware)
   setIo(io)             // share io with boss-state so guru REST endpoints can push socket events
   setTournamentIo(io)   // share io with tournament-state
+
+  // ── MOBA active-match check (after setupMultiplayer so getMobaAdapter() is set) ──
+  // Called on app load to auto-reconnect a student who was in a running match.
+  app.get('/api/siswa/moba/active-match', (req, res) => {
+    const user = req.session?.user
+    if (!user || user.role !== 'siswa') return res.status(401).json({ matchId: null })
+    const moba = getMobaAdapter()
+    if (!moba) return res.json({ matchId: null })
+    const match = moba.manager.findPlayerMatch({ userId: user.id })
+    const RUNNING = ['running_outer_tower', 'running_main_base', 'countdown']
+    if (!match || !RUNNING.includes(match.phase)) return res.json({ matchId: null })
+    res.json({ matchId: match.id, phase: match.phase })
+  })
 
   // Bind the port immediately so container healthchecks succeed right away,
   // even if the database connection is slow. Schema setup runs in the
