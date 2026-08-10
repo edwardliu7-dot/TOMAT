@@ -323,7 +323,6 @@ function MobaMatchResultOverlay({ match, self, onBack }) {
                   <small>{entry.teamId === 'teamA' ? teamA?.name || 'Tim A' : teamB?.name || 'Tim B'}</small>
                 </div>
                 <b>+{entry.awardedPoints}</b>
-                <time>{formatDepositTime(entry.depositedAt)}</time>
               </div>
             ))}
           </div>
