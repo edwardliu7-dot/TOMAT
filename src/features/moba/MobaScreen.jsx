@@ -225,13 +225,25 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
   const selfScrolls = state.self?.scrolls
   const selfTeamId  = state.self?.teamId
   const depositZones = state.match?.config?.depositZones
+  const depositBoxes = state.match?.depositBoxes || []
   const depositRadius = Number(state.match?.config?.depositInteractionRadius) || 2000
   React.useEffect(() => {
     if (!canAct || !selfScrolls?.length || !selfTeamId || !depositZones?.length) return
     const selfPos = self?.position
     if (!selfPos) return
-    // Find own team's nearest scoring zone (server uses same filter).
-    const myZones = depositZones.filter(z => z.team === selfTeamId)
+    // Match the server's target rules: completed boxes disappear, and the
+    // team's library unlocks as soon as any one of its boxes is completed.
+    const completedOwnBox = depositBoxes.some(box =>
+      box?.completed &&
+      depositZones.some(zone =>
+        zone.id === box.id && zone.team === selfTeamId && !zone.isLibrary,
+      ),
+    )
+    const myZones = depositZones.filter(zone => {
+      if (zone.team !== selfTeamId) return false
+      if (zone.isLibrary) return completedOwnBox
+      return !depositBoxes.some(box => box.id === zone.id && box.completed)
+    })
     let nearestDist = Infinity
     for (const z of myZones) {
       const d = Math.hypot(Number(z.x) - Number(selfPos.x), Number(z.y) - Number(selfPos.y))
@@ -247,7 +259,7 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
     const scroll = selfScrolls[0]
     depositScroll({ scrollId: scroll.id }).catch(() => {})
   }, [canAct, selfScrolls, selfTeamId, depositZones, depositRadius,
-      self?.position?.x, self?.position?.y, depositScroll])
+      depositBoxes, self?.position?.x, self?.position?.y, depositScroll])
 
   const handleDeposit = scroll => {
     if (!canAct || !scroll) return

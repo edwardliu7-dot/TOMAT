@@ -155,6 +155,7 @@ export const DEFAULT_MOBA_CONFIG = Object.freeze({
   wave2SpawnIntervalMs: 4_000,
   clientLoadTimeoutMs: 30_000,
   boxCapacity: 100,
+  libraryDepositMultiplier: 1.5,
   nodeInteractionRadius: 3000,
   depositInteractionRadius: 2500,
   playerCollisionRadius: 28,

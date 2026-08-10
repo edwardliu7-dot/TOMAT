@@ -751,7 +751,8 @@
   width: 28px;
   height: 28px;
   background: url('/box.png') 0 0 / 84px 28px no-repeat;
-  animation: moba-sprite-box 2s steps(3) infinite;
+  /* The box is stationary until a scroll is successfully deposited. */
+  animation: none;
   image-rendering: pixelated;
   vertical-align: middle;
 }
@@ -772,7 +773,6 @@
   min-width: 38px;
   text-align: center;
   box-shadow: 0 4px 14px rgba(0,0,0,.45), 0 0 0 4px rgba(255,210,100,.10);
-  animation: moba-jungle-base-glow 2.8s ease-in-out infinite;
   transition: box-shadow .2s, border-color .2s;
 }
 .moba-deposit-box--a { border-color: rgba(255,165,120,.55); box-shadow: 0 4px 14px rgba(0,0,0,.45), 0 0 0 4px rgba(255,160,100,.1); }
@@ -829,6 +829,10 @@
 .moba-deposit-box--burst {
   animation: moba-deposit-burst 0.55s ease-out forwards !important;
   z-index: 12;
+}
+.moba-deposit-box--burst .moba-sprite-box {
+  /* Play the sprite once for this deposit, never as ambient decoration. */
+  animation: moba-sprite-box 0.55s steps(3) 1 forwards;
 }
 @keyframes moba-deposit-burst {
   0%   { transform: translateX(-50%) translateY(-50%) scale(1);    box-shadow: 0 4px 14px rgba(0,0,0,.5), 0 0 0 4px rgba(255,230,100,.2); }
@@ -925,6 +929,24 @@
   font: 600 6px 'Space Mono', monospace;
   letter-spacing: .08em;
   white-space: nowrap;
+}
+.moba-deposit-library.is-locked {
+  opacity: .55;
+  filter: grayscale(.7);
+}
+.moba-deposit-library.is-unlocked {
+  border-color: rgba(255,220,110,.78);
+  box-shadow: 0 6px 18px rgba(0,0,0,.5), 0 0 0 5px rgba(255,210,80,.18);
+  animation: moba-library-ready 1.5s ease-in-out infinite;
+}
+.moba-deposit-library.is-unlocked small { color: #ffe58c; }
+.moba-deposit-library.is-unlocked b {
+  color: #8fffb0;
+  font: 800 7px 'Space Mono', monospace;
+}
+@keyframes moba-library-ready {
+  0%, 100% { transform: translateX(-50%) translateY(-50%) scale(1); }
+  50% { transform: translateX(-50%) translateY(-50%) scale(1.05); }
 }
 
 .moba-jungle-bridge {

@@ -168,11 +168,12 @@ export function createMatchState({
     eventSeq: 0,
     // Loading gate: tracks which players have reported ready-to-play.
     clientLoadedIds: new Set(),
-    // Box fill state per deposit zone (scoring zones only).
+    // Box fill state per deposit zone (scoring zones only). A completed box
+    // stays completed for the rest of the match and is no longer targetable.
     depositBoxes: new Map(
       DEPOSIT_ZONES
         .filter(z => !z.isLibrary)
-        .map(z => [z.id, { fill: 0, completedBoxes: 0 }]),
+        .map(z => [z.id, { fill: 0, completedBoxes: 0, completed: false }]),
     ),
     // Public audit trail for the result screen. Keep this bounded so a
     // reconnect/final snapshot cannot grow without limit during a long match.
@@ -295,12 +296,15 @@ export function sanitizeMatchState(match) {
     baseScrollCapacity: match.config.baseScrollCapacity,
     monyangScrollCapacity: match.config.monyangScrollCapacity,
     boxCapacity: match.config.boxCapacity,
+    libraryDepositMultiplier: match.config.libraryDepositMultiplier,
     // Static zone positions exposed to client so it can compute auto-deposit proximity.
-    depositZones: DEPOSIT_ZONES.filter(z => !z.isLibrary).map(z => ({
+    depositZones: DEPOSIT_ZONES.map(z => ({
       id: z.id,
       team: z.team,
+      lane: z.lane,
       x: z.x,
       y: z.y,
+      isLibrary: z.isLibrary,
     })),
   }
 
@@ -324,7 +328,12 @@ export function sanitizeMatchState(match) {
     activeNodes: [...match.activeNodes.values()].map(publicNode),
     eventSeq: match.eventSeq,
     depositBoxes: [...(match.depositBoxes?.entries() || [])].map(
-      ([id, s]) => ({ id, fill: s.fill, completedBoxes: s.completedBoxes }),
+      ([id, s]) => ({
+        id,
+        fill: s.fill,
+        completedBoxes: s.completedBoxes,
+        completed: Boolean(s.completed),
+      }),
     ),
     depositHistory: (match.depositHistory || []).map(entry => ({
       id: entry.id,

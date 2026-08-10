@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Map, Sparkles, Volume2, VolumeX, X } from 'lucide-react'
 import MobaBase from './MobaBase.jsx'
 import MobaNode from './MobaNode.jsx'
@@ -359,36 +359,57 @@ export default function MobaArena({
   // ── Deposit burst animation ───────────────────────────────────────────────
   // burstZones: Set of zone IDs that should show the burst class right now.
   const [burstZones, setBurstZones] = useState(() => new Set())
-  const prevFillsRef = useRef({})
+  const [burstTokens, setBurstTokens] = useState(() => ({}))
+  const [completedRevealZones, setCompletedRevealZones] = useState(() => new Set())
+  const seenDepositIdsRef = useRef(null)
   const burstTimersRef = useRef({})
 
-  // Detect fill increases after each render and schedule the burst class.
-  // Using useEffect keeps this out of the render phase (no side effects during render).
+  // Trigger the burst only from a new successful server deposit event. This
+  // avoids animating merely because the player is carrying a scroll.
   const depositBoxes = match?.depositBoxes || []
-  useEffect(() => {
-    const triggered = []
-    depositBoxes.forEach(box => {
-      if (!box?.id) return
-      const prev = prevFillsRef.current[box.id] ?? box.fill
-      if (box.fill > prev) {
-        triggered.push(box.id)
-      }
-      prevFillsRef.current[box.id] = box.fill
-    })
+  const depositHistory = match?.depositHistory || []
+  useLayoutEffect(() => {
+    const currentIds = new Set(depositHistory.map(entry => entry?.id).filter(Boolean))
+    if (seenDepositIdsRef.current === null) {
+      seenDepositIdsRef.current = currentIds
+      return
+    }
+    const newDeposits = depositHistory
+      .filter(entry => entry?.id && !seenDepositIdsRef.current.has(entry.id))
+    const triggered = newDeposits.map(entry => entry.zoneId).filter(Boolean)
+    const newlyCompleted = newDeposits
+      .map(entry => entry.zoneId)
+      .filter(zoneId => zoneId && depositBoxes.some(box => box.id === zoneId && box.completed))
+    seenDepositIdsRef.current = currentIds
     if (triggered.length === 0) return
     setBurstZones(s => {
       const n = new Set(s)
       triggered.forEach(id => n.add(id))
       return n
     })
+    setBurstTokens(tokens => {
+      const next = { ...tokens }
+      triggered.forEach(id => { next[id] = (next[id] || 0) + 1 })
+      return next
+    })
     triggered.forEach(id => {
       if (burstTimersRef.current[id]) clearTimeout(burstTimersRef.current[id])
+      if (newlyCompleted.includes(id)) {
+        setCompletedRevealZones(s => new Set(s).add(id))
+      }
       burstTimersRef.current[id] = setTimeout(() => {
         setBurstZones(s => { const n = new Set(s); n.delete(id); return n })
+        if (newlyCompleted.includes(id)) {
+          setCompletedRevealZones(s => {
+            const n = new Set(s)
+            n.delete(id)
+            return n
+          })
+        }
       }, 600)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [depositBoxes])
+  }, [depositHistory, depositBoxes])
 
   // Clean up timers on unmount.
   useEffect(() => () => Object.values(burstTimersRef.current).forEach(clearTimeout), [])
@@ -590,23 +611,46 @@ export default function MobaArena({
             const boxFills = match?.depositBoxes || []
             const selfTeam = self?.teamId
             const hasScrolls = Boolean(self?.scrolls?.length)
-            const boxCapacity = match?.config?.boxCapacity ?? 100
+             const boxCapacity = match?.config?.boxCapacity ?? 100
+             const libraryUnlocked = boxFills.some(box =>
+               box?.completed &&
+               zones.some(zone => zone.id === box.id && zone.team === selfTeam && !zone.isLibrary),
+             )
 
             return zones.map(z => {
               const boxState = boxFills.find(b => b.id === z.id)
+               // A box is removed as soon as the authoritative server fill
+               // reaches its capacity. The library is then the next target.
+               if (!z.isLibrary && boxState?.completed && !completedRevealZones.has(z.id)) return null
               const fill = boxState?.fill ?? 0
               const completed = boxState?.completedBoxes ?? 0
               const isMine = z.team === selfTeam
               const teamCls = z.team === 'teamA' ? 'moba-deposit-box--a' : 'moba-deposit-box--b'
               const mineCls = isMine ? 'moba-deposit-box--mine' : 'moba-deposit-box--enemy'
-              const pulseCls = isMine && hasScrolls ? 'moba-deposit-box--pulsing' : ''
               const burstCls = burstZones.has(z.id) ? 'moba-deposit-box--burst' : ''
               const fillPct = Math.min(100, Math.round((fill / boxCapacity) * 100))
 
+               if (z.isLibrary) return (
+                 <div
+                   key={`${z.id}-${burstTokens[z.id] || 0}`}
+                   className={`moba-deposit-library ${isMine && libraryUnlocked ? 'is-unlocked' : ''} ${isMine && !libraryUnlocked ? 'is-locked' : ''}`}
+                   style={toPosition(z, arena, isFlipped)}
+                   title={isMine
+                     ? libraryUnlocked
+                       ? `Pustaka terbuka — bonus setor ${match?.config?.libraryDepositMultiplier || 1.5}×`
+                       : 'Pustaka terkunci — selesaikan satu box terlebih dahulu'
+                     : `Pustaka ${z.team}`}
+                 >
+                   <span>📖</span>
+                   <small>{isMine && !libraryUnlocked ? 'Pustaka terkunci' : `Pustaka ${z.team === 'teamA' ? 'A' : 'B'}`}</small>
+                   {isMine && libraryUnlocked && <b>+{match?.config?.libraryDepositMultiplier || 1.5}×</b>}
+                 </div>
+               )
+
               return (
                 <div
-                  key={z.id}
-                  className={`moba-deposit-box ${teamCls} ${mineCls} ${pulseCls} ${burstCls}`}
+                   key={`${z.id}-${burstTokens[z.id] || 0}`}
+                   className={`moba-deposit-box ${teamCls} ${mineCls} ${burstCls}`}
                   style={toPosition(z, arena, isFlipped)}
                   title={isMine ? `Zona setormu — ${fill}/${boxCapacity}` : `Zona lawan (${z.team})`}
                 >
@@ -634,15 +678,6 @@ export default function MobaArena({
 
           {/* ── Base libraries ─────────────────────────────────── */}
           {/* user A=(4000,4000) → server (4000,76000); user B=(76000,76000) → server (76000,4000) */}
-          <div className="moba-deposit-library moba-deposit-library--a"
-            style={toPosition({ x: 4_000, y: 76_000 }, arena, isFlipped)}>
-            <span>📖</span><small>Pustaka A</small>
-          </div>
-          <div className="moba-deposit-library moba-deposit-library--b"
-            style={toPosition({ x: 76_000, y: 4_000 }, arena, isFlipped)}>
-            <span>📖</span><small>Pustaka B</small>
-          </div>
-
           {/* ── Team bases (A=bottom-left in screen, B=top-right in screen) ── */}
           <MobaBase team={match?.teams?.teamA} side="left"
             style={{ ...toPosition({ x: 4_000, y: 76_000 }, arena, isFlipped), transform:'translateX(-50%) translateY(-50%)' }} />

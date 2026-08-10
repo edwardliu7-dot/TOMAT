@@ -851,6 +851,79 @@ test('answer and deposit retries are idempotent and never duplicate rewards', as
   manager.clearAll()
 })
 
+test('completing a box removes its target and unlocks 1.5x library deposits', async () => {
+  const clock = new FakeClock(9_500)
+  const manager = createQuestionManager(clock, () => ({
+    prompt: '1 + 1 = ...',
+    options: ['2', '3'],
+    answer: '2',
+  }))
+  await prepareQuestionMatch(manager, clock, {
+    matchId: 'moba-box-library',
+    petType: PET_TYPES.KELINSAY,
+    config: {
+      boxCapacity: 100,
+      libraryDepositMultiplier: 1.5,
+    },
+  })
+  const match = manager.getMatch('moba-box-library')
+  const player = match.players.get('moba-box-library-teamA')
+  const boxPosition = { x: 4_000, y: 12_000, lane: 'top' }
+  player.position = boxPosition
+
+  player.scrolls.push({ id: 'scroll-60', points: 60, difficulty: DIFFICULTIES.HARD })
+  const first = manager.depositScroll({
+    matchId: match.id,
+    playerId: player.id,
+    actionId: 'deposit-box-60',
+    scrollId: 'scroll-60',
+  })
+  assert.equal(first.ok, true)
+  assert.equal(first.zoneId, 'az-1')
+  assert.equal(first.boxFill, 60)
+  assert.equal(first.boxCompleted, false)
+  assert.equal(first.isLibrary, false)
+  assert.equal(first.depositMultiplier, 1)
+
+  player.scrolls.push({ id: 'scroll-40', points: 40, difficulty: DIFFICULTIES.MEDIUM })
+  const second = manager.depositScroll({
+    matchId: match.id,
+    playerId: player.id,
+    actionId: 'deposit-box-40',
+    scrollId: 'scroll-40',
+  })
+  assert.equal(second.ok, true)
+  assert.equal(second.zoneId, 'az-1')
+  assert.equal(second.boxFill, 100)
+  assert.equal(second.boxCompleted, true)
+  assert.equal(match.depositBoxes.get('az-1').completed, true)
+
+  const publicBox = second.snapshot.depositBoxes.find(box => box.id === 'az-1')
+  assert.deepEqual(publicBox, {
+    id: 'az-1',
+    fill: 100,
+    completedBoxes: 1,
+    completed: true,
+  })
+
+  player.position = { x: 4_000, y: 76_000, lane: 'base' }
+  player.scrolls.push({ id: 'scroll-library', points: 20, difficulty: DIFFICULTIES.EASY })
+  const library = manager.depositScroll({
+    matchId: match.id,
+    playerId: player.id,
+    actionId: 'deposit-library',
+    scrollId: 'scroll-library',
+  })
+  assert.equal(library.ok, true)
+  assert.equal(library.zoneId, 'al-base')
+  assert.equal(library.isLibrary, true)
+  assert.equal(library.depositMultiplier, 1.5)
+  assert.equal(library.awardedPoints, 30)
+  assert.equal(match.teams.teamA.score, 130)
+  assert.equal(match.depositBoxes.get('az-1').fill, 100)
+  manager.clearAll()
+})
+
 test('Monyang gets two scroll capacity and Nananaga immunity applies only to hard questions', async () => {
   const clock = new FakeClock(9_000)
   const manager = createQuestionManager(clock, () => ({

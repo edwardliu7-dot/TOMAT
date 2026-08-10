@@ -64,8 +64,8 @@ description: Loading gate + game mechanic changes implemented between matchmakin
 
 **Why:** The loading gate ensures both players start simultaneously, preventing one player from having a head start while the other is still loading assets.
 
-**Deposit zones:** `zone.team === player.teamId && !isLibrary` → Team A's scoring zones (az-*) are at x=73,500 (right side, enemy territory). Team B's (bz-*) at x=6,500 (left side).
+**Deposit zones:** scoring uses the player's team zones; current coordinates live in `server/moba/config.js`. Completed scoring boxes disappear permanently and unlock that team's library.
 
 **Question generator must be sync** — `claimNode` is synchronous; do not make `createCurriculumQuestionGenerator` return an async function.
 
-**Box fill accumulates infinitely** — team.score is total points deposited; box.fill resets to 0 when it hits 100, emitting `box_completed`. Match winner = higher team.score at end of 7 min.
+**Box lifecycle:** each scoring box fills until 100 points, then disappears permanently and emits `box_completed`. The team's library becomes an eligible deposit target with a 1.5× multiplier. Match winner = higher team.score at end of 7 min.

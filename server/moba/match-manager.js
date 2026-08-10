@@ -81,7 +81,7 @@ const ERROR_MESSAGES = Object.freeze({
   [ERROR_CODES.MOVE_OUT_OF_BOUNDS]: 'Posisi berada di luar arena.',
   [ERROR_CODES.MOVE_COLLISION]: 'Posisi bertabrakan dengan pemain lain.',
   [ERROR_CODES.TOWER_STILL_ACTIVE]: 'Tower Luar target belum hancur.',
-  [ERROR_CODES.INVALID_DEPOSIT_TARGET]: 'Target setor harus base lawan.',
+  [ERROR_CODES.INVALID_DEPOSIT_TARGET]: 'Belum ada target setor yang terbuka atau pemain terlalu jauh.',
   [ERROR_CODES.SCROLL_NOT_OWNED]: 'Gulungan bukan milik pemain.',
 })
 
@@ -425,12 +425,24 @@ export function createMobaMatchManager({
     if (!player.connected) return fail(ERROR_CODES.PLAYER_DISCONNECTED, { actionId })
     if (player.stunUntil > now()) return fail(ERROR_CODES.PLAYER_STUNNED, { actionId })
 
-    // Find the nearest scoring zone for this player's team (located in enemy territory).
-    // Zone.team === player.teamId means "this team scores here".
-    const scoringZones = DEPOSIT_ZONES.filter(z => z.team === player.teamId && !z.isLibrary)
+    // A completed scoring box disappears permanently. Once a team's first box
+    // is completed, that team's library becomes an eligible 1.5x deposit target.
+    const teamBoxes = [...(match.depositBoxes?.entries() || [])]
+      .filter(([zoneId]) => DEPOSIT_ZONES.some(z => z.id === zoneId && z.team === player.teamId))
+      .map(([, state]) => state)
+    const libraryUnlocked = teamBoxes.some(state => state.completed === true)
+    const scoringZones = DEPOSIT_ZONES.filter(z =>
+      z.team === player.teamId &&
+      !z.isLibrary &&
+      !(match.depositBoxes?.get(z.id)?.completed),
+    )
+    const libraryZones = libraryUnlocked
+      ? DEPOSIT_ZONES.filter(z => z.team === player.teamId && z.isLibrary)
+      : []
+    const eligibleZones = [...scoringZones, ...libraryZones]
     let nearestZone = null
     let nearestDist = Infinity
-    for (const zone of scoringZones) {
+    for (const zone of eligibleZones) {
       const d = distanceBetween(player.position, zone)
       if (d < nearestDist) { nearestDist = d; nearestZone = zone }
     }
@@ -442,7 +454,12 @@ export function createMobaMatchManager({
     if (scrollIndex < 0) return fail(ERROR_CODES.SCROLL_NOT_OWNED, { actionId })
 
     const scroll = player.scrolls[scrollIndex]
-    const multiplier = getDepositMultiplier({ player, config: match.config })
+    const libraryMultiplier = nearestZone.isLibrary
+      ? Number(match.config.libraryDepositMultiplier) || 1.5
+      : 1
+    const multiplier = Math.round(
+      getDepositMultiplier({ player, config: match.config }) * libraryMultiplier * 100,
+    ) / 100
     const awardedPoints = Math.round(scroll.points * multiplier)
 
     player.scrolls.splice(scrollIndex, 1)
@@ -467,19 +484,22 @@ export function createMobaMatchManager({
       match.depositHistory.splice(0, match.depositHistory.length - 200)
     }
 
-    // Box fill: fill this zone's box; complete when reaching boxCapacity.
+    // Box fill: fill this zone's box; once it reaches capacity it disappears.
     const boxCapacity = match.config.boxCapacity || DEFAULT_MOBA_CONFIG.boxCapacity || 100
     const depositBoxes = match.depositBoxes || new Map()
-    const zoneState = depositBoxes.get(nearestZone.id) || { fill: 0, completedBoxes: 0 }
-    zoneState.fill += awardedPoints
+    const zoneState = depositBoxes.get(nearestZone.id) || { fill: 0, completedBoxes: 0, completed: false }
     let boxCompleted = false
-    while (zoneState.fill >= boxCapacity) {
-      zoneState.fill -= boxCapacity
-      zoneState.completedBoxes++
-      boxCompleted = true
+    if (!nearestZone.isLibrary) {
+      zoneState.fill += awardedPoints
+      if (zoneState.fill >= boxCapacity) {
+        zoneState.fill = boxCapacity
+        zoneState.completed = true
+        zoneState.completedBoxes = 1
+        boxCompleted = true
+      }
+      depositBoxes.set(nearestZone.id, zoneState)
+      if (!match.depositBoxes) match.depositBoxes = depositBoxes
     }
-    depositBoxes.set(nearestZone.id, zoneState)
-    if (!match.depositBoxes) match.depositBoxes = depositBoxes
 
     match.eventSeq++
     const result = ok({
@@ -491,6 +511,8 @@ export function createMobaMatchManager({
       boxFill: zoneState.fill,
       completedBoxes: zoneState.completedBoxes,
       boxCompleted,
+      isLibrary: Boolean(nearestZone.isLibrary),
+      depositMultiplier: multiplier,
       teamScore: scoringTeam.score,
       deposit: { ...depositEntry },
       snapshot: sanitizeMatchState(match),
@@ -504,6 +526,8 @@ export function createMobaMatchManager({
       boxFill: zoneState.fill,
       completedBoxes: zoneState.completedBoxes,
       boxCompleted,
+      isLibrary: Boolean(nearestZone.isLibrary),
+      depositMultiplier: multiplier,
       teamScore: scoringTeam.score,
       deposit: { ...depositEntry },
       snapshot: result.snapshot,
