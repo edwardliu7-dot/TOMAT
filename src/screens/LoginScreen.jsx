@@ -274,7 +274,7 @@ function MobileLayout({ role, switchRole, formProps }) {
     <main style={{
       minHeight: '100dvh', width: '100%',
       background: '#080b16', color: '#fff',
-      fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
+      fontFamily: "'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', 'Inter Variable', 'Inter', sans-serif",
       position: 'relative', overflowY: 'auto',
       padding: '0 18px 18px',
     }}>
@@ -448,7 +448,7 @@ export default function LoginScreen() {
     <>
       <style>{`
         /* font */
-        .sl-desktop { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; }
+        .sl-desktop { font-family: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', 'Inter Variable', 'Inter', sans-serif; }
 
         /* portal flex transition */
         .sl-portal { transition: flex .4s cubic-bezier(.4,0,.2,1); }

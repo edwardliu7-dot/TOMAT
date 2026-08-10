@@ -1,6 +1,10 @@
 import { applyNativePatch } from './nativePatch'
 applyNativePatch() // harus dipanggil sebelum semua import lain agar __TOMAT_API__ tersedia
 
+// Font self-hosted — tidak perlu fetch ke Google Fonts, langsung dari bundle APK
+import '@fontsource-variable/inter'
+import '@fontsource-variable/plus-jakarta-sans'
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'

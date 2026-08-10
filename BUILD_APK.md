@@ -4,6 +4,16 @@ Panduan lengkap untuk menghasilkan file APK dari aplikasi TOMAT menggunakan Capa
 
 ---
 
+## Arsitektur APK
+
+APK menggunakan mode **Offline Bundle** — semua asset UI, sprite, font, arena, dan wallpaper di-bundle langsung ke dalam APK saat build. WebView **tidak** memuat asset dari server eksternal.
+
+Yang tetap memerlukan koneksi internet:
+- API gameplay (login, skor, tugas) → `https://y4e6icv3cej4ax65idvhusde.157.10.161.229.sslip.io`
+- Socket.io multiplayer (duel, MOBA, boss raid)
+
+---
+
 ## Prasyarat
 
 Install di komputer lokal:
@@ -15,48 +25,30 @@ Install di komputer lokal:
 
 ## Langkah-Langkah
 
-### 1. Deploy Aplikasi ke Replit
+### 1. Build & Sync di Replit
 
-APK menggunakan mode **Server URL** — WebView di Android memuat langsung dari server yang sudah di-deploy. Jadi TOMAT harus di-deploy dulu sebelum APK bisa digunakan.
-
-Di Replit: klik tombol **Publish** untuk deploy aplikasi.
-
-Setelah deploy, catat URL production (contoh: `https://tomat.replit.app`).
-
----
-
-### 2. Set Server URL
-
-Di Replit, jalankan:
-
-```bash
-pnpm cap:set-url https://URL-PRODUCTION-KAMU.replit.app
-```
-
-Ganti `https://URL-PRODUCTION-KAMU.replit.app` dengan URL asli dari langkah 1.
-
----
-
-### 3. Sync Web Assets ke Android
+Di Replit, jalankan dari terminal:
 
 ```bash
 pnpm cap:sync
 ```
 
 Perintah ini akan:
-- Build frontend React (`vite build`)
-- Sync hasil build ke folder `android/`
-- Update konfigurasi Capacitor
+- Build frontend React (`vite build`) → menghasilkan folder `dist/`
+- Sync seluruh isi `dist/` ke `android/app/src/main/assets/public/`
+- Update konfigurasi Capacitor native
+
+> Tidak perlu deploy ke server terlebih dahulu. Asset sudah di-bundle ke APK.
 
 ---
 
-### 4. Download Project ke Komputer Lokal
+### 2. Download Project ke Komputer Lokal
 
 Dari Replit, download project (zip atau via Git), lalu buka terminal di folder project.
 
 ---
 
-### 5. Buka di Android Studio
+### 3. Buka di Android Studio
 
 ```bash
 # Dari folder project:
@@ -67,7 +59,7 @@ Atau buka Android Studio secara manual → **Open** → pilih folder `android/`
 
 ---
 
-### 6. Build APK di Android Studio
+### 4. Build APK di Android Studio
 
 **Debug APK** (untuk testing):
 - Menu: **Build** → **Build Bundle(s) / APK(s)** → **Build APK(s)**
@@ -82,18 +74,19 @@ Atau buka Android Studio secara manual → **Open** → pilih folder `android/`
 
 ## Alur Update Aplikasi
 
-Setiap kali ada perubahan di kode:
+Setiap kali ada perubahan kode atau asset:
 
 ```bash
-# 1. Push ke Replit dan redeploy
-# 2. (Kalau URL tidak berubah) Langsung sync saja:
+# 1. Di Replit — sync ulang untuk bundle asset terbaru:
 pnpm cap:sync
+
+# 2. Download project terbaru ke komputer lokal
+
 # 3. Rebuild APK di Android Studio
 ```
 
-> **Catatan:** Jika server URL tidak berubah, APK yang sudah terpasang di HP akan
-> otomatis mendapat update karena konten dimuat dari server. Rebuild APK hanya
-> diperlukan jika ada perubahan konfigurasi native Android.
+> APK yang sudah terpasang di HP **tidak** otomatis update karena semua asset ada di dalam APK.
+> Perlu distribute APK baru setiap ada update.
 
 ---
 
@@ -106,6 +99,9 @@ android/
       java/com/aistudio/tomat/
         MainActivity.java       ← Activity utama (Capacitor)
       assets/public/            ← Web assets hasil build (sync otomatis)
+        *.png / *.gif / *.weba  ← Sprite, wallpaper, audio
+        assets/                 ← JS/CSS ter-hash oleh Vite
+        moba-arena/             ← Asset arena MOBA
       AndroidManifest.xml       ← Konfigurasi app Android
     build.gradle                ← Dependensi & konfigurasi build
   build.gradle
@@ -122,19 +118,23 @@ android/
 | Min Android | 7.0 (API 24) |
 | Target Android | Android 16 (API 36) |
 | Vite build output | `dist/` |
+| Mode | Offline bundle (tidak ada `server.url` di `capacitor.config.json`) |
 
 ---
 
 ## Troubleshooting
 
 **WebView menampilkan halaman blank:**
-→ Pastikan server URL sudah di-set (`pnpm cap:set-url`) dan app sudah di-deploy.
+→ Pastikan `pnpm cap:sync` sudah dijalankan dan folder `android/app/src/main/assets/public/` berisi file hasil build.
 
-**Tidak bisa login / session hilang:**
-→ Normal pada mode server URL, session dikelola oleh server seperti di browser.
+**Font tidak tampil saat pertama buka:**
+→ Normal — font di-load dari bundle JS; tampil setelah JS selesai parse (< 1 detik di native).
+
+**Tidak bisa login / API error:**
+→ Pastikan perangkat terhubung internet. API server di `nativePatch.js` harus bisa dijangkau.
 
 **CORS error di Android:**
-→ Pastikan Express server tidak mem-block origin dari WebView. Capacitor menggunakan scheme `https://localhost` atau custom scheme.
+→ Pastikan Express server tidak mem-block origin dari WebView. Capacitor menggunakan scheme `https://localhost`.
 
 **Build gagal di Android Studio:**
 → Pastikan Android SDK sudah terpasang, jalankan `pnpm cap:sync` ulang lalu buka di Android Studio.
