@@ -30,7 +30,7 @@ function VideoFrame({ video, compact = false }) {
   )
 }
 
-export default function VideoMateriPanel({ grade, subject, selectedBab = null, accent = '#67E8F9' }) {
+export default function VideoMateriPanel({ grade, subject, selectedBab = null, accent = '#67E8F9', showEmpty = false }) {
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -73,7 +73,21 @@ export default function VideoMateriPanel({ grade, subject, selectedBab = null, a
   if (error) {
     return <div style={{ color: '#FCA5A5', fontSize: 12, background: 'rgba(239,68,68,0.1)', borderRadius: 10, padding: '10px 12px' }}>{error}</div>
   }
-  if (visibleVideos.length === 0) return null
+  if (visibleVideos.length === 0) {
+    if (!showEmpty) return null
+    return (
+      <section style={{
+        margin: '14px 0 20px', padding: 18, borderRadius: 18,
+        background: 'rgba(15,23,42,.78)',
+        border: `1px solid ${accent}26`,
+      }}>
+        <div style={{ color: '#E2E8F0', fontSize: 14, fontWeight: 800 }}>Belum ada video untuk pilihan ini</div>
+        <div style={{ color: '#64748B', fontSize: 11, lineHeight: 1.5, marginTop: 5 }}>
+          Video materi dari guru akan muncul di sini setelah diunggah.
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section style={{

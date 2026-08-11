@@ -194,6 +194,7 @@ export default function MobileLandscapeDashboard({
           <div className="zd-quick-row">
             <div className="zd-quick-chip" onClick={() => navigate('hafalan')}>📖 <span>Hafalan</span></div>
             <div className="zd-quick-chip accent" onClick={() => navigate('latihan-ujian')}>✏️ <span>Ujian</span></div>
+            <div className="zd-quick-chip" onClick={() => navigate('video-materi')}>🎬 <span>Video</span></div>
           </div>
         </div>
 

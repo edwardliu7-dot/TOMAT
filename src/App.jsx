@@ -23,6 +23,7 @@ import LeaderboardScreen from './screens/LeaderboardScreen'
 import BadgesScreen from './screens/BadgesScreen'
 import HafalanScreen from './screens/HafalanScreen'
 import LatihanUjianScreen from './screens/LatihanUjianScreen'
+import VideoMateriScreen from './screens/VideoMateriScreen'
 import TaskOverlay from './components/TaskOverlay'
 import TaskGuard from './components/TaskGuard'
 import CommunicationScreen from './screens/CommunicationScreen'
@@ -572,6 +573,7 @@ const SCREEN_TITLES = {
   profile: 'Profil',
   hafalan: 'Hafalan Interaktif',
   'latihan-ujian': 'Latihan Ujian',
+  'video-materi': 'Video Materi',
   modeselect: 'Pilih Mode',
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
@@ -994,6 +996,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
         komunikasi:    <LandscapeChat    navigate={navigate} goBack={goBack} initialTarget={komunikasiTarget} initialTab={komunikasiInitialTab} />,
         hafalan:       <LandscapeHafalan goBack={goBack} />,
         'latihan-ujian':<LandscapeLatihanUjian goBack={goBack} />,
+        'video-materi': <VideoMateriScreen goBack={goBack} />,
         toko:          <LandscapeTokoScreen goBack={() => { setTokoInitialTab(null); goBack() }} />,
       }
       if (landscapeMap[current]) return landscapeMap[current]
@@ -1069,6 +1072,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (current === 'latihan-ujian') {
       return <LatihanUjianScreen goBack={goBack} />
+    }
+
+    if (current === 'video-materi') {
+      return <VideoMateriScreen goBack={goBack} />
     }
 
     if (current === 'komunikasi') {
