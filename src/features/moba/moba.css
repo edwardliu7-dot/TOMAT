@@ -718,7 +718,6 @@
 /* ── Forest tiles ────────────────────────────────────────────────────────── */
 /* ── Sprite keyframes (300×100 sheet → 3 frames of 100×100) ─────────────── */
 @keyframes moba-sprite-pohon  { to { background-position: -168px 0; } }
-@keyframes moba-sprite-rumput { to { background-position: -144px 0; } }
 @keyframes moba-sprite-box    { to { background-position: -84px  0; } }
 @keyframes moba-sprite-gulungan {
   from { background-position: 0 0; }
@@ -747,10 +746,8 @@
   z-index: 5;
   width: 48px;
   height: 48px;
-  image-rendering: pixelated;
   transform: translateX(-50%) translateY(-50%);
-  background: url('/rumput.png') 0 0 / 144px 48px no-repeat;
-  animation: moba-sprite-rumput 3s steps(3) infinite;
+  background: url('/batu.png') center / contain no-repeat;
 }
 
 /* ── Box sprite for deposit zone icon ────────────────────────────────────── */
