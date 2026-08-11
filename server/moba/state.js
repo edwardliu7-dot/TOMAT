@@ -296,6 +296,7 @@ export function sanitizeMatchState(match) {
     baseScrollCapacity: match.config.baseScrollCapacity,
     monyangScrollCapacity: match.config.monyangScrollCapacity,
     boxCapacity: match.config.boxCapacity,
+    boxCompletionBonusPoints: match.config.boxCompletionBonusPoints,
     libraryDepositMultiplier: match.config.libraryDepositMultiplier,
     // Static zone positions exposed to client so it can compute auto-deposit proximity.
     depositZones: DEPOSIT_ZONES.map(z => ({

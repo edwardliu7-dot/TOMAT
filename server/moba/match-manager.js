@@ -501,6 +501,14 @@ export function createMobaMatchManager({
       if (!match.depositBoxes) match.depositBoxes = depositBoxes
     }
 
+    const boxBonusPoints = boxCompleted
+      ? Number(match.config.boxCompletionBonusPoints) || DEFAULT_MOBA_CONFIG.boxCompletionBonusPoints || 50
+      : 0
+    // Base points represent points deposited at the team's library/base.
+    // Completing a scoring box contributes the separate fixed base bonus.
+    if (nearestZone.isLibrary) scoringTeam.base.points += awardedPoints
+    if (boxBonusPoints > 0) scoringTeam.base.points += boxBonusPoints
+
     match.eventSeq++
     const result = ok({
       actionId,
@@ -508,6 +516,7 @@ export function createMobaMatchManager({
       zoneId: nearestZone.id,
       scrollId,
       awardedPoints,
+      boxBonusPoints,
       boxFill: zoneState.fill,
       completedBoxes: zoneState.completedBoxes,
       boxCompleted,
@@ -523,6 +532,7 @@ export function createMobaMatchManager({
       zoneId: nearestZone.id,
       scrollId,
       awardedPoints,
+      boxBonusPoints,
       boxFill: zoneState.fill,
       completedBoxes: zoneState.completedBoxes,
       boxCompleted,

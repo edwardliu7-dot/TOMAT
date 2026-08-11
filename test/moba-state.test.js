@@ -896,6 +896,8 @@ test('completing a box removes its target and unlocks 1.5x library deposits', as
   assert.equal(second.zoneId, 'az-1')
   assert.equal(second.boxFill, 100)
   assert.equal(second.boxCompleted, true)
+  assert.equal(second.boxBonusPoints, 50)
+  assert.equal(match.teams.teamA.base.points, 50)
   assert.equal(match.depositBoxes.get('az-1').completed, true)
 
   const publicBox = second.snapshot.depositBoxes.find(box => box.id === 'az-1')
@@ -919,7 +921,9 @@ test('completing a box removes its target and unlocks 1.5x library deposits', as
   assert.equal(library.isLibrary, true)
   assert.equal(library.depositMultiplier, 1.5)
   assert.equal(library.awardedPoints, 30)
+  assert.equal(library.boxBonusPoints, 0)
   assert.equal(match.teams.teamA.score, 130)
+  assert.equal(match.teams.teamA.base.points, 80)
   assert.equal(match.depositBoxes.get('az-1').fill, 100)
   manager.clearAll()
 })

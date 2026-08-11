@@ -11,11 +11,20 @@ export default function MobaBase({ team, side, style }) {
   const basePercent = base.maxPoints > 0
     ? Math.min(100, Math.round((base.hp / base.maxPoints) * 100))
     : 0
+  const basePoints = Number(base.points) || 0
 
   return (
-    <div className={`moba11-base moba11-base--${side}`} style={style}>
+    <div
+      className={`moba11-base moba11-base--${side}`}
+      style={style}
+      aria-label={`Base ${basePoints} poin`}
+    >
       <div className="moba11-base__glow" />
       <div className="moba11-base__icon"><Crown size={21} /></div>
+      <div className="moba11-base__points" aria-hidden="true">
+        <small>Poin base</small>
+        <strong>{basePoints.toLocaleString('id-ID')}</strong>
+      </div>
       <div className="moba11-base__bar">
         <i style={{ width: `${tower.destroyed ? 100 : towerPercent}%` }} />
       </div>
