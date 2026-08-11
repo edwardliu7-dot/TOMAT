@@ -594,6 +594,10 @@ export function createMobaMatchManager({
 
   function findPlayerMatch({ playerId, userId } = {}) {
     for (const match of matches.values()) {
+      // Finished matches remain in the registry briefly so the result screen
+      // and reconnect grace period can still read their final snapshot. They
+      // must not block a player from starting a new matchmaking session.
+      if (match.phase === PHASES.FINISHED) continue
       if (match.players.has(playerId) ||
           (userId && [...match.players.values()].some(player => player.userId === userId))) {
         return match

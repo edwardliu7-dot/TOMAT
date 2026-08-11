@@ -149,6 +149,7 @@ test('adapter gives two sockets the same snapshot and reconnect preserves state'
   adapter.manager.clearAll()
 })
 
+
 test('question result stays private while opponents receive only the snapshot', async () => {
   const io = createFakeIo()
   const adapter = createMobaSocketAdapter({
@@ -286,8 +287,58 @@ test('matchmaking automatically pairs two students into one ready match', async 
   assert.ok(secondFound)
   assert.equal(firstFound.payload.matchId, secondFound.payload.matchId)
   assert.equal(firstFound.payload.snapshot.players.length, 2)
-  assert.equal(firstFound.payload.snapshot.phase, 'countdown')
-  assert.equal(adapter.manager.listMatches()[0].phase, 'countdown')
+  assert.equal(firstFound.payload.snapshot.phase, 'lobby')
+  assert.equal(adapter.manager.listMatches()[0].phase, 'lobby')
+
+  adapter.manager.clearAll()
+})
+
+test('players can matchmaking again immediately after a finished match', async () => {
+  const io = createFakeIo()
+  const adapter = createMobaSocketAdapter({
+    io,
+    mobaEnv: {
+      MOBA_ENABLED: 'true',
+      MOBA_ALLOWED_STUDENT_IDS: '',
+    },
+  })
+  const first = new FakeSocket('student-rematch-1')
+  const second = new FakeSocket('student-rematch-2')
+  io.sockets.sockets.set(first.id, first)
+  io.sockets.sockets.set(second.id, second)
+  adapter.attach(first)
+  adapter.attach(second)
+
+  const queue = async socket => {
+    const result = ackResult()
+    await socket.trigger('moba:matchmaking_join', { teamSize: 1 }, result.ack)
+    return result.promise
+  }
+
+  await queue(first)
+  await queue(second)
+  const firstMatchId = first.sent
+    .filter(item => item.event === 'moba:matchmaking_found')
+    .at(-1).payload.matchId
+  assert.ok(firstMatchId)
+  assert.equal(adapter.manager.getMatch(firstMatchId).phase, 'lobby')
+
+  // Keep the finished match in its result grace period. A new matchmaking
+  // request must still create a distinct match instead of returning the old
+  // finished one.
+  adapter.manager.finishMatch(firstMatchId)
+  assert.equal(adapter.manager.getMatch(firstMatchId).phase, 'finished')
+
+  await queue(first)
+  await queue(second)
+  const foundMatches = first.sent
+    .filter(item => item.event === 'moba:matchmaking_found')
+    .map(item => item.payload.matchId)
+  const secondMatchId = foundMatches.at(-1)
+
+  assert.ok(secondMatchId)
+  assert.notEqual(secondMatchId, firstMatchId)
+  assert.equal(adapter.manager.getMatch(secondMatchId).phase, 'lobby')
 
   adapter.manager.clearAll()
 })
