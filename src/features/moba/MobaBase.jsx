@@ -16,23 +16,11 @@ export default function MobaBase({ team, side, style }) {
     <div className={`moba11-base moba11-base--${side}`} style={style}>
       <div className="moba11-base__glow" />
       <div className="moba11-base__icon"><Crown size={21} /></div>
-      <div className="moba11-base__title">{team.name || (side === 'left' ? 'Tim A' : 'Tim B')}</div>
-      <div className="moba11-base__score">
-        {team.score || 0}<small> poin</small>
-      </div>
-      <div className="moba11-base__bar-label">
-        <span>{tower.destroyed ? 'Tower hancur' : 'Tower luar'}</span>
-        <b>{tower.destroyed ? 'terbuka' : `${towerPercent}%`}</b>
-      </div>
       <div className="moba11-base__bar">
         <i style={{ width: `${tower.destroyed ? 100 : towerPercent}%` }} />
       </div>
       {tower.destroyed && (
         <>
-          <div className="moba11-base__bar-label moba11-base__bar-label--base">
-            <span>Base utama</span>
-            <b>{basePercent}%</b>
-          </div>
           <div className="moba11-base__bar">
             <i style={{ width: `${basePercent}%` }} />
           </div>

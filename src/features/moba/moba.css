@@ -167,12 +167,7 @@
 .moba11-lane--top { top: 20%; transform: rotate(-8deg); }
 .moba11-lane--middle { top: 45%; border-width: 14px; }
 .moba11-lane--bottom { top: 70%; transform: rotate(8deg); }
-.moba11-lane-label { position: absolute; color: rgba(37,93,92,.5); font-size: 9px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
-.moba11-lane-label--top { top: 11%; left: 5%; }
-.moba11-lane-label--middle { top: 47%; left: 46%; }
-.moba11-lane-label--bottom { bottom: 9%; right: 4%; }
 .moba11-positioned { position: absolute; z-index: 8; transform: translate(-50%, -50%); }
-.moba11-arena__center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4; color: rgba(42,103,104,.5); }
 
 .moba11-base { position: absolute; top: 40%; width: 112px; text-align: center; z-index: 5; }
 .moba11-base--left { left: 2%; }
@@ -181,16 +176,9 @@
 .moba11-base--right .moba11-base__glow { background: rgba(123,137,232,.25); }
 .moba11-base__icon { width: 53px; height: 53px; margin: auto; display: grid; place-items: center; border-radius: 17px 17px 17px 5px; color: #fff4c3; background: #e9705e; border: 4px solid #fff0bd; box-shadow: 0 5px 0 rgba(134,95,63,.22); }
 .moba11-base--right .moba11-base__icon { background: #7280dc; border-radius: 17px 17px 5px 17px; }
-.moba11-base__title { margin-top: 8px; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
-.moba11-base__score { margin-top: 3px; font-size: 14px; font-weight: 800; }
-.moba11-base__score small { font-size: 9px; color: #6c765e; }
-.moba11-base__bar-label { display: flex; justify-content: space-between; gap: 4px; margin-top: 9px; font-size: 9px; color: #60705f; }
-.moba11-base__bar-label b { color: #c95747; }
-.moba11-base--right .moba11-base__bar-label b { color: #5f6cc6; }
-.moba11-base__bar { height: 5px; background: rgba(255,255,255,.65); border-radius: 5px; overflow: hidden; margin-top: 4px; }
+.moba11-base__bar { height: 5px; background: rgba(255,255,255,.65); border-radius: 5px; overflow: hidden; margin: 7px auto 0; width: 86px; }
 .moba11-base__bar i { display: block; height: 100%; background: #ef765e; border-radius: inherit; }
 .moba11-base--right .moba11-base__bar i { background: #7b89e8; }
-.moba11-base__bar-label--base { margin-top: 6px; }
 
 .moba11-node { position: absolute; z-index: 6; transform: translate(-50%, -50%); display: grid; place-items: center; width: 47px; height: 47px; border-radius: 50%; transition: transform .2s ease; }
 .moba11-node:hover { transform: translate(-50%, -50%) scale(1.12); }
@@ -200,16 +188,11 @@
 .moba11-node--medium { background: #ffe3a3; border: 4px solid #dcaa4b; color: #a46c2a; }
 .moba11-node--hard { background: #ffd0bc; border: 4px solid #e47a62; color: #ac4d42; }
 .moba11-node--claimed { opacity: .5; filter: grayscale(.3); }
-.moba11-node b { font-size: 10px; }
-.moba11-node span { font-size: 8px; margin-top: -2px; font-weight: 700; }
-.moba11-node em { position: absolute; bottom: -18px; padding: 3px 6px; border-radius: 999px; background: #193c46; color: #fff8dd; font-size: 8px; font-style: normal; white-space: nowrap; }
 
 .moba11-pet { min-width: 67px; text-align: center; position: relative; }
 .moba11-pet__name { background: #fffbeb; border: 1px solid #d7c998; border-radius: 5px; padding: 3px 5px; font-size: 9px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 4px rgba(53,72,54,.14); }
 .moba11-pet--self .moba11-pet__name { border-color: var(--moba-team); color: #bf5545; }
 .moba11-pet__sprite { width: 52px; height: 51px; margin: 3px auto 2px; position: relative; display: grid; place-items: center; }
-.moba11-pet__meta { display: inline-flex; align-items: center; gap: 3px; padding: 2px 5px; border-radius: 4px; background: rgba(255,251,235,.78); font-size: 8px; color: #49615c; }
-.moba11-pet__meta i { width: 5px; height: 5px; border-radius: 50%; }
 .moba11-pet__scroll, .moba11-pet__shield, .moba11-pet__stun { position: absolute; display: grid; place-items: center; border: 2px solid #fff9d9; border-radius: 50%; }
 .moba11-pet__scroll { right: -3px; top: 21px; width: 22px; height: 22px; color: #a5722d; background: #fff1b3; transform: rotate(10deg); }
 .moba11-pet__shield { left: -2px; top: 19px; width: 20px; height: 20px; color: #427f87; background: #c8eef0; }
@@ -757,7 +740,7 @@
   vertical-align: middle;
 }
 
-/* ── Deposit boxes (lane-end task collection) ────────────────────────────── */
+/* ── Deposit sprites (lane-end task collection) ──────────────────────────── */
 .moba-deposit-box {
   position: absolute;
   z-index: 9;
@@ -765,41 +748,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
-  padding: 4px 5px;
-  border-radius: 7px;
-  border: 1.5px solid rgba(255,210,100,.45);
-  background: rgba(8,32,38,.96);
-  min-width: 38px;
+  gap: 3px;
+  min-width: 42px;
   text-align: center;
-  box-shadow: 0 4px 14px rgba(0,0,0,.45), 0 0 0 4px rgba(255,210,100,.10);
-  transition: box-shadow .2s, border-color .2s;
+  pointer-events: none;
+  transition: filter .2s, opacity .2s;
 }
-.moba-deposit-box--a { border-color: rgba(255,165,120,.55); box-shadow: 0 4px 14px rgba(0,0,0,.45), 0 0 0 4px rgba(255,160,100,.1); }
-.moba-deposit-box--b { border-color: rgba(140,170,255,.55); box-shadow: 0 4px 14px rgba(0,0,0,.45), 0 0 0 4px rgba(130,160,255,.1); }
 
-/* Own-team zone — larger, brighter, clearly marked */
+/* Own-team zone — brighter, clearly marked by sprite glow */
 .moba-deposit-box--mine {
-  min-width: 46px;
-  padding: 5px 6px;
-  border-width: 2px;
   z-index: 10;
-}
-.moba-deposit-box--mine.moba-deposit-box--a {
-  border-color: rgba(255,165,80,.85);
-  box-shadow: 0 4px 18px rgba(0,0,0,.5), 0 0 0 6px rgba(255,150,60,.18);
-}
-.moba-deposit-box--mine.moba-deposit-box--b {
-  border-color: rgba(130,160,255,.85);
-  box-shadow: 0 4px 18px rgba(0,0,0,.5), 0 0 0 6px rgba(110,140,255,.18);
 }
 
 /* Enemy zone — dim so it doesn't distract */
 .moba-deposit-box--enemy {
   opacity: .55;
-  min-width: 30px;
-  padding: 3px 4px;
-  pointer-events: none;
+  filter: saturate(.72);
 }
 
 /* Pulsing state: player is carrying scrolls and should deposit here */
@@ -807,20 +771,14 @@
   animation: moba-deposit-pulse 0.9s ease-in-out infinite !important;
   z-index: 11;
 }
-.moba-deposit-box--pulsing.moba-deposit-box--a {
-  border-color: #ff9f50 !important;
-}
-.moba-deposit-box--pulsing.moba-deposit-box--b {
-  border-color: #8ca4ff !important;
-}
 
 @keyframes moba-deposit-pulse {
   0%, 100% {
-    box-shadow: 0 4px 14px rgba(0,0,0,.5), 0 0 0 4px rgba(255,180,80,.25);
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,.48)) drop-shadow(0 0 4px rgba(255,180,80,.34));
     transform: translateX(-50%) translateY(-50%) scale(1);
   }
   50% {
-    box-shadow: 0 4px 22px rgba(0,0,0,.55), 0 0 0 10px rgba(255,180,80,.45);
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,.48)) drop-shadow(0 0 12px rgba(255,180,80,.78));
     transform: translateX(-50%) translateY(-50%) scale(1.07);
   }
 }
@@ -835,52 +793,38 @@
   animation: moba-sprite-box 0.55s steps(3) 1 forwards;
 }
 @keyframes moba-deposit-burst {
-  0%   { transform: translateX(-50%) translateY(-50%) scale(1);    box-shadow: 0 4px 14px rgba(0,0,0,.5), 0 0 0 4px rgba(255,230,100,.2); }
-  25%  { transform: translateX(-50%) translateY(-50%) scale(1.22); box-shadow: 0 6px 28px rgba(0,0,0,.55), 0 0 0 18px rgba(255,230,100,.5); }
-  55%  { transform: translateX(-50%) translateY(-50%) scale(1.1);  box-shadow: 0 4px 20px rgba(0,0,0,.5),  0 0 0 10px rgba(255,230,100,.3); }
-  100% { transform: translateX(-50%) translateY(-50%) scale(1);    box-shadow: 0 4px 14px rgba(0,0,0,.5),  0 0 0 4px  rgba(255,230,100,.1); }
+  0%   { transform: translateX(-50%) translateY(-50%) scale(1);    filter: drop-shadow(0 3px 5px rgba(0,0,0,.48)) drop-shadow(0 0 4px rgba(255,230,100,.35)); }
+  25%  { transform: translateX(-50%) translateY(-50%) scale(1.22); filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)) drop-shadow(0 0 17px rgba(255,230,100,.9)); }
+  55%  { transform: translateX(-50%) translateY(-50%) scale(1.1);  filter: drop-shadow(0 3px 6px rgba(0,0,0,.48)) drop-shadow(0 0 11px rgba(255,230,100,.62)); }
+  100% { transform: translateX(-50%) translateY(-50%) scale(1);    filter: drop-shadow(0 3px 5px rgba(0,0,0,.48)) drop-shadow(0 0 4px rgba(255,230,100,.22)); }
 }
 /* Team-coloured burst glow for team-B zone */
 .moba-deposit-box--b.moba-deposit-box--burst {
   animation: moba-deposit-burst-b 0.55s ease-out forwards !important;
 }
 @keyframes moba-deposit-burst-b {
-  0%   { transform: translateX(-50%) translateY(-50%) scale(1);    box-shadow: 0 4px 14px rgba(0,0,0,.5), 0 0 0 4px rgba(140,170,255,.2); }
-  25%  { transform: translateX(-50%) translateY(-50%) scale(1.22); box-shadow: 0 6px 28px rgba(0,0,0,.55), 0 0 0 18px rgba(140,170,255,.55); }
-  55%  { transform: translateX(-50%) translateY(-50%) scale(1.1);  box-shadow: 0 4px 20px rgba(0,0,0,.5),  0 0 0 10px rgba(140,170,255,.3); }
-  100% { transform: translateX(-50%) translateY(-50%) scale(1);    box-shadow: 0 4px 14px rgba(0,0,0,.5),  0 0 0 4px  rgba(140,170,255,.1); }
+  0%   { transform: translateX(-50%) translateY(-50%) scale(1);    filter: drop-shadow(0 3px 5px rgba(0,0,0,.48)) drop-shadow(0 0 4px rgba(140,170,255,.35)); }
+  25%  { transform: translateX(-50%) translateY(-50%) scale(1.22); filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)) drop-shadow(0 0 17px rgba(140,170,255,.9)); }
+  55%  { transform: translateX(-50%) translateY(-50%) scale(1.1);  filter: drop-shadow(0 3px 6px rgba(0,0,0,.48)) drop-shadow(0 0 11px rgba(140,170,255,.62)); }
+  100% { transform: translateX(-50%) translateY(-50%) scale(1);    filter: drop-shadow(0 3px 5px rgba(0,0,0,.48)) drop-shadow(0 0 4px rgba(140,170,255,.22)); }
 }
 
-/* Arrow hint shown above zone when carrying scrolls */
-.moba-deposit-box__arrow {
-  display: block;
-  font-size: 9px;
-  line-height: 1;
-  color: #ffe566;
-  text-shadow: 0 0 4px rgba(255,210,80,.8);
-  animation: moba-deposit-arrow-bounce .7s ease-in-out infinite;
-  margin-bottom: 1px;
-}
-@keyframes moba-deposit-arrow-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
-}
+.moba-deposit-box__icon { display: block; width: 42px; height: 30px; line-height: 0; }
 
-.moba-deposit-box__icon { font-size: 14px; line-height: 1; }
-.moba-deposit-box--enemy .moba-deposit-box__icon { font-size: 11px; }
-
-/* Progress bar */
+/* Progress bar sits above the sprite, like a compact HP indicator. */
 .moba-deposit-box__bar {
-  width: 100%;
+  width: 40px;
   height: 4px;
-  border-radius: 2px;
-  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(12,28,30,.7);
+  border-radius: 999px;
+  background: rgba(5,18,22,.72);
   overflow: hidden;
-  margin: 2px 0 1px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0,0,0,.45);
 }
 .moba-deposit-box__fill {
   height: 100%;
-  border-radius: 2px;
+  border-radius: inherit;
   background: linear-gradient(90deg, #f9a825, #ffe566);
   transition: width .3s ease;
 }
@@ -888,25 +832,7 @@
   background: linear-gradient(90deg, #5b7fff, #a0b8ff);
 }
 
-.moba-deposit-box__pts {
-  color: #ffe9a0;
-  font: 700 7px 'Space Mono', monospace;
-  text-shadow: 1px 1px 2px rgba(0,0,0,.8);
-  white-space: nowrap;
-}
-.moba-deposit-box__done {
-  display: inline-block;
-  margin-left: 3px;
-  color: #8fffb0;
-  font: 700 6px 'Space Mono', monospace;
-}
-.moba-deposit-box__lbl {
-  color: rgba(220,220,180,.55);
-  font: 600 6px 'Space Mono', monospace;
-  letter-spacing: .08em;
-}
-
-/* ── Library stand at team base ──────────────────────────────────────────── */
+/* ── Library sprite at team base ─────────────────────────────────────────── */
 .moba-deposit-library {
   position: absolute;
   z-index: 9;
@@ -914,35 +840,43 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 5px 6px;
-  border-radius: 9px;
-  background: rgba(8,36,44,.86);
-  border: 1.5px solid rgba(200,230,200,.28);
-  box-shadow: 0 6px 18px rgba(0,0,0,.5);
-  font-size: 16px;
-  text-align: center;
-}
-.moba-deposit-library small {
-  display: block;
-  color: rgba(200,230,180,.55);
-  font: 600 6px 'Space Mono', monospace;
-  letter-spacing: .08em;
-  white-space: nowrap;
+  gap: 3px;
+  min-width: 50px;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 5px rgba(0,0,0,.5));
 }
 .moba-deposit-library.is-locked {
   opacity: .55;
   filter: grayscale(.7);
 }
 .moba-deposit-library.is-unlocked {
-  border-color: rgba(255,220,110,.78);
-  box-shadow: 0 6px 18px rgba(0,0,0,.5), 0 0 0 5px rgba(255,210,80,.18);
+  filter: drop-shadow(0 4px 5px rgba(0,0,0,.5)) drop-shadow(0 0 9px rgba(255,210,80,.6));
   animation: moba-library-ready 1.5s ease-in-out infinite;
 }
-.moba-deposit-library.is-unlocked small { color: #ffe58c; }
-.moba-deposit-library.is-unlocked b {
-  color: #8fffb0;
-  font: 800 7px 'Space Mono', monospace;
+.moba-deposit-library__sprite {
+  display: block;
+  width: 48px;
+  height: 28px;
+  background: url('/moba-arena/FG_Treasure_Big.png') center / contain no-repeat;
+  image-rendering: pixelated;
+}
+.moba-deposit-library__bar {
+  width: 46px;
+  height: 4px;
+  border: 1px solid rgba(12,28,30,.7);
+  border-radius: 999px;
+  background: rgba(5,18,22,.72);
+  box-sizing: border-box;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,.45);
+}
+.moba-deposit-library__bar i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f9a825, #ffe566);
+  transition: width .3s ease;
 }
 @keyframes moba-library-ready {
   0%, 100% { transform: translateX(-50%) translateY(-50%) scale(1); }
@@ -988,22 +922,6 @@
 .moba-jungle-board__world > .moba11-base .moba11-base__icon { width: 58px; height: 58px; border: 3px solid #ffe9a9; background: #da6e55; transform: rotate(45deg); border-radius: 15px 15px 5px 15px; }
 .moba-jungle-board__world > .moba11-base .moba11-base__icon svg { transform: rotate(-45deg); }
 .moba-jungle-board__world > .moba11-base--right .moba11-base__icon { background: #637ad0; border-radius: 15px 5px 15px 15px; }
-.moba-jungle-board__world > .moba11-base .moba11-base__title {
-  margin-top: 14px;
-  color: #fff5cc;
-  font: 700 10px 'Space Mono', monospace;
-  letter-spacing: .14em;
-  text-shadow: 1px 1px 2px rgba(0,0,0,.8);
-  background: repeating-linear-gradient(118deg, #fff8d2 0 5px, #d1b66d 5px 8px, #fff4bd 8px 13px, #a98d4f 13px 16px);
-  background-size: 170% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-.moba-jungle-board__world > .moba11-base .moba11-base__score { margin-top: 4px; color: #d5d4a2; font: 700 9px 'Space Mono', monospace; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
-.moba-jungle-board__world > .moba11-base .moba11-base__score small { display: none; }
-.moba-jungle-board__world > .moba11-base .moba11-base__bar-label { margin-top: 7px; color: #d5d4a2; font: 700 9px 'Space Mono', monospace; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
-.moba-jungle-board__world > .moba11-base .moba11-base__bar-label b { color: #eb7c5b; }
 .moba-jungle-board__world > .moba11-base .moba11-base__bar { width: 86px; height: 4px; margin: 4px auto 0; background: rgba(250,229,157,.28); }
 .moba-jungle-board__world > .moba11-base--right .moba11-base__bar i { background: #7789dc; }
 .moba-jungle-board__world > .moba11-node { width: 80px; height: 80px; z-index: 8; color: #fff5cc; border: 3px solid #cceaa1; background: radial-gradient(circle, rgba(30,100,74,.94), rgba(11,50,51,.84)); box-shadow: 0 8px 12px rgba(3,31,34,.34); }
@@ -1011,16 +929,12 @@
 .moba-jungle-board__world > .moba11-node--hard { border-color: #a9d9ef; background: radial-gradient(circle, rgba(35,106,130,.94), rgba(11,50,61,.84)); }
 .moba-jungle-board__world > .moba11-node--claimed { opacity: .32; filter: grayscale(1); animation: none; }
 .moba-jungle-board__world > .moba11-node img { width: 54px; height: 22px; object-fit: contain; image-rendering: pixelated; }
-.moba-jungle-board__world > .moba11-node b { position: absolute; top: 3px; right: -19px; font: 700 9px 'Space Mono', monospace; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
-.moba-jungle-board__world > .moba11-node span { position: absolute; top: 62px; color: #fff5cc; font: 700 8px 'Space Mono', monospace; text-shadow: 0 2px 4px #0a3439; }
-.moba-jungle-board__world > .moba11-node em { bottom: -25px; background: rgba(7,40,44,.86); color: #ffc08c; }
 .moba-jungle-board__world > .moba11-positioned { z-index: 12; }
 .moba-jungle-board .moba11-pet { min-width: 72px; }
 .moba-jungle-board .moba11-pet__sprite { filter: drop-shadow(0 5px 4px rgba(3, 24, 28, .45)); }
 .moba-jungle-board .moba11-pet__name { position: relative; z-index: 3; display: inline-flex; gap: 4px; padding: 3px 6px; color: #fff5cd; background: rgba(7,40,44,.78); border: 1px solid rgba(243,225,158,.42); border-radius: 5px; font-size: 9px; text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
 .moba-jungle-board .moba11-pet--self .moba11-pet__name { border-color: #ffbd8d; background: rgba(109,53,49,.84); color: #fff5cd; }
 .moba-jungle-board .moba11-pet__sprite { width: 52px; height: 48px; margin-top: 7px; }
-.moba-jungle-board .moba11-pet__meta { color: #fff0bd; background: rgba(7,40,44,.72); border: 1px solid rgba(239,222,155,.25); text-shadow: 1px 1px 2px rgba(0,0,0,.8); }
 .moba-jungle-board .moba11-pet__scroll { right: 2px; top: 29px; background: #ffe09b; }
 .moba-jungle-board .moba11-pet__shield { left: 2px; top: 29px; }
 .moba-jungle-hud { position: absolute; z-index: 20; inset: 0; pointer-events: none; }

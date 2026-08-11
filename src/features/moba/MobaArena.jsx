@@ -610,7 +610,6 @@ export default function MobaArena({
             const zones = match?.config?.depositZones || []
             const boxFills = match?.depositBoxes || []
             const selfTeam = self?.teamId
-            const hasScrolls = Boolean(self?.scrolls?.length)
              const boxCapacity = match?.config?.boxCapacity ?? 100
              const libraryUnlocked = boxFills.some(box =>
                box?.completed &&
@@ -623,7 +622,6 @@ export default function MobaArena({
                // reaches its capacity. The library is then the next target.
                if (!z.isLibrary && boxState?.completed && !completedRevealZones.has(z.id)) return null
               const fill = boxState?.fill ?? 0
-              const completed = boxState?.completedBoxes ?? 0
               const isMine = z.team === selfTeam
               const teamCls = z.team === 'teamA' ? 'moba-deposit-box--a' : 'moba-deposit-box--b'
               const mineCls = isMine ? 'moba-deposit-box--mine' : 'moba-deposit-box--enemy'
@@ -635,15 +633,16 @@ export default function MobaArena({
                    key={`${z.id}-${burstTokens[z.id] || 0}`}
                    className={`moba-deposit-library ${isMine && libraryUnlocked ? 'is-unlocked' : ''} ${isMine && !libraryUnlocked ? 'is-locked' : ''}`}
                    style={toPosition(z, arena, isFlipped)}
-                   title={isMine
+                    aria-label={isMine
                      ? libraryUnlocked
                        ? `Pustaka terbuka — bonus setor ${match?.config?.libraryDepositMultiplier || 1.5}×`
                        : 'Pustaka terkunci — selesaikan satu box terlebih dahulu'
                      : `Pustaka ${z.team}`}
                  >
-                   <span>📖</span>
-                   <small>{isMine && !libraryUnlocked ? 'Pustaka terkunci' : `Pustaka ${z.team === 'teamA' ? 'A' : 'B'}`}</small>
-                   {isMine && libraryUnlocked && <b>+{match?.config?.libraryDepositMultiplier || 1.5}×</b>}
+                    <div className="moba-deposit-library__bar" aria-hidden="true">
+                      <i style={{ width: isMine && libraryUnlocked ? '100%' : '0%' }} />
+                    </div>
+                    <span className="moba-deposit-library__sprite" aria-hidden="true" />
                  </div>
                )
 
@@ -652,25 +651,14 @@ export default function MobaArena({
                    key={`${z.id}-${burstTokens[z.id] || 0}`}
                    className={`moba-deposit-box ${teamCls} ${mineCls} ${burstCls}`}
                   style={toPosition(z, arena, isFlipped)}
-                  title={isMine ? `Zona setormu — ${fill}/${boxCapacity}` : `Zona lawan (${z.team})`}
+                   aria-label={isMine ? `Zona setormu — ${fill}/${boxCapacity}` : `Zona lawan (${z.team})`}
                 >
-                  {isMine && hasScrolls && (
-                    <span className="moba-deposit-box__arrow" aria-hidden="true">▼</span>
-                  )}
-                  <span className="moba-deposit-box__icon">
-                    {isMine ? <span className="moba-sprite-box" aria-hidden="true" /> : '🏛️'}
-                  </span>
-                  {isMine && (
-                    <>
-                      <div className="moba-deposit-box__bar" aria-hidden="true">
-                        <div className="moba-deposit-box__fill" style={{ width: `${fillPct}%` }} />
-                      </div>
-                      <span className="moba-deposit-box__pts">
-                        {fill}<span style={{ opacity: .55 }}>/{boxCapacity}</span>
-                        {completed > 0 && <span className="moba-deposit-box__done">×{completed}</span>}
-                      </span>
-                    </>
-                  )}
+                   <div className="moba-deposit-box__bar" aria-hidden="true">
+                     <div className="moba-deposit-box__fill" style={{ width: `${fillPct}%` }} />
+                   </div>
+                   <span className="moba-deposit-box__icon">
+                     <span className="moba-sprite-box" aria-hidden="true" />
+                   </span>
                 </div>
               )
             })

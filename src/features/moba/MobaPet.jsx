@@ -45,7 +45,6 @@ export default function MobaPet({ player, isSelf = false, facingLeft = false }) 
     >
       <div className="moba11-pet__name">
         {(player.displayName || 'Pemain').split(' ')[0]}
-        {isSelf ? ' · kamu' : ''}
       </div>
       <div className="moba11-pet__sprite" style={facingLeft ? { transform: 'scaleX(-1)' } : undefined}>
         <PetSVG state={spriteState} skinId={player.petSkinId || 'golden'} size={48} />
@@ -60,10 +59,6 @@ export default function MobaPet({ player, isSelf = false, facingLeft = false }) 
             <ScrollText size={13} />
           </span>
         )}
-      </div>
-      <div className="moba11-pet__meta">
-        <i style={{ background: teamColor }} />
-        {player.scrolls?.length || 0}/{player.maxScrolls || 1}
       </div>
     </div>
   )
