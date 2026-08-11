@@ -364,6 +364,7 @@ export default function MobaScreen({ goBack, matchId: requestedMatchId = null, d
             match={state.match}
             players={players}
             nodes={nodes}
+            activeQuestion={state.activeQuestion}
             selfId={state.selfId}
             onClaimNode={handleClaimNode}
             onMove={sendMove}

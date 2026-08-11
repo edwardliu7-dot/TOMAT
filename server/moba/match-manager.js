@@ -1003,6 +1003,7 @@ export function createMobaMatchManager({
     })
     emit(match, 'question_opened', {
       playerId: player.id,
+      nodeId: node.id,
       questionSessionId: session.id,
       expiresAt: session.expiresAt,
       serverNow: now(),
@@ -1183,6 +1184,7 @@ export function createMobaMatchManager({
     if (!question) return ok({ question: null })
     return ok({
       question: publicQuestion(question),
+      nodeId: session.nodeId,
       questionSessionId: session.id,
       expiresAt: session.expiresAt,
       serverNow: now(),

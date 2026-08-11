@@ -342,6 +342,7 @@ export default function MobaArena({
   match,
   players = [],
   nodes = [],
+  activeQuestion = null,
   selfId,
   onClaimNode,
   onMove,
@@ -359,6 +360,7 @@ export default function MobaArena({
   // ── Deposit burst animation ───────────────────────────────────────────────
   // burstZones: Set of zone IDs that should show the burst class right now.
   const [burstZones, setBurstZones] = useState(() => new Set())
+  const [libraryBurstZones, setLibraryBurstZones] = useState(() => new Set())
   const [burstTokens, setBurstTokens] = useState(() => ({}))
   const [completedRevealZones, setCompletedRevealZones] = useState(() => new Set())
   const seenDepositIdsRef = useRef(null)
@@ -377,6 +379,10 @@ export default function MobaArena({
     const newDeposits = depositHistory
       .filter(entry => entry?.id && !seenDepositIdsRef.current.has(entry.id))
     const triggered = newDeposits.map(entry => entry.zoneId).filter(Boolean)
+    const zones = match?.config?.depositZones || []
+    const triggeredLibraries = triggered.filter(zoneId =>
+      zones.some(zone => zone.id === zoneId && zone.isLibrary),
+    )
     const newlyCompleted = newDeposits
       .map(entry => entry.zoneId)
       .filter(zoneId => zoneId && depositBoxes.some(box => box.id === zoneId && box.completed))
@@ -385,6 +391,11 @@ export default function MobaArena({
     setBurstZones(s => {
       const n = new Set(s)
       triggered.forEach(id => n.add(id))
+      return n
+    })
+    setLibraryBurstZones(s => {
+      const n = new Set(s)
+      triggeredLibraries.forEach(id => n.add(id))
       return n
     })
     setBurstTokens(tokens => {
@@ -406,10 +417,17 @@ export default function MobaArena({
             return n
           })
         }
+        if (triggeredLibraries.includes(id)) {
+          setLibraryBurstZones(s => {
+            const n = new Set(s)
+            n.delete(id)
+            return n
+          })
+        }
       }, 600)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [depositHistory, depositBoxes])
+  }, [depositHistory, depositBoxes, match?.config?.depositZones])
 
   // Clean up timers on unmount.
   useEffect(() => () => Object.values(burstTimersRef.current).forEach(clearTimeout), [])
@@ -625,13 +643,16 @@ export default function MobaArena({
               const isMine = z.team === selfTeam
               const teamCls = z.team === 'teamA' ? 'moba-deposit-box--a' : 'moba-deposit-box--b'
               const mineCls = isMine ? 'moba-deposit-box--mine' : 'moba-deposit-box--enemy'
-              const burstCls = burstZones.has(z.id) ? 'moba-deposit-box--burst' : ''
+               const burstCls = !z.isLibrary && burstZones.has(z.id) ? 'moba-deposit-box--burst' : ''
+               const libraryBurstCls = z.isLibrary && libraryBurstZones.has(z.id)
+                 ? 'moba-deposit-library--burst'
+                 : ''
               const fillPct = Math.min(100, Math.round((fill / boxCapacity) * 100))
 
                if (z.isLibrary) return (
                  <div
                    key={`${z.id}-${burstTokens[z.id] || 0}`}
-                   className={`moba-deposit-library ${isMine && libraryUnlocked ? 'is-unlocked' : ''} ${isMine && !libraryUnlocked ? 'is-locked' : ''}`}
+                    className={`moba-deposit-library ${isMine && libraryUnlocked ? 'is-unlocked' : ''} ${isMine && !libraryUnlocked ? 'is-locked' : ''} ${libraryBurstCls}`}
                    style={toPosition(z, arena, isFlipped)}
                     aria-label={isMine
                      ? libraryUnlocked
@@ -679,6 +700,7 @@ export default function MobaArena({
               node={node}
               style={toPosition(node.position, arena, isFlipped)}
               isNearby={Boolean(self && distanceBetween(self.position, node.position) <= interactionRadius)}
+               isQuestionActive={node.status === 'claimed' || activeQuestion?.nodeId === node.id}
               onClaim={onClaimNode}
             />
           ))}

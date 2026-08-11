@@ -191,6 +191,20 @@
 .moba11-node--medium { background: #ffe3a3; border: 4px solid #dcaa4b; color: #a46c2a; }
 .moba11-node--hard { background: #ffd0bc; border: 4px solid #e47a62; color: #ac4d42; }
 .moba11-node--claimed { opacity: .5; filter: grayscale(.3); }
+.moba11-node--question-active {
+  opacity: 1;
+  filter: drop-shadow(0 0 7px rgba(255, 215, 94, .9));
+}
+.moba11-node__scroll-sprite {
+  display: block;
+  width: 47px;
+  height: 47px;
+  background: url('/gulungan.png') 0 0 / 141px 47px no-repeat;
+  image-rendering: pixelated;
+}
+.moba11-node--question-active .moba11-node__scroll-sprite {
+  animation: moba-sprite-gulungan .6s steps(3) infinite;
+}
 
 .moba11-pet { min-width: 67px; text-align: center; position: relative; }
 .moba11-pet__name { background: #fffbeb; border: 1px solid #d7c998; border-radius: 5px; padding: 3px 5px; font-size: 9px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 4px rgba(53,72,54,.14); }
@@ -706,6 +720,14 @@
 @keyframes moba-sprite-pohon  { to { background-position: -168px 0; } }
 @keyframes moba-sprite-rumput { to { background-position: -144px 0; } }
 @keyframes moba-sprite-box    { to { background-position: -84px  0; } }
+@keyframes moba-sprite-gulungan {
+  from { background-position: 0 0; }
+  to { background-position: -94px 0; }
+}
+@keyframes moba-sprite-pustaka {
+  from { background-position: 0 0; }
+  to { background-position: -112px 0; }
+}
 
 .moba-forest-tree {
   position: absolute;
@@ -854,14 +876,16 @@
 }
 .moba-deposit-library.is-unlocked {
   filter: drop-shadow(0 4px 5px rgba(0,0,0,.5)) drop-shadow(0 0 9px rgba(255,210,80,.6));
-  animation: moba-library-ready 1.5s ease-in-out infinite;
 }
 .moba-deposit-library__sprite {
   display: block;
-  width: 48px;
-  height: 28px;
-  background: url('/moba-arena/FG_Treasure_Big.png') center / contain no-repeat;
+  width: 56px;
+  height: 56px;
+  background: url('/pustaka.png') 0 0 / 168px 56px no-repeat;
   image-rendering: pixelated;
+}
+.moba-deposit-library--burst .moba-deposit-library__sprite {
+  animation: moba-sprite-pustaka .6s steps(3) 1 forwards;
 }
 .moba-deposit-library__bar {
   width: 46px;
