@@ -520,7 +520,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(16,71,55,.82), rgba(22,90,66,.72));
+  background: linear-gradient(135deg, #104737, #165a42);
 }
 .moba-jungle-board__world {
   position: absolute;
@@ -530,7 +530,7 @@
     scale(var(--moba-camera-zoom, 1));
   transform-origin: center;
   transition: transform .18s ease-out;
-  background: linear-gradient(135deg, rgba(16,71,55,.82), rgba(22,90,66,.72));
+  background: linear-gradient(135deg, #104737, #165a42);
 }
 
 /* The finished match remains visible as context, but all gameplay details
@@ -580,7 +580,7 @@
   background-size: auto, auto, 64px 64px, var(--moba-tile-size, 32px) var(--moba-tile-size, 32px);
   background-position: center, center, 0 0, 0 0;
   image-rendering: pixelated;
-  opacity: .98;
+  opacity: 1;
 }
 .moba-jungle-grid {
   position: absolute;
@@ -686,6 +686,20 @@
   z-index: 2;
   pointer-events: none;
   overflow: visible;
+}
+.moba-river-water {
+  opacity: .7;
+}
+.moba-river-ripple {
+  animation: moba-river-ripple-flow 3.2s linear infinite;
+}
+.moba-river-ripple--two {
+  animation-duration: 4.6s;
+  animation-delay: -1.4s;
+}
+@keyframes moba-river-ripple-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -16; }
 }
 
 .moba-lane-label {

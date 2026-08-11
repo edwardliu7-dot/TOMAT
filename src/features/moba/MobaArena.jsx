@@ -577,12 +577,24 @@ export default function MobaArena({
               strokeDasharray="4.5 3" />
 
             {/* River — diagonal top-left → bottom-right, crosses all 3 lanes.
-                Round caps give the pill shape seen in the diagram. */}
-            <line x1="10" y1="10" x2="90" y2="90"
-              stroke="url(#moba-blue-grad)" strokeWidth="13" strokeLinecap="round" />
-            {/* River inner shimmer */}
-            <line x1="10" y1="10" x2="90" y2="90"
-              stroke="rgba(186,230,253,0.30)" strokeWidth="5" strokeLinecap="round" />
+                The complete group is 70% opaque so the solid terrain remains
+                visible underneath it. */}
+            <g className="moba-river-water">
+              <line x1="10" y1="10" x2="90" y2="90"
+                stroke="url(#moba-blue-grad)" strokeWidth="13" strokeLinecap="round" />
+              {/* Inner shimmer */}
+              <line x1="10" y1="10" x2="90" y2="90"
+                stroke="rgba(186,230,253,0.30)" strokeWidth="5" strokeLinecap="round" />
+              {/* Moving dashed highlights create a subtle ripple effect. */}
+              <line className="moba-river-ripple moba-river-ripple--one"
+                x1="10" y1="10" x2="90" y2="90"
+                stroke="rgba(218,250,255,0.72)" strokeWidth="1.4"
+                strokeLinecap="round" strokeDasharray="1.2 7" />
+              <line className="moba-river-ripple moba-river-ripple--two"
+                x1="10" y1="10" x2="90" y2="90"
+                stroke="rgba(161,235,244,0.58)" strokeWidth="1"
+                strokeLinecap="round" strokeDasharray="0.8 5.5" />
+            </g>
           </svg>
 
           {/* ── Trees in 4 triangular jungle zones ───────────────── */}
