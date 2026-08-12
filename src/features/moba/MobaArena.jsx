@@ -31,13 +31,41 @@ function getArenaBounds(arena = {}) {
 // flip=true flips coordinates 180° — used for Team B so they see the map as if they
 // also spawn at the bottom-left, matching the symmetric X-diagonal arena design.
 function toPosition(position = {}, arena = DEFAULT_ARENA, flip = false) {
+  const { x, y } = getPositionPercent(position, arena, flip)
+  return {
+    left: `${Math.max(2, Math.min(98, x))}%`,
+    top: `${Math.max(3, Math.min(97, y))}%`,
+  }
+}
+
+function getPositionPercent(position = {}, arena = DEFAULT_ARENA, flip = false) {
   const bounds = getArenaBounds(arena)
   let x = ((Number(position.x) - bounds.minX) / (bounds.maxX - bounds.minX)) * 100
   let y = ((Number(position.y) - bounds.minY) / (bounds.maxY - bounds.minY)) * 100
   if (flip) { x = 100 - x; y = 100 - y }
   return {
-    left: `${Math.max(2, Math.min(98, Number.isFinite(x) ? x : 50))}%`,
-    top:  `${Math.max(3, Math.min(97, Number.isFinite(y) ? y : 50))}%`,
+    x: Math.max(2, Math.min(98, Number.isFinite(x) ? x : 50)),
+    y: Math.max(3, Math.min(97, Number.isFinite(y) ? y : 50)),
+  }
+}
+
+// Moving entities use compositor-only transforms instead of left/top layout
+// updates. The arena size is measured once with ResizeObserver so percentage
+// world coordinates can be converted to pixels without forcing layout on every
+// server snapshot.
+function toTransformPosition(position, arena, flip, worldSize) {
+  const { x, y } = getPositionPercent(position, arena, flip)
+  if (!worldSize?.width || !worldSize?.height) {
+    return {
+      left: `${x}%`,
+      top: `${y}%`,
+      transform: 'translate3d(-50%, -50%, 0)',
+    }
+  }
+  return {
+    left: 0,
+    top: 0,
+    transform: `translate3d(${(x / 100) * worldSize.width}px, ${(y / 100) * worldSize.height}px, 0) translate3d(-50%, -50%, 0)`,
   }
 }
 
@@ -356,6 +384,32 @@ export default function MobaArena({
   const [mapOpen, setMapOpen] = useState(false)
   const [muted, setMuted] = useState(false)
   const isFinished = match?.phase === 'finished'
+  const worldRef = useRef(null)
+  const [worldSize, setWorldSize] = useState({ width: 0, height: 0 })
+
+  useLayoutEffect(() => {
+    const world = worldRef.current
+    if (!world) return undefined
+
+    const measure = () => {
+      const next = {
+        width: world.clientWidth,
+        height: world.clientHeight,
+      }
+      setWorldSize(current =>
+        current.width === next.width && current.height === next.height ? current : next,
+      )
+    }
+
+    measure()
+    if (typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(measure)
+      observer.observe(world)
+      return () => observer.disconnect()
+    }
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
 
   // ── Deposit burst animation ───────────────────────────────────────────────
   // burstZones: Set of zone IDs that should show the burst class right now.
@@ -503,7 +557,8 @@ export default function MobaArena({
       data-tile-rows={tileRows}
     >
       <div className="moba-jungle-board">
-          <div
+            <div
+              ref={worldRef}
             className="moba-jungle-board__world"
             style={{
               ...cameraStyle,
@@ -721,7 +776,7 @@ export default function MobaArena({
           {players.map(player => {
             const pid = player.id || player.userId
             return (
-              <div key={player.id} className="moba11-positioned" style={toPosition(player.position, arena, isFlipped)}>
+              <div key={player.id} className="moba11-positioned" style={toTransformPosition(player.position, arena, isFlipped, worldSize)}>
                 <MobaPet
                   player={player}
                   isSelf={player.id === selfId || player.userId === selfId}

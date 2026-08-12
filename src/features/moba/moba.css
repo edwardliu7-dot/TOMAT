@@ -167,7 +167,13 @@
 .moba11-lane--top { top: 20%; transform: rotate(-8deg); }
 .moba11-lane--middle { top: 45%; border-width: 14px; }
 .moba11-lane--bottom { top: 70%; transform: rotate(8deg); }
-.moba11-positioned { position: absolute; z-index: 8; transform: translate(-50%, -50%); }
+.moba11-positioned {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 8;
+  backface-visibility: hidden;
+}
 
 .moba11-base { position: absolute; top: 40%; width: 112px; text-align: center; z-index: 5; }
 .moba11-base--left { left: 2%; }

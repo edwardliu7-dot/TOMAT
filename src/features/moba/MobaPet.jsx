@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { memo, useEffect, useState } from 'react'
 import { ScrollText, Shield } from 'lucide-react'
 import PetSVG, { getPetName } from '../../components/PetSVG'
 
@@ -15,7 +15,7 @@ const TEAM_COLORS = {
   teamB: '#7180dc',
 }
 
-export default function MobaPet({ player, isSelf = false, facingLeft = false }) {
+function MobaPet({ player, isSelf = false, facingLeft = false }) {
   const visualState = player?.mobaPetState
   const [clock, setClock] = useState(() => Date.now())
 
@@ -63,3 +63,26 @@ export default function MobaPet({ player, isSelf = false, facingLeft = false }) 
     </div>
   )
 }
+
+function arePetPropsEqual(previous, next) {
+  const previousPlayer = previous.player
+  const nextPlayer = next.player
+  const previousVisual = previousPlayer?.mobaPetState
+  const nextVisual = nextPlayer?.mobaPetState
+
+  return previous.isSelf === next.isSelf &&
+    previous.facingLeft === next.facingLeft &&
+    previousPlayer?.id === nextPlayer?.id &&
+    previousPlayer?.userId === nextPlayer?.userId &&
+    previousPlayer?.displayName === nextPlayer?.displayName &&
+    previousPlayer?.teamId === nextPlayer?.teamId &&
+    previousPlayer?.petType === nextPlayer?.petType &&
+    previousPlayer?.petSkinId === nextPlayer?.petSkinId &&
+    previousPlayer?.stunUntil === nextPlayer?.stunUntil &&
+    previousPlayer?.immunityAvailable === nextPlayer?.immunityAvailable &&
+    previousPlayer?.scrolls?.length === nextPlayer?.scrolls?.length &&
+    previousVisual?.state === nextVisual?.state &&
+    previousVisual?.until === nextVisual?.until
+}
+
+export default memo(MobaPet, arePetPropsEqual)
