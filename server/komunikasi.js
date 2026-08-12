@@ -2,6 +2,7 @@ import express from 'express'
 import { pool } from './db.js'
 import { requireAuth } from './auth.js'
 import { notifyUser, notifyClassMembers } from './notifications.js'
+import { listMobaPlayerHistory } from './moba/results.js'
 
 const router = express.Router()
 router.use(requireAuth)
@@ -193,6 +194,16 @@ router.get('/profile/:otherRole/:otherId', async (req, res) => {
       profile = rows[0]
     }
     if (!profile) return res.status(404).json({ error: 'Profil tidak ditemukan.' })
+
+    const mobaHistory = otherRole === 'siswa'
+      ? await listMobaPlayerHistory(pool, {
+          userId: otherId,
+          limit: 10,
+          offset: 0,
+          canViewOpponent: opponentId => canViewProfile(user, opponentId, 'siswa'),
+        })
+      : null
+
     res.json({
       profile: {
         id: profile.id,
@@ -209,6 +220,7 @@ router.get('/profile/:otherRole/:otherId', async (req, res) => {
         coins: profile.coins ?? null,
         stikerLayout: profile.stiker_layout || [],
         badges: profile.badges || [],
+        ...(mobaHistory ? { mobaHistory } : {}),
       },
     })
   } catch (err) {

@@ -4,6 +4,7 @@ import { BINGKAI_VISUALS, SPANDUK_VISUALS } from '../shopVisuals'
 import TomiSVG, { PET_CSS } from '../components/TomiSVG'
 import PetSVG from '../components/PetSVG'
 import { useAuth } from '../AuthContext'
+import MobaHistorySection from '../components/MobaHistorySection'
 
 function useIsDesktop() {
   const [v, setV] = useState(() => window.innerWidth >= 1024)
@@ -160,6 +161,7 @@ export default function PublicProfileScreen({ profile, goBack, onInviteDuel }) {
           <StatsSection />
           <HafalanSection />
           <BioCard />
+           {profile.role === 'siswa' && <MobaHistorySection history={profile.mobaHistory} />}
           <DuelBtn />
         </div>
         {isCelestia && <div style={{ height: 2, background: 'linear-gradient(90deg, transparent, #60a5fa, #93c5fd, #60a5fa, transparent)', opacity: 0.7 }} />}
@@ -198,6 +200,7 @@ export default function PublicProfileScreen({ profile, goBack, onInviteDuel }) {
             <StatsSection />
             <HafalanSection />
             <BioCard />
+            {profile.role === 'siswa' && <MobaHistorySection history={profile.mobaHistory} />}
           </div>
         </div>
       </div>

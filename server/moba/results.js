@@ -129,4 +129,129 @@ export async function listMobaMatchResults(pool, {
   return rows
 }
 
+function normalizeHistoryLimit(limit, fallback) {
+  return Math.min(50, Math.max(1, Number.parseInt(limit, 10) || fallback))
+}
+
+function normalizeHistoryOffset(offset) {
+  return Math.max(0, Number.parseInt(offset, 10) || 0)
+}
+
+function publicHistoryPlayer(player, { includeUserId = false, visible = true } = {}) {
+  if (!visible) {
+    return {
+      displayName: 'Lawan',
+      score: Number(player?.score || 0),
+      answeredCorrect: Number(player?.answeredCorrect || 0),
+      answeredWrong: Number(player?.answeredWrong || 0),
+      deposits: Number(player?.deposits || 0),
+    }
+  }
+
+  return {
+    ...(includeUserId && player?.userId ? { userId: String(player.userId) } : {}),
+    displayName: String(player?.displayName || 'Pemain'),
+    petType: player?.petType || null,
+    petSkinId: player?.petSkinId || player?.petType || 'golden',
+    score: Number(player?.score || 0),
+    answeredCorrect: Number(player?.answeredCorrect || 0),
+    answeredWrong: Number(player?.answeredWrong || 0),
+    deposits: Number(player?.deposits || 0),
+  }
+}
+
+async function normalizeHistoryRow(row, profileUserId, {
+  includeReward = false,
+  canViewOpponent = null,
+} = {}) {
+  const players = Array.isArray(row.snapshot?.players) ? row.snapshot.players : []
+  const targetId = String(profileUserId)
+  const myPlayer = players.find(player => String(player?.userId ?? '') === targetId)
+  if (!myPlayer?.teamId) return null
+
+  const myTeamId = myPlayer.teamId === 'teamB' ? 'teamB' : 'teamA'
+  const opponentTeamId = myTeamId === 'teamA' ? 'teamB' : 'teamA'
+  const mine = myTeamId === 'teamA' ? Number(row.team_a_score || 0) : Number(row.team_b_score || 0)
+  const opponent = myTeamId === 'teamA' ? Number(row.team_b_score || 0) : Number(row.team_a_score || 0)
+  const result = row.winner === 'draw'
+    ? 'draw'
+    : row.winner === myTeamId
+      ? 'win'
+      : 'loss'
+
+  const opponentPlayers = players.filter(player => player?.teamId === opponentTeamId)
+  const opponents = await Promise.all(opponentPlayers.map(async player => {
+    const visible = typeof canViewOpponent !== 'function'
+      ? true
+      : await canViewOpponent(String(player.userId))
+    return publicHistoryPlayer(player, { visible })
+  }))
+
+  return {
+    matchId: String(row.match_id),
+    teamSize: Number(row.team_size),
+    finishedAt: row.finished_at,
+    result,
+    myTeamId,
+    winner: row.winner,
+    scores: {
+      mine,
+      opponent,
+      teamA: Number(row.team_a_score || 0),
+      teamB: Number(row.team_b_score || 0),
+    },
+    myPlayer: publicHistoryPlayer(myPlayer, { includeUserId: true }),
+    opponents,
+    ...(includeReward ? { rewardCoins: Number(row.reward_coins || 0) } : {}),
+  }
+}
+
+/**
+ * Returns the durable match history for one student. Membership is checked
+ * against the final snapshot rather than a mutable player/profile table.
+ * Public callers can provide canViewOpponent to apply the same class-circle
+ * privacy rules used by the public profile endpoint.
+ */
+export async function listMobaPlayerHistory(pool, {
+  userId,
+  limit = 20,
+  offset = 0,
+  includeReward = false,
+  canViewOpponent = null,
+} = {}) {
+  if (userId === undefined || userId === null || userId === '') {
+    throw new TypeError('userId is required')
+  }
+
+  const safeLimit = normalizeHistoryLimit(limit, includeReward ? 20 : 10)
+  const safeOffset = normalizeHistoryOffset(offset)
+  const { rows } = await pool.query(
+    `SELECT match_id, team_size, winner, team_a_score, team_b_score,
+            snapshot, finished_at, reward_coins
+     FROM moba_match_results
+     WHERE EXISTS (
+       SELECT 1
+       FROM jsonb_array_elements(snapshot->'players') AS player
+       WHERE player->>'userId' = $1
+     )
+     ORDER BY finished_at DESC
+     LIMIT $2 OFFSET $3`,
+    [String(userId), safeLimit + 1, safeOffset],
+  )
+
+  const normalized = (await Promise.all(rows.map(row => normalizeHistoryRow(row, userId, {
+    includeReward,
+    canViewOpponent,
+  })))).filter(Boolean)
+
+  return {
+    items: normalized.slice(0, safeLimit),
+    pagination: {
+      limit: safeLimit,
+      offset: safeOffset,
+      hasMore: normalized.length > safeLimit,
+    },
+  }
+}
+
 export { DEFAULT_REWARD_COINS }

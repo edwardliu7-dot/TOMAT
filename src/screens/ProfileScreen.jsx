@@ -8,6 +8,7 @@ import { usePet } from '../PetContext'
 import TomiSVG, { PET_CSS, STATE_ANIMS } from '../components/TomiSVG'
 import PetSVG from '../components/PetSVG'
 import { readFileAsDataUrl, getCroppedImage, compressDataUrlToLimit } from '../utils/imageUtils'
+import MobaHistorySection from '../components/MobaHistorySection'
 
 async function apiGet(path) {
   const res = await fetch(path, { credentials: 'include' })
@@ -224,6 +225,21 @@ function HafalanSection() {
       </div>
     </div>
   )
+}
+
+function MobaHistory() {
+  const [history, setHistory] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    apiGet('/api/siswa/moba/history?limit=20&offset=0')
+      .then(setHistory)
+      .catch(err => setError(err.message || 'Gagal memuat riwayat MOBA.'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return <MobaHistorySection history={history} loading={loading} error={error} showReward />
 }
 
 export default function ProfileScreen({ goBack }) {
@@ -467,6 +483,9 @@ export default function ProfileScreen({ goBack }) {
               <div style={{ padding: '16px 20px 0' }}>
                 <HafalanSection />
               </div>
+                <div style={{ padding: '16px 20px 0' }}>
+                  <MobaHistory />
+                </div>
             </div>
           </div>
         ) : (
@@ -505,6 +524,9 @@ export default function ProfileScreen({ goBack }) {
                 {profileTab === 'statistik' && <HafalanSection />}
                 {profileTab === 'edit'      && <BioForm />}
               </div>
+            </div>
+            <div style={{ marginTop: 20 }}>
+              <MobaHistory />
             </div>
           </div>
         )}

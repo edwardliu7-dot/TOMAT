@@ -20,6 +20,7 @@ import eventMissionsRouter from './event-missions-router.js'
 import appVersionRouter from './app-version.js'
 import mobaResultsRouter from './moba-results.js'
 import mobaAssetsRouter from './moba-assets.js'
+import mobaHistoryRouter from './moba-history.js'
 import videoMateriGuruRouter from './video-materi.js'
 import videoMateriSiswaRouter from './video-materi-siswa.js'
 import { pool } from './db.js'
@@ -171,6 +172,7 @@ async function createServer() {
   app.use('/api/siswa/toko', tokoRouter)
   app.use('/api/siswa/event-missions', eventMissionsRouter)
   app.use('/api/siswa/papan-peringkat', papanPeringkatRouter)
+  app.use('/api/siswa/moba', mobaHistoryRouter)
   app.use('/api/siswa/lencana', lencanaRouter)
   app.use('/api/guru/hafalan', hafalanGuruRouter)
   app.use('/api/guru', videoMateriGuruRouter)

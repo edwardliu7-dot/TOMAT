@@ -819,7 +819,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       // Show popup immediately with loading state
       setPublicProfileModal({ loading: true, profile: null, error: null })
       try {
-        const profile = target.photoUrl !== undefined || target.bio !== undefined
+        const profile = target.mobaHistory !== undefined
           ? target
           : await fetchPublicProfile(target)
         setPublicProfileModal({ loading: false, profile, error: null })

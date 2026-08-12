@@ -154,16 +154,12 @@
   border-radius: 17px;
   overflow: hidden;
   border: 5px solid #b6aa76;
-  background:
-    radial-gradient(circle at 18% 20%, rgba(255,255,255,.5) 0 2px, transparent 3px),
-    radial-gradient(circle at 75% 70%, rgba(88,145,104,.2) 0 1px, transparent 2px),
-    linear-gradient(135deg, #c8d88f, #b5d39e 55%, #e1d58f);
-  background-size: 38px 38px, 29px 29px, auto;
+  background: #c8d88f;
   isolation: isolate;
 }
-.moba11-arena::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(239,118,94,.1), transparent 45%, rgba(123,137,232,.1)); pointer-events: none; z-index: 3; }
-.moba11-river { position: absolute; top: -5%; bottom: -5%; left: 45%; width: 10%; background: rgba(104,177,190,.18); transform: rotate(13deg); border-left: 2px dashed rgba(72,135,150,.28); border-right: 2px dashed rgba(72,135,150,.28); }
-.moba11-lane { position: absolute; left: 7%; right: 7%; height: 92px; border-radius: 50%; border: 16px solid rgba(255,248,208,.42); box-shadow: 0 0 0 3px rgba(112,149,111,.16), inset 0 0 12px rgba(100,125,95,.12); }
+.moba11-arena::after { display: none; }
+.moba11-river { position: absolute; top: -5%; bottom: -5%; left: 45%; width: 10%; background: #68b1be; transform: rotate(13deg); border-left: 2px dashed #488796; border-right: 2px dashed #488796; }
+.moba11-lane { position: absolute; left: 7%; right: 7%; height: 92px; border-radius: 50%; border: 16px solid #fff8d0; box-shadow: 0 0 0 3px #70956f, inset 0 0 12px #647d5f; }
 .moba11-lane--top { top: 20%; transform: rotate(-8deg); }
 .moba11-lane--middle { top: 45%; border-width: 14px; }
 .moba11-lane--bottom { top: 70%; transform: rotate(8deg); }

@@ -7,6 +7,7 @@ import { DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import { BINGKAI_VISUALS, SPANDUK_VISUALS, STIKER_VISUALS } from '../shopVisuals'
 import TomiSVG from './TomiSVG'
 import PetSVG from './PetSVG'
+import MobaHistorySection from './MobaHistorySection'
 import { useAppNotifications, usePushNotifications } from '../notifications'
 
 function useIsDesktop() {
@@ -711,6 +712,11 @@ export function PublicProfileModal({ profile, loading, error, onClose, onVisitPr
                 background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
                 color: profile.bio ? '#CBD5E1' : '#64748B', fontSize: 12, lineHeight: 1.6,
               }}>{profile.bio || 'Belum ada bio.'}</div>
+              {profile.role === 'siswa' && (
+                <div style={{ marginTop: 16, textAlign: 'left' }}>
+                  <MobaHistorySection history={profile.mobaHistory} />
+                </div>
+              )}
             </div>
 
             {/* Action buttons */}
