@@ -52,6 +52,7 @@
 - [TOMAT MOBA release dan settlement](tomat-moba-release.md) — hasil final durable, reward pemenang idempotent, dan rollout dikendalikan env flag/allowlist tanpa mematikan mode individu.
 - [Mockup sandbox icon compatibility](mockup-sandbox-icon-compatibility.md) — cek ekspor lucide-react sebelum memakai ikon baru; gunakan CSS fallback bila ikon tidak tersedia agar preview tidak blank.
 - [Mockup preview verification](mockup-preview-verification.md) — jika proxy utama menampilkan shell TOMAT, verifikasi komponen lewat port workflow sandbox langsung sebelum menyimpulkan iframe rusak.
+- [Mockup component registry](mockup-component-registry.md) — registry generated diregenerasi saat sandbox start; validasi hasil generator setelah merge, bukan hanya marker konflik.
 - [TOMAT MOBA rollout gate](tomat-moba-rollout-gate.md) — akses demo dikendalikan MOBA_ENABLED + MOBA_ALLOWED_STUDENT_IDS; perubahan environment baru berlaku setelah workflow server direstart.
 - [TOMAT MOBA tile grid](tomat-moba-tile-grid.md) — dunia 8.000×8.000 memakai 32 unit/tile, menghasilkan grid 250×250; movement tetap kontinu dan authoritative.
 - [TOMAT MOBA arena map v2](tomat-moba-arena-map-v2.md) — Diagonal X layout: river (NW→SE, transparent water) crosses lane (NE→SW, gray); Team A spawns bottom-left, Team B top-right; Team B view flipped 180° client-side; 6 deposit zones + 2 libraries; 4 outer walls only.
