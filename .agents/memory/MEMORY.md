@@ -48,6 +48,7 @@
 - [TOMAT MOBA question nodes](tomat-moba-question-nodes.md) — node dibuat server-side dengan validasi arena, TTL, jarak interaksi, dan claim sinkron first-come-first-served.
 - [TOMAT MOBA Pet effects](tomat-moba-pet-effects.md) — seluruh buff Pet MOBA dihitung melalui satu modul server dari PlayerState tervalidasi; Kelinsay, Monyang, Tomi, dan Nananaga tidak boleh kembali tersebar di handler.
 - [TOMAT MOBA controls and pet states](tomat-moba-controls-states.md) — mobile/tablet memakai analog; laptop memakai tombol arah; sprite MOBA idle/walk/happy/hungry mengikuti aksi server.
+- [TOMAT MOBA movement rendering](tomat-moba-movement-rendering.md) — posisi Pet bergerak lewat transform compositor-only; komponen visual Pet harus memoized agar snapshot server tidak memicu render sprite penuh.
 - [TOMAT MOBA Socket contract](tomat-moba-socket-contract.md) — adapter Socket.io hanya menerjemahkan manager; reducer frontend menerima snapshot/event server dan identitas player internal harus dipetakan ke user ID.
 - [TOMAT MOBA release dan settlement](tomat-moba-release.md) — hasil final durable, reward pemenang idempotent, dan rollout dikendalikan env flag/allowlist tanpa mematikan mode individu.
 - [Mockup sandbox icon compatibility](mockup-sandbox-icon-compatibility.md) — cek ekspor lucide-react sebelum memakai ikon baru; gunakan CSS fallback bila ikon tidak tersedia agar preview tidak blank.
