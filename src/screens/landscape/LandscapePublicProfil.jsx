@@ -19,6 +19,7 @@ import {
   BannerSparkles,
   ensureLuxuryStyles,
 } from '../../components/shared'
+import MobaHistorySection from '../../components/MobaHistorySection'
 import { SPANDUK_VISUALS, BINGKAI_VISUALS } from '../../shopVisuals'
 
 const C = {
@@ -332,6 +333,7 @@ export default function LandscapePublicProfil({ profile, goBack, onInviteDuel })
               <div style={{ color:C.muted, fontSize:10, textAlign:'center', marginTop:10 }}>Belum ada kosmetik</div>
             )}
           </div>
+          {profile.role === 'siswa' && <MobaHistorySection history={profile.mobaHistory} />}
 
           {/* Duel CTA */}
           {canDuel && (

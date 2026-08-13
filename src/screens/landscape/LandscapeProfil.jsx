@@ -8,6 +8,7 @@ import { usePlayer } from '../../PlayerContext'
 import { usePet } from '../../PetContext'
 import PetSVG, { getPetName } from '../../components/PetSVG'
 import { UserAvatar } from '../../components/shared'
+import MobaHistorySection from '../../components/MobaHistorySection'
 import { SPANDUK_VISUALS } from '../../shopVisuals'
 import { readFileAsDataUrl, getCroppedImage, compressDataUrlToLimit } from '../../utils/imageUtils'
 
@@ -136,6 +137,7 @@ export default function LandscapeProfil({ goBack, navigate }) {
   const [rank,    setRank]    = useState('—')
   const [badges,  setBadges]  = useState([])
   const [hafalan, setHafalan] = useState(null)
+  const [mobaHistory, setMobaHistory] = useState(null)
 
   useEffect(() => {
     apiCall('/api/siswa/papan-peringkat').then(data => {
@@ -145,6 +147,7 @@ export default function LandscapeProfil({ goBack, navigate }) {
     }).catch(()=>{})
     apiCall('/api/siswa/lencana').then(data => setBadges((data.badges || []).slice(0, 6))).catch(()=>{})
     apiCall('/api/siswa/hafalan').then(data => setHafalan(data)).catch(()=>{})
+    apiCall('/api/siswa/moba/history?limit=20&offset=0').then(data => setMobaHistory(data)).catch(()=>{})
   }, [user?.id])
 
   /* ── Edit panel state ─── */
@@ -322,6 +325,7 @@ export default function LandscapeProfil({ goBack, navigate }) {
               </div>
             ))}
           </div>
+          <MobaHistorySection history={mobaHistory} showReward />
         </div>
       </div>
 

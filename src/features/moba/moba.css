@@ -508,15 +508,7 @@
 .moba11-arena::after { display: none; }
 .moba-jungle-arena { isolation: isolate; overflow: hidden; }
 .moba-jungle-arena::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 15;
-  pointer-events: none;
-  opacity: .12;
-  background-image: radial-gradient(rgba(227,240,181,.8) .7px, transparent .8px);
-  background-size: 6px 6px;
-  mix-blend-mode: soft-light;
+  display: none;
 }
 .moba-jungle-board {
   position: absolute;
