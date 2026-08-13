@@ -8,7 +8,7 @@ description: Diagonal X-map layout replacing the old 3-lane horizontal map; spaw
 **Map size**: 80,000 × 80,000 world units
 
 ## Layout
-- **River** (blue, transparent water): main diagonal, top-LEFT → bottom-RIGHT (y ≈ x). `halfWidth: 7,000`. Spawns scrolls + is traversable.
+- **River** (blue, solid water): main diagonal, top-LEFT → bottom-RIGHT (y ≈ x). `halfWidth: 7,000`. Spawns scrolls + is traversable. Terrain must remain opaque; do not reintroduce translucent arena overlays.
 - **Lane** (gray path): anti-diagonal, top-RIGHT → bottom-LEFT (y ≈ 80,000 − x). `halfWidth: 6,000`. Traversable.
 - **Jungle** (forest): 4 triangular zones between the diagonals. Scrolls spawn here too.
 - **Spawn border**: outer 7.5% of map (each side) = gray border area in CSS.
