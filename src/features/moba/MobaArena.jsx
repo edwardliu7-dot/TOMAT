@@ -285,6 +285,9 @@ function MobaMatchResultOverlay({ match, self, onBack }) {
   const isDraw = winner === 'draw'
   const isWinner = !isDraw && self?.teamId === winner
   const winningScore = Number(match?.teams?.[winner]?.score || 0)
+  // The result overlay is informational only. The server settles rewards
+  // against the winning player IDs; losing players must never see a local
+  // score-to-coin conversion.
   const rewardCoins = isWinner && winningScore > 0
     ? Math.max(1, Math.min(winningScore, 500))
     : 0

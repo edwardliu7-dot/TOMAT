@@ -178,6 +178,11 @@ async function normalizeHistoryRow(row, profileUserId, {
     : row.winner === myTeamId
       ? 'win'
       : 'loss'
+  // reward_coins is stored once per match for the winning team. Never expose
+  // that match-level amount as if it belonged to a losing student.
+  const playerRewardCoins = includeReward && result === 'win'
+    ? Number(row.reward_coins || 0)
+    : 0
 
   const opponentPlayers = players.filter(player => player?.teamId === opponentTeamId)
   const opponents = await Promise.all(opponentPlayers.map(async player => {
@@ -202,7 +207,7 @@ async function normalizeHistoryRow(row, profileUserId, {
     },
     myPlayer: publicHistoryPlayer(myPlayer, { includeUserId: true }),
     opponents,
-    ...(includeReward ? { rewardCoins: Number(row.reward_coins || 0) } : {}),
+    ...(includeReward ? { rewardCoins: playerRewardCoins } : {}),
   }
 }
 

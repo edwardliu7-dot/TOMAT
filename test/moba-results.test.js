@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   DEFAULT_REWARD_COINS,
   createMobaResultStore,
+  listMobaPlayerHistory,
 } from '../server/moba/results.js'
 import {
   canStudentUseMoba,
@@ -102,4 +103,46 @@ test('does not reward a draw and exposes the rollout gates', async () => {
   assert.equal(canStudentUseMoba('student-a', {
     MOBA_ENABLED: 'false',
   }), false)
+})
+
+test('does not award or expose winner coins to a losing player', async () => {
+  const pool = createFakePool()
+  const store = createMobaResultStore({ pool })
+  const loss = await store.settleMatch({
+    ...finishedPayload,
+    matchId: 'moba-loss',
+    result: { winner: 'teamA' },
+  })
+
+  assert.deepEqual(loss.rewardedPlayerIds, ['student-a'])
+  const rewardQuery = pool.queries.find(query => /^UPDATE students/i.test(query.text))
+  assert.deepEqual(rewardQuery.values[1], ['student-a'])
+
+  const historyPool = {
+    async query() {
+      return {
+        rows: [{
+          match_id: 'moba-loss-history',
+          team_size: 1,
+          winner: 'teamA',
+          team_a_score: 25,
+          team_b_score: 10,
+          reward_coins: 25,
+          finished_at: '2026-08-14T00:00:00.000Z',
+          snapshot: {
+            players: [
+              { userId: 'student-a', teamId: 'teamA' },
+              { userId: 'student-b', teamId: 'teamB' },
+            ],
+          },
+        }],
+      }
+    },
+  }
+  const history = await listMobaPlayerHistory(historyPool, {
+    userId: 'student-b',
+    includeReward: true,
+  })
+  assert.equal(history.items[0].result, 'loss')
+  assert.equal(history.items[0].rewardCoins, 0)
 })

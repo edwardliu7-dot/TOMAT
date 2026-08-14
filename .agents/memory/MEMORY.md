@@ -63,3 +63,4 @@
 - [TOMAT MOBA battle loading screen](tomat-moba-battle-loading.md) — loading gate (MobaBattleLoader), curriculum questions (sync generator), box-fill deposit, 7-min duration, 5-min wave-2, 1-coin-per-point reward.
 - [TOMAT MOBA base scoring](tomat-moba-base-scoring.md) — angka base berasal dari setoran ke library; setiap box penuh memberi bonus 50 poin tanpa menambah skor match.
 - [TOMAT OTA readiness](tomat-ota-status.md) — OTA updater plugin belum terpasang; perubahan asset client APK masih memerlukan rebuild native sampai plugin benar-benar dikonfigurasi.
+- [TOMAT APK YouTube embed](tomat-apk-youtube-embed.md) — iframe YouTube di Capacitor memerlukan JavaScript, DOM storage, dan third-party cookies WebView; URL player native memakai host YouTube reguler.

@@ -11,6 +11,24 @@ function babLabel(grade, subject, bab) {
   return (subject === 'ipa' ? IPA_BAB_LABELS : GRADE_BAB_LABELS)[grade]?.[bab] || `BAB ${bab}`
 }
 
+function getYoutubePlayerUrl(videoId) {
+  const isNative = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.() === true
+  // Android WebView can reject the privacy-enhanced host when the embed does
+  // not identify its app origin. Use the regular player in the APK and pass
+  // the local Capacitor origin explicitly; keep youtube-nocookie on the web.
+  const host = isNative ? 'www.youtube.com' : 'www.youtube-nocookie.com'
+  const origin = typeof window !== 'undefined' && /^https?:$/.test(window.location.protocol)
+    ? window.location.origin
+    : 'https://localhost'
+  const params = new URLSearchParams({
+    rel: '0',
+    playsinline: '1',
+    enablejsapi: '1',
+    origin,
+  })
+  return `https://${host}/embed/${encodeURIComponent(videoId)}?${params.toString()}`
+}
+
 function VideoFrame({ video, compact = false }) {
   if (!video?.youtubeVideoId) return null
   return (
@@ -21,9 +39,10 @@ function VideoFrame({ video, compact = false }) {
     }}>
       <iframe
         title={video.title}
-        src={`https://www.youtube-nocookie.com/embed/${video.youtubeVideoId}?rel=0`}
+        src={getYoutubePlayerUrl(video.youtubeVideoId)}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerPolicy="strict-origin-when-cross-origin"
         allowFullScreen
       />
     </div>
@@ -114,6 +133,14 @@ export default function VideoMateriPanel({ grade, subject, selectedBab = null, a
         {activeVideo.description && (
           <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 4 }}>{activeVideo.description}</div>
         )}
+        <a
+          href={`https://www.youtube.com/watch?v=${encodeURIComponent(activeVideo.youtubeVideoId)}`}
+          target="_blank"
+          rel="noreferrer"
+          style={{ display: 'inline-block', color: accent, fontSize: 11, fontWeight: 800, marginTop: 8 }}
+        >
+          Video tidak tampil? Buka di YouTube
+        </a>
       </div>
 
       {visibleVideos.length > 1 && (

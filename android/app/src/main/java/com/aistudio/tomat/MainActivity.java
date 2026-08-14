@@ -2,6 +2,9 @@ package com.aistudio.tomat;
 
 import android.os.Bundle;
 import android.view.WindowManager;
+import android.webkit.CookieManager;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -12,6 +15,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        configureWebViewForEmbeddedVideo();
         setupImmersiveMode();
     }
 
@@ -47,5 +51,25 @@ public class MainActivity extends BridgeActivity {
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             );
         }
+    }
+
+    private void configureWebViewForEmbeddedVideo() {
+        WebView webView = getBridge().getWebView();
+        if (webView == null) {
+            return;
+        }
+
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
+        settings.setMediaPlaybackRequiresUserGesture(true);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+
+        // YouTube's player uses cookies and storage from a third-party iframe
+        // to initialize playback inside the Capacitor WebView.
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        cookieManager.setAcceptThirdPartyCookies(webView, true);
     }
 }
