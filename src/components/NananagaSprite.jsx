@@ -19,9 +19,10 @@ const STATE_CFG = {
 
 // Skin → sprite sheet mapping (each skin has its own dedicated art)
 const SKIN_SPRITE = {
-  pet_nananaga:       '/nananaga-sprite.png',
-  pet_nananaga_merah: '/nananaga-api.png',
-  pet_nananaga_es:    '/nananaga-es.png',
+  pet_nananaga:           '/nananaga-sprite.png',
+  pet_nananaga_merah:     '/nananaga-api.png',
+  pet_nananaga_es:        '/nananaga-es.png',
+  pet_nananaga_champion:  '/nananaga champion.png',
 }
 
 const _injected = new Set()

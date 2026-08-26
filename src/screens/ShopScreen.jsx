@@ -303,7 +303,7 @@ const SKIN_GROUPS = [
     color: '#C084FC',
     bg: 'rgba(192,132,252,0.12)',
     border: 'rgba(192,132,252,0.25)',
-    skins: ['pet_nananaga_merah', 'pet_nananaga_es'],
+    skins: ['pet_nananaga_merah', 'pet_nananaga_es', 'pet_nananaga_champion'],
   },
 ]
 

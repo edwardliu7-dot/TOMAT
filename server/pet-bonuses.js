@@ -35,6 +35,7 @@ export const PET_BONUSES = {
   pet_nananaga:       { coinMult: 1.50, expMult: 1.50, hungerMult: 1.00, wrongImmunity: 1 }, // epic
   pet_nananaga_merah: { coinMult: 1.60, expMult: 1.60, hungerMult: 1.00, wrongImmunity: 2 }, // epic
   pet_nananaga_es:    { coinMult: 1.70, expMult: 1.70, hungerMult: 1.00, wrongImmunity: 3 }, // epic
+  pet_nananaga_champion: { coinMult: 1.70, expMult: 1.70, hungerMult: 1.00, wrongImmunity: 3 }, // limited epic — juara 1 kompetisi desain
 }
 
 export function getPetBonus(skinId) {

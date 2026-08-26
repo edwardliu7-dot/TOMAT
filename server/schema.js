@@ -399,6 +399,12 @@ export async function ensureSchema() {
       tier: 'epic', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
       desc: 'Naga es dari puncak gunung beku. Napasnya membekukan segalanya, matanya biru seperti samudra arktik.'
     }, 13],
+    ['pet_nananaga_champion', 'pet_skin', 'Nananaga Champion', 25000, {
+      tier: 'epic', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
+      limited: true, edition: 'CHAMPION DESIGN',
+      image: '/nananaga champion.png',
+      desc: 'Skin edisi juara 1 kompetisi desain skin TOMAT.'
+    }, 14],
     // Tema — shifts the game screen color palette + particle overlay
     ['tema_space', 'tema', 'Luar Angkasa', 1500, { accent: '#22d3ee', gradient: 'linear-gradient(135deg,#020610,#0a0f1e)', swatches: ['#020610','#0a0f1e','#22d3ee','#6366f1'], description: 'Background galaxy gelap, aksen cyan, partikel bintang.' }, 1],
     ['tema_hutan', 'tema', 'Hutan Mistis',  2000, { accent: '#4ade80', gradient: 'linear-gradient(135deg,#021408,#04230e)', swatches: ['#021408','#04230e','#4ade80','#2dd4bf'], description: 'Gradien hijau tua, aksen hijau neon, partikel daun.' }, 2],

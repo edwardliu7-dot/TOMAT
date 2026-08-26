@@ -90,6 +90,7 @@ export const modules: ModuleMap = {
   "./components/mockups/tema/TokoTabTema.tsx": () => import("../components/mockups/tema/TokoTabTema.tsx"),
   "./components/mockups/tema/TokoTema.tsx": () => import("../components/mockups/tema/TokoTema.tsx"),
   "./components/mockups/tisa-rpg-map/TisaSchoolMap.tsx": () => import("../components/mockups/tisa-rpg-map/TisaSchoolMap.tsx"),
+  "./components/mockups/tomat-curriculum/Grade8Portrait.tsx": () => import("../components/mockups/tomat-curriculum/Grade8Portrait.tsx"),
   "./components/mockups/tomat-dashboard/GuruDashboard.tsx": () => import("../components/mockups/tomat-dashboard/GuruDashboard.tsx"),
   "./components/mockups/tomat-dashboard/SiswaDashboard.tsx": () => import("../components/mockups/tomat-dashboard/SiswaDashboard.tsx"),
   "./components/mockups/tomat-mobile/HomeScreen.tsx": () => import("../components/mockups/tomat-mobile/HomeScreen.tsx"),

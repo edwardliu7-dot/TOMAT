@@ -27,6 +27,7 @@ export const PET_BONUS_DISPLAY = {
   pet_nananaga:       { label: '🛡️×1 · +50% Koin & EXP', icon: '🛡️', color: '#FB923C', desc: 'Kebal 1 jawaban salah (duel/turnamen/survival) + setiap jawaban benar memberikan 50% koin & EXP lebih banyak.' },  // epic
   pet_nananaga_merah: { label: '🛡️×2 · +60% Koin & EXP', icon: '🛡️', color: '#F87171', desc: 'Kebal 2 jawaban salah (duel/turnamen/survival) + setiap jawaban benar memberikan 60% koin & EXP lebih banyak.' }, // epic
   pet_nananaga_es:    { label: '🛡️×3 · +70% Koin & EXP', icon: '🛡️', color: '#7DD3FC', desc: 'Kebal 3 jawaban salah (duel/turnamen/survival) + setiap jawaban benar memberikan 70% koin & EXP lebih banyak!' }, // epic
+  pet_nananaga_champion: { label: '🛡️×3 · +70% Koin & EXP', icon: '🏆', color: '#FBBF24', desc: 'Skin juara 1 kompetisi desain TOMAT dengan 3× kebal jawaban salah + setiap jawaban benar memberikan 70% koin & EXP lebih banyak!' }, // limited epic
 }
 
 export function getPetBonusDisplay(skinId) {
@@ -48,6 +49,7 @@ export const PET_COIN_MULT = {
   pet_nananaga:       1.50,
   pet_nananaga_merah: 1.60,
   pet_nananaga_es:    1.70,
+  pet_nananaga_champion: 1.70,
 }
 
 export const PET_EXP_MULT = {
@@ -63,6 +65,7 @@ export const PET_EXP_MULT = {
   pet_nananaga:            1.50,
   pet_nananaga_merah:      1.60,
   pet_nananaga_es:         1.70,
+  pet_nananaga_champion:   1.70,
 }
 
 // ── Wrong-immunity helpers ─────────────────────────────────────────────────────
@@ -72,6 +75,7 @@ const WRONG_IMMUNITY_MAP = {
   pet_nananaga:       1,
   pet_nananaga_merah: 2,
   pet_nananaga_es:    3,
+  pet_nananaga_champion: 3,
 }
 
 export function getWrongImmunity(skinId) {

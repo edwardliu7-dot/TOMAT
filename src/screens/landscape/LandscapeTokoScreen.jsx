@@ -48,7 +48,7 @@ const SKIN_GROUPS = [
   { id: 'tomi',     label: 'Tomi (Marmut)',   icon: '🐹', color: '#F5A623', bg: 'rgba(245,166,35,0.10)',   border: 'rgba(245,166,35,0.22)',   skins: ['pet_skin_silver','pet_skin_cosmic','pet_skin_void'] },
   { id: 'kelinsay', label: 'Kelinsay (Kelinci)', icon: '🐰', color: '#34D399', bg: 'rgba(52,211,153,0.10)',   border: 'rgba(52,211,153,0.22)',   skins: ['pet_kelinsay_senja','pet_kelinsay_malam','pet_kelinsay_merahputih'] },
   { id: 'monyong',  label: 'Monyang (Monyet)', icon: '🐒', color: '#FB923C', bg: 'rgba(251,146,60,0.10)',   border: 'rgba(251,146,60,0.22)',   skins: ['pet_monyong_raja','pet_monyong_kosmik'] },
-  { id: 'nananaga', label: 'Nananaga (Naga)',  icon: '🐲', color: '#C084FC', bg: 'rgba(192,132,252,0.12)', border: 'rgba(192,132,252,0.25)', skins: ['pet_nananaga_merah','pet_nananaga_es'] },
+  { id: 'nananaga', label: 'Nananaga (Naga)',  icon: '🐲', color: '#C084FC', bg: 'rgba(192,132,252,0.12)', border: 'rgba(192,132,252,0.25)', skins: ['pet_nananaga_merah','pet_nananaga_es','pet_nananaga_champion'] },
 ]
 
 // ── API helper ────────────────────────────────────────────────────────────────

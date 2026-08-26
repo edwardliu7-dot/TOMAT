@@ -12,7 +12,7 @@ const PET_TYPE_SKIN_KEYS = {
   kelinsay: ['pet_kelinsay', 'pet_kelinsay_senja', 'pet_kelinsay_malam', 'pet_kelinsay_merahputih'],
   monyang:  ['pet_monyong', 'pet_monyong_raja', 'pet_monyong_kosmik'],
   komodih:  ['pet_komodih'],
-  nananaga: ['pet_nananaga', 'pet_nananaga_merah', 'pet_nananaga_es'],
+  nananaga: ['pet_nananaga', 'pet_nananaga_merah', 'pet_nananaga_es', 'pet_nananaga_champion'],
 }
 
 /**
@@ -22,7 +22,7 @@ const PET_TYPE_SKIN_KEYS = {
  *   kelinsay → pet_kelinsay, pet_kelinsay_senja, pet_kelinsay_malam, pet_kelinsay_merahputih
  *   monyang  → pet_monyong, pet_monyong_raja, pet_monyong_kosmik
  *   komodih  → pet_komodih
- *   nananaga → pet_nananaga, pet_nananaga_merah, pet_nananaga_es
+ *   nananaga → pet_nananaga, pet_nananaga_merah, pet_nananaga_es, pet_nananaga_champion
  */
 export function skinToPetType(skinId) {
   if (!skinId || skinId === 'golden' || skinId.startsWith('pet_skin_')) return 'tomi'

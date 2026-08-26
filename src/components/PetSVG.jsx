@@ -33,6 +33,7 @@ export const PET_NAMES = {
   pet_nananaga:              'Nananaga',
   pet_nananaga_merah:        'Nananaga',
   pet_nananaga_es:           'Nananaga',
+  pet_nananaga_champion:     'Nananaga',
   pet_komodih:               'KomoDIH',
 }
 

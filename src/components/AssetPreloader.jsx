@@ -15,6 +15,7 @@ const ALL_ASSETS = [
   '/monyang-sprite.png',
   '/monyang-raja.png',
   '/nananaga-sprite.png',
+  '/nananaga champion.png',
   '/kelinsay-sprite.png',
   '/kelinsay-malam.png',
   '/kelinsay-senja.png',

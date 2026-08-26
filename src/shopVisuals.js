@@ -141,6 +141,12 @@ export const PET_SKIN_INFO = {
     story: 'Penguasa puncak gunung tertinggi yang diselimuti salju abadi. Hembusan napas es milik Nananaga mampu membekukan ancaman dalam sekejap.',
     glow: 'rgba(56,189,248,0.60)', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga', rarity: 'epic',
   },
+  pet_nananaga_champion: {
+    nama: 'Nananaga Champion', tier: 'EPIC', tierColor: '#FBBF24',
+    desc: 'Skin edisi juara 1 kompetisi desain skin TOMAT. Memberikan 3× kebal jawaban salah saat duel, turnamen, atau survival.',
+    story: 'Karya istimewa dari juara 1 kompetisi desain skin TOMAT—Nananaga Champion hadir sebagai lambang kreativitas, keberanian, dan semangat untuk terus menaklukkan tantangan.',
+    glow: 'rgba(251,191,36,0.68)', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga', rarity: 'epic',
+  },
 
   // ── SEASONAL EVENT SKINS ─────────────────────────────────────────────────
   pet_kelinsay_merahputih: {
