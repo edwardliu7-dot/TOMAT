@@ -1,4 +1,5 @@
 import { pool, MIGRATION_FORBIDDEN_TABLES, assertNoForbiddenTables } from './db.js'
+import { CHAMPION_SKIN_ID, CHAMPION_SKIN_PRICE, FREE_CHAMPION_ACCOUNT_KEYS } from './champion-skin.js'
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ⛔  MIGRATION PREVENTION — LAPISAN 2 (schema-level early-check)
@@ -399,7 +400,7 @@ export async function ensureSchema() {
       tier: 'epic', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
       desc: 'Naga es dari puncak gunung beku. Napasnya membekukan segalanya, matanya biru seperti samudra arktik.'
     }, 13],
-    ['pet_nananaga_champion', 'pet_skin', 'Nananaga Champion', 25000, {
+    [CHAMPION_SKIN_ID, 'pet_skin', 'Nananaga Champion', CHAMPION_SKIN_PRICE, {
       tier: 'epic', baseAnimal: 'naga', prerequisitePetId: 'pet_nananaga',
       limited: true, edition: 'CHAMPION DESIGN',
       image: '/nananaga champion.png',
@@ -463,6 +464,21 @@ export async function ensureSchema() {
       [id, kategori, nama, harga, JSON.stringify(visual), sortOrder]
     )
   }
+
+  // Grant the competition-winner skin to the named accounts on every startup.
+  // The insert is idempotent and also covers accounts created in the shared BLP
+  // database after the first TOMAT deployment.
+  const championAccountKeys = [...FREE_CHAMPION_ACCOUNT_KEYS]
+  await pool.query(
+    `insert into student_inventory (student_id, item_id)
+     select id, $1
+     from students
+     where lower(username) = any($2::text[])
+        or lower(name) = any($2::text[])
+        or lower(id) = any($2::text[])
+     on conflict (student_id, item_id) do nothing`,
+    [CHAMPION_SKIN_ID, championAccountKeys]
+  )
 
   // Internal showcase account: teachers can use it to preview the complete
   // luxury catalog, while student-facing queries filter it by this flag.

@@ -94,7 +94,8 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip }) {
   const prerequisiteOwned = !info.prerequisitePetId || data.ownedItemIds.includes(info.prerequisitePetId)
   const equipped = equippedSkin === skinId
   const shopItem = data.items.find(it => it.id === skinId)
-  const affordable = skinId === 'golden' || (shopItem && data.coins >= shopItem.harga)
+  const freeForAccount = shopItem?.visual?.freeForCurrentAccount === true
+  const affordable = skinId === 'golden' || freeForAccount || (shopItem && data.coins >= shopItem.harga)
   const canBuy = prerequisiteOwned && affordable
   const busy = busyId === skinId
   const isEpic = info.rarity === 'epic'
@@ -128,7 +129,7 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip }) {
         <button onClick={() => onBuyEquip(skinId)} disabled={busy} style={{ width:'100%', padding:'7px', borderRadius:9, background:'#334155', color:'#fff', border:'none', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>{busy?'…':'Pakai'}</button>
       ) : (
         <button onClick={() => onBuyEquip(skinId)} disabled={!canBuy||busy} title={!prerequisiteOwned?`Miliki ${PET_SKIN_INFO[info.prerequisitePetId]?.nama||'pet dasar'} dulu`:undefined} style={{ width:'100%', padding:'7px', borderRadius:9, border:'none', fontSize:10, fontWeight:700, cursor:canBuy?'pointer':'not-allowed', fontFamily:'inherit', background:canBuy?'#6366F1':'rgba(248,113,113,0.15)', color:canBuy?'#fff':'#F87171' }}>
-          {busy?'…':!prerequisiteOwned?'🔒 Miliki pet dulu':canBuy?`Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`:`🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
+          {busy?'…':!prerequisiteOwned?'🔒 Miliki pet dulu':canBuy?freeForAccount?'Gratis':`Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`:`🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
         </button>
       )}
     </div>

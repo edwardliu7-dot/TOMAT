@@ -1,6 +1,7 @@
 import express from 'express'
 import { pool } from './db.js'
 import { requireAuth, requireRole } from './auth.js'
+import { CHAMPION_SKIN_ID, CHAMPION_SKIN_PRICE, isChampionFreeAccount } from './champion-skin.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('siswa'))
@@ -17,6 +18,7 @@ const EQUIP_COLUMN = {
 // owned items, and currently equipped item per category.
 router.get('/', async (req, res) => {
   try {
+    const championIsFree = isChampionFreeAccount(req.session.user)
     const [itemsRes, ownedRes, studentRes] = await Promise.all([
       pool.query('select * from shop_items order by kategori, sort_order'),
       pool.query('select item_id from student_inventory where student_id = $1', [req.session.user.id]),
@@ -30,8 +32,18 @@ router.get('/', async (req, res) => {
     if (!student) return res.status(404).json({ error: 'Siswa tidak ditemukan.' })
     const { getActiveEvents } = await import('./seasonal-events.js')
     const activeEvents = getActiveEvents()
+    const items = itemsRes.rows.map(item => {
+      if (item.id !== CHAMPION_SKIN_ID) return item
+      return {
+        ...item,
+        harga: championIsFree ? 0 : CHAMPION_SKIN_PRICE,
+        visual: championIsFree
+          ? { ...item.visual, freeForCurrentAccount: true }
+          : item.visual,
+      }
+    })
     res.json({
-      items: itemsRes.rows,
+      items,
       ownedItemIds: ownedRes.rows.map(r => r.item_id),
       coins: student.coins,
       equipped: {
@@ -41,6 +53,7 @@ router.get('/', async (req, res) => {
         stiker:    student.equipped_stiker,
         pet_skin:  student.equipped_pet_skin,
       },
+      freeChampionSkin: championIsFree,
       activeEvents: activeEvents.map(ev => ev.slug),
     })
   } catch (err) {
@@ -100,11 +113,13 @@ router.post('/beli', async (req, res) => {
       [req.session.user.id]
     )
     const student = studentRows[0]
-    if (!student || student.coins < item.harga) {
+    const championIsFree = item.id === CHAMPION_SKIN_ID && isChampionFreeAccount(req.session.user)
+    const price = championIsFree ? 0 : item.id === CHAMPION_SKIN_ID ? CHAMPION_SKIN_PRICE : item.harga
+    if (!student || student.coins < price) {
       await client.query('rollback')
       return res.status(402).json({ error: 'Koin tidak cukup untuk membeli item ini.' })
     }
-    await client.query('update students set coins = coins - $2 where id = $1', [req.session.user.id, item.harga])
+    await client.query('update students set coins = coins - $2 where id = $1', [req.session.user.id, price])
     await client.query(
       'insert into student_inventory (student_id, item_id) values ($1, $2)',
       [req.session.user.id, itemId]

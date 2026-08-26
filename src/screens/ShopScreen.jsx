@@ -181,7 +181,8 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
   const prerequisiteOwned = !info.prerequisitePetId || data.ownedItemIds.includes(info.prerequisitePetId)
   const equipped = equippedSkin === skinId
   const shopItem = data.items.find(it => it.id === skinId)
-  const affordable = skinId === 'golden' || (shopItem && data.coins >= shopItem.harga)
+  const freeForAccount = shopItem?.visual?.freeForCurrentAccount === true
+  const affordable = skinId === 'golden' || freeForAccount || (shopItem && data.coins >= shopItem.harga)
   const canBuy = prerequisiteOwned && affordable
   const busy = busyId === skinId
   const isEpic = info.rarity === 'epic'
@@ -236,7 +237,7 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
               <button onClick={() => onBuyEquip(skinId)} disabled={busy} style={{ padding: '8px 20px', borderRadius: 10, background: '#334155', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{busy ? '…' : 'Pakai'}</button>
             ) : (
               <button onClick={() => onBuyEquip(skinId)} disabled={!canBuy || busy} title={!prerequisiteOwned ? `Miliki ${PET_SKIN_INFO[info.prerequisitePetId]?.nama || 'pet dasar'} terlebih dahulu` : undefined} style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: canBuy ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: canBuy ? `linear-gradient(135deg,${info.tierColor},${info.tierColor}cc)` : 'rgba(248,113,113,0.15)', color: canBuy ? (info.tierColor === '#34D399' ? '#000' : '#fff') : '#F87171' }}>
-                {busy ? '…' : !prerequisiteOwned ? `🔒 Miliki ${PET_SKIN_INFO[info.prerequisitePetId]?.nama || 'pet dasar'} dulu` : canBuy ? `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
+                {busy ? '…' : !prerequisiteOwned ? `🔒 Miliki ${PET_SKIN_INFO[info.prerequisitePetId]?.nama || 'pet dasar'} dulu` : canBuy ? freeForAccount ? 'Gratis' : `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
               </button>
             )}
           </div>
@@ -249,7 +250,7 @@ function PetCard({ skinId, data, equippedSkin, busyId, onBuyEquip, wide = false 
           <button onClick={() => onBuyEquip(skinId)} disabled={busy} style={{ width: '100%', padding: '8px', borderRadius: 10, background: '#334155', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{busy ? '…' : 'Pakai'}</button>
         ) : (
           <button onClick={() => onBuyEquip(skinId)} disabled={!canBuy || busy} title={!prerequisiteOwned ? `Miliki ${PET_SKIN_INFO[info.prerequisitePetId]?.nama || 'pet dasar'} terlebih dahulu` : undefined} style={{ width: '100%', padding: '8px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: canBuy ? 'pointer' : 'not-allowed', fontFamily: 'inherit', background: canBuy ? '#6366F1' : 'rgba(248,113,113,0.15)', color: canBuy ? '#fff' : '#F87171' }}>
-            {busy ? '…' : !prerequisiteOwned ? `🔒 Miliki ${PET_SKIN_INFO[info.prerequisitePetId]?.nama || 'pet dasar'} dulu` : canBuy ? `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
+            {busy ? '…' : !prerequisiteOwned ? `🔒 Miliki ${PET_SKIN_INFO[info.prerequisitePetId]?.nama || 'pet dasar'} dulu` : canBuy ? freeForAccount ? 'Gratis' : `Beli 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}` : `🔒 🪙 ${shopItem?.harga?.toLocaleString('id-ID')}`}
           </button>
         )
       )}
