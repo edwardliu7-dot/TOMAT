@@ -8,8 +8,8 @@ import AudioPanel from './AudioPanel'
 const SAFE_SCREENS = new Set([
   'home', 'grade7', 'grade8', 'grade9',
   'grades', 'papanperingkat', 'toko', 'lencana',
-  'komunikasi', 'profile',
-  'guruDashboard', 'guruHafalan',
+  'komunikasi', 'profile', 'bug-report',
+  'guruDashboard', 'guru-dashboard', 'guruHafalan',
 ])
 
 function getZoneKey(user) {
@@ -123,6 +123,10 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
   const navItems = isGuru ? (user.hasMateriTerdaftar ? GURU_NAV_FULL : GURU_NAV_READONLY) : SISWA_NAV(zoneKey)
 
   const handleNav = (key) => {
+    if (key === 'bug-report') {
+      navigate(key)
+      return
+    }
     // Guru tab items dispatch custom events; main screens use navigate
     if (isGuru) {
       setActiveGuruKey(key)
@@ -196,6 +200,11 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
             onClick={handleNav}
           />
         )}
+        <NavItem
+          item={{ key: 'bug-report', emoji: '🐞', label: 'Laporkan Bug' }}
+          isActive={currentScreen === 'bug-report'}
+          onClick={handleNav}
+        />
         {/* Audio panel */}
         <AudioPanel
           placement="up-left"

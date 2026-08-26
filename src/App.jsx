@@ -40,6 +40,7 @@ import { DUEL_GAME_KEYS } from './gamesCatalog'
 import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 import TentangScreen from './screens/TentangScreen'
+import BugReportScreen from './screens/BugReportScreen'
 import MobaScreen from './features/moba/MobaScreen.jsx'
 import MobaLobbyScreen from './features/moba/MobaLobbyScreen.jsx'
 import OtaUpdateBanner from './components/OtaUpdateBanner'
@@ -571,6 +572,7 @@ const SCREEN_TITLES = {
   grades: 'Nilai & Tugas',
   komunikasi: 'Chat',
   profile: 'Profil',
+  'bug-report': 'Laporkan Bug',
   hafalan: 'Hafalan Interaktif',
   'latihan-ujian': 'Latihan Ujian',
   'video-materi': 'Video Materi',
@@ -1050,6 +1052,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       return <ProfileScreen goBack={goBack} navigate={navigate} />
     }
 
+    if (current === 'bug-report') {
+      return <BugReportScreen goBack={goBack} />
+    }
+
     if (current === 'tentang') {
       return <TentangScreen goBack={goBack} />
     }
@@ -1328,6 +1334,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 export default function App() {
   const { user, logout, checking } = useAuth()
   const [guruPracticeMode, setGuruPracticeMode] = useState(false)
+  const [guruBugReportOpen, setGuruBugReportOpen] = useState(false)
   const [guruIframeApp, setGuruIframeApp] = useState(null)
   const openGuruIframeApp = useCallback(({ src, title }) => setGuruIframeApp({ src, title }), [])
   const {
@@ -1379,15 +1386,18 @@ export default function App() {
 
     const guruNavigate = (key) => {
       if (key === 'guruMengajar') { setGuruPracticeMode(true); return }
+      if (key === 'bug-report') { setGuruBugReportOpen(true); return }
       window.dispatchEvent(new CustomEvent('tomat:guru-nav', { detail: { key } }))
     }
 
     return (
       <>
-        <AppShell user={user} navigate={guruNavigate} currentScreen="guru-dashboard" onLogout={logout} onSwitchModule={() => {}} onOpenApp={openGuruIframeApp}>
+        <AppShell user={user} navigate={guruNavigate} currentScreen={guruBugReportOpen ? 'bug-report' : 'guru-dashboard'} onLogout={logout} onSwitchModule={() => {}} onOpenApp={openGuruIframeApp}>
           <div style={{ width: '100%', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
             <ErrorBoundary onReset={() => {}}>
-              <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />
+              {guruBugReportOpen
+                ? <BugReportScreen goBack={() => setGuruBugReportOpen(false)} />
+                : <GuruDashboardScreen onPlayGames={() => setGuruPracticeMode(true)} />}
             </ErrorBoundary>
           </div>
         </AppShell>

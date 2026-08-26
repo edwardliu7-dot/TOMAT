@@ -1225,6 +1225,32 @@ export async function ensureSchema() {
   await pool.query(`ALTER TABLE point_records ADD COLUMN IF NOT EXISTS guru_id text`)
   await pool.query(`ALTER TABLE notifications ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'tomat'`)
 
+  // Laporan bug pengguna TOMAT. Tidak memakai foreign key karena reporter bisa
+  // berasal dari tabel students maupun gurus.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bug_reports (
+      id            SERIAL PRIMARY KEY,
+      reporter_id   TEXT NOT NULL,
+      reporter_role VARCHAR(10) NOT NULL CHECK (reporter_role IN ('siswa', 'guru')),
+      category      VARCHAR(30) NOT NULL,
+      title         VARCHAR(120) NOT NULL,
+      description   TEXT NOT NULL,
+      screen        VARCHAR(120),
+      device_info   VARCHAR(160),
+      severity      VARCHAR(10) NOT NULL DEFAULT 'sedang'
+                    CHECK (severity IN ('rendah', 'sedang', 'tinggi')),
+      status        VARCHAR(20) NOT NULL DEFAULT 'baru'
+                    CHECK (status IN ('baru', 'diproses', 'selesai', 'ditolak')),
+      admin_note    TEXT,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS bug_reports_reporter_idx
+      ON bug_reports (reporter_id, reporter_role, created_at DESC)
+  `)
+
   // MOBA results are durable, while the realtime match registry remains
   // in-memory. match_id is the settlement idempotency key for rewards.
   await pool.query(`

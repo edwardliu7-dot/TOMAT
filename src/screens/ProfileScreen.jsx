@@ -242,7 +242,7 @@ function MobaHistory() {
   return <MobaHistorySection history={history} loading={loading} error={error} showReward />
 }
 
-export default function ProfileScreen({ goBack }) {
+export default function ProfileScreen({ goBack, navigate }) {
   const { user, updateProfile, logout } = useAuth()
   const playerCtx = usePlayer()
   const player = playerCtx?.player ?? null
@@ -455,16 +455,28 @@ export default function ProfileScreen({ goBack }) {
             onBack={goBack}
             accentColor="#818CF8"
             rightElement={(
-              <button
-                onClick={logout}
-                title="Keluar"
-                style={{
-                  border: '1px solid rgba(248,113,113,0.22)', borderRadius: 10,
-                  background: 'rgba(248,113,113,0.08)', color: '#FCA5A5',
-                  padding: '8px 11px', cursor: 'pointer', fontFamily: 'inherit',
-                  fontSize: 11, fontWeight: 800,
-                }}
-              >Keluar</button>
+              <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
+                <button
+                  onClick={() => navigate?.('bug-report')}
+                  title="Laporkan Bug"
+                  style={{
+                    border: '1px solid rgba(249,115,22,0.3)', borderRadius: 10,
+                    background: 'rgba(249,115,22,0.1)', color: '#FDBA74',
+                    padding: '8px 10px', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 11, fontWeight: 800,
+                  }}
+                >🐞 <span className="profile-report-label">Aduan</span></button>
+                <button
+                  onClick={logout}
+                  title="Keluar"
+                  style={{
+                    border: '1px solid rgba(248,113,113,0.22)', borderRadius: 10,
+                    background: 'rgba(248,113,113,0.08)', color: '#FCA5A5',
+                    padding: '8px 11px', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 11, fontWeight: 800,
+                  }}
+                >Keluar</button>
+              </div>
             )}
           />
         </div>
