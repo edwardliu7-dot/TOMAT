@@ -481,6 +481,7 @@ const GAME_ROUTES = {
   g9interseksi:       { name: 'Interseksi Radar Sinyal',      emoji: '📡', Component: React.lazy(() => import('./minigames/G9InterseksiGame')) },
   g9konsol:           { name: 'Dekripsi Konsol Komputer',     emoji: '💻', Component: React.lazy(() => import('./minigames/G9KonsolGame')) },
   g9pasargalaksi:     { name: 'Barter Di Pasar Galaksi',      emoji: '👽', Component: React.lazy(() => import('./minigames/G9PasarGalaksiGame')) },
+  g9balancelab:       { name: 'BalanceLab: SPLDV Visual',     emoji: '⚖️', Component: React.lazy(() => import('./minigames/BalanceLabSPLDVGame')) },
   g9kalibrasirada:    { name: 'Kalibrasi Jangkauan Radar',    emoji: '🎯', Component: React.lazy(() => import('./minigames/G9KalibrasiRadaGame')) },
   g9orbit:            { name: 'Kalkulasi Orbit Satelit',      emoji: '🛰️', Component: React.lazy(() => import('./minigames/G9OrbitGame')) },
   g9shieldgaya:       { name: 'Medan Gaya Shield Pelindung',  emoji: '🛡️', Component: React.lazy(() => import('./minigames/G9ShieldGayaGame')) },
