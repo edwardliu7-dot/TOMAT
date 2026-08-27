@@ -9,6 +9,7 @@ const SAFE_SCREENS = new Set([
   'home', 'grade7', 'grade8', 'grade9',
   'grades', 'papanperingkat', 'toko', 'lencana',
   'komunikasi', 'profile', 'bug-report',
+  'balance-lab',
   'guruDashboard', 'guru-dashboard', 'guruHafalan',
 ])
 
@@ -27,6 +28,7 @@ const SISWA_NAV = (zoneKey) => [
   { key: 'toko',          emoji: '/toko.png',    label: 'Toko' },
   { key: 'lencana',       emoji: '/lencana.png', label: 'Lencana' },
   { key: 'komunikasi',    emoji: '💬',           label: 'Chat' },
+  { key: 'balance-lab',   emoji: '⚖️',           label: 'Alat Hitung' },
 ]
 
 // Full nav for guru mapel terdaftar (jabatan=guru_mapel + has subjects entry)

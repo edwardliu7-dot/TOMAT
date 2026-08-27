@@ -41,6 +41,7 @@ import { useAppUpdateCheck } from './hooks/useAppUpdateCheck'
 import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 import TentangScreen from './screens/TentangScreen'
 import BugReportScreen from './screens/BugReportScreen'
+import BalanceLabScreen from './screens/BalanceLabScreen'
 import MobaScreen from './features/moba/MobaScreen.jsx'
 import MobaLobbyScreen from './features/moba/MobaLobbyScreen.jsx'
 import OtaUpdateBanner from './components/OtaUpdateBanner'
@@ -481,7 +482,6 @@ const GAME_ROUTES = {
   g9interseksi:       { name: 'Interseksi Radar Sinyal',      emoji: '📡', Component: React.lazy(() => import('./minigames/G9InterseksiGame')) },
   g9konsol:           { name: 'Dekripsi Konsol Komputer',     emoji: '💻', Component: React.lazy(() => import('./minigames/G9KonsolGame')) },
   g9pasargalaksi:     { name: 'Barter Di Pasar Galaksi',      emoji: '👽', Component: React.lazy(() => import('./minigames/G9PasarGalaksiGame')) },
-  g9balancelab:       { name: 'BalanceLab: SPLDV Visual',     emoji: '⚖️', Component: React.lazy(() => import('./minigames/BalanceLabSPLDVGame')) },
   g9kalibrasirada:    { name: 'Kalibrasi Jangkauan Radar',    emoji: '🎯', Component: React.lazy(() => import('./minigames/G9KalibrasiRadaGame')) },
   g9orbit:            { name: 'Kalkulasi Orbit Satelit',      emoji: '🛰️', Component: React.lazy(() => import('./minigames/G9OrbitGame')) },
   g9shieldgaya:       { name: 'Medan Gaya Shield Pelindung',  emoji: '🛡️', Component: React.lazy(() => import('./minigames/G9ShieldGayaGame')) },
@@ -577,6 +577,7 @@ const SCREEN_TITLES = {
   hafalan: 'Hafalan Interaktif',
   'latihan-ujian': 'Latihan Ujian',
   'video-materi': 'Video Materi',
+  'balance-lab': 'Alat Hitung SPLDV',
   modeselect: 'Pilih Mode',
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
@@ -1083,6 +1084,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (current === 'video-materi') {
       return <VideoMateriScreen goBack={goBack} />
+    }
+
+    if (current === 'balance-lab') {
+      return <BalanceLabScreen goBack={goBack} />
     }
 
     if (current === 'komunikasi') {

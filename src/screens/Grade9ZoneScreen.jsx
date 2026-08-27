@@ -27,7 +27,6 @@ const BABS = [
       { key: 'g9interseksi',   emoji: '📡', title: 'Interseksi Radar Sinyal',   desc: 'Gabungkan dua persamaan radar untuk menemukan satu titik potong (x,y) kapal induk musuh.' },
       { key: 'g9konsol',       emoji: '💻', title: 'Dekripsi Konsol Komputer',  desc: 'Pilih metode eliminasi atau substitusi untuk memecahkan SPLDV dan meretas kode pertahanan musuh.' },
       { key: 'g9pasargalaksi', emoji: '👽', title: 'Barter Di Pasar Galaksi',   desc: 'Hitung harga satuan 1 Tiket Warp dan 1 Botol Oksigen dari paket kombinasi pedagang antariksa.' },
-      { key: 'g9balancelab',   emoji: '⚖️', title: 'BalanceLab: SPLDV Visual',  desc: 'Geser benda di atas timbangan, tukar kesetaraan, dan eliminasi variabel secara visual untuk menemukan solusi SPLDV.' },
     ],
   },
   {
@@ -115,7 +114,7 @@ export default function Grade9ZoneScreen({ navigate, goBack }) {
         <TopBar title="🚀 Zona Komandan Antariksa" onBack={goBack} accentColor={ACCENT} />
         <div style={{ padding: '8px 16px 40px', maxWidth: 'var(--content-max)', margin: '0 auto' }}>
           <BossAlert />
-          <div style={{ fontSize: 12, color: ACCENT, fontWeight: 600, marginBottom: 4 }}>KELAS 9 · 18 MISI</div>
+          <div style={{ fontSize: 12, color: ACCENT, fontWeight: 600, marginBottom: 4 }}>KELAS 9 · 17 MISI</div>
           <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 4 }}>Pilih misi dan selesaikan tantangan matematika!</div>
           <VideoMateriPanel grade={9} subject="matematika" selectedBab={selectedBab} accent={ACCENT} />
           {BABS.map(bab => (
@@ -148,7 +147,7 @@ export default function Grade9ZoneScreen({ navigate, goBack }) {
       <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', padding: '16px var(--page-pad) 40px' }}>
         <BossAlert />
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12, color: ACCENT, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>KELAS 9 · 18 MISI</div>
+          <div style={{ fontSize: 12, color: ACCENT, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase' }}>KELAS 9 · 17 MISI</div>
           <div style={{ fontSize: 13, color: '#94A3B8', marginTop: 2 }}>Pilih misi dan selesaikan tantangan matematika!</div>
           <VideoMateriPanel grade={9} subject="matematika" selectedBab={selectedBab} accent={ACCENT} />
         </div>
@@ -158,7 +157,7 @@ export default function Grade9ZoneScreen({ navigate, goBack }) {
           <div style={{ width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <button onClick={() => setSelectedBab(null)} style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', background: selectedBab === null ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.04)', borderLeft: `3px solid ${selectedBab === null ? ACCENT : 'transparent'}`, color: selectedBab === null ? '#fff' : '#94A3B8' }}>
               <div style={{ fontSize: 13, fontWeight: 800 }}>Semua Bab</div>
-              <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>18 misi</div>
+              <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>17 misi</div>
             </button>
             {BABS.map(bab => {
               const isActive = selectedBab === bab.id

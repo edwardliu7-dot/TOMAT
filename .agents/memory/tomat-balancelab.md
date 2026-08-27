@@ -3,8 +3,8 @@ name: TOMAT BalanceLab SPLDV
 description: Batasan mode multiplayer dan arah pembelajaran untuk game BalanceLab visual.
 ---
 
-BalanceLab: SPLDV Visual adalah latihan single-player untuk Kelas 9 BAB I. Mode Substitusi dan Eliminasi berjalan sebagai simulasi timbangan lokal; game ini belum didaftarkan sebagai game duel atau turnamen.
+BalanceLab: SPLDV Visual adalah alat hitung SPLDV mandiri yang dapat dipakai lintas kelas. Mode Visual, Substitusi, dan Eliminasi berjalan sebagai simulasi timbangan lokal; fitur ini bukan misi atau game.
 
-**Why:** generator soal dan alur visual BalanceLab belum memiliki kontrak soal server-authoritative untuk multiplayer, sehingga memasukkannya ke arena/tournament dapat membuat hasil tidak konsisten.
+**Why:** pengguna menginginkan BalanceLab sebagai alat bantu menghitung, bukan aktivitas permainan dengan soal acak, reward, atau progres siswa.
 
-**How to apply:** pertahankan BalanceLab di katalog/rute game individu. Jika multiplayer diminta, rancang generator soal server dan kontrak scoring terlebih dahulu sebelum menambahkannya ke daftar duel atau turnamen.
+**How to apply:** tampilkan BalanceLab dari akses cepat dan navigasi umum. Jangan menambahkannya ke katalog misi, alur tugas, arena, atau turnamen tanpa keputusan produk baru.

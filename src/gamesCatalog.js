@@ -47,7 +47,6 @@ export const GAMES_CATALOG = [
   { key: 'g9interseksi',   name: 'Interseksi Radar Sinyal',       emoji: '📡',  bab: 'I',   grade: 9, subject: 'matematika' },
   { key: 'g9konsol',       name: 'Dekripsi Konsol Komputer',      emoji: '💻',  bab: 'I',   grade: 9, subject: 'matematika' },
   { key: 'g9pasargalaksi', name: 'Barter Di Pasar Galaksi',       emoji: '👽',  bab: 'I',   grade: 9, subject: 'matematika' },
-  { key: 'g9balancelab',   name: 'BalanceLab: SPLDV Visual',      emoji: '⚖️',  bab: 'I',   grade: 9, subject: 'matematika' },
   // Grade 9 — Matematika — BAB II: Lingkaran
   { key: 'g9kalibrasirada',name: 'Kalibrasi Jangkauan Radar',     emoji: '🎯',  bab: 'II',  grade: 9, subject: 'matematika' },
   { key: 'g9orbit',        name: 'Kalkulasi Orbit Satelit',       emoji: '🛰️',  bab: 'II',  grade: 9, subject: 'matematika' },

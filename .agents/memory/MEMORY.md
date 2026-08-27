@@ -65,4 +65,4 @@
 - [TOMAT MOBA base scoring](tomat-moba-base-scoring.md) — angka base berasal dari setoran ke library; setiap box penuh memberi bonus 50 poin tanpa menambah skor match.
 - [TOMAT OTA readiness](tomat-ota-status.md) — OTA updater plugin belum terpasang; perubahan asset client APK masih memerlukan rebuild native sampai plugin benar-benar dikonfigurasi.
 - [TOMAT APK YouTube embed](tomat-apk-youtube-embed.md) — iframe YouTube di Capacitor memerlukan JavaScript, DOM storage, dan third-party cookies WebView; URL player native memakai host YouTube reguler.
-- [TOMAT BalanceLab SPLDV](tomat-balancelab.md) — BalanceLab adalah game single-player visual untuk Kelas 9 BAB I; belum menjadi game duel atau turnamen.
+- [TOMAT BalanceLab SPLDV](tomat-balancelab.md) — BalanceLab adalah alat hitung SPLDV visual mandiri; bukan misi, reward, duel, atau turnamen.
