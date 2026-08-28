@@ -8,7 +8,7 @@
  * bisa membaca URL produksi.
  */
 
-const PROD = 'https://y4e6icv3cej4ax65idvhusde.157.10.161.229.sslip.io'
+const PROD = 'https://smartisa.157.10.161.229.sslip.io'
 
 export function applyNativePatch() {
   if (!window.Capacitor) return // hanya aktif di APK
