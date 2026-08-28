@@ -22,7 +22,8 @@ const SKIN_SPRITE = {
   pet_nananaga:           '/nananaga-sprite.png',
   pet_nananaga_merah:     '/nananaga-api.png',
   pet_nananaga_es:        '/nananaga-es.png',
-  pet_nananaga_champion:  '/nananaga champion.png',
+  // Encode the space because this path is used inside CSS url(...), not an img src.
+  pet_nananaga_champion:  '/nananaga%20champion.png',
 }
 
 const _injected = new Set()
