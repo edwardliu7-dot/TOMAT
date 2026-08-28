@@ -29,8 +29,31 @@ function getYoutubePlayerUrl(videoId) {
   return `https://${host}/embed/${encodeURIComponent(videoId)}?${params.toString()}`
 }
 
+function getYoutubeVideoId(video) {
+  const value = video?.youtubeVideoId || video?.youtube_video_id
+  if (typeof value === 'string' && /^[A-Za-z0-9_-]{11}$/.test(value)) return value
+
+  const rawUrl = video?.youtubeUrl || video?.youtube_url
+  if (typeof rawUrl !== 'string') return null
+  try {
+    const url = new URL(rawUrl.trim())
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, '')
+    let id = ''
+    if (hostname === 'youtu.be') {
+      id = url.pathname.split('/').filter(Boolean)[0] || ''
+    } else if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
+      if (url.pathname === '/watch') id = url.searchParams.get('v') || ''
+      else if (/^\/(embed|shorts|live)\//.test(url.pathname)) id = url.pathname.split('/')[2] || ''
+    }
+    return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null
+  } catch {
+    return null
+  }
+}
+
 function VideoFrame({ video, compact = false }) {
-  if (!video?.youtubeVideoId) return null
+  const videoId = getYoutubeVideoId(video)
+  if (!videoId) return null
   return (
     <div style={{
       position: 'relative', width: '100%', aspectRatio: '16 / 9',
@@ -39,7 +62,7 @@ function VideoFrame({ video, compact = false }) {
     }}>
       <iframe
         title={video.title}
-        src={getYoutubePlayerUrl(video.youtubeVideoId)}
+        src={getYoutubePlayerUrl(videoId)}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         referrerPolicy="strict-origin-when-cross-origin"
@@ -67,7 +90,10 @@ export default function VideoMateriPanel({ grade, subject, selectedBab = null, a
       })
       .then(data => {
         if (!mounted) return
-        const next = data.videos || []
+        const next = (data.videos || []).map(video => ({
+          ...video,
+          youtubeVideoId: getYoutubeVideoId(video),
+        })).filter(video => video.youtubeVideoId)
         setVideos(next)
         setActiveId(current => next.some(video => video.id === current) ? current : next[0]?.id || null)
       })
@@ -134,7 +160,7 @@ export default function VideoMateriPanel({ grade, subject, selectedBab = null, a
           <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 4 }}>{activeVideo.description}</div>
         )}
         <a
-          href={`https://www.youtube.com/watch?v=${encodeURIComponent(activeVideo.youtubeVideoId)}`}
+          href={`https://www.youtube.com/watch?v=${encodeURIComponent(getYoutubeVideoId(activeVideo))}`}
           target="_blank"
           rel="noreferrer"
           style={{ display: 'inline-block', color: accent, fontSize: 11, fontWeight: 800, marginTop: 8 }}

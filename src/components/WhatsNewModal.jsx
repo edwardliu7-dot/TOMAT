@@ -5,6 +5,12 @@ const STORAGE_KEY = `tomat_seen_whats_new_v${APP_VERSION}`
 
 const CHANGES = [
   {
+    icon: '🎬',
+    title: 'Video Materi YouTube',
+    body: 'Video yang diatur guru kini tampil lebih andal untuk siswa. Link YouTube biasa, youtu.be, Shorts, Embed, dan Live dapat digunakan sesuai kelas, mata pelajaran, dan BAB.',
+    highlight: true,
+  },
+  {
     icon: '📦',
     title: 'Setoran Box & Pustaka MOBA',
     body: 'Box hanya berputar saat menerima setoran. Setelah terisi 100 poin, box selesai dan menghilang; pustaka tim kemudian terbuka dengan bonus setoran 1,5×.',

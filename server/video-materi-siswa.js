@@ -24,9 +24,12 @@ router.get('/video-materi', async (req, res) => {
 
     const { rows } = await pool.query(
       `select id, kelas, grade, subject, bab, title, description,
-              youtube_video_id, created_at
+              youtube_url, youtube_video_id, created_at
        from tomat_video_materi
-       where kelas = $1 and grade = $2 and subject = $3
+       where lower(regexp_replace(trim(kelas), '\\s+', ' ', 'g'))
+               = lower(regexp_replace(trim($1), '\\s+', ' ', 'g'))
+         and grade = $2
+         and lower(subject) = $3
        order by bab, created_at desc`,
       [kelas, grade, subject],
     )
@@ -39,6 +42,7 @@ router.get('/video-materi', async (req, res) => {
         bab: row.bab,
         title: row.title,
         description: row.description || '',
+        youtubeUrl: row.youtube_url,
         youtubeVideoId: row.youtube_video_id,
         createdAt: row.created_at,
       })),

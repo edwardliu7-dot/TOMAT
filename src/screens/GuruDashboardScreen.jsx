@@ -161,6 +161,12 @@ function VideoMateriTab({ kelasDiampu }) {
     }
   }, [form.bab, babLabels])
 
+  useEffect(() => {
+    if (!form.kelas && kelasDiampu[0]) {
+      setForm(current => ({ ...current, kelas: kelasDiampu[0] }))
+    }
+  }, [form.kelas, kelasDiampu])
+
   const updateField = (name, value) => setForm(current => ({ ...current, [name]: value }))
 
   const resetForm = () => {
