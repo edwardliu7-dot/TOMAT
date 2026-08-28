@@ -178,6 +178,15 @@ setInterval(() => {
 
 // Track online users: userId → Set<socketId>
 const userSockets = new Map()
+const onlineStudentIds = new Set()
+
+function getOnlineStudentCount() {
+  return onlineStudentIds.size
+}
+
+function broadcastStudentCount(io) {
+  io.emit('presence:student-count', { count: getOnlineStudentCount() })
+}
 
 async function canPlayStudentMode(socket, eventName) {
   if (socket.data.role !== 'siswa') return true
@@ -244,6 +253,14 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
     // Register socket for direct messaging
     if (!userSockets.has(user.id)) userSockets.set(user.id, new Set())
     userSockets.get(user.id).add(socket.id)
+    if (user.role === 'siswa') {
+      onlineStudentIds.add(user.id)
+      broadcastStudentCount(io)
+    }
+
+    socket.on('presence:request-student-count', (ack) => {
+      if (typeof ack === 'function') ack({ count: getOnlineStudentCount() })
+    })
 
     // Siswa join kelas room untuk menerima notifikasi turnamen
     if (user.role === 'siswa' && user.kelas) {
@@ -757,6 +774,10 @@ export function setupMultiplayer(httpServer, sessionMiddleware) {
       if (set) {
         set.delete(socket.id)
         if (set.size === 0) userSockets.delete(user.id)
+      }
+      if (user.role === 'siswa' && (!set || set.size === 0)) {
+        onlineStudentIds.delete(user.id)
+        broadcastStudentCount(io)
       }
       leaveAllRooms(socket, io)
     })

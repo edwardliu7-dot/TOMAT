@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { connectSocket } from '../../socket'
 
 const S = {
   root: { width:'100vw', height:'100vh', background:'#12172b', fontFamily:'system-ui,sans-serif', display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' },
@@ -13,18 +14,33 @@ const S = {
 }
 
 const MODES = [
-  { id:'duel-lobby', icon:'⚔️', title:'Duel 1v1', desc:'Tantang siswa lain head-to-head', stat:'12 online', color:'#712b13', shadow:'rgba(113,43,19,0.5)', badge:null },
+  { id:'duel-lobby', icon:'⚔️', title:'Duel 1v1', desc:'Tantang siswa lain head-to-head', color:'#712b13', shadow:'rgba(113,43,19,0.5)', badge:null },
   { id:'tournament-wait', icon:'🏆', title:'Turnamen', desc:'Kelompok vs kelompok, rebut juara kelas', stat:'1 sesi aktif', color:'#3c3489', shadow:'rgba(60,52,137,0.5)', badge:'BARU' },
   { id:'boss-raid', icon:'💀', title:'Boss Raid', desc:'Serang boss bersama seluruh kelas', stat:'Siap diserang', color:'#085041', shadow:'rgba(8,80,65,0.5)', badge:null },
   { id:'moba-lobby', icon:'🎮', title:'MOBA Arena', desc:'Battle 2D real-time dengan petmu', stat:'Beta', color:'#993556', shadow:'rgba(153,53,86,0.5)', badge:'BETA' },
 ]
 
 export default function LandscapeArena({ navigate, goBack, canUseDemoMoba }) {
-  const [onlineCount, setOnlineCount] = useState(24)
+  const [onlineCount, setOnlineCount] = useState(null)
 
   useEffect(() => {
-    const t = setInterval(() => setOnlineCount(n => n + Math.floor(Math.random()*3)-1), 8000)
-    return () => clearInterval(t)
+    const socket = connectSocket()
+    const applyCount = payload => {
+      const count = Number(payload?.count)
+      if (Number.isFinite(count) && count >= 0) setOnlineCount(Math.floor(count))
+    }
+    const requestCount = () => {
+      socket.emit('presence:request-student-count', applyCount)
+    }
+
+    socket.on('presence:student-count', applyCount)
+    socket.on('connect', requestCount)
+    if (socket.connected) requestCount()
+
+    return () => {
+      socket.off('presence:student-count', applyCount)
+      socket.off('connect', requestCount)
+    }
   }, [])
 
   const handleMode = (id) => {
@@ -42,7 +58,9 @@ export default function LandscapeArena({ navigate, goBack, canUseDemoMoba }) {
         </div>
         <div style={S.onlinePill}>
           <div style={S.onlineDot} />
-          <span style={S.onlineTxt}>{onlineCount} siswa online</span>
+          <span style={S.onlineTxt}>
+            {onlineCount == null ? 'Menghubungkan…' : `${onlineCount} siswa online`}
+          </span>
         </div>
       </div>
 
@@ -69,7 +87,11 @@ export default function LandscapeArena({ navigate, goBack, canUseDemoMoba }) {
               <div style={{ color:'rgba(242,237,227,0.65)', fontSize:10, marginTop:4, lineHeight:1.5 }}>{m.desc}</div>
               <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:8 }}>
                 <div style={{ width:5, height:5, borderRadius:'50%', background:'rgba(255,255,255,0.45)' }} />
-                <span style={{ color:'rgba(255,255,255,0.55)', fontSize:9 }}>{m.stat}</span>
+                <span style={{ color:'rgba(255,255,255,0.55)', fontSize:9 }}>
+                  {m.id === 'duel-lobby'
+                    ? (onlineCount == null ? 'Menghubungkan…' : `${onlineCount} siswa online`)
+                    : m.stat}
+                </span>
               </div>
             </div>
             <div style={{ background:'rgba(255,255,255,0.15)', borderRadius:9, padding:'9px 16px', flexShrink:0, color:'#fff', fontSize:11, fontWeight:700 }}>
