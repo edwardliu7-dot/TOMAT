@@ -47,6 +47,7 @@ import MobaLobbyScreen from './features/moba/MobaLobbyScreen.jsx'
 import OtaUpdateBanner from './components/OtaUpdateBanner'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
 import EventAnnouncementModal from './components/EventAnnouncementModal'
+import PortraitOrientationGuard from './components/PortraitOrientationGuard'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
@@ -1340,6 +1341,8 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               {dailyBonus && !guruMode && (
                 <DailyBonusModal bonus={dailyBonus} onDismiss={dismissDailyBonus} />
               )}
+              {/* Student TOMAT requires landscape on mobile; guru accounts are exempt. */}
+              <PortraitOrientationGuard enabled={!guruMode && user?.role === 'siswa'} />
               {/* Duel invite banner */}
               {duelInvite && current !== 'duel-lobby' && current !== 'duel-katak' && (
                 <DuelInviteBanner
