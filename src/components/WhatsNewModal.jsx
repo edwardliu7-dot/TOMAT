@@ -47,6 +47,7 @@ const CHANGES = [
 
 export function useWhatsNew() {
   const [open, setOpen] = useState(false)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     try {
@@ -55,6 +56,8 @@ export function useWhatsNew() {
       }
     } catch {
       /* localStorage may be blocked in some contexts */
+    } finally {
+      setReady(true)
     }
   }, [])
 
@@ -63,7 +66,7 @@ export function useWhatsNew() {
     try { localStorage.setItem(STORAGE_KEY, '1') } catch { /* ignore */ }
   }
 
-  return { open, dismiss }
+  return { open, dismiss, ready }
 }
 
 export default function WhatsNewModal({ onClose }) {

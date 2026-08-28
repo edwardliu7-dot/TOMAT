@@ -46,6 +46,7 @@ import MobaScreen from './features/moba/MobaScreen.jsx'
 import MobaLobbyScreen from './features/moba/MobaLobbyScreen.jsx'
 import OtaUpdateBanner from './components/OtaUpdateBanner'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
+import EventAnnouncementModal from './components/EventAnnouncementModal'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
@@ -751,7 +752,31 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       .catch(() => {})
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { open: whatsNewOpen, dismiss: dismissWhatsNew } = useWhatsNew()
+  const { open: whatsNewOpen, dismiss: dismissWhatsNew, ready: whatsNewReady } = useWhatsNew()
+  const [eventAnnouncement, setEventAnnouncement] = useState(null)
+  const activeAnnouncementEvent = getActiveEvents()[0] || null
+
+  // Announce the current event only after What's New has finished. The key is
+  // per event so the same announcement does not reappear on every app launch.
+  useEffect(() => {
+    if (!whatsNewReady || whatsNewOpen || guruMode || !activeAnnouncementEvent) return
+    const key = `tomat_seen_event_announcement_${activeAnnouncementEvent.slug}`
+    try {
+      if (localStorage.getItem(key)) return
+      setEventAnnouncement(activeAnnouncementEvent)
+    } catch {
+      // If storage is unavailable, still show the announcement for this session.
+      setEventAnnouncement(activeAnnouncementEvent)
+    }
+  }, [whatsNewReady, whatsNewOpen, guruMode, activeAnnouncementEvent?.slug])
+
+  const dismissEventAnnouncement = useCallback(() => {
+    if (!eventAnnouncement) return
+    try {
+      localStorage.setItem(`tomat_seen_event_announcement_${eventAnnouncement.slug}`, '1')
+    } catch { /* ignore */ }
+    setEventAnnouncement(null)
+  }, [eventAnnouncement])
 
   const [iframeApp, setIframeApp] = useState(null)
   const openIframeApp = useCallback(({ src, title }) => setIframeApp({ src, title }), [])
@@ -1299,6 +1324,17 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               {/* What's New modal — shown once per version after update */}
               {whatsNewOpen && !guruMode && (
                 <WhatsNewModal onClose={dismissWhatsNew} />
+              )}
+              {/* Active event announcement — shown after What's New */}
+              {eventAnnouncement && !whatsNewOpen && !guruMode && (
+                <EventAnnouncementModal
+                  event={eventAnnouncement}
+                  onClose={dismissEventAnnouncement}
+                  onOpenEventShop={() => {
+                    setTokoInitialTab('event')
+                    navigate('toko')
+                  }}
+                />
               )}
               {/* Daily login bonus modal — shown once per day on first login */}
               {dailyBonus && !guruMode && (
