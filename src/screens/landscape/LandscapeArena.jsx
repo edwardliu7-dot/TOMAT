@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { connectSocket } from '../../socket'
 
 const S = {
-  root: { width:'100vw', height:'100vh', background:'#12172b', fontFamily:'system-ui,sans-serif', display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' },
+  root: { width:'100%', minHeight:'100dvh', background:'#12172b', fontFamily:'system-ui,sans-serif', display:'flex', flexDirection:'column', overflowX:'hidden', overflowY:'auto', position:'relative' },
   glow: { position:'absolute', inset:0, pointerEvents:'none', background:'radial-gradient(ellipse 70% 50% at 50% 60%, rgba(113,43,19,0.14) 0%, transparent 70%)' },
   header: { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 16px 8px', borderBottom:'0.5px solid #1e2644', flexShrink:0, position:'relative', zIndex:2 },
   backBtn: { width:30, height:30, borderRadius:8, background:'#1c2340', border:'0.5px solid #313a5c', display:'flex', alignItems:'center', justifyContent:'center', color:'#c9cdd8', fontSize:15, cursor:'pointer' },
@@ -10,7 +10,7 @@ const S = {
   onlinePill: { display:'flex', alignItems:'center', gap:6 },
   onlineDot: { width:7, height:7, borderRadius:'50%', background:'#5dcaa5', boxShadow:'0 0 6px #5dcaa5' },
   onlineTxt: { color:'#5dcaa5', fontSize:10 },
-  grid: { flex:1, display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:10, padding:'10px 16px 14px', position:'relative', zIndex:2 },
+  grid: { flex:1, display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gridTemplateRows:'repeat(2,minmax(140px,1fr))', gap:10, padding:'10px 16px 14px', position:'relative', zIndex:2 },
 }
 
 const MODES = [
@@ -50,6 +50,17 @@ export default function LandscapeArena({ navigate, goBack, canUseDemoMoba }) {
 
   return (
     <div style={S.root}>
+      <style>{`
+        @media (max-width: 520px) {
+          .arena-mode-grid {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: repeat(4, minmax(112px, auto)) !important;
+          }
+          .arena-mode-grid > div {
+            min-height: 112px;
+          }
+        }
+      `}</style>
       <div style={S.glow} />
       <div style={S.header}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -64,7 +75,7 @@ export default function LandscapeArena({ navigate, goBack, canUseDemoMoba }) {
         </div>
       </div>
 
-      <div style={S.grid}>
+      <div className="arena-mode-grid" style={S.grid}>
         {MODES.map(m => (
           <div key={m.id}
             onClick={() => handleMode(m.id)}

@@ -47,11 +47,11 @@ import MobaLobbyScreen from './features/moba/MobaLobbyScreen.jsx'
 import OtaUpdateBanner from './components/OtaUpdateBanner'
 import WhatsNewModal, { useWhatsNew } from './components/WhatsNewModal'
 import EventAnnouncementModal from './components/EventAnnouncementModal'
-import PortraitOrientationGuard from './components/PortraitOrientationGuard'
 import MissionProgressToast from './components/MissionProgressToast'
 import MissionClaimNotification from './components/MissionClaimNotification'
 import { getActiveEvents } from './data/seasonalEvents'
 import { startBgm, stopBgm } from './bgm'
+import { useLandscapeMobile } from './hooks/useLandscapeMobile'
 import LandscapeArena from './screens/landscape/LandscapeArena'
 import LandscapeNilaiTugas from './screens/landscape/LandscapeNilaiTugas'
 import LandscapeLeaderboard from './screens/landscape/LandscapeLeaderboard'
@@ -635,6 +635,10 @@ function MissionBridge() {
 // teachers in "Mode Mengajar" (free-play only, used as a teaching aid in class).
 function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const { user, logout, dailyBonus, dismissDailyBonus } = useAuth()
+  // Landscape-specific screens are an enhancement for real mobile-landscape
+  // viewports, never a requirement. Portrait and desktop use the canonical
+  // responsive screens below.
+  const isLandscapeMobile = useLandscapeMobile()
   // Set data-tema on <html> so GameThemeStyles can target structural elements only.
   // During Kemerdekaan event (Jul 15–Aug 31) tema_merahputih overrides the user's
   // equipped theme automatically and reverts when the event window closes.
@@ -993,11 +997,11 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
   // Render the current screen
   const renderScreen = () => {
-    // ── Landscape screen router (ALL siswa, ALL devices) ──────────────────────
-    // Every siswa screen uses the fullscreen landscape variant regardless of
-    // device size. Games, duel/tournament, and immersive screens are excluded
-    // and fall through to the normal router below.
-    if (!guruMode && user?.role === 'siswa') {
+    // ── Landscape screen router ───────────────────────────────────────────────
+    // Only use the compact variants when the viewport is actually mobile
+    // landscape. This keeps portrait and desktop layouts on their responsive
+    // canonical screens instead of forcing a landscape presentation.
+    if (!guruMode && user?.role === 'siswa' && isLandscapeMobile) {
       const landscapeMap = {
         arena:         <LandscapeArena    navigate={navigate} goBack={goBack} canUseDemoMoba={canUseDemoMoba(user)} />,
         grades:        <LandscapeNilaiTugas navigate={navigate} goBack={goBack} />,
@@ -1341,8 +1345,6 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
               {dailyBonus && !guruMode && (
                 <DailyBonusModal bonus={dailyBonus} onDismiss={dismissDailyBonus} />
               )}
-              {/* Student TOMAT requires landscape on mobile; guru accounts are exempt. */}
-              <PortraitOrientationGuard enabled={!guruMode && user?.role === 'siswa'} />
               {/* Duel invite banner */}
               {duelInvite && current !== 'duel-lobby' && current !== 'duel-katak' && (
                 <DuelInviteBanner
