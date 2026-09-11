@@ -14,42 +14,68 @@
 
 | Lapisan | Stack |
 |---------|-------|
-| Frontend | React 18 + Vite + JSX (inline styles) |
-| Mobile | Capacitor 8 (Android APK) |
-| Backend | Node.js + Express |
-| Database | PostgreSQL via Neon (shared dengan BLP Harian) |
-| Realtime | Socket.io (Duel, Turnamen, Boss Raid) |
+| Frontend | React 18.3 + Vite 5 + JSX (Tailwind CSS 4.3) |
+| Mobile | Capacitor 8.4 (Android APK) |
+| Backend | Node.js 20+ + Express 5 |
+| Database | PostgreSQL via Neon (shared dengan BLP Harian & EOB5) |
+| Realtime | Socket.io 4.8 (Duel, Turnamen, Boss Raid) |
 | Auth | Session-based (express-session + connect-pg-simple) |
 | Push Notif | Web Push API + VAPID |
+| Document | PDF (jsPDF + pdfkit), Excel (ExcelJS), Word (docx) |
+| AI | Groq API (soal otomatis) |
 
 ---
 
 ## Struktur Direktori
 
 ```
-smartisa-web/
+TOMAT/
 ├── src/
-│   ├── screens/          # Layar utama (Home, Profile, Shop, dll.)
+│   ├── screens/          # Layar utama (Home, Profile, Shop, BLP, EOB5, dll.)
+│   │   ├── blp/          # Modul BLP Harian (rekap aktivitas belajar)
+│   │   └── eob5/         # Modul GURU (absensi, nilai, jadwal, soal AI)
 │   ├── minigames/        # 100+ game edukasi (Matematika & IPA kelas 7–9)
 │   ├── components/       # Komponen reusable (shared.jsx, AppShell, dll.)
 │   ├── App.jsx           # Router utama + state global
 │   ├── AuthContext.jsx   # Session auth
 │   ├── PlayerContext.jsx # Koin, XP, level siswa
 │   ├── PetContext.jsx    # Status pet (lapar, mati, skin)
+│   ├── version.js        # Versi app (v1.5.6)
 │   ├── nativePatch.js    # Capacitor fetch/XHR intercept ke server produksi
-│   └── version.js        # Versi app (sync dengan build.gradle)
+│   └── difficulty.js     # Sistem survival (kesulitan game)
 ├── server/               # Express API + Socket.io
 │   ├── index.js          # Entry point server
+│   ├── auth.js           # Autentikasi TOMAT
 │   ├── schema.js         # ensureSchema() — auto-migrasi saat startup
 │   ├── boss-state.js     # State Boss Raid (in-memory)
-│   └── tournament-questions.js
+│   ├── tournament-questions.js
+│   ├── blp/              # Routes & API BLP Harian
+│   │   ├── index.js
+│   │   ├── activities.js
+│   │   └── exports.js
+│   └── eob5/             # Routes & API GURU (EOB5)
+│       ├── index.js
+│       ├── absensi.js
+│       ├── nilai.js
+│       ├── jadwal.js
+│       ├── soal-ai.js
+│       └── rekap.js
+├── scripts/              # Build & deployment scripts
+│   ├── postbuild.js      # Post-build processing
+│   └── set-server-url.js # Script untuk set URL server Capacitor
 ├── android/              # Capacitor Android project
 │   └── app/src/main/
 │       ├── AndroidManifest.xml
 │       └── res/xml/network_security_config.xml
+├── artifacts/            # Sandbox & mockup environment
+│   └── mockup-sandbox/   # UI preview & testing
+├── docs/                 # Dokumentasi
+│   └── prompts-pilihan-c/ # Panduan merger BLP + EOB5 → TOMAT
 ├── ipa-prompts/          # Prompt desain game IPA (00–13)
 ├── bundles/              # Bundle OTA hasil build
-└── capacitor.config.json
+├── package.json          # Dependencies (v1.5.6)
+├── capacitor.config.json
+└── vite.config.js
 ```
 
 ---
@@ -60,6 +86,7 @@ smartisa-web/
 - **Matematika Kelas 7–9**: ±89 minigame (Bilangan, Aljabar, Geometri, Statistika, Peluang)
 - **IPA Kelas 7–9**: ±80+ minigame (Biologi, Fisika, Kimia — sistem organ, gerak, cahaya, dll.)
 - Setiap game: 10 soal diacak, reward 15 koin + 10 XP per jawaban benar
+- Sistem kesulitan adaptif dengan `useSurvival()`
 
 ### 🐾 Sistem Pet
 - 4 jenis pet: **Tomi** (marmot), **Kelinsay** (kelinci), **Monyong** (monyet), **Nananaga** (naga)
@@ -76,11 +103,20 @@ smartisa-web/
 - Forum kelas
 - Notifikasi in-app + Web Push
 
-### 🎓 Fitur Guru
-- Dashboard: kelas, nilai, absensi, jadwal
-- Tugas: assign minigame spesifik ke kelas
-- Mode Mengajar: tampilan full-screen untuk proyektor
-- Hafalan interaktif: flash card × kuis mandiri perkalian/pembagian
+### 📊 Modul BLP Harian
+- Rekap aktivitas belajar siswa per hari
+- Dashboard kelas untuk guru
+- Export laporan (PDF, Excel, Word)
+
+### 🎓 Modul GURU (EOB5)
+- **Dashboard**: kelas, nilai, absensi, jadwal, prosem, materi
+- **Absensi**: input & verifikasi absensi siswa
+- **Nilai**: input nilai, tracking progress siswa
+- **Jadwal**: manajemen jadwal pelajaran & aktivitas
+- **Soal AI**: pembuatan soal otomatis dengan Groq API
+- **Hafalan**: flash card × kuis mandiri perkalian/pembagian
+- **Rekap Pembelajaran**: laporan komprehensif per siswa/kelas
+- **Inbox**: komunikasi siswa ↔ guru
 
 ---
 
@@ -90,14 +126,20 @@ smartisa-web/
 # Install dependensi
 pnpm install
 
-# Development (web)
+# Development (web + server)
 npm run dev
 
 # Build production
 npm run build
 
 # Sync ke Android (setelah build)
-npx cap sync android
+npm run cap:sync
+
+# Buka Android Studio
+npm run cap:open
+
+# Set server URL untuk Capacitor
+npm run cap:set-url
 ```
 
 ### Environment Variables (Secrets)
@@ -153,15 +195,46 @@ APK Android dibangun dari Android Studio menggunakan `android/` project Capacito
 
 ---
 
-## Versi
+## Versi & Changelog
 
-Saat ini: **v1.4.5**
+Saat ini: **v1.5.6**
+
+### Update Terakhir (v1.5.6)
+- ✅ Upgrade React 18.3, Vite 5, Express 5
+- ✅ Tambah support export PDF/Excel/Word
+- ✅ Integrasi Groq API untuk pembuatan soal AI
+- ✅ Improve CSS dengan Tailwind 4.3
+- ✅ Tambah scripts untuk deployment Capacitor
+- ✅ Mulai integrasi modul BLP Harian
+- ✅ Mulai integrasi modul GURU (EOB5)
 
 Bump versi: edit `src/version.js` **dan** `android/app/build.gradle` secara bersamaan.  
 What's New modal tampil otomatis sekali per versi via localStorage.
 
 ---
 
+## Integrasi Modul (In Progress)
+
+Roadmap integrasi BLP Harian + EOB5 ke dalam TOMAT:
+
+| Phase | Status | File Referensi |
+|-------|--------|----------------|
+| Audit & Setup | ✅ | `docs/prompts-pilihan-c/00-audit-dan-persiapan.md` |
+| BLP Backend | 🔄 | `docs/prompts-pilihan-c/01-blp-backend.md` |
+| BLP Frontend | 🔄 | `docs/prompts-pilihan-c/02-blp-frontend.md` |
+| EOB5 Backend P.1 | 🔄 | `docs/prompts-pilihan-c/03-eob5-backend-bagian1.md` |
+| EOB5 Backend P.2 | 🔄 | `docs/prompts-pilihan-c/04-eob5-backend-bagian2.md` |
+| EOB5 Frontend P.1 | 🔄 | `docs/prompts-pilihan-c/05-eob5-frontend-bagian1.md` |
+| EOB5 Frontend P.2 | 🔄 | `docs/prompts-pilihan-c/06-eob5-frontend-bagian2.md` |
+| App Switcher | ⏳ | `docs/prompts-pilihan-c/07-app-switcher.md` |
+| OTA Update | ⏳ | `docs/prompts-pilihan-c/08-ota-update.md` |
+
+Panduan lengkap ada di `docs/prompts-pilihan-c/README.md`.
+
+---
+
 ## Tim
 
 Dikembangkan oleh **AI Studio** untuk ekosistem pendidikan SMARTISA.
+
+Last Updated: September 2026
