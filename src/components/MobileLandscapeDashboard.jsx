@@ -3,7 +3,7 @@ import PetSVG, { getPetName } from './PetSVG'
 import { UserAvatar, AppNotificationBell } from './shared'
 import SeasonalEventBanner from './SeasonalEventBanner'
 
-const BLP_URL = 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io'
+const BLP_URL = 'https://blp.app.tisaislamic.sch.id'
 
 function formatNumber(value) {
   return Number(value || 0).toLocaleString('id-ID')

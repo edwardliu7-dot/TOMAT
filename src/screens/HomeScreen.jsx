@@ -385,7 +385,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
               APLIKASI LAIN
             </div>
             <button
-              onClick={() => onOpenApp?.({ src: 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io', title: 'BLP Harian' })}
+              onClick={() => onOpenApp?.({ src: 'https://blp.app.tisaislamic.sch.id', title: 'BLP Harian' })}
               style={{
                 width: '100%', background: 'rgba(16,185,129,0.1)',
                 border: '1px solid rgba(16,185,129,0.3)', borderRadius: 12,
@@ -409,7 +409,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
               APLIKASI LAIN
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button onClick={() => onOpenApp?.({ src: 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io', title: 'BLP Harian' })} style={{
+              <button onClick={() => onOpenApp?.({ src: 'https://blp.app.tisaislamic.sch.id', title: 'BLP Harian' })} style={{
                 background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
                 borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
                 cursor: 'pointer', color: '#fff', fontFamily: 'inherit', textAlign: 'left',
@@ -421,7 +421,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
                 </div>
                 <span style={{ marginLeft: 'auto', color: '#34d399' }}>→</span>
               </button>
-              <button onClick={() => onOpenApp?.({ src: 'https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io', title: 'GURU (EOB5)' })} style={{
+              <button onClick={() => onOpenApp?.({ src: 'https://guru.app.tisaislamic.sch.id', title: 'GURU (EOB5)' })} style={{
                 background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)',
                 borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12,
                 cursor: 'pointer', color: '#fff', fontFamily: 'inherit', textAlign: 'left',

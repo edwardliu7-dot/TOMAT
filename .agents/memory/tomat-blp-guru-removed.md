@@ -7,8 +7,8 @@ description: Modul BLP Harian dan GuruEOB5 tidak lagi embedded di TOMAT; semua a
 BLP Harian dan GURU (EOB5) kini adalah aplikasi terpisah yang berjalan di URL produksi sendiri. TOMAT hanya membuka link ke sana — tidak ada screen/route/server yang embedded lagi.
 
 ## URLs
-- GURU (EOB5): `https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io`
-- BLP Harian:  `https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io`
+- GURU (EOB5): `https://guru.app.tisaislamic.sch.id`
+- BLP Harian:  `https://blp.app.tisaislamic.sch.id`
 
 ## Yang sudah dihapus
 - `server/eob5/` — semua router GuruEOB5 (33 file)

@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { openExternalUrl } from '../openExternalUrl'
 import { Browser } from '@capacitor/browser'
 
-const GURU_URL = 'https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io'
-const BLP_URL  = 'https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io'
+const GURU_URL = 'https://guru.app.tisaislamic.sch.id'
+const BLP_URL  = 'https://blp.app.tisaislamic.sch.id'
 
 function LoadingBar() {
   return (

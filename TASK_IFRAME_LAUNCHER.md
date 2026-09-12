@@ -6,8 +6,8 @@ Modul **BLP Harian** dan **GURU (EOB5)** sudah dihapus dari kodebase TOMAT karen
 Keduanya berjalan sebagai **aplikasi terpisah** di server produksi.
 
 **URL Produksi:**
-- GURU (EOB5): `https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io`
-- BLP Harian:  `https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io`
+- GURU (EOB5): `https://guru.app.tisaislamic.sch.id`
+- BLP Harian:  `https://blp.app.tisaislamic.sch.id`
 
 ## Tujuan
 Saat user menekan tombol GURU atau BLP di AppSwitcher / HomeScreen, **jangan buka tab baru**.
@@ -147,10 +147,10 @@ Ubah agar memanggil prop baru `onOpenApp`:
 // HomeScreen menerima prop onOpenApp
 export default function HomeScreen({ navigate, goBack, guruMode, onExitGuruMode, onOpenApp, ... }) {
   // Tombol BLP:
-  onClick={() => onOpenApp?.({ src: 'https://nswzqjz1...sslip.io', title: 'BLP Harian' })}
+  onClick={() => onOpenApp?.({ src: 'https://blp.app.tisaislamic.sch.id', title: 'BLP Harian' })}
 
   // Tombol GURU:
-  onClick={() => onOpenApp?.({ src: 'https://sfptjjfq...sslip.io', title: 'GURU (EOB5)' })}
+  onClick={() => onOpenApp?.({ src: 'https://guru.app.tisaislamic.sch.id', title: 'GURU (EOB5)' })}
 }
 ```
 
@@ -175,9 +175,9 @@ Di App.jsx, teruskan `onOpenApp` saat merender HomeScreen:
 
 ## URLs untuk Referensi (dari `.agents/memory/smartisa-server-urls.md`)
 ```
-GURU (EOB5): https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io
-BLP Harian:  https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io
-TOMAT:       https://y4e6icv3cej4ax65idvhusde.157.10.161.229.sslip.io
+GURU (EOB5): https://guru.app.tisaislamic.sch.id
+BLP Harian:  https://blp.app.tisaislamic.sch.id
+TOMAT:       https://smartisa.app.tisaislamic.sch.id
 ```
 
 ## File-file yang Relevan

@@ -9,7 +9,7 @@ Panduan lengkap untuk menghasilkan file APK dari aplikasi TOMAT menggunakan Capa
 APK menggunakan mode **Offline Bundle** — semua asset UI, sprite, font, arena, dan wallpaper di-bundle langsung ke dalam APK saat build. WebView **tidak** memuat asset dari server eksternal.
 
 Yang tetap memerlukan koneksi internet:
-- API gameplay (login, skor, tugas) → `https://y4e6icv3cej4ax65idvhusde.157.10.161.229.sslip.io`
+- API gameplay (login, skor, tugas) → `https://smartisa.app.tisaislamic.sch.id`
 - Socket.io multiplayer (duel, MOBA, boss raid)
 
 ---

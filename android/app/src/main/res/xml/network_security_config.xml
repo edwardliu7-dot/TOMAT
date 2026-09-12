@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Network Security Config for TOMAT
-  - Allows HTTPS to the production sslip.io server (Let's Encrypt cert — trusted by default)
+  - Allows HTTPS to the production tisaislamic.sch.id server (system-trusted certificate)
   - Allows cleartext HTTP to localhost (dev builds / Capacitor live-reload)
   - Allows cleartext HTTP to 10.x / 192.168.x RFC-1918 ranges (local dev server)
 -->
 <network-security-config>
     <!-- Production server — HTTPS only, system trust anchors are sufficient -->
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">sslip.io</domain>
+        <domain includeSubdomains="true">tisaislamic.sch.id</domain>
     </domain-config>
 
     <!-- Local development: localhost + RFC-1918 ranges may use HTTP -->

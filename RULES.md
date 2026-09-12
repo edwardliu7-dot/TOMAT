@@ -570,7 +570,7 @@ Mode permainan multiplayer 2D berbasis node soal di arena overhead-view. Format:
 ### Cara Akses dari TOMAT
 - **AppSwitcher** (tab "BLP") → `IframeAppShell` → di web: coba iframe, timeout → tampil tombol "Buka Aplikasi ↗"; di APK: Capacitor Browser (Chrome Custom Tab)
 - **HomeScreen** → kartu shortcut BLP → mekanisme sama via `onOpenApp`
-- URL produksi BLP: `https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io` (di-hardcode di `AppSwitcher.jsx` dan `IframeAppShell.jsx`)
+- URL produksi BLP: `https://blp.app.tisaislamic.sch.id` (di-hardcode di `AppSwitcher.jsx` dan `IframeAppShell.jsx`)
 
 ### Shared Database
 BLP dan TOMAT menggunakan **satu Neon database yang sama**. Tabel yang dibuat/dikelola TOMAT (`server/schema.js`) tetapi juga dipakai BLP:
@@ -595,7 +595,7 @@ Perubahan pada tabel-tabel ini (schema, kolom) **berdampak ke BLP** — koordina
 
 ### Cara Akses dari TOMAT
 - **AppSwitcher** (tab "GURU", hanya untuk role guru) → `IframeAppShell` → mekanisme sama seperti BLP
-- URL produksi GURU: `https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io` (di-hardcode di `AppSwitcher.jsx` dan `IframeAppShell.jsx`)
+- URL produksi GURU: `https://guru.app.tisaislamic.sch.id` (di-hardcode di `AppSwitcher.jsx` dan `IframeAppShell.jsx`)
 
 ### Dashboard Guru di TOMAT
 `GuruDashboardScreen.jsx` adalah layar guru **khusus TOMAT** — bukan GuruEOB5. Berisi fitur:

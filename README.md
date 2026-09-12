@@ -187,9 +187,9 @@ App di-deploy ke Coolify dengan tiga service terpisah:
 
 | Service | URL |
 |---------|-----|
-| TOMAT | `https://y4e6icv3cej4ax65idvhusde.157.10.161.229.sslip.io` |
-| BLP Harian | `https://nswzqjz1jnr821kuh3s9aji1.157.10.161.229.sslip.io` |
-| GURU (EOB5) | `https://sfptjjfqgqidt4736qzont0l.157.10.161.229.sslip.io` |
+| TOMAT | `https://smartisa.app.tisaislamic.sch.id` |
+| BLP Harian | `https://blp.app.tisaislamic.sch.id` |
+| GURU (EOB5) | `https://guru.app.tisaislamic.sch.id` |
 
 APK Android dibangun dari Android Studio menggunakan `android/` project Capacitor.
 
