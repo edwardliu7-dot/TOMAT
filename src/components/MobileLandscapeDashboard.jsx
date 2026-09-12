@@ -104,12 +104,13 @@ export default function MobileLandscapeDashboard({
     { id: 'arena',    bg: 'linear-gradient(160deg,rgba(140,53,24,0.30),rgba(113,43,19,0.30))',   shadow: 'rgba(113,43,19,0.25)', icon: '/arena.png', title: 'Arena Tanding',  sub: 'Duel · Boss · MOBA', textColor: '#faece7', subColor: '#f5c4b3', badge: 'LIVE', iconOnly: true },
   ]
 
-  // Bottom nav items — Profil replaced by BLP
+  // Bottom nav items — Profil is available from the identity header
   const NAV_ITEMS = [
     { icon: '/toko.png',    label: 'Toko',    id: 'toko' },
     { icon: '/lencana.png', label: 'Lencana', id: 'lencana' },
     { icon: '/rank.png',    label: 'Rank',    id: 'papanperingkat' },
     { icon: '/blp.png',     label: 'BLP',     id: 'blp' },
+    { icon: '✨',            label: 'Tentang', id: 'tentang' },
   ]
 
   return (

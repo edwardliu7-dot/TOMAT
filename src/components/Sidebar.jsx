@@ -8,7 +8,7 @@ import AudioPanel from './AudioPanel'
 const SAFE_SCREENS = new Set([
   'home', 'grade7', 'grade8', 'grade9',
   'grades', 'papanperingkat', 'toko', 'lencana',
-  'komunikasi', 'profile', 'bug-report',
+  'komunikasi', 'profile', 'tentang', 'bug-report',
   'balance-lab',
   'guruDashboard', 'guru-dashboard', 'guruHafalan',
 ])
@@ -125,7 +125,7 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
   const navItems = isGuru ? (user.hasMateriTerdaftar ? GURU_NAV_FULL : GURU_NAV_READONLY) : SISWA_NAV(zoneKey)
 
   const handleNav = (key) => {
-    if (key === 'bug-report') {
+    if (key === 'bug-report' || key === 'tentang') {
       navigate(key)
       return
     }
@@ -202,6 +202,11 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
             onClick={handleNav}
           />
         )}
+        <NavItem
+          item={{ key: 'tentang', emoji: '✨', label: 'Tentang Aplikasi' }}
+          isActive={currentScreen === 'tentang'}
+          onClick={handleNav}
+        />
         <NavItem
           item={{ key: 'bug-report', emoji: '🐞', label: 'Laporkan Bug' }}
           isActive={currentScreen === 'bug-report'}
