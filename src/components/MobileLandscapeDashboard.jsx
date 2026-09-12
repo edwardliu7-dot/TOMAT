@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import PetSVG, { getPetName } from './PetSVG'
 import { UserAvatar, AppNotificationBell } from './shared'
 import SeasonalEventBanner from './SeasonalEventBanner'
+import { getGradeNumber } from '../kelasUtils'
 
 const BLP_URL = 'https://blp.app.tisaislamic.sch.id'
 
@@ -44,7 +45,7 @@ export default function MobileLandscapeDashboard({
   const hungerColor = hungerPct > 60 ? '#5dcaa5' : hungerPct > 30 ? '#fac775' : '#f0997b'
 
   // User grade zone
-  const gradeNum = parseInt(user?.kelas?.match(/\d+/)?.[0] || '7')
+  const gradeNum = getGradeNumber(user?.kelas) || 7
   const mathZoneId = gradeNum === 9 ? 'grade9' : gradeNum === 8 ? 'grade8' : 'grade7'
   const ipaZoneId  = gradeNum === 9 ? 'ipa9'   : gradeNum === 8 ? 'ipa8'   : 'ipa7'
 

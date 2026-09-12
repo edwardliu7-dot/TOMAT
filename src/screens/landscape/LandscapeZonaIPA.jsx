@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../../AuthContext'
+import { getGradeNumber } from '../../kelasUtils'
 
 const C = { bg:'#12172b', card:'#1c2340', border:'#313a5c', txt:'#f2ede3', sub:'#8b8f9e', muted:'#5a6180', green:'#5dcaa5', gold:'#fac775', teal:'#9fe1cb', tealDark:'#085041' }
 
@@ -25,7 +26,7 @@ const GRADE_ROUTES = { 7:'ipa7-zone', 8:'ipa8-zone', 9:'ipa9-zone' }
 
 export default function LandscapeZonaIPA({ navigate, goBack }) {
   const { user } = useAuth()
-  const userGrade = parseInt(user?.kelas?.match(/\d+/)?.[0] || '7')
+  const userGrade = getGradeNumber(user?.kelas) || 7
   const validGrade = [7,8,9].includes(userGrade) ? userGrade : 7
   const [activeGrade, setActiveGrade] = useState(validGrade)
 

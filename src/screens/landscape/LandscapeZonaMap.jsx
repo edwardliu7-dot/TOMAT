@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../../AuthContext'
+import { getGradeNumber } from '../../kelasUtils'
 
 const C = { bg:'#12172b', card:'#1c2340', border:'#313a5c', txt:'#f2ede3', sub:'#8b8f9e', muted:'#5a6180', green:'#5dcaa5', gold:'#fac775', purple:'#cecbf6', purpleBg:'#3c3489' }
 
@@ -35,7 +36,7 @@ const GRADE_DATA = {
 
 export default function LandscapeZonaMap({ navigate, goBack, grade: gradeProp }) {
   const { user } = useAuth()
-  const userGrade = gradeProp || parseInt(user?.kelas?.match(/\d+/)?.[0] || '7')
+  const userGrade = gradeProp || getGradeNumber(user?.kelas) || 7
   const validGrade = [7, 8, 9].includes(userGrade) ? userGrade : 7
   const [activeGrade, setActiveGrade] = useState(validGrade)
 
