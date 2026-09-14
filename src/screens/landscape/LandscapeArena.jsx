@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { connectSocket } from '../../socket'
+import { useAuth } from '../../AuthContext'
+import { getGradeNumber } from '../../kelasUtils'
 
 const S = {
   root: { width:'100%', minHeight:'100dvh', background:'#12172b', fontFamily:'system-ui,sans-serif', display:'flex', flexDirection:'column', overflowX:'hidden', overflowY:'auto', position:'relative' },
@@ -20,8 +22,21 @@ const MODES = [
   { id:'moba-lobby', icon:'🎮', title:'MOBA Arena', desc:'Battle 2D real-time dengan petmu', stat:'Beta', color:'#993556', shadow:'rgba(153,53,86,0.5)', badge:'BETA' },
 ]
 
+const LEARNING_LINKS = [
+  { id:'math-zone', icon:'➕', title:'Zona Matematika', desc:'Misi dan game matematika sesuai kelasmu', color:'#3c3489', shadow:'rgba(60,52,137,0.45)' },
+  { id:'ipa-zone', icon:'🧪', title:'Zona IPA', desc:'Eksperimen dan tantangan IPA sesuai kelasmu', color:'#085041', shadow:'rgba(8,80,65,0.45)' },
+  { id:'hafalan', icon:'📖', title:'Hafalan', desc:'Flash card dan kuis mandiri', color:'#4c3d73', shadow:'rgba(76,61,115,0.45)' },
+  { id:'latihan-ujian', icon:'📝', title:'Simulasi Ujian', desc:'Latihan soal UN dan TKA', color:'#713f8f', shadow:'rgba(113,63,143,0.45)' },
+  { id:'video-materi', icon:'🎬', title:'Video Materi', desc:'Belajar dari video yang dibagikan guru', color:'#155e75', shadow:'rgba(21,94,117,0.45)' },
+  { id:'balance-lab', icon:'⚖️', title:'Alat Hitung SPLDV', desc:'Eksplorasi sistem persamaan secara visual', color:'#155e75', shadow:'rgba(21,94,117,0.45)' },
+]
+
 export default function LandscapeArena({ navigate, goBack, canUseDemoMoba }) {
   const [onlineCount, setOnlineCount] = useState(null)
+  const { user } = useAuth()
+  const gradeNum = getGradeNumber(user?.kelas) || 7
+  const gradeRoutes = { 7: 'grade7', 8: 'grade8', 9: 'grade9' }
+  const ipaRoutes = { 7: 'ipa7', 8: 'ipa8', 9: 'ipa9' }
 
   useEffect(() => {
     const socket = connectSocket()
@@ -48,6 +63,12 @@ export default function LandscapeArena({ navigate, goBack, canUseDemoMoba }) {
     navigate(id)
   }
 
+  const handleLearningLink = (id) => {
+    if (id === 'math-zone') return navigate(gradeRoutes[gradeNum] || 'grade7')
+    if (id === 'ipa-zone') return navigate(ipaRoutes[gradeNum] || 'ipa7')
+    navigate(id)
+  }
+
   return (
     <div style={S.root}>
       <style>{`
@@ -58,6 +79,14 @@ export default function LandscapeArena({ navigate, goBack, canUseDemoMoba }) {
           }
           .arena-mode-grid > div {
             min-height: 112px;
+          }
+          .arena-learning-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        @media (min-width: 521px) and (max-width: 850px) {
+          .arena-learning-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
         }
       `}</style>
@@ -111,6 +140,45 @@ export default function LandscapeArena({ navigate, goBack, canUseDemoMoba }) {
           </div>
         ))}
       </div>
+
+      <section style={{ position:'relative', zIndex:2, padding:'0 16px 18px' }}>
+        <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:10, marginBottom:8 }}>
+          <div>
+            <div style={{ color:'#f2ede3', fontSize:13, fontWeight:800 }}>Belajar &amp; Latihan</div>
+            <div style={{ color:'#8b8f9e', fontSize:10, marginTop:2 }}>Semua aktivitas belajar ada di Arena</div>
+          </div>
+          <span style={{ color:'#5a6180', fontSize:9 }}>Kelas {gradeNum}</span>
+        </div>
+        <div className="arena-learning-grid" style={{
+          display:'grid',
+          gridTemplateColumns:'repeat(3,minmax(0,1fr))',
+          gap:8,
+        }}>
+          {LEARNING_LINKS.map(link => (
+            <div
+              key={link.id}
+              onClick={() => handleLearningLink(link.id)}
+              style={{
+                background:`linear-gradient(160deg,${link.color}dd,${link.color}88)`,
+                borderRadius:11,
+                padding:'11px 12px',
+                minHeight:82,
+                display:'flex',
+                alignItems:'center',
+                gap:10,
+                boxShadow:`0 3px 12px ${link.shadow}`,
+                cursor:'pointer',
+              }}
+            >
+              <span style={{ fontSize:25, flexShrink:0 }}>{link.icon}</span>
+              <div style={{ minWidth:0 }}>
+                <div style={{ color:'#f2ede3', fontSize:11, fontWeight:800, lineHeight:1.2 }}>{link.title}</div>
+                <div style={{ color:'rgba(242,237,227,0.68)', fontSize:9, lineHeight:1.35, marginTop:4 }}>{link.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }

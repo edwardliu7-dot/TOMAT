@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react'
 import PetSVG, { getPetName } from './PetSVG'
 import { UserAvatar, AppNotificationBell } from './shared'
 import SeasonalEventBanner from './SeasonalEventBanner'
-import { getGradeNumber } from '../kelasUtils'
 
 const BLP_URL = 'https://blp.app.tisaislamic.sch.id'
 
@@ -43,11 +42,6 @@ export default function MobileLandscapeDashboard({
   const petName = getPetName(pet?.skin || 'golden')
   const hungerPct = pet?.isDead ? 0 : Math.min(100, pet?.hunger ?? 100)
   const hungerColor = hungerPct > 60 ? '#5dcaa5' : hungerPct > 30 ? '#fac775' : '#f0997b'
-
-  // User grade zone
-  const gradeNum = getGradeNumber(user?.kelas) || 7
-  const mathZoneId = gradeNum === 9 ? 'grade9' : gradeNum === 8 ? 'grade8' : 'grade7'
-  const ipaZoneId  = gradeNum === 9 ? 'ipa9'   : gradeNum === 8 ? 'ipa8'   : 'ipa7'
 
   // Pet playful interactions
   const handlePetTap = () => {
@@ -100,9 +94,7 @@ export default function MobileLandscapeDashboard({
   }
 
   const RIGHT_ZONES = [
-    { id: mathZoneId, bg: 'linear-gradient(160deg,rgba(74,63,168,0.30),rgba(60,52,137,0.30))',   shadow: 'rgba(60,52,137,0.25)',  icon: '➕', title: 'Zona Matematika', sub: `Kelas ${gradeNum}`, textColor: '#eeedfe', subColor: '#cecbf6' },
-    { id: ipaZoneId,  bg: 'linear-gradient(160deg,rgba(13,107,85,0.30),rgba(8,80,65,0.30))',     shadow: 'rgba(8,80,65,0.25)',    icon: '🧪', title: 'Zona IPA',        sub: `Kelas ${gradeNum}`, textColor: '#e1f5ee', subColor: '#9fe1cb' },
-    { id: 'arena',    bg: 'linear-gradient(160deg,rgba(140,53,24,0.30),rgba(113,43,19,0.30))',   shadow: 'rgba(113,43,19,0.25)', icon: '/arena.png', title: 'Arena Tanding',  sub: 'Duel · Boss · MOBA', textColor: '#faece7', subColor: '#f5c4b3', badge: 'LIVE', iconOnly: true },
+    { id: 'arena',    bg: 'linear-gradient(160deg,rgba(140,53,24,0.30),rgba(113,43,19,0.30))',   shadow: 'rgba(113,43,19,0.25)', icon: '/arena.png', title: 'Arena Tanding',  sub: 'Duel · Boss · MOBA · Belajar', textColor: '#faece7', subColor: '#f5c4b3', badge: 'LIVE', iconOnly: true },
   ]
 
   // Bottom nav items — Profil is available from the identity header
@@ -184,21 +176,14 @@ export default function MobileLandscapeDashboard({
               </>
             ) : (
               <>
-                <div className="zd-task-title">Masuk Zona</div>
-                <div className="zd-task-sub">Pilih zona & mulai belajar</div>
+                <div className="zd-task-title">Masuk Arena</div>
+                <div className="zd-task-sub">Belajar, latihan, dan bertanding</div>
                 <div className="zd-bar-wrap"><div className="zd-bar-fill" style={{ width: '0%', background: '#5dcaa5' }} /></div>
-                <button className="zd-task-btn" onClick={() => navigate(mathZoneId)}>Mulai ›</button>
+                <button className="zd-task-btn" onClick={() => navigate('arena')}>Buka Arena ›</button>
               </>
             )}
           </div>
 
-          {/* Quick links row */}
-          <div className="zd-quick-row">
-            <div className="zd-quick-chip" onClick={() => navigate('hafalan')}>📖 <span>Hafalan</span></div>
-            <div className="zd-quick-chip accent" onClick={() => navigate('latihan-ujian')}>✏️ <span>Ujian</span></div>
-            <div className="zd-quick-chip" onClick={() => navigate('video-materi')}>🎬 <span>Video</span></div>
-            <div className="zd-quick-chip" onClick={() => navigate('balance-lab')}>⚖️ <span>Alat Hitung</span></div>
-          </div>
         </div>
 
         {/* ZONA TENGAH */}
@@ -298,7 +283,7 @@ export default function MobileLandscapeDashboard({
           </div>
         </div>
 
-        {/* ZONA KANAN — 3 pintu */}
+        {/* ZONA KANAN — pintu Arena */}
         <div className="zd-col-right">
           {RIGHT_ZONES.map(z => (
             <div
@@ -435,10 +420,6 @@ const CSS = `
   .zd-task-note { color: #5a6180; font-size: 7.5px; }
   .zd-task-btn { margin-top: 7px; padding: 4px 10px; background: linear-gradient(135deg,#e2653f,#c94f2d); border: none; border-radius: 6px; color: #fff; font-size: 9px; font-weight: 700; cursor: pointer; }
   .zd-quick-row { display: flex; gap: 5px; flex-shrink: 0; }
-  .zd-quick-chip { flex: 1; background: rgba(28,35,64,0.30); border: 0.5px solid rgba(49,58,92,0.55); border-radius: 8px; padding: 5px 6px; display: flex; align-items: center; gap: 4px; font-size: 9px; color: #c9cdd8; cursor: pointer; white-space: nowrap; overflow: hidden; backdrop-filter: blur(6px); }
-  .zd-quick-chip span { overflow: hidden; text-overflow: ellipsis; }
-  .zd-quick-chip:hover { background: rgba(42,49,88,0.55); }
-  .zd-quick-chip.accent { background: linear-gradient(135deg,rgba(26,58,42,0.32),rgba(15,42,30,0.32)); border-color: rgba(42,80,64,0.7); color: #5dcaa5; }
 
   /* ── Center col ── */
   .zd-col-center { display: flex; flex-direction: column; gap: 6px; min-height: 0; min-width: 0; }
