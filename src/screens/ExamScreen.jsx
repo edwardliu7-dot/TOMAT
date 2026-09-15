@@ -80,6 +80,8 @@ function formatTime(seconds) {
   return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`
 }
 
+const MAX_STRICT_VIOLATIONS = 3
+
 function QuestionCard({ question, answer, onAnswer }) {
   const value = answer ?? ''
   if (question.answerType === 'multiple_choice') {
@@ -117,10 +119,11 @@ function ExamList({ exams, onStart, onResume, loading, goBack }) {
   return <div style={{ minHeight: '100vh', background: '#071321', color: '#CBD5E1' }}>
     <TopBar title="Mode Ujian 📝" onBack={goBack} accentColor="#67E8F9" />
     <div style={{ maxWidth: 780, margin: '0 auto', padding: '18px 16px 50px' }}>
-      <div style={{ background: 'linear-gradient(135deg,#102A43,#0E1E35)', border: '1px solid rgba(103,232,249,0.22)', borderRadius: 18, padding: 18, marginBottom: 16 }}>
+      <div style={{ background: 'linear-gradient(135deg,#1c2340,#24204e)', border: '1px solid rgba(206,203,246,0.2)', borderRadius: 18, padding: 18, marginBottom: 16 }}>
         <div style={{ color: '#67E8F9', fontSize: 10, fontWeight: 900, letterSpacing: 1.7 }}>RUANG UJIAN SMARTISA</div>
         <div style={{ color: '#fff', fontSize: 19, fontWeight: 900, marginTop: 5 }}>Kerjakan dengan jujur dan fokus.</div>
-        <div style={{ color: '#94A3B8', fontSize: 12, lineHeight: 1.5, marginTop: 5 }}>Jawaban tersimpan otomatis ke server. Jika koneksi terputus, buka kembali Mode Ujian untuk melanjutkan attempt aktif.</div>
+        <div style={{ color: '#c9cdd8', fontSize: 12, lineHeight: 1.5, marginTop: 5 }}>Tampilan mengikuti Simulasi Ujian. Mode ini lebih ketat: layar penuh, tanpa menyalin jawaban, dan aktivitas keluar tab dicatat.</div>
+        <div style={{ color: '#fac775', fontSize: 11, lineHeight: 1.5, marginTop: 7 }}>⚠️ 3 pelanggaran akan mengumpulkan ujian secara otomatis.</div>
       </div>
       {loading ? <div style={{ color: '#64748B', textAlign: 'center', padding: 40 }}>Memuat ujian…</div> : exams.length === 0 ? <div style={{ color: '#64748B', textAlign: 'center', padding: 40 }}>Belum ada ujian yang diterbitkan untuk kelasmu.</div> : (
         <div style={{ display: 'grid', gap: 10 }}>
@@ -160,7 +163,13 @@ export default function ExamScreen({ goBack }) {
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [clock, setClock] = useState(() => Date.now())
+  const [strictViolations, setStrictViolations] = useState(0)
   const saveTimers = useRef({})
+  const answersRef = useRef(answers)
+  const strictViolationRef = useRef(0)
+  const strictTerminationRef = useRef(false)
+  const finishAttemptRef = useRef(null)
+  answersRef.current = answers
 
   const loadExams = useCallback(async () => {
     setLoading(true)
@@ -171,6 +180,10 @@ export default function ExamScreen({ goBack }) {
     const local = await localLoad(data.attempt.id)
     const serverAnswers = Object.fromEntries(Object.entries(data.answers || {}).map(([id, value]) => [id, value.answer]))
     const merged = { ...serverAnswers, ...(local?.answers || {}) }
+    const persistedViolations = Number(data.attempt.strictViolationCount || 0)
+    strictViolationRef.current = persistedViolations
+    strictTerminationRef.current = false
+    setStrictViolations(persistedViolations)
     setAttempt(data.attempt); setQuestions(data.questions || []); setAnswers(merged); setResult(null)
     void localSave(data.attempt.id, { answers: merged })
   }, [])
@@ -193,36 +206,95 @@ export default function ExamScreen({ goBack }) {
     return () => { window.removeEventListener('online', online); window.removeEventListener('offline', offlineEvent) }
   }, [])
 
+  const recordStrictViolation = useCallback((eventType, metadata = {}) => {
+    if (!attempt || attempt.status !== 'in_progress' || strictTerminationRef.current) return
+    const nextCount = strictViolationRef.current + 1
+    strictViolationRef.current = nextCount
+    setStrictViolations(nextCount)
+    fetch(`/api/siswa/exams/attempts/${attempt.id}/events`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventType,
+        metadata: { strict: true, violationCount: nextCount, ...metadata },
+      }),
+      keepalive: true,
+    }).catch(() => {})
+    if (nextCount >= MAX_STRICT_VIOLATIONS) {
+      strictTerminationRef.current = true
+      setError('Batas pelanggaran tercapai. Ujian dikumpulkan otomatis.')
+      window.setTimeout(() => finishAttemptRef.current?.(false), 0)
+    }
+  }, [attempt])
+
   useEffect(() => {
     if (!attempt || attempt.status !== 'in_progress') return undefined
     const clockTimer = setInterval(() => setClock(Date.now()), 1000)
     const onFullscreenChange = () => {
       if (document.visibilityState === 'visible' && !document.fullscreenElement) {
-        fetch(`/api/siswa/exams/attempts/${attempt.id}/events`, {
-          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ eventType: 'fullscreen_exit' }), keepalive: true,
-        }).catch(() => {})
+        recordStrictViolation('fullscreen_exit')
       }
     }
     document.addEventListener('fullscreenchange', onFullscreenChange)
-    document.documentElement.requestFullscreen?.().catch(() => {})
+    document.documentElement.requestFullscreen?.().catch(() => {
+      setError('Mode layar penuh tidak tersedia di browser ini. Jangan tinggalkan halaman selama ujian.')
+    })
     const onVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        fetch(`/api/siswa/exams/attempts/${attempt.id}/events`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ eventType: 'background' }), keepalive: true }).catch(() => {})
+      if (document.visibilityState === 'hidden') recordStrictViolation('background')
+    }
+    const onBeforeUnload = event => {
+      localSave(attempt.id, { answers: answersRef.current })
+      recordStrictViolation('reload_or_exit')
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    const onCopy = event => {
+      event.preventDefault()
+      recordStrictViolation('copy_attempt')
+    }
+    const onCut = event => {
+      event.preventDefault()
+      recordStrictViolation('cut_attempt')
+    }
+    const onPaste = event => {
+      event.preventDefault()
+      recordStrictViolation('paste_attempt')
+    }
+    const onContextMenu = event => {
+      event.preventDefault()
+      recordStrictViolation('contextmenu_attempt')
+    }
+    const onKeyDown = event => {
+      const key = event.key.toLowerCase()
+      const blockedShortcut = (event.ctrlKey || event.metaKey) && ['a', 'c', 'p', 's', 'u', 'v', 'x'].includes(key)
+        || event.key === 'F12'
+        || ((event.ctrlKey || event.metaKey) && event.shiftKey && ['i', 'j', 'c'].includes(key))
+        || (event.altKey && ['ArrowLeft', 'ArrowRight'].includes(event.key))
+      if (blockedShortcut) {
+        event.preventDefault()
+        recordStrictViolation('shortcut_attempt', { key: event.key })
       }
     }
-    const onBeforeUnload = () => {
-      localSave(attempt.id, { answers })
-      fetch(`/api/siswa/exams/attempts/${attempt.id}/events`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ eventType: 'reload_or_exit' }), keepalive: true }).catch(() => {})
-    }
-    document.addEventListener('visibilitychange', onVisibility); window.addEventListener('beforeunload', onBeforeUnload)
+    document.addEventListener('visibilitychange', onVisibility)
+    document.addEventListener('copy', onCopy)
+    document.addEventListener('cut', onCut)
+    document.addEventListener('paste', onPaste)
+    document.addEventListener('contextmenu', onContextMenu)
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('beforeunload', onBeforeUnload)
     return () => {
       clearInterval(clockTimer)
       document.removeEventListener('fullscreenchange', onFullscreenChange)
       document.removeEventListener('visibilitychange', onVisibility)
+      document.removeEventListener('copy', onCopy)
+      document.removeEventListener('cut', onCut)
+      document.removeEventListener('paste', onPaste)
+      document.removeEventListener('contextmenu', onContextMenu)
+      window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('beforeunload', onBeforeUnload)
     }
-  }, [attempt, answers])
+  }, [attempt, recordStrictViolation])
 
   const start = async (examId, token) => {
     const data = await apiCall(`/api/siswa/exams/${examId}/start`, { method: 'POST', body: { token } })
@@ -256,6 +328,7 @@ export default function ExamScreen({ goBack }) {
       loadExams()
     } catch (err) { setError(err.message) }
   }, [attempt, loadExams])
+  finishAttemptRef.current = finishAttempt
 
   useEffect(() => {
     if (!attempt || attempt.status !== 'in_progress' || result) return
@@ -277,15 +350,21 @@ export default function ExamScreen({ goBack }) {
     </div>
   }
 
-  return <div onContextMenu={event => event.preventDefault()} style={{ minHeight: '100vh', background: '#071321', color: '#CBD5E1' }}>
-    <style>{`.exam-kiosk button:focus{outline:2px solid #67E8F9;outline-offset:2px}`}</style>
+  return <div style={{ minHeight: '100vh', background: '#12172b', color: '#CBD5E1' }}>
+    <style>{`
+      .exam-kiosk button:focus{outline:2px solid #67E8F9;outline-offset:2px}
+      @media (max-width: 720px) {
+        .exam-layout { grid-template-columns: 1fr !important; }
+        .exam-nav { position: static !important; }
+      }
+    `}</style>
     <div className="exam-kiosk" style={{ maxWidth: 980, margin: '0 auto', padding: '16px clamp(14px, 4vw, 32px) 42px' }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, position: 'sticky', top: 0, zIndex: 3, background: 'rgba(7,19,33,0.96)', padding: '8px 0', backdropFilter: 'blur(12px)' }}>
-        <div style={{ flex: 1 }}><div style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>{attempt.title}</div><div style={{ color: '#64748B', fontSize: 10 }}>{completedCount}/{questions.length} terjawab · {offline ? 'Offline — tersimpan lokal' : saving[currentQuestion?.id] === 'saved' ? 'Tersimpan' : 'Menyimpan…'}</div></div>
+        <div style={{ flex: 1 }}><div style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>{attempt.title}</div><div style={{ color: '#64748B', fontSize: 10 }}>{completedCount}/{questions.length} terjawab · {offline ? 'Offline — tersimpan lokal' : saving[currentQuestion?.id] === 'saved' ? 'Tersimpan' : 'Menyimpan…'} · <span style={{ color: strictViolations ? '#F87171' : '#5dcaa5' }}>Pelanggaran {strictViolations}/{MAX_STRICT_VIOLATIONS}</span></div></div>
         <div style={{ color: remaining < 60 ? '#F87171' : '#FBBF24', fontSize: 19, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{formatTime(remaining)}</div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 180px', gap: 14, alignItems: 'start' }}>
-        <main style={{ background: '#0E1E35', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 17, padding: '20px clamp(15px, 4vw, 28px)' }}>
+      <div className="exam-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 180px', gap: 14, alignItems: 'start' }}>
+        <main style={{ background: '#1c2340', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 17, padding: '20px clamp(15px, 4vw, 28px)' }}>
           <div style={{ color: '#67E8F9', fontSize: 11, fontWeight: 900, letterSpacing: 1 }}>SOAL {currentIndex + 1} DARI {questions.length}</div>
           <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, lineHeight: 1.65, margin: '12px 0 19px' }}>
             <MathText value={currentQuestion?.prompt} />
@@ -297,7 +376,7 @@ export default function ExamScreen({ goBack }) {
           </div>
           {error && <div style={{ color: '#FCA5A5', fontSize: 11, marginTop: 12 }}>{error}</div>}
         </main>
-        <aside style={{ background: '#0E1E35', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 15, padding: 12, position: 'sticky', top: 65 }}>
+        <aside className="exam-nav" style={{ background: '#1c2340', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 15, padding: 12, position: 'sticky', top: 65 }}>
           <div style={{ color: '#94A3B8', fontSize: 10, fontWeight: 800, marginBottom: 9 }}>NAVIGASI SOAL</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>{questions.map((question, index) => {
             const answered = answers[question.id] !== undefined && answers[question.id] !== ''

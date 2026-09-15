@@ -1032,6 +1032,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
         komunikasi:    <LandscapeChat    navigate={navigate} goBack={goBack} initialTarget={komunikasiTarget} initialTab={komunikasiInitialTab} />,
         hafalan:       <LandscapeHafalan goBack={goBack} />,
         'latihan-ujian':<LandscapeLatihanUjian goBack={goBack} />,
+         ujian:         <ExamScreen goBack={goBack} />,
         'video-materi': <VideoMateriScreen goBack={goBack} />,
         toko:          <LandscapeTokoScreen goBack={() => { setTokoInitialTab(null); goBack() }} />,
       }

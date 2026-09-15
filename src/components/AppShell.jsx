@@ -19,7 +19,7 @@ function useIsDesktop() {
 }
 
 // Screens that should show the mobile bottom navigation bar
-const BOTTOM_NAV_SCREENS = new Set(['home', 'grade7', 'grade8', 'grade9', 'toko', 'papanperingkat', 'profile', 'ujian'])
+const BOTTOM_NAV_SCREENS = new Set(['home', 'grade7', 'grade8', 'grade9', 'toko', 'papanperingkat', 'profile'])
 
 // Safely reads coins/level from PlayerContext — only rendered when user is siswa
 // and the component tree is guaranteed to be inside <PlayerProvider>.
@@ -301,7 +301,6 @@ export default function AppShell({ user, navigate, currentScreen, onLogout, onSw
             ['toko',          '/toko.png',  'Toko'],
             ['papanperingkat','/rank.png',  'Peringkat'],
             ['profile',       '👤',        'Profil'],
-             ['ujian',         '📝',        'Ujian'],
           ].map(([id, icon, label]) => {
             const active = (label === 'Zona' ? isZoneActive : id === currentScreen)
             return (

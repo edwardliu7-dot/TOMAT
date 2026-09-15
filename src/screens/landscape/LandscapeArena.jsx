@@ -27,6 +27,7 @@ const LEARNING_LINKS = [
   { id:'ipa-zone', icon:'🧪', title:'Zona IPA', desc:'Eksperimen dan tantangan IPA sesuai kelasmu', color:'#085041', shadow:'rgba(8,80,65,0.45)' },
   { id:'hafalan', icon:'📖', title:'Hafalan', desc:'Flash card dan kuis mandiri', color:'#4c3d73', shadow:'rgba(76,61,115,0.45)' },
   { id:'latihan-ujian', icon:'📝', title:'Simulasi Ujian', desc:'Latihan soal UN dan TKA', color:'#713f8f', shadow:'rgba(113,63,143,0.45)' },
+  { id:'ujian', icon:'🔒', title:'Mode Ujian', desc:'Ujian resmi dengan aturan ketat', color:'#155e75', shadow:'rgba(21,94,117,0.45)' },
   { id:'video-materi', icon:'🎬', title:'Video Materi', desc:'Belajar dari video yang dibagikan guru', color:'#155e75', shadow:'rgba(21,94,117,0.45)' },
   { id:'balance-lab', icon:'⚖️', title:'Alat Hitung SPLDV', desc:'Eksplorasi sistem persamaan secara visual', color:'#155e75', shadow:'rgba(21,94,117,0.45)' },
 ]

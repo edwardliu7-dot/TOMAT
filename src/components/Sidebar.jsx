@@ -9,7 +9,7 @@ const SAFE_SCREENS = new Set([
   'home', 'grade7', 'grade8', 'grade9',
   'grades', 'papanperingkat', 'toko', 'lencana',
   'komunikasi', 'profile', 'tentang', 'bug-report',
-  'balance-lab', 'ujian',
+  'balance-lab',
   'guruDashboard', 'guru-dashboard', 'guruHafalan',
 ])
 
@@ -24,7 +24,6 @@ const SISWA_NAV = (zoneKey) => [
   { key: 'home',          emoji: '🏠',          label: 'Beranda' },
   { key: zoneKey,         emoji: '/arena.png',   label: 'Zona Belajar' },
   { key: 'grades',        emoji: '/nilai.png',   label: 'Nilai & Tugas' },
-  { key: 'ujian',         emoji: '📝',            label: 'Mode Ujian' },
   { key: 'papanperingkat',emoji: '/rank.png',    label: 'Papan Peringkat' },
   { key: 'toko',          emoji: '/toko.png',    label: 'Toko' },
   { key: 'lencana',       emoji: '/lencana.png', label: 'Lencana' },

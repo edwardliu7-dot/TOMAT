@@ -12,3 +12,9 @@ Client menyimpan jawaban sementara di IndexedDB dan localStorage sebagai fallbac
 **Why:** Mode ujian membutuhkan integritas penilaian dan pemulihan koneksi tanpa mengandalkan state atau jam client yang dapat dimanipulasi.
 
 **How to apply:** Perubahan berikutnya pada endpoint atau UI ujian harus mempertahankan server-authoritative validation, tidak membocorkan correctAnswer ke siswa, dan tidak menghidupkan kembali embedded BLP/GURU di TOMAT.
+
+Mode Ujian siswa dibuka dari kartu di Arena Tanding, bukan dari sidebar atau bottom navigation. Sesi aktif mengikuti gaya Simulasi Ujian/TKA tetapi mencatat fullscreen exit, background/tab switch, reload, copy/cut/paste, context menu, dan shortcut browser; setelah tiga pelanggaran client mengirim submit otomatis, sementara server tetap menghitung nilai.
+
+**Why:** Akses Arena membuat pintu masuk ujian konsisten dengan hub aktivitas siswa, sedangkan audit dan batas pelanggaran memberi pengawasan lebih ketat daripada simulasi latihan tanpa mengubah penilaian server.
+
+**How to apply:** Pertahankan jumlah pelanggaran saat resume dari audit server, jangan menambahkan shortcut umum siswa, dan jangan menganggap blokir browser sebagai pencegahan screenshot yang sempurna.

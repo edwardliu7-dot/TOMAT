@@ -407,6 +407,7 @@ Setelah membuat file game, daftarkan di:
 | Notifikasi | `server/notifications.js`, `AppNotificationBell` di `shared.jsx` | Mendukung field `source`: `'tomat'` atau `'blp'` — tampil sebagai pill badge di bell |
 | Hafalan | `server/hafalan-*.js`, `HafalanScreen.jsx`, `LandscapeHafalan.jsx` | |
 | Latihan Ujian | `src/screens/LatihanUjianScreen.jsx`, `LandscapeLatihanUjian.jsx` | Soal di `src/data/soalUjian.js` (ekspor `PAKET_UJIAN`) |
+| Mode Ujian | `server/exams.js`, `ExamScreen.jsx`, `LandscapeArena.jsx` | Ujian resmi bertoken; akses siswa hanya dari Arena |
 | Event Misi | `server/event-missions*.js` | |
 | Badges | `server/lencana.js`, `BadgesScreen.jsx`, `LandscapeLencana.jsx` | |
 | Profil | `server/auth.js`, `ProfileScreen.jsx`, `LandscapeProfil.jsx` | |
@@ -414,7 +415,18 @@ Setelah membuat file game, daftarkan di:
 
 ---
 
-## 13. Aturan Penambahan Fitur Baru
+## 13. Mode Ujian Siswa
+
+- Mode Ujian siswa dibuka **hanya dari kartu Mode Ujian di Arena Tanding**. Jangan menambahkan shortcut Mode Ujian ke sidebar atau bottom navigation siswa.
+- UI Mode Ujian mengikuti pola visual Simulasi Ujian/TKA, tetapi sesi resminya tetap memakai `ExamScreen.jsx` dan endpoint server-authoritative di `server/exams.js`.
+- Token, attempt, deadline, jawaban, penilaian, dan audit tetap dikendalikan server. `correctAnswer` tidak boleh dikirim ke klien.
+- Saat attempt aktif, layar penuh diupayakan, klik kanan/copy/cut/paste/shortcut browser diblokir, dan aktivitas keluar tab, keluar fullscreen, reload, serta percobaan menyalin dicatat ke audit.
+- Setelah **3 pelanggaran**, attempt dikumpulkan otomatis. Jumlah pelanggaran harus tetap terbaca ketika siswa melanjutkan attempt.
+- Mode Ujian berbeda dari Simulasi Ujian: simulasi adalah latihan lokal, sedangkan Mode Ujian memerlukan ujian yang diterbitkan guru dan token yang valid.
+
+---
+
+## 14. Aturan Penambahan Fitur Baru
 
 Sebelum membuat kode fitur baru, lakukan langkah berikut **secara berurutan**:
 
@@ -444,7 +456,7 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
-## 14. Versi Aplikasi
+## 15. Versi Aplikasi
 
 - Sumber kebenaran: `src/version.js` — ekspor `APP_VERSION`.
 - `WhatsNewModal` ditampilkan sekali per versi via localStorage.
@@ -453,7 +465,7 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
-## 15. Akun Demo & Testing
+## 16. Akun Demo & Testing
 
 - `tomat_demo`: Akun demo di kelas `IX Al Khawarizmi` (Grade 9), memiliki full luxury catalog.
 - Akun demo disembunyikan dari tampilan siswa lain.
@@ -461,7 +473,7 @@ Tanyakan: "Fitur ini menyentuh modul mana?"
 
 ---
 
-## 16. Event Mission — Centralized Gameplay Event Bus
+## 17. Event Mission — Centralized Gameplay Event Bus
 
 **`server/gameplay-events.js`** adalah **Single Source of Truth** untuk semua side-effect yang dipicu oleh kejadian gameplay.
 
@@ -701,4 +713,4 @@ Ke-11 screen landscape hanya dipakai saat `isLandscapeMobile = true` (hook `useL
 
 ---
 
-*Terakhir diperbarui: 9 Agustus 2026 — §21 ditambahkan: MOBA mode multiplayer 2D (match manager, socket contract, arena map, question nodes, bab filtering, GAME\_KEY\_TO\_BAB, rollout gate). §7 diperbarui: tabel 53 game key per BAB yang sudah mendukung Duel/Turnamen/MOBA, aturan matematika generator soal, dan checklist 5 file wajib saat mendaftarkan game baru. §8 diperbarui: event MOBA. §12 diperbarui: baris MOBA. Update file ini setiap kali ada perubahan arsitektur signifikan.*
+*Terakhir diperbarui: 15 September 2026 — Mode Ujian siswa dipusatkan di Arena Tanding dengan audit pelanggaran ketat dan auto-submit setelah 3 pelanggaran. §21 ditambahkan: MOBA mode multiplayer 2D (match manager, socket contract, arena map, question nodes, bab filtering, GAME\_KEY\_TO\_BAB, rollout gate). §7 diperbarui: tabel 53 game key per BAB yang sudah mendukung Duel/Turnamen/MOBA, aturan matematika generator soal, dan checklist 5 file wajib saat mendaftarkan game baru. §8 diperbarui: event MOBA. §12 diperbarui: baris MOBA. Update file ini setiap kali ada perubahan arsitektur signifikan.*

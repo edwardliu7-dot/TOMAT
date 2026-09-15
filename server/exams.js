@@ -448,6 +448,17 @@ async function buildAttemptPayload(attempt) {
   const answerMap = Object.fromEntries(answers.map(row => [row.question_id, {
     answer: row.answer, revision: row.revision, savedAt: row.saved_at,
   }]))
+  const { rows: violationRows } = await pool.query(
+    `select count(*)::int as count
+     from exam_audit_logs
+     where attempt_id = $1
+       and event_type in (
+         'background', 'reload_or_exit', 'fullscreen_exit',
+         'copy_attempt', 'cut_attempt', 'paste_attempt',
+         'contextmenu_attempt', 'shortcut_attempt', 'strict_violation'
+       )`,
+    [attempt.id],
+  )
   const effectiveStatus = attempt.status === 'in_progress' && new Date(attempt.deadline_at) <= new Date()
     ? 'expired' : attempt.status
   return {
@@ -455,6 +466,7 @@ async function buildAttemptPayload(attempt) {
       id: attempt.id, examId: attempt.exam_id, title: attempt.title,
       description: attempt.description, status: effectiveStatus,
       startedAt: attempt.started_at, deadlineAt: attempt.deadline_at,
+      strictViolationCount: violationRows[0]?.count || 0,
       serverNow: new Date().toISOString(),
     },
     questions: questions.map(publicQuestion),
@@ -521,7 +533,18 @@ siswaRouter.post('/attempts/:attemptId/events', async (req, res) => {
   try {
     const attempt = await loadStudentAttempt(req, req.params.attemptId)
     if (!attempt) return res.status(404).json({ error: 'Sesi ujian tidak ditemukan.' })
-    const eventType = ['background', 'reload_or_exit', 'reconnect', 'fullscreen_exit'].includes(req.body?.eventType)
+    const eventType = [
+      'background',
+      'reload_or_exit',
+      'reconnect',
+      'fullscreen_exit',
+      'copy_attempt',
+      'cut_attempt',
+      'paste_attempt',
+      'contextmenu_attempt',
+      'shortcut_attempt',
+      'strict_violation',
+    ].includes(req.body?.eventType)
       ? req.body.eventType
       : 'client_event'
     await logAudit({
@@ -530,10 +553,27 @@ siswaRouter.post('/attempts/:attemptId/events', async (req, res) => {
       actorId: req.session.user.id,
       actorRole: 'siswa',
       eventType,
-      metadata: { online: req.body?.online ?? null },
+      metadata: {
+        online: req.body?.online ?? null,
+        strict: req.body?.metadata?.strict === true,
+        violationCount: Number.isFinite(Number(req.body?.metadata?.violationCount))
+          ? Number(req.body.metadata.violationCount)
+          : null,
+      },
     })
     await pool.query('update exam_attempts set last_seen_at = now() where id = $1', [attempt.id])
-    res.json({ ok: true })
+    const { rows: violationRows } = await pool.query(
+      `select count(*)::int as count
+       from exam_audit_logs
+       where attempt_id = $1
+         and event_type in (
+           'background', 'reload_or_exit', 'fullscreen_exit',
+           'copy_attempt', 'cut_attempt', 'paste_attempt',
+           'contextmenu_attempt', 'shortcut_attempt', 'strict_violation'
+         )`,
+      [attempt.id],
+    )
+    res.json({ ok: true, strictViolationCount: violationRows[0]?.count || 0 })
   } catch (err) {
     console.error('siswa/exam event error', err)
     res.status(500).json({ error: 'Aktivitas belum tercatat.' })
