@@ -34,7 +34,7 @@ function blankQuestion(position = 1) {
 }
 
 function emptyForm(kelas = '') {
-  return { kelas, title: '', description: '', durationMinutes: 60, questions: [blankQuestion()] }
+  return { kelas, mataPelajaran: '', title: '', description: '', durationMinutes: 60, questions: [blankQuestion()] }
 }
 
 function QuestionEditor({ question, index, onChange, onRemove, canRemove }) {
@@ -141,7 +141,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
       setSelectedId(id)
       setToken('')
       setForm({
-        kelas: exam.kelas, title: exam.title, description: exam.description || '',
+        kelas: exam.kelas, mataPelajaran: exam.mataPelajaran || 'Matematika', title: exam.title, description: exam.description || '',
         durationMinutes: exam.durationMinutes,
         questions: questions.map(question => ({
           position: question.position, prompt: question.prompt, answerType: question.answerType,
@@ -248,7 +248,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
                   <strong style={{ color: '#fff', fontSize: 12, flex: 1 }}>{exam.title}</strong>
                   <span style={{ color: exam.status === 'published' ? '#34D399' : exam.status === 'closed' ? '#FCA5A5' : '#FBBF24', fontSize: 9, fontWeight: 800 }}>{statusLabel(exam.status)}</span>
                 </div>
-                <div style={{ color: '#64748B', fontSize: 10, marginTop: 5 }}>{exam.kelas} · {exam.questionCount} soal · {exam.submittedCount || 0}/{exam.attemptCount || 0} terkumpul</div>
+                 <div style={{ color: '#64748B', fontSize: 10, marginTop: 5 }}>{exam.mataPelajaran || 'Matematika'} · {exam.kelas} · {exam.questionCount} soal · {exam.submittedCount || 0}/{exam.attemptCount || 0} terkumpul</div>
               </button>
             ))}
           </section>
@@ -265,6 +265,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
                 </select>
                 <input required type="number" min="1" max="480" value={form.durationMinutes} onChange={e => setForm({ ...form, durationMinutes: e.target.value })} style={inputStyle} placeholder="Menit" />
               </div>
+               <input required maxLength={100} value={form.mataPelajaran} onChange={e => setForm({ ...form, mataPelajaran: e.target.value })} placeholder="Nama mata pelajaran, contoh: Matematika" style={{ ...inputStyle, marginBottom: 8 }} />
               <input required maxLength={160} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Judul ujian" style={{ ...inputStyle, marginBottom: 8 }} />
               <textarea maxLength={2000} rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Petunjuk untuk siswa (opsional)" style={{ ...inputStyle, resize: 'vertical', marginBottom: 10 }} />
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -292,7 +293,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>{selected.title}</div>
-                <div style={{ color: '#64748B', fontSize: 11, marginTop: 3 }}>{selected.kelas} · {selected.questionCount} soal · {selected.durationMinutes} menit</div>
+                 <div style={{ color: '#64748B', fontSize: 11, marginTop: 3 }}>{selected.mataPelajaran || 'Matematika'} · {selected.kelas} · {selected.questionCount} soal · {selected.durationMinutes} menit</div>
               </div>
               {selected.status === 'draft' && <button type="button" onClick={() => edit(selected.id)} style={secondary}>✏️ Edit</button>}
               {selected.status === 'draft' && <button type="button" onClick={publish} style={primary}>Terbitkan</button>}

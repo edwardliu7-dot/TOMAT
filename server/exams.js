@@ -103,6 +103,7 @@ function examForClient(row) {
   return {
     id: row.id,
     kelas: row.kelas,
+    mataPelajaran: row.mata_pelajaran || 'Matematika',
     title: row.title,
     description: row.description,
     durationMinutes: row.duration_minutes,
@@ -196,18 +197,20 @@ guruRouter.get('/:id', async (req, res) => {
 guruRouter.post('/', requireRegisteredTeacher, async (req, res) => {
   const client = await pool.connect()
   try {
-    const { kelas, title, description, durationMinutes, questions } = req.body || {}
+    const { kelas, mataPelajaran, title, description, durationMinutes, questions } = req.body || {}
     const classes = await teacherClasses(req)
     if (!classes.includes(kelas)) return res.status(403).json({ error: 'Anda tidak mengampu kelas ini.' })
+    const cleanSubject = cleanText(mataPelajaran, 100)
+    if (!cleanSubject) return res.status(400).json({ error: 'Nama mata pelajaran wajib diisi.' })
     const cleanTitle = cleanText(title, 160)
     if (!cleanTitle) return res.status(400).json({ error: 'Judul ujian wajib diisi.' })
     const duration = Math.min(480, Math.max(1, Number.parseInt(durationMinutes, 10) || 60))
     const cleanQuestions = validateQuestions(questions)
     await client.query('begin')
     const { rows } = await client.query(
-      `insert into exams (guru_id, kelas, title, description, duration_minutes)
-       values ($1,$2,$3,$4,$5) returning *`,
-      [req.session.user.id, kelas, cleanTitle, cleanText(description, 2000), duration],
+      `insert into exams (guru_id, kelas, mata_pelajaran, title, description, duration_minutes)
+       values ($1,$2,$3,$4,$5,$6) returning *`,
+      [req.session.user.id, kelas, cleanSubject, cleanTitle, cleanText(description, 2000), duration],
     )
     await saveQuestions(client, rows[0].id, cleanQuestions)
     await client.query('commit')
@@ -227,16 +230,20 @@ guruRouter.patch('/:id', requireRegisteredTeacher, async (req, res) => {
     const exam = await loadTeacherExam(req, req.params.id)
     if (!exam) return res.status(404).json({ error: 'Ujian tidak ditemukan.' })
     if (exam.status !== 'draft') return res.status(409).json({ error: 'Ujian yang sudah diterbitkan tidak dapat diedit.' })
-    const { kelas, title, description, durationMinutes, questions } = req.body || {}
+    const { kelas, mataPelajaran, title, description, durationMinutes, questions } = req.body || {}
     const classes = await teacherClasses(req)
     if (kelas && !classes.includes(kelas)) return res.status(403).json({ error: 'Anda tidak mengampu kelas ini.' })
+    const cleanSubject = mataPelajaran === undefined ? null : cleanText(mataPelajaran, 100)
+    if (mataPelajaran !== undefined && !cleanSubject) return res.status(400).json({ error: 'Nama mata pelajaran wajib diisi.' })
     const cleanQuestions = validateQuestions(questions)
     await client.query('begin')
     const { rows } = await client.query(
-      `update exams set kelas = coalesce($1, kelas), title = coalesce($2, title),
-       description = coalesce($3, description), duration_minutes = coalesce($4, duration_minutes),
-       updated_at = now() where id = $5 returning *`,
-      [kelas || null, title ? cleanText(title, 160) : null, description !== undefined ? cleanText(description, 2000) : null,
+      `update exams set kelas = coalesce($1, kelas), mata_pelajaran = coalesce($2, mata_pelajaran),
+       title = coalesce($3, title), description = coalesce($4, description),
+       duration_minutes = coalesce($5, duration_minutes),
+       updated_at = now() where id = $6 returning *`,
+      [kelas || null, cleanSubject, title ? cleanText(title, 160) : null,
+        description !== undefined ? cleanText(description, 2000) : null,
         durationMinutes ? Math.min(480, Math.max(1, Number.parseInt(durationMinutes, 10) || 60)) : null, exam.id],
     )
     await client.query('delete from exam_questions where exam_id = $1', [exam.id])

@@ -116,6 +116,7 @@ export async function ensureSchema() {
       id serial primary key,
       guru_id text not null references gurus(id) on delete cascade,
       kelas text not null,
+      mata_pelajaran text not null default 'Matematika',
       title text not null check (char_length(title) between 1 and 160),
       description text not null default '',
       duration_minutes int not null default 60 check (duration_minutes between 1 and 480),
@@ -203,6 +204,12 @@ export async function ensureSchema() {
     );
     create index if not exists exam_audit_logs_exam_idx
       on exam_audit_logs (exam_id, created_at desc);
+  `)
+  // Keep existing exam rows compatible while exposing the subject name in
+  // both the teacher form and the student exam list.
+  await pool.query(`
+    alter table exams
+      add column if not exists mata_pelajaran text not null default 'Matematika'
   `)
 
   // Communication: private teacher/student messages and class forums.

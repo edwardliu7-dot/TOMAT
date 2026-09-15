@@ -128,7 +128,7 @@ function ExamList({ exams, onStart, onResume, loading, goBack }) {
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>{exam.title}</div>
-                <div style={{ color: '#64748B', fontSize: 11, marginTop: 5 }}>{exam.questionCount} soal · {exam.durationMinutes} menit · {exam.kelas}</div>
+                <div style={{ color: '#64748B', fontSize: 11, marginTop: 5 }}>{exam.mataPelajaran || 'Matematika'} · {exam.questionCount} soal · {exam.durationMinutes} menit · {exam.kelas}</div>
               </div>
               {exam.attemptStatus === 'submitted' ? <span style={{ color: '#34D399', fontSize: 11, fontWeight: 800 }}>Selesai · {exam.score}</span> : exam.attemptStatus === 'in_progress' ? <button type="button" onClick={() => onResume(exam.attemptId)} style={{ background: '#67E8F9', color: '#06202a', border: 0, borderRadius: 9, padding: '9px 12px', fontWeight: 900, cursor: 'pointer' }}>Lanjutkan</button> : <button type="button" onClick={() => { setSelected(exam); setToken(''); setError('') }} style={{ background: 'rgba(103,232,249,0.12)', color: '#67E8F9', border: '1px solid rgba(103,232,249,0.28)', borderRadius: 9, padding: '9px 12px', fontWeight: 800, cursor: 'pointer' }}>Masukkan Token</button>}
             </div>
