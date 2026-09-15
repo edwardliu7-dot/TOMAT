@@ -238,6 +238,124 @@ Di tempat guru membuat atau mengedit soal, sediakan:
 - Jika pengguna menempel equation dari Word/Google Docs dalam Unicode, tampilkan versi Unicode tersebut tanpa crash dan izinkan pengguna mengeditnya.
 - Jika aplikasi sudah memiliki editor tugas/soal, integrasikan ke editor yang ada, jangan membuat alur duplikat tanpa alasan.
 
+### Materi atau Petunjuk Bersama untuk Banyak Soal
+
+Editor soal harus mendukung blok materi/petunjuk bersama yang dipakai oleh beberapa nomor soal secara berurutan.
+
+Contoh penggunaan:
+
+```text
+Materi untuk soal nomor 12–13:
+
+Perhatikan persegi panjang berikut. Panjangnya 12 cm dan lebarnya 5 cm.
+Gunakan rumus $$L = p \times l$$ untuk menjawab kedua soal.
+
+12. Berapa luas persegi panjang tersebut?
+13. Berapa keliling persegi panjang tersebut?
+```
+
+Nama fitur di UI boleh berupa:
+
+- `Materi Soal`
+- `Teks Stimulus`
+- `Petunjuk Bersama`
+- `Bacaan untuk Soal`
+
+#### Kebutuhan Editor Guru
+
+Sediakan kemampuan untuk:
+
+- Membuat blok materi/petunjuk baru.
+- Mengisi judul blok secara opsional, misalnya `Materi untuk Soal 12–13`.
+- Mengisi isi materi atau perintah dengan teks multiline.
+- Menentukan rentang soal yang memakai blok tersebut, misalnya `Mulai: 12`, `Sampai: 13`.
+- Memilih beberapa nomor soal secara eksplisit jika rentangnya tidak berurutan.
+- Mengubah, memindahkan, atau menghapus blok materi tanpa menghapus soal yang menggunakannya.
+- Melihat live preview materi bersama dengan soal-soal terkait.
+- Menempel equation LaTeX atau Unicode ke dalam materi, sama seperti pada isi soal.
+- Menulis instruksi seperti `Gunakan teks di bawah ini untuk mengerjakan soal nomor 12–13`.
+
+Jangan memaksa guru menyalin materi yang sama ke setiap soal. Materi harus disimpan satu kali dan direferensikan oleh soal-soal terkait.
+
+#### Model Data yang Disarankan
+
+Gunakan model yang kompatibel dengan data soal yang sudah ada. Bentuk konseptualnya:
+
+```js
+{
+  id: "stimulus-1",
+  title: "Materi untuk Soal 12–13",
+  instruction: "Gunakan teks di bawah ini untuk mengerjakan soal nomor 12–13.",
+  content: "Sebuah persegi panjang memiliki panjang $12$ cm ...",
+  questionNumbers: [12, 13],
+  order: 1,
+  contentFormat: "math-text"
+}
+```
+
+Jika soal disimpan dalam array:
+
+```js
+{
+  number: 12,
+  text: "Berapakah luas persegi panjang tersebut?",
+  stimulusId: "stimulus-1"
+}
+```
+
+Aturan data:
+
+- `stimulusId` nullable agar soal lama tanpa materi bersama tetap kompatibel.
+- Satu stimulus boleh digunakan oleh banyak soal.
+- Satu soal hanya boleh memiliki satu stimulus aktif pada satu waktu, kecuali struktur data yang sudah ada memang mendukung nesting.
+- Urutan stimulus harus stabil dan server-authoritative.
+- Simpan source text materi, bukan HTML hasil render.
+- Jangan menghapus soal atau materi lama saat menambahkan fitur ini.
+- Jika backend saat ini belum memiliki tabel khusus, tambahkan schema secara backward-compatible dan ikuti pola `ensureSchema()` project.
+- Validasi server memastikan semua nomor soal yang direferensikan benar-benar bagian dari tugas yang sama.
+- Jangan mempercayai `questionNumbers` dari client tanpa validasi kepemilikan dan struktur tugas.
+
+#### Tampilan Siswa
+
+Saat siswa mengerjakan soal:
+
+- Tampilkan materi/petunjuk tepat sebelum soal pertama dalam grup.
+- Pertahankan materi tetap terlihat saat siswa berpindah antarsoal dalam grup.
+- Pada mobile, materi dapat dibuat collapsible dengan label yang jelas, tetapi default awal harus terlihat.
+- Tampilkan judul dan instruksi jika diisi.
+- Tampilkan nomor soal yang terkait, misalnya `Materi untuk Soal 12–13`.
+- Jangan menampilkan materi berulang kali di antara soal 12 dan 13 jika masih berada dalam grup yang sama.
+- Saat siswa membuka soal 13 langsung melalui resume/reconnect, materi terkait harus tetap tersedia.
+- Pada review hasil, tampilkan kembali materi yang terkait agar konteks jawaban tidak hilang.
+- Materi yang mengandung equation harus memakai `MathText` yang sama dengan isi soal.
+- Materi panjang harus dapat di-scroll tanpa menyebabkan horizontal overflow pada halaman utama.
+
+#### Perilaku pada Realtime dan Submission
+
+Untuk duel, turnamen, Boss Raid, MOBA, dan mode lain yang mengirim soal melalui Socket.io:
+
+- Payload soal harus membawa stimulus yang diperlukan atau referensi stimulus yang dapat di-resolve secara aman.
+- Semua pemain yang mendapat soal yang sama harus melihat materi yang sama.
+- Reconnect harus mengembalikan materi aktif bersama soal aktif.
+- Materi/petunjuk tidak boleh mengubah correct answer, scoring, timer, atau validasi jawaban.
+- Saat submit jawaban, server hanya memproses jawaban soal; stimulus bersifat context-only.
+- Jika stimulus diperbarui setelah tugas dimulai, gunakan aturan snapshot yang konsisten agar siswa tidak melihat konteks berbeda di tengah pengerjaan.
+
+#### Contoh Acceptance Test Stimulus
+
+Verifikasi minimal:
+
+1. Guru membuat satu materi bersama untuk soal 12 dan 13.
+2. Materi memiliki teks biasa, line break, dan equation `$$L = p \times l$$`.
+3. Preview guru menampilkan materi satu kali di atas soal 12 dan 13.
+4. Siswa melihat materi sebelum soal 12.
+5. Saat berpindah ke soal 13, materi tetap tersedia tetapi tidak diduplikasi.
+6. Siswa melakukan refresh atau reconnect di soal 13 dan materi tetap muncul.
+7. Review nilai menampilkan materi yang sama.
+8. Soal lama tanpa stimulus tetap tampil normal.
+9. Menghapus atau mengedit stimulus tidak menghapus soal yang terkait.
+10. Stimulus dari tugas atau kelas lain tidak dapat diakses melalui manipulasi request.
+
 ### Model Data dan API Soal
 
 Pertahankan backward compatibility:
