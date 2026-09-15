@@ -178,8 +178,8 @@ export function createMobaSocketAdapter({
       id: socket.data.userId,
       username: socket.data.username,
     }, mobaEnv)) {
-      const disabled = ['0', 'false', 'off', 'no'].includes(
-        String(mobaEnv.MOBA_ENABLED ?? 'true').trim().toLowerCase(),
+      const disabled = !['1', 'true', 'on', 'yes'].includes(
+        String(mobaEnv.MOBA_ENABLED ?? 'false').trim().toLowerCase(),
       )
       emitError(socket, {
         ok: false,

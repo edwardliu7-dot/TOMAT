@@ -86,14 +86,6 @@ const DUEL_INVITE_GAMES = [
   { key: 'scanner',     emoji: '💎', name: 'Scanner Prima' },
 ]
 
-// MOBA rollout terbatas untuk dua akun demo sampai mode production-ready.
-const MOBA_TEST_ACCOUNT_IDS = new Set(['tomat-demo', 'tomat-demo-2'])
-const MOBA_TEST_ACCOUNT_USERNAMES = new Set(['tomat', 'tomat2'])
-
-function canUseDemoMoba(user) {
-  return user?.role === 'siswa'
-}
-
 // Toast shown when Nananaga's wrong-answer immunity activates during duel/tournament/survival.
 // Listens for the 'nananaga-shield' CustomEvent dispatched by useSurvival and the duel/
 // tournament screen handlers. Auto-dismisses after 2.5 s.
@@ -736,11 +728,31 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   const [duelInvitePending, setDuelInvitePending]   = useState(null)   // { id, role, name } — waiting for game pick
   const [mobaMatchId, setMobaMatchId]               = useState(null)
   const [mobaReconnect, setMobaReconnect]           = useState(false)
+  const [canUseMoba, setCanUseMoba]                 = useState(false)
+
+  // Server is the source of truth for the environment gate. Keep the client
+  // locked while loading or when the status request fails.
+  useEffect(() => {
+    let cancelled = false
+    setCanUseMoba(false)
+    if (guruMode || !user || user.role !== 'siswa') return
+
+    fetch('/api/siswa/moba/access', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { allowed: false })
+      .then(({ allowed }) => {
+        if (!cancelled) setCanUseMoba(allowed === true)
+      })
+      .catch(() => {
+        if (!cancelled) setCanUseMoba(false)
+      })
+
+    return () => { cancelled = true }
+  }, [guruMode, user?.id, user?.role])
 
   // Auto-reconnect: jika siswa kembali ke app saat pertandingan MOBA masih berjalan,
   // langsung arahkan kembali ke arena tanpa harus masuk lobby terlebih dahulu.
   useEffect(() => {
-    if (guruMode || !user || user.role !== 'siswa' || !canUseDemoMoba(user)) return
+    if (guruMode || !user || user.role !== 'siswa' || !canUseMoba) return
     // Hanya cek sekali saat user pertama kali di-set (bukan saat navigasi antar screen)
     fetch('/api/siswa/moba/active-match', { credentials: 'include' })
       .then(r => r.ok ? r.json() : { matchId: null })
@@ -757,7 +769,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
         })
       })
       .catch(() => {})
-  }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, canUseMoba]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { open: whatsNewOpen, dismiss: dismissWhatsNew, ready: whatsNewReady } = useWhatsNew()
   const [eventAnnouncement, setEventAnnouncement] = useState(null)
@@ -803,7 +815,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
   //    the Temporal Dead Zone when referenced in dependency arrays. ──────────
   // Push a new route onto the stack
   const navigate = useCallback((route, options = {}) => {
-    if ((route === 'moba-lobby' || route === 'moba-match') && !canUseDemoMoba(user)) {
+    if ((route === 'moba-lobby' || route === 'moba-match') && !canUseMoba) {
       return
     }
     if (GAME_ROUTES[route]) {
@@ -828,7 +840,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       setPendingTaskId(null)
       setHistory(h => [...h, route])
     }
-  }, [user])
+  }, [user, canUseMoba])
 
   const goBack = useCallback(() => {
     setHistory(h => h.length > 1 ? h.slice(0, -1) : h)
@@ -1005,7 +1017,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     // canonical screens instead of forcing a landscape presentation.
     if (!guruMode && user?.role === 'siswa' && isLandscapeMobile) {
       const landscapeMap = {
-        arena:         <LandscapeArena    navigate={navigate} goBack={goBack} canUseDemoMoba={canUseDemoMoba(user)} />,
+        arena:         <LandscapeArena    navigate={navigate} goBack={goBack} canUseDemoMoba={canUseMoba} />,
         grades:        <LandscapeNilaiTugas navigate={navigate} goBack={goBack} />,
         papanperingkat:<LandscapeLeaderboard goBack={goBack} />,
         grade7:        <LandscapeZonaMap navigate={navigate} goBack={goBack} grade={7} />,
@@ -1041,7 +1053,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     // ── Arena screen (landscape entry point, also usable on desktop) ──────────
     if (current === 'arena') {
-      return <LandscapeArena navigate={navigate} goBack={goBack} canUseDemoMoba={canUseDemoMoba(user)} />
+      return <LandscapeArena navigate={navigate} goBack={goBack} canUseDemoMoba={canUseMoba} />
     }
 
     if (current === 'public-profile' && publicProfileData) {
@@ -1161,6 +1173,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'moba-match') {
+      if (!canUseMoba) return <LandscapeArena navigate={navigate} goBack={goBack} canUseDemoMoba={false} />
       return (
         <MobaScreen
           matchId={mobaMatchId}
@@ -1173,6 +1186,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'moba-lobby') {
+      if (!canUseMoba) return <LandscapeArena navigate={navigate} goBack={goBack} canUseDemoMoba={false} />
       return (
         <MobaLobbyScreen
           goBack={goBack}
@@ -1217,7 +1231,7 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
     }
 
     if (current === 'home') {
-      return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} openPetShop={() => { setTokoInitialTab('pet_skin'); navigate('toko') }} openEventShop={() => { setTokoInitialTab('event'); navigate('toko') }} onOpenApp={openIframeApp} />
+      return <HomeScreen navigate={navigate} goBack={goBack} guruMode={guruMode} onExitGuruMode={onExitGuruMode} openPetShop={() => { setTokoInitialTab('pet_skin'); navigate('toko') }} openEventShop={() => { setTokoInitialTab('event'); navigate('toko') }} onOpenApp={openIframeApp} canUseMoba={canUseMoba} />
     }
 
     const StaticScreen = STATIC_ROUTES[current] || HomeScreen

@@ -89,6 +89,7 @@ test('does not reward a draw and exposes the rollout gates', async () => {
   assert.equal(pool.queries.filter(query => /^UPDATE students/i.test(query.text)).length, 0)
 
   assert.equal(isMobaEnabled({ MOBA_ENABLED: 'false' }), false)
+  assert.equal(isMobaEnabled({}), false)
   assert.deepEqual(getMobaAllowlist({
     MOBA_ALLOWED_STUDENT_IDS: ' student-a,student-b ',
   }), ['student-a', 'student-b'])

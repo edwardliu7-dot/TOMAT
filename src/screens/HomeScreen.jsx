@@ -144,7 +144,7 @@ function ZoneCard({ zone, locked, selected, onClick }) {
   )
 }
 
-export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop, openEventShop, onOpenApp }) {
+export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPetShop, openEventShop, onOpenApp, canUseMoba = false }) {
   const { player } = usePlayer()
   const { tasks, grades } = useTask()
   const { user } = useAuth()
@@ -158,7 +158,6 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
   const nextTask = pendingTasks[0] || null
   const firstName = (user?.name || player?.name || 'Pelajar').split(' ')[0]
   const photoUrl = user?.photoUrl ?? user?.photo_url
-  const canUseDemoMoba = user?.role === 'siswa'
 
   useEffect(() => {
     if (!notice) return undefined
@@ -189,7 +188,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
   }
 
   const quickLinks = [
-    ...(canUseDemoMoba
+    ...(canUseMoba
       ? [{ id: 'moba-lobby', icon: '⚔️', label: 'Arena MOBA', sub: 'Duel belajar bersama', accent: '#F97316' }]
       : []),
     { id: 'hafalan', icon: '🧮', label: 'Hafalan', sub: 'Flash Card & Kuis', accent: '#818cf8' },
@@ -214,7 +213,7 @@ export default function HomeScreen({ navigate, guruMode, onExitGuruMode, openPet
         grades={grades}
         firstName={firstName}
         zones={zones}
-        canUseDemoMoba={canUseDemoMoba}
+        canUseDemoMoba={canUseMoba}
         navigate={navigate}
         openPetShop={openPetShop}
         openEventShop={openEventShop}

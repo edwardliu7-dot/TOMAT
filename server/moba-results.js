@@ -2,9 +2,14 @@ import express from 'express'
 import { pool } from './db.js'
 import { requireAuth, requireRole } from './auth.js'
 import { listMobaMatchResults } from './moba/results.js'
+import { isMobaEnabled } from './moba/access.js'
 
 const router = express.Router()
 router.use(requireAuth, requireRole('guru'))
+router.use((req, res, next) => {
+  if (isMobaEnabled()) return next()
+  return res.status(403).json({ error: 'MOBA Arena sedang dikunci.' })
+})
 
 router.get('/', async (req, res) => {
   try {

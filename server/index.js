@@ -28,6 +28,7 @@ import { examGuruRouter, examSiswaRouter } from './exams.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
 import { setupMultiplayer, getMobaAdapter } from './multiplayer.js'
+import { canStudentUseMoba } from './moba/access.js'
 import { setIo } from './boss-state.js'
 import { setTournamentIo } from './tournament-state.js'
 
@@ -222,6 +223,12 @@ async function createServer() {
   app.get('/api/siswa/moba/active-match', (req, res) => {
     const user = req.session?.user
     if (!user || user.role !== 'siswa') return res.status(401).json({ matchId: null })
+    if (!canStudentUseMoba(user)) {
+      return res.status(403).json({
+        matchId: null,
+        error: 'MOBA Arena sedang dikunci.',
+      })
+    }
     const moba = getMobaAdapter()
     if (!moba) return res.json({ matchId: null })
     const match = moba.manager.findPlayerMatch({ userId: user.id })
