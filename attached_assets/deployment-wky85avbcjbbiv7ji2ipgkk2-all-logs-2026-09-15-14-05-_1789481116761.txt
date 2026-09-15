@@ -1,0 +1,160 @@
+2026-Sep-15 13:00:35 Docker 29.6.1 with BuildKit and Buildx detected on deployment server (localhost).
+2026-Sep-15 13:00:35 Starting deployment of edwardliu7-dot/TOMAT:main to localhost.
+2026-Sep-15 13:00:36 Preparing container with helper image: docker.io/coollabsio/coolify-helper:1.0.16
+2026-Sep-15 13:00:36 [DEBUG] [CMD]: docker stop --timeout=30 wky85avbcjbbiv7ji2ipgkk2
+2026-Sep-15 13:00:36 [DEBUG] Error response from daemon: No such container: wky85avbcjbbiv7ji2ipgkk2
+2026-Sep-15 13:00:40 [DEBUG] [CMD]: docker run -d --network 'coolify' --name wky85avbcjbbiv7ji2ipgkk2  --rm -v /root/.docker/buildx:/root/.docker/buildx -v /var/run/docker.sock:/var/run/docker.sock docker.io/coollabsio/coolify-helper:1.0.16
+2026-Sep-15 13:00:40 [DEBUG] 92361a12b58bc5503c5f0fbb90e24c2b23a8c03040c9610225cfcd708e9fa3df
+2026-Sep-15 13:00:50 [DEBUG] [CMD]: docker exec wky85avbcjbbiv7ji2ipgkk2 bash -c 'GIT_SSH_COMMAND="ssh -o ConnectTimeout=30 -p 22 -o Port=22 -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git ls-remote '\''https://x-access-token:<REDACTED>@github.com/edwardliu7-dot/TOMAT.git'\'' '\''refs/heads/main'\'''
+2026-Sep-15 13:00:50 [DEBUG] ddba4db65c60ab9931f4883bc2378887097ee80d	refs/heads/main
+2026-Sep-15 13:00:51 ----------------------------------------
+2026-Sep-15 13:00:51 Importing edwardliu7-dot/TOMAT:main (commit sha ddba4db65c60ab9931f4883bc2378887097ee80d) to /artifacts/wky85avbcjbbiv7ji2ipgkk2.
+2026-Sep-15 13:00:51 [DEBUG] [CMD]: docker exec wky85avbcjbbiv7ji2ipgkk2 bash -c 'git -c '\''url.https://x-access-token:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 clone --depth=1 --recurse-submodules --shallow-submodules -b '\''main'\'' '\''https:<REDACTED>@github.com/edwardliu7-dot/TOMAT.git'\'' '\''/artifacts/wky85avbcjbbiv7ji2ipgkk2'\'' && cd '\''/artifacts/wky85avbcjbbiv7ji2ipgkk2'\'' && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https://x-access-token:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 fetch --depth=1 origin '\''ddba4db65c60ab9931f4883bc2378887097ee80d'\'' && git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 -c advice.detachedHead=false checkout '\''ddba4db65c60ab9931f4883bc2378887097ee80d'\'' >/dev/null 2>&1 && cd '\''/artifacts/wky85avbcjbbiv7ji2ipgkk2'\'' && if [ -f .gitmodules ]; then git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 submodule sync && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 submodule update --init --recursive --depth=1; fi && cd '\''/artifacts/wky85avbcjbbiv7ji2ipgkk2'\'' && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 lfs pull'
+2026-Sep-15 13:<REDACTED>@10.26.1 --activate
+2026-Sep-15 13:01:33 [DEBUG] 
+2026-Sep-15 13:01:33 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 13:01:33 [DEBUG] RUN pnpm install --frozen-lockfile
+2026-Sep-15 13:01:33 [DEBUG] 
+2026-Sep-15 13:01:33 [DEBUG] COPY . .
+2026-Sep-15 13:01:33 [DEBUG] RUN pnpm run build
+2026-Sep-15 13:01:33 [DEBUG] 
+2026-Sep-15 13:01:33 [DEBUG] # ── Runtime image ──────────────────────────────────────────────
+2026-Sep-15 13:01:33 [DEBUG] FROM node:22-alpine
+2026-Sep-15 13:01:33 [DEBUG] WORKDIR /app
+2026-Sep-15 13:01:33 [DEBUG] ENV NODE_ENV=production
+2026-Sep-15 13:01:33 [DEBUG] ENV NODE_OPTIONS=--dns-result-order=ipv4first
+2026-Sep-15 13:01:33 [DEBUG] RUN apk add --no-cache curl && corepack enable && corepack prepare pnpm@10.26.1 --activate
+2026-Sep-15 13:01:33 [DEBUG] 
+2026-Sep-15 13:01:33 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 13:01:33 [DEBUG] RUN pnpm install --frozen-lockfile --prod
+2026-Sep-15 13:01:33 [DEBUG] 
+2026-Sep-15 13:01:33 [DEBUG] COPY --from=build /app/dist ./dist
+2026-Sep-15 13:01:33 [DEBUG] COPY --from=build /app/bundles ./bundles
+2026-Sep-15 13:01:33 [DEBUG] COPY server ./server
+2026-Sep-15 13:01:33 [DEBUG] 
+2026-Sep-15 13:01:33 [DEBUG] EXPOSE 5000
+2026-Sep-15 13:01:33 [DEBUG] HEALTHCHECK --interval=30s --timeout=10s --start-period=15s \
+2026-Sep-15 13:01:33 [DEBUG] CMD curl -f http://localhost:<REDACTED>@10.26.1 --activate
+2026-Sep-15 13:01:34 [DEBUG] 
+2026-Sep-15 13:01:34 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 13:01:34 [DEBUG] RUN pnpm install --frozen-lockfile
+2026-Sep-15 13:01:34 [DEBUG] 
+2026-Sep-15 13:01:34 [DEBUG] COPY . .
+2026-Sep-15 13:01:34 [DEBUG] RUN pnpm run build
+2026-Sep-15 13:01:34 [DEBUG] 
+2026-Sep-15 13:01:34 [DEBUG] # ── Runtime image ──────────────────────────────────────────────
+2026-Sep-15 13:01:34 [DEBUG] FROM node:22-alpine
+2026-Sep-15 13:01:34 [DEBUG] WORKDIR /app
+2026-Sep-15 13:01:34 [DEBUG] ENV NODE_ENV=production
+2026-Sep-15 13:01:34 [DEBUG] ENV NODE_OPTIONS=--dns-result-order=ipv4first
+2026-Sep-15 13:01:34 [DEBUG] RUN apk add --no-cache curl && corepack enable && corepack prepare pnpm@10.26.1 --activate
+2026-Sep-15 13:01:34 [DEBUG] 
+2026-Sep-15 13:01:34 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 13:01:34 [DEBUG] RUN pnpm install --frozen-lockfile --prod
+2026-Sep-15 13:01:34 [DEBUG] 
+2026-Sep-15 13:01:34 [DEBUG] COPY --from=build /app/dist ./dist
+2026-Sep-15 13:01:34 [DEBUG] COPY --from=build /app/bundles ./bundles
+2026-Sep-15 13:01:34 [DEBUG] COPY server ./server
+2026-Sep-15 13:01:34 [DEBUG] 
+2026-Sep-15 13:01:34 [DEBUG] EXPOSE 5000
+2026-Sep-15 13:01:34 [DEBUG] HEALTHCHECK --interval=30s --timeout=10s --start-period=15s \
+2026-Sep-15 13:01:34 [DEBUG] CMD curl -f http://localhost:<REDACTED>@157.10.161.229:5432/postgres
+2026-Sep-15 13:01:35 [DEBUG] ARG SESSION_SECRET=w2/dYunIXS5CBX9gmgqx+IYg9hhoD0sMXYH+Q8bJEl2gV2nI0/QiFcqb+Bo4SSkL90cbialD4HwZ3jTogvEB8w==
+2026-Sep-15 13:01:35 [DEBUG] ARG GROQ_API_KEY=<REDACTED>
+2026-Sep-15 13:01:35 [DEBUG] ARG VAPID_PUBLIC_KEY=BFXr6NMmDjxq1MKT2qDD47JX-Z7INcC_-2iZZ28TZ9VzYjporbP3bHVGLw-eda97nHpObBuiyUYUB3NGMhHEDss
+2026-Sep-15 13:01:35 [DEBUG] ARG MIN_APP_VERSION_CODE=145
+2026-Sep-15 13:01:35 [DEBUG] ARG APP_DOWNLOAD_URL=https://github.com/edwardliu7-dot/TOMAT/releases/download/v1.4.5/smartisa.v1.4.5.apk
+2026-Sep-15 13:<REDACTED>@10.26.1 --activate
+2026-Sep-15 13:01:35 [DEBUG] 
+2026-Sep-15 13:01:35 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 13:01:35 [DEBUG] RUN pnpm install --frozen-lockfile
+2026-Sep-15 13:01:35 [DEBUG] 
+2026-Sep-15 13:01:35 [DEBUG] COPY . .
+2026-Sep-15 13:01:35 [DEBUG] RUN pnpm run build
+2026-Sep-15 13:01:35 [DEBUG] 
+2026-Sep-15 13:01:35 [DEBUG] # ── Runtime image ──────────────────────────────────────────────
+2026-Sep-15 13:01:35 [DEBUG] FROM node:22-alpine
+2026-Sep-15 13:01:35 [DEBUG] ARG BASE_PATH=/
+2026-Sep-15 13:01:35 [DEBUG] ARG PORT=5000
+2026-Sep-15 13:01:35 [DEBUG] ARG NODE_ENV=production
+2026-Sep-15 13:01:35 [DEBUG] ARG NEON_DATABASE_URL=postgres://postgres:<REDACTED>@157.10.161.229:5432/postgres
+2026-Sep-15 13:01:35 [DEBUG] ARG SESSION_SECRET=w2/dYunIXS5CBX9gmgqx+IYg9hhoD0sMXYH+Q8bJEl2gV2nI0/QiFcqb+Bo4SSkL90cbialD4HwZ3jTogvEB8w==
+2026-Sep-15 13:01:35 [DEBUG] ARG GROQ_API_KEY=<REDACTED>
+2026-Sep-15 13:01:35 [DEBUG] ARG VAPID_PUBLIC_KEY=BFXr6NMmDjxq1MKT2qDD47JX-Z7INcC_-2iZZ28TZ9VzYjporbP3bHVGLw-eda97nHpObBuiyUYUB3NGMhHEDss
+2026-Sep-15 13:01:35 [DEBUG] ARG MIN_APP_VERSION_CODE=145
+2026-Sep-15 13:01:35 [DEBUG] ARG APP_DOWNLOAD_URL=https://github.com/edwardliu7-dot/TOMAT/releases/download/v1.4.5/smartisa.v1.4.5.apk
+2026-Sep-15 13:<REDACTED>@10.26.1 --activate
+2026-Sep-15 13:01:35 [DEBUG] 
+2026-Sep-15 13:01:35 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 13:01:35 [DEBUG] RUN pnpm install --frozen-lockfile --prod
+2026-Sep-15 13:01:35 [DEBUG] 
+2026-Sep-15 13:01:35 [DEBUG] COPY --from=build /app/dist ./dist
+2026-Sep-15 13:01:35 [DEBUG] COPY --from=build /app/bundles ./bundles
+2026-Sep-15 13:01:35 [DEBUG] COPY server ./server
+2026-Sep-15 13:01:35 [DEBUG] 
+2026-Sep-15 13:01:35 [DEBUG] EXPOSE 5000
+2026-Sep-15 13:01:35 [DEBUG] HEALTHCHECK --interval=30s --timeout=10s --start-period=15s \
+2026-Sep-15 13:01:35 [DEBUG] CMD curl -f http://localhost:5000/api/app/version-check || exit 1
+2026-Sep-15 13:01:35 [DEBUG] 
+2026-Sep-15 13:01:35 [DEBUG] CMD ["node", "server/index.js"]
+2026-Sep-15 13:01:35 ----------------------------------------
+2026-Sep-15 13:01:36 Building docker image started.
+2026-Sep-15 13:01:36 To check the current progress, click on Show Debug Logs.
+2026-Sep-15 13:01:36 [DEBUG] [CMD]: docker exec wky85avbcjbbiv7ji2ipgkk2 bash -c 'cat /artifacts/build.sh'
+2026-Sep-15 13:01:36 [DEBUG] cd /artifacts/wky85avbcjbbiv7ji2ipgkk2 && set -a && source /artifacts/build-time.env && set +a && DOCKER_BUILDKIT=1 docker build  --add-host coolify:10.0.1.8 --add-host coolify-db:10.0.1.4 --add-host coolify-realtime:10.0.1.6 --add-host coolify-redis:10.0.1.5 --add-host llfsfaj7n7vzkp3n08i500fv:10.0.1.2 --add-host llfsfaj7n7vzkp3n08i500fv-proxy:10.0.1.3 --network host -f /artifacts/wky85avbcjbbiv7ji2ipgkk2/Dockerfile --progress plain -t y4e6icv3cej4ax65idvhusde:ddba4db65c60ab9931f4883bc2378887097ee80d --build-arg 'COOLIFY_URL' --build-arg 'COOLIFY_FQDN' --build-arg 'COOLIFY_BRANCH' --build-arg 'COOLIFY_RESOURCE_UUID' --build-arg 'BASE_PATH' --build-arg 'PORT' --build-arg 'NODE_ENV' --build-arg 'NEON_DATABASE_URL' --build-arg 'SESSION_SECRET' --build-arg 'GROQ_API_KEY' --build-arg 'VAPID_PUBLIC_KEY' --build-arg 'MIN_APP_VERSION_CODE' --build-arg 'APP_DOWNLOAD_URL' --build-arg 'APP_PUBLIC_URL' --build-arg 'DATABASE_URL' --build-arg 'VAPID_PRIVATE_KEY' --build-arg COOLIFY_BUILD_SECRETS_HASH=c66a630936a4c57ebf1499c29060ae3ac2e289373c243384061a96f81c73e9e6 --build-arg 'COOLIFY_URL' --build-arg 'COOLIFY_FQDN' --build-arg 'COOLIFY_BRANCH' --build-arg 'COOLIFY_RESOURCE_UUID' /artifacts/wky85avbcjbbiv7ji2ipgkk2
+2026-Sep-15 13:01:40 [DEBUG] [CMD]: docker exec wky85avbcjbbiv7ji2ipgkk2 bash -c 'bash /artifacts/build.sh'
+2026-Sep-15 13:01:40 [DEBUG] #0 building with "default" instance using docker driver
+2026-Sep-15 13:01:40 [DEBUG] 
+2026-Sep-15 13:01:40 [DEBUG] #1 [internal] load build definition from Dockerfile
+2026-Sep-15 13:01:40 [DEBUG] #1 transferring dockerfile:
+2026-Sep-15 13:01:40 [DEBUG] #1 transferring dockerfile: 3.29kB 0.0s done
+2026-Sep-15 13:01:40 [DEBUG] #1 DONE 0.7s
+2026-Sep-15 13:01:40 [DEBUG] #2 [internal] load metadata for docker.io/library/node:22-alpine
+2026-Sep-15 13:01:49 [DEBUG] #2 ERROR: failed to authorize: failed to fetch anonymous token: Get "https://auth.docker.io/token?scope=repository%3Alibrary%2Fnode%3Apull&service=registry.docker.io": dial tcp: lookup auth.docker.io on 127.0.0.11:53: server misbehaving
+2026-Sep-15 13:01:51 [DEBUG] ------
+2026-Sep-15 13:01:51 [DEBUG] > [internal] load metadata for docker.io/library/node:22-alpine:
+2026-Sep-15 13:01:51 [DEBUG] ------
+2026-Sep-15 13:01:51 [DEBUG] Dockerfile:1
+2026-Sep-15 13:01:51 [DEBUG] --------------------
+2026-Sep-15 13:01:51 [DEBUG] 1 | >>> FROM node:22-alpine AS build
+2026-Sep-15 13:01:51 [DEBUG] 2 |     ARG BASE_PATH=/
+2026-Sep-15 13:01:51 [DEBUG] 3 |     ARG PORT=5000
+2026-Sep-15 13:01:51 [DEBUG] --------------------
+2026-Sep-15 13:01:51 [DEBUG] ERROR: failed to build: failed to solve: failed to fetch anonymous token: Get "https://auth.docker.io/token?scope=repository%3Alibrary%2Fnode%3Apull&service=registry.docker.io": dial tcp: lookup auth.docker.io on 127.0.0.11:53: server misbehaving
+2026-Sep-15 13:01:52 ========================================
+2026-Sep-15 13:01:52 Deployment failed: Command execution failed (exit code 1): docker exec wky85avbcjbbiv7ji2ipgkk2 bash -c 'bash /artifacts/build.sh'
+2026-Sep-15 13:01:52 Error: #0 building with "default" instance using docker driver
+2026-Sep-15 13:01:52 
+2026-Sep-15 13:01:52 #1 [internal] load build definition from Dockerfile
+2026-Sep-15 13:01:52 #1 transferring dockerfile:
+2026-Sep-15 13:01:52 #1 transferring dockerfile: 3.29kB 0.0s done
+2026-Sep-15 13:01:52 #1 DONE 0.7s
+2026-Sep-15 13:01:52 
+2026-Sep-15 13:01:52 #2 [internal] load metadata for docker.io/library/node:22-alpine
+2026-Sep-15 13:01:52 #2 ERROR: failed to authorize: failed to fetch anonymous token: Get "https://auth.docker.io/token?scope=repository%3Alibrary%2Fnode%3Apull&service=registry.docker.io": dial tcp: lookup auth.docker.io on 127.0.0.11:53: server misbehaving
+2026-Sep-15 13:01:52 ------
+2026-Sep-15 13:01:52 > [internal] load metadata for docker.io/library/node:22-alpine:
+2026-Sep-15 13:01:52 ------
+2026-Sep-15 13:01:52 Dockerfile:1
+2026-Sep-15 13:01:52 --------------------
+2026-Sep-15 13:01:52 1 | >>> FROM node:22-alpine AS build
+2026-Sep-15 13:01:52 2 |     ARG BASE_PATH=/
+2026-Sep-15 13:01:52 3 |     ARG PORT=5000
+2026-Sep-15 13:01:52 --------------------
+2026-Sep-15 13:01:52 ERROR: failed to build: failed to solve: failed to fetch anonymous token: Get "https://auth.docker.io/token?scope=repository%3Alibrary%2Fnode%3Apull&service=registry.docker.io": dial tcp: lookup auth.docker.io on 127.0.0.11:53: server misbehaving
+2026-Sep-15 13:01:52 [DEBUG] Error type: App\Exceptions\DeploymentException
+2026-Sep-15 13:01:52 [DEBUG] Error code: 0
+2026-Sep-15 13:01:52 [DEBUG] Location: /var/www/html/app/Traits/ExecuteRemoteCommand.php:243
+2026-Sep-15 13:01:52 [DEBUG] Stack trace (first 5 lines):
+2026-Sep-15 13:01:52 [DEBUG] #0 /var/www/html/app/Traits/ExecuteRemoteCommand.php(107): App\Jobs\ApplicationDeploymentJob->executeCommandWithProcess()
+2026-Sep-15 13:01:52 [DEBUG] #1 /var/www/html/vendor/laravel/framework/src/Illuminate/Collections/Traits/EnumeratesValues.php(275): App\Jobs\ApplicationDeploymentJob->{closure:App\Traits\ExecuteRemoteCommand::execute_remote_command():72}()
+2026-Sep-15 13:01:52 [DEBUG] #2 /var/www/html/app/Traits/ExecuteRemoteCommand.php(72): Illuminate\Support\Collection->each()
+2026-Sep-15 13:01:52 [DEBUG] #3 /var/www/html/app/Jobs/ApplicationDeploymentJob.php(4097): App\Jobs\ApplicationDeploymentJob->execute_remote_command()
+2026-Sep-15 13:01:53 [DEBUG] #4 /var/www/html/app/Jobs/ApplicationDeploymentJob.php(963): App\Jobs\ApplicationDeploymentJob->build_image()
+2026-Sep-15 13:01:53 ========================================
+2026-Sep-15 13:01:53 Deployment failed. Removing the new version of your application.
+2026-Sep-15 13:01:53 [DEBUG] [CMD]: bash -c 'if command -v timeout >/dev/null 2>&1; then output=$(timeout -k 10s 60s docker rm -f '\''y4e6icv3cej4ax65idvhusde-130031582240'\'' 2>&1); exit_code=$?; else output='\'''\''; exit_code=124; fi; if [ "$exit_code" -eq 124 ]; then echo '\''__COOLIFY_CONTAINER_REMOVE_TIMEOUT__'\''; elif [ "$exit_code" -ne 0 ] && printf '\''%s'\'' "$output" | grep -q '\''No such container:'\''; then exit 0; elif [ "$exit_code" -ne 0 ]; then printf '\''%s\n'\'' "$output" >&2; else printf '\''%s\n'\'' "$output"; fi; exit $exit_code'
+2026-Sep-15 13:01:53 [DEBUG] Error response from daemon: No such container: y4e6icv3cej4ax65idvhusde-130031582240
+2026-Sep-15 13:01:54 Gracefully shutting down build container: wky85avbcjbbiv7ji2ipgkk2
+2026-Sep-15 13:02:04 [DEBUG] [CMD]: docker stop --timeout=30 wky85avbcjbbiv7ji2ipgkk2
+2026-Sep-15 13:02:04 [DEBUG] wky85avbcjbbiv7ji2ipgkk2

@@ -67,3 +67,4 @@
 - [TOMAT APK YouTube embed](tomat-apk-youtube-embed.md) — iframe YouTube di Capacitor memerlukan JavaScript, DOM storage, dan third-party cookies WebView; URL player native memakai host YouTube reguler.
 - [TOMAT BalanceLab SPLDV](tomat-balancelab.md) — BalanceLab adalah alat hitung SPLDV visual mandiri; bukan misi, reward, duel, atau turnamen.
 - [TOMAT Mode Ujian](tomat-exam-mode.md) — ujian terpisah dari tugas/game; server menguasai token, attempt, deadline, autosave, scoring, dan audit; client memakai IndexedDB fallback.
+- [TOMAT proxied Vite HMR](tomat-proxied-vite-hmr.md) — Express middleware mode di preview proxied tidak boleh mengiklankan WebSocket HMR ke port container-local; gunakan full reload.

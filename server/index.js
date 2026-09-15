@@ -198,7 +198,12 @@ async function createServer() {
   if (!isProd) {
     const { createServer: createViteServer } = await import('vite')
     const vite = await createViteServer({
-      server: { middlewareMode: true, host: '0.0.0.0', port: PORT, allowedHosts: true, hmr: { clientPort: 443 } },
+      // The app is served through Replit's proxy, not directly from the
+      // container. Advertising a hard-coded HMR client port makes browsers
+      // connect to 127.0.0.1:443, where nothing is listening, and leaves the
+      // preview repeatedly reconnecting while modules can return 503.
+      // A full reload is safer here than a broken WebSocket overlay.
+      server: { middlewareMode: true, host: '0.0.0.0', port: PORT, allowedHosts: true, hmr: false },
       appType: 'spa',
     })
     app.use(vite.middlewares)

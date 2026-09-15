@@ -40,6 +40,9 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5000,
     allowedHosts: true,
+    // The production-like Express workflow serves Vite in middleware mode
+    // behind a proxy. Do not advertise a container-local HMR WebSocket.
+    hmr: false,
   },
   build: {
     chunkSizeWarningLimit: 2000,
