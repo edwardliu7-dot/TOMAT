@@ -12,6 +12,7 @@ TOMAT adalah platform belajar matematika SMP dengan:
 
 - Siswa kelas VII, VIII, dan IX.
 - Game matematika, tugas guru, nilai, hafalan, leaderboard, toko kosmetik, Pet Tomi, chat/forum, duel, turnamen, Boss Raid, dan mode MOBA.
+- Setiap tugas harus memiliki informasi nama mata pelajaran yang jelas.
 - Tema visual dark space.
 - Brand utama:
   - Background: `#071321`
@@ -220,6 +221,9 @@ Tambahkan stylesheet KaTeX secara global atau melalui import yang sesuai. Pastik
 
 Di tempat guru membuat atau mengedit soal, sediakan:
 
+- Field wajib `Nama Mata Pelajaran` atau `Mata Pelajaran` pada form tugas/soal.
+- Jika daftar subject guru sudah tersedia, gunakan dropdown berdasarkan subject yang memang dimiliki guru.
+- Untuk konteks TOMAT saat ini, pilihan default adalah `Matematika`, tetapi field tetap harus tersimpan dan tampil sebagai data tugas.
 - Textarea atau editor soal yang mempertahankan isi equation mentah.
 - Preview live menggunakan komponen `MathText`.
 - Tombol atau bantuan format yang menjelaskan:
@@ -239,6 +243,10 @@ Di tempat guru membuat atau mengedit soal, sediakan:
 Pertahankan backward compatibility:
 
 - Soal lama berbentuk string teks biasa harus tetap dapat dibaca dan ditampilkan.
+- Tugas baru harus menyimpan nama mata pelajaran.
+- Gunakan relasi `subject_id` ke tabel `subjects` jika relasi tersebut sudah tersedia dan tipe ID-nya kompatibel.
+- Jika tugas membutuhkan snapshot nama untuk histori, simpan atau expose `mata_pelajaran`/nama subject melalui JOIN agar perubahan nama subject tidak membuat histori tugas menjadi ambigu.
+- Jangan membuat field duplikat dengan nama yang berbeda tanpa memeriksa schema yang sudah ada. Standarkan mapping API ke `mataPelajaran` dan mapping database ke field yang digunakan project, misalnya `mata_pelajaran` atau `subject_id`.
 - Jangan mengubah `correctAnswer`, `options`, scoring, atau validasi jawaban secara tidak perlu.
 - Simpan isi soal sebagai teks sumber equation, bukan HTML hasil render.
 - Jika schema membutuhkan perubahan, gunakan kolom nullable/backward-compatible.
@@ -249,11 +257,49 @@ Pertahankan backward compatibility:
 ```js
 {
   text: "Tentukan nilai $x$ dari $$2x + 5 = 17$$",
-  contentFormat: "math-text"
+  contentFormat: "math-text",
+  mataPelajaran: "Matematika"
 }
 ```
 
 `contentFormat` boleh tidak ada pada data lama dan default-nya harus dianggap sebagai `math-text` dengan fallback plain text.
+
+Untuk payload tugas, gunakan bentuk yang konsisten:
+
+```js
+{
+  mataPelajaran: "Matematika",
+  subjectId: 1,
+  kelas: "VIII Ibnu Sina",
+  gameKey: "g8...",
+  gameName: "Teorema Pythagoras"
+}
+```
+
+`subjectId` boleh nullable jika schema lama belum memiliki relasi subject, tetapi `mataPelajaran` harus tetap memiliki nilai untuk tugas baru. Untuk data tugas lama yang belum memiliki mapel, tampilkan fallback `Matematika` tanpa mengubah isi data secara destruktif.
+
+### Tampilan Nama Mata Pelajaran
+
+Nama mata pelajaran harus terlihat di seluruh alur tugas:
+
+- Form buat/edit tugas guru.
+- Preview tugas sebelum dipublikasikan.
+- Daftar tugas guru.
+- Daftar tugas siswa.
+- Header/detail halaman pengerjaan.
+- Kartu nilai dan histori hasil tugas.
+- Notifikasi tugas baru jika notifikasi menampilkan nama tugas.
+- Filter atau ringkasan nilai jika screen tersebut sudah memiliki filter mapel.
+
+Gunakan label Indonesia `Mata Pelajaran` atau `Mapel`, bukan hanya ID subject. Jangan menampilkan `undefined`, `null`, atau angka ID kepada siswa.
+
+Validasi server harus memastikan:
+
+1. Nama mapel tidak kosong untuk tugas baru.
+2. `subjectId`, jika dikirim, benar-benar subject yang terdaftar untuk guru tersebut.
+3. Siswa hanya menerima data mapel dari tugas yang memang boleh ia akses.
+4. Client tidak dapat mengganti nama mapel atau subject milik guru lain dengan memanipulasi request.
+5. Tugas lama tanpa mapel tetap dapat dibuka dengan fallback `Matematika`.
 
 Generator soal di server juga boleh menghasilkan equation, tetapi output tetap harus menyertakan `text` yang dapat dirender oleh client. Jangan mengirim hasil HTML dari server.
 
@@ -345,6 +391,9 @@ Implementasi dianggap selesai jika semua kondisi berikut terpenuhi:
 - Guru dapat menyalin string equation LaTeX ke editor soal.
 - Setelah paste, preview langsung menampilkan equation ter-render.
 - Equation tetap tersimpan sebagai source text, bukan gambar atau HTML.
+- Guru dapat mengisi `Nama Mata Pelajaran` saat membuat tugas.
+- Nama mata pelajaran tampil pada preview, daftar tugas, halaman pengerjaan, nilai, histori, dan notifikasi yang relevan.
+- Tugas lama tanpa data mapel tetap tampil dengan fallback `Matematika`.
 - Soal lama yang hanya berupa plain text tetap tampil normal.
 - `$x^2$`, `$$\frac{a}{b}$$`, `\sqrt{x}`, Unicode `x²`, dan equation multiline dapat ditampilkan.
 - LaTeX invalid tidak membuat halaman blank atau crash.
