@@ -24,6 +24,7 @@ import mobaHistoryRouter from './moba-history.js'
 import videoMateriGuruRouter from './video-materi.js'
 import videoMateriSiswaRouter from './video-materi-siswa.js'
 import bugReportsRouter from './bug-reports.js'
+import { examGuruRouter, examSiswaRouter } from './exams.js'
 import { pool } from './db.js'
 import { ensureSchema } from './schema.js'
 import { setupMultiplayer, getMobaAdapter } from './multiplayer.js'
@@ -177,8 +178,10 @@ async function createServer() {
   app.use('/api/siswa/lencana', lencanaRouter)
   app.use('/api/guru/hafalan', hafalanGuruRouter)
   app.use('/api/guru', videoMateriGuruRouter)
+  app.use('/api/guru/exams', examGuruRouter)
   app.use('/api/siswa/hafalan', hafalanSiswaRouter)
   app.use('/api/siswa', videoMateriSiswaRouter)
+  app.use('/api/siswa/exams', examSiswaRouter)
   app.use('/api/komunikasi', komunikasiRouter)
   app.use('/api/notifikasi', notifikasiRouter)
   app.use('/api/siswa/pet', petRouter)

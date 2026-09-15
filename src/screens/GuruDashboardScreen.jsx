@@ -9,6 +9,7 @@ function kelasToGrade(kelas) {
   return KELAS_PREFIX_TO_GRADE[kelas?.trim().split(' ')[0]] || null
 }
 import GuruHafalanScreen from './GuruHafalanScreen'
+import GuruExamScreen from './GuruExamScreen'
 import { TYPE_LABELS, TYPE_COLORS, TYPE_ICONS } from '../TaskContext'
 import { DIFFICULTY_LEVELS, DIFFICULTY_LABELS, DIFFICULTY_COLORS } from '../difficulty'
 import ProfileScreen from './ProfileScreen'
@@ -86,6 +87,7 @@ const labelStyle = {
 const TABS = [
   { id: 'home',    label: '🏠', text: 'Beranda' },
   { id: 'tugas',   label: '📋', text: 'Tugas' },
+  { id: 'ujian',   label: '📝', text: 'Mode Ujian' },
   { id: 'video',   label: '🎬', text: 'Video Materi' },
   { id: 'hafalan', label: '🧮', text: 'Hafalan' },
   { id: 'nilai',   label: '📊', text: 'Nilai' },
@@ -97,7 +99,7 @@ const TABS = [
 ]
 
 // Tabs that only guru mapel terdaftar may access
-const MANAGEMENT_TAB_IDS = new Set(['tugas', 'video', 'hafalan', 'kunci', 'raid', 'turnamen'])
+const MANAGEMENT_TAB_IDS = new Set(['tugas', 'ujian', 'video', 'hafalan', 'kunci', 'raid', 'turnamen'])
 
 const IPA_BAB_LABELS = {
   7: { I: 'BAB I: Besaran dan Pengukuran', II: 'BAB II: Zat dan Perubahannya', III: 'BAB III: Suhu, Pemuaian, dan Kalor', IV: 'BAB IV: Gaya dan Gerak' },
@@ -3053,6 +3055,7 @@ function MenuBtn({ label, onClick, danger }) {
 const DESKTOP_TABS = [
   { id: 'home',       icon: '🏠', text: 'Beranda' },
   { id: 'tugas',      icon: '📋', text: 'Kelola Tugas' },
+  { id: 'ujian',      icon: '📝', text: 'Mode Ujian' },
   { id: 'video',      icon: '🎬', text: 'Video Materi' },
   { id: 'siswa',      icon: '👥', text: 'Pantau Kelas' },
   { id: 'nilai',      icon: '📊', text: 'Nilai Siswa' },
@@ -3089,6 +3092,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
       const nextTab = {
         guruDashboard: 'home',
         guruTugas: 'tugas',
+        guruUjian: 'ujian',
         guruVideo: 'video',
         guruPantau: 'siswa',
         guruNilai: 'nilai',
@@ -3146,6 +3150,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
     <>
       {tab === 'home'       && <GuruHomeTab kelasDiampu={kelasDiampu} user={user} logout={logout} onPlayGames={onPlayGames} onGoProfile={() => setView('profile')} onSelectTab={selectTab} hideHeader={!isDesktop} hasMateriTerdaftar={hasMateriTerdaftar} />}
       {tab === 'tugas'      && hasMateriTerdaftar && <TugasTab kelasDiampu={kelasDiampu} />}
+      {tab === 'ujian'      && hasMateriTerdaftar && <GuruExamScreen kelasDiampu={kelasDiampu} />}
       {tab === 'video'      && hasMateriTerdaftar && <VideoMateriTab kelasDiampu={kelasDiampu} />}
       {tab === 'hafalan'    && hasMateriTerdaftar && <GuruHafalanScreen />}
       {tab === 'nilai'      && <NilaiTab onProfileClick={publicProfile.openProfile} />}
@@ -3161,6 +3166,7 @@ export default function GuruDashboardScreen({ onPlayGames }) {
   const PRIMARY_TABS_ALL = [
     { id: 'home',       icon: '🏠', label: 'Beranda' },
     { id: 'tugas',      icon: '📋', label: 'Tugas' },
+    { id: 'ujian',      icon: '📝', label: 'Mode Ujian' },
     { id: 'siswa',      icon: '👥', label: 'Siswa' },
   ]
   const MORE_TABS_ALL = [

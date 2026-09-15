@@ -109,6 +109,101 @@ export async function ensureSchema() {
     create index if not exists task_exit_reports_tugas_idx
       on task_exit_reports (tugas_id, reported_at desc);
   `)
+  // Mode Ujian: separate from the game-task tables because exams have their
+  // own token gate, server timer, question bank and answer history.
+  await pool.query(`
+    create table if not exists exams (
+      id serial primary key,
+      guru_id text not null references gurus(id) on delete cascade,
+      kelas text not null,
+      title text not null check (char_length(title) between 1 and 160),
+      description text not null default '',
+      duration_minutes int not null default 60 check (duration_minutes between 1 and 480),
+      status text not null default 'draft' check (status in ('draft','published','closed')),
+      published_at timestamptz,
+      closed_at timestamptz,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+    create index if not exists exams_guru_idx on exams (guru_id, created_at desc);
+    create index if not exists exams_class_status_idx on exams (kelas, status, published_at desc);
+
+    create table if not exists exam_questions (
+      id serial primary key,
+      exam_id int not null references exams(id) on delete cascade,
+      position int not null check (position > 0),
+      prompt text not null check (char_length(prompt) between 1 and 5000),
+      answer_type text not null default 'multiple_choice'
+        check (answer_type in ('multiple_choice','short_answer','true_false')),
+      options jsonb not null default '[]'::jsonb,
+      correct_answer text,
+      points int not null default 1 check (points between 1 and 100),
+      created_at timestamptz not null default now(),
+      unique (exam_id, position)
+    );
+    create index if not exists exam_questions_exam_idx on exam_questions (exam_id, position);
+
+    create table if not exists exam_tokens (
+      exam_id int primary key references exams(id) on delete cascade,
+      token_hash text not null,
+      token_hint text not null,
+      created_at timestamptz not null default now(),
+      revoked_at timestamptz
+    );
+
+    create table if not exists exam_attempts (
+      id serial primary key,
+      exam_id int not null references exams(id) on delete cascade,
+      student_id text not null references students(id) on delete cascade,
+      status text not null default 'in_progress'
+        check (status in ('in_progress','submitted','expired')),
+      started_at timestamptz not null default now(),
+      deadline_at timestamptz not null,
+      last_seen_at timestamptz not null default now(),
+      submitted_at timestamptz,
+      score numeric(5,2),
+      correct_count int,
+      total_points int,
+      unique (exam_id, student_id)
+    );
+    create index if not exists exam_attempts_exam_idx on exam_attempts (exam_id, status, last_seen_at desc);
+    create index if not exists exam_attempts_student_idx on exam_attempts (student_id, started_at desc);
+
+    create table if not exists exam_answers (
+      attempt_id int not null references exam_attempts(id) on delete cascade,
+      question_id int not null references exam_questions(id) on delete cascade,
+      answer jsonb,
+      revision int not null default 1,
+      saved_at timestamptz not null default now(),
+      primary key (attempt_id, question_id)
+    );
+
+    create table if not exists exam_answer_events (
+      id bigserial primary key,
+      attempt_id int not null references exam_attempts(id) on delete cascade,
+      question_id int references exam_questions(id) on delete set null,
+      event_type text not null check (event_type in ('answer_saved','submit','autosave_failed')),
+      previous_answer jsonb,
+      answer jsonb,
+      client_event_id text,
+      created_at timestamptz not null default now()
+    );
+    create index if not exists exam_answer_events_attempt_idx
+      on exam_answer_events (attempt_id, created_at desc);
+
+    create table if not exists exam_audit_logs (
+      id bigserial primary key,
+      exam_id int references exams(id) on delete cascade,
+      attempt_id int references exam_attempts(id) on delete cascade,
+      actor_id text not null,
+      actor_role text not null check (actor_role in ('guru','siswa')),
+      event_type text not null,
+      metadata jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now()
+    );
+    create index if not exists exam_audit_logs_exam_idx
+      on exam_audit_logs (exam_id, created_at desc);
+  `)
 
   // Communication: private teacher/student messages and class forums.
   // Access is enforced in server/komunikasi.js using the exact class roster

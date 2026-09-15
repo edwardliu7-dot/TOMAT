@@ -42,6 +42,7 @@ import UpdateRequiredScreen from './screens/UpdateRequiredScreen'
 import TentangScreen from './screens/TentangScreen'
 import BugReportScreen from './screens/BugReportScreen'
 import BalanceLabScreen from './screens/BalanceLabScreen'
+import ExamScreen from './screens/ExamScreen'
 import MobaScreen from './features/moba/MobaScreen.jsx'
 import MobaLobbyScreen from './features/moba/MobaLobbyScreen.jsx'
 import OtaUpdateBanner from './components/OtaUpdateBanner'
@@ -580,6 +581,7 @@ const SCREEN_TITLES = {
   'latihan-ujian': 'Latihan Ujian',
   'video-materi': 'Video Materi',
   'balance-lab': 'Alat Hitung SPLDV',
+  ujian: 'Mode Ujian',
   modeselect: 'Pilih Mode',
   'duel-lobby': 'Duel Lobby',
   'boss-raid': 'Boss Raid',
@@ -1118,6 +1120,10 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
 
     if (current === 'balance-lab') {
       return <BalanceLabScreen goBack={goBack} />
+    }
+
+    if (current === 'ujian') {
+      return <ExamScreen goBack={goBack} />
     }
 
     if (current === 'komunikasi') {

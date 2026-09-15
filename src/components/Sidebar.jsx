@@ -9,7 +9,7 @@ const SAFE_SCREENS = new Set([
   'home', 'grade7', 'grade8', 'grade9',
   'grades', 'papanperingkat', 'toko', 'lencana',
   'komunikasi', 'profile', 'tentang', 'bug-report',
-  'balance-lab',
+  'balance-lab', 'ujian',
   'guruDashboard', 'guru-dashboard', 'guruHafalan',
 ])
 
@@ -24,6 +24,7 @@ const SISWA_NAV = (zoneKey) => [
   { key: 'home',          emoji: '🏠',          label: 'Beranda' },
   { key: zoneKey,         emoji: '/arena.png',   label: 'Zona Belajar' },
   { key: 'grades',        emoji: '/nilai.png',   label: 'Nilai & Tugas' },
+  { key: 'ujian',         emoji: '📝',            label: 'Mode Ujian' },
   { key: 'papanperingkat',emoji: '/rank.png',    label: 'Papan Peringkat' },
   { key: 'toko',          emoji: '/toko.png',    label: 'Toko' },
   { key: 'lencana',       emoji: '/lencana.png', label: 'Lencana' },
@@ -35,6 +36,7 @@ const SISWA_NAV = (zoneKey) => [
 const GURU_NAV_FULL = [
   { key: 'guruDashboard',  emoji: '🏠', label: 'Dashboard' },
   { key: 'guruTugas',      emoji: '📋', label: 'Tugas' },
+  { key: 'guruUjian',      emoji: '📝', label: 'Mode Ujian' },
   { key: 'guruVideo',      emoji: '🎬', label: 'Video Materi' },
   { key: 'guruPantau',     emoji: '👥', label: 'Pantau Kelas' },
   { key: 'guruNilai',      emoji: '📊', label: 'Nilai Siswa' },
@@ -98,6 +100,7 @@ export default function Sidebar({ user, navigate, currentScreen, onLogout }) {
     if (user?.role !== 'guru') return undefined
     const tabToKey = {
       tugas: 'guruTugas',
+      ujian: 'guruUjian',
       video: 'guruVideo',
       hafalan: 'guruHafalan',
       nilai: 'guruNilai',
