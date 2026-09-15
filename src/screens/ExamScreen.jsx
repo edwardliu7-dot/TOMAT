@@ -81,6 +81,15 @@ function formatTime(seconds) {
 }
 
 const MAX_STRICT_VIOLATIONS = 3
+const STRICT_VIOLATION_LABELS = {
+  background: 'perpindahan tab atau aplikasi',
+  reload_or_exit: 'percobaan keluar atau memuat ulang halaman',
+  copy_attempt: 'percobaan menyalin',
+  cut_attempt: 'percobaan memotong',
+  paste_attempt: 'percobaan menempel',
+  contextmenu_attempt: 'percobaan membuka menu klik kanan',
+  shortcut_attempt: 'shortcut browser yang diblokir',
+}
 
 function QuestionCard({ question, answer, onAnswer }) {
   const value = answer ?? ''
@@ -164,11 +173,13 @@ export default function ExamScreen({ goBack }) {
   const [error, setError] = useState('')
   const [clock, setClock] = useState(() => Date.now())
   const [strictViolations, setStrictViolations] = useState(0)
+  const [violationWarning, setViolationWarning] = useState(null)
   const saveTimers = useRef({})
   const answersRef = useRef(answers)
   const strictViolationRef = useRef(0)
   const strictTerminationRef = useRef(false)
   const finishAttemptRef = useRef(null)
+  const violationWarningTimerRef = useRef(null)
   answersRef.current = answers
 
   const loadExams = useCallback(async () => {
@@ -184,6 +195,7 @@ export default function ExamScreen({ goBack }) {
     strictViolationRef.current = persistedViolations
     strictTerminationRef.current = false
     setStrictViolations(persistedViolations)
+    setViolationWarning(null)
     setAttempt(data.attempt); setQuestions(data.questions || []); setAnswers(merged); setResult(null)
     void localSave(data.attempt.id, { answers: merged })
   }, [])
@@ -211,6 +223,14 @@ export default function ExamScreen({ goBack }) {
     const nextCount = strictViolationRef.current + 1
     strictViolationRef.current = nextCount
     setStrictViolations(nextCount)
+    const warningMessage = nextCount >= MAX_STRICT_VIOLATIONS
+      ? 'Batas pelanggaran tercapai. Ujian akan dikumpulkan otomatis.'
+      : `Peringatan ${nextCount}/${MAX_STRICT_VIOLATIONS}: ${STRICT_VIOLATION_LABELS[eventType] || 'aktivitas yang tidak diperbolehkan'} terdeteksi.`
+    setViolationWarning({ message: warningMessage, count: nextCount })
+    window.clearTimeout(violationWarningTimerRef.current)
+    if (nextCount < MAX_STRICT_VIOLATIONS) {
+      violationWarningTimerRef.current = window.setTimeout(() => setViolationWarning(null), 6000)
+    }
     fetch(`/api/siswa/exams/attempts/${attempt.id}/events`, {
       method: 'POST',
       credentials: 'include',
@@ -231,15 +251,6 @@ export default function ExamScreen({ goBack }) {
   useEffect(() => {
     if (!attempt || attempt.status !== 'in_progress') return undefined
     const clockTimer = setInterval(() => setClock(Date.now()), 1000)
-    const onFullscreenChange = () => {
-      if (document.visibilityState === 'visible' && !document.fullscreenElement) {
-        recordStrictViolation('fullscreen_exit')
-      }
-    }
-    document.addEventListener('fullscreenchange', onFullscreenChange)
-    document.documentElement.requestFullscreen?.().catch(() => {
-      setError('Mode layar penuh tidak tersedia di browser ini. Jangan tinggalkan halaman selama ujian.')
-    })
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') recordStrictViolation('background')
     }
@@ -285,7 +296,6 @@ export default function ExamScreen({ goBack }) {
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => {
       clearInterval(clockTimer)
-      document.removeEventListener('fullscreenchange', onFullscreenChange)
       document.removeEventListener('visibilitychange', onVisibility)
       document.removeEventListener('copy', onCopy)
       document.removeEventListener('cut', onCut)
@@ -363,6 +373,7 @@ export default function ExamScreen({ goBack }) {
         <div style={{ flex: 1 }}><div style={{ color: '#fff', fontSize: 16, fontWeight: 900 }}>{attempt.title}</div><div style={{ color: '#64748B', fontSize: 10 }}>{completedCount}/{questions.length} terjawab · {offline ? 'Offline — tersimpan lokal' : saving[currentQuestion?.id] === 'saved' ? 'Tersimpan' : 'Menyimpan…'} · <span style={{ color: strictViolations ? '#F87171' : '#5dcaa5' }}>Pelanggaran {strictViolations}/{MAX_STRICT_VIOLATIONS}</span></div></div>
         <div style={{ color: remaining < 60 ? '#F87171' : '#FBBF24', fontSize: 19, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{formatTime(remaining)}</div>
       </div>
+      {violationWarning && <div role="alert" style={{ marginBottom: 12, padding: '11px 14px', borderRadius: 12, border: `1px solid ${violationWarning.count >= MAX_STRICT_VIOLATIONS ? 'rgba(248,113,113,0.5)' : 'rgba(251,191,36,0.45)'}`, background: violationWarning.count >= MAX_STRICT_VIOLATIONS ? 'rgba(127,29,29,0.35)' : 'rgba(120,53,15,0.35)', color: violationWarning.count >= MAX_STRICT_VIOLATIONS ? '#FCA5A5' : '#FDE68A', fontSize: 12, lineHeight: 1.5, fontWeight: 700 }}>{violationWarning.message} <span style={{ fontWeight: 500 }}>Jangan ulangi aktivitas ini.</span></div>}
       <div className="exam-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 180px', gap: 14, alignItems: 'start' }}>
         <main style={{ background: '#1c2340', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 17, padding: '20px clamp(15px, 4vw, 28px)' }}>
           <div style={{ color: '#67E8F9', fontSize: 11, fontWeight: 900, letterSpacing: 1 }}>SOAL {currentIndex + 1} DARI {questions.length}</div>
@@ -382,7 +393,7 @@ export default function ExamScreen({ goBack }) {
             const answered = answers[question.id] !== undefined && answers[question.id] !== ''
             return <button key={question.id} onClick={() => setCurrentIndex(index)} style={{ border: `1px solid ${index === currentIndex ? '#67E8F9' : answered ? '#34D399' : 'rgba(255,255,255,0.1)'}`, background: index === currentIndex ? 'rgba(103,232,249,0.16)' : answered ? 'rgba(52,211,153,0.1)' : 'transparent', color: index === currentIndex ? '#67E8F9' : answered ? '#34D399' : '#94A3B8', borderRadius: 7, padding: '7px 0', cursor: 'pointer', fontWeight: 800 }}>{index + 1}</button>
           })}</div>
-          <div style={{ color: '#64748B', fontSize: 10, lineHeight: 1.5, marginTop: 13 }}>🔒 Jangan bagikan soal. Browser biasa tidak dapat menjamin pencegahan screenshot; aktivitas keluar/background tetap dicatat.</div>
+           <div style={{ color: '#64748B', fontSize: 10, lineHeight: 1.5, marginTop: 13 }}>🔒 Jangan bagikan soal. Aktivitas keluar tab/background dan percobaan interaksi yang diblokir tetap dicatat sebagai pelanggaran.</div>
         </aside>
       </div>
     </div>

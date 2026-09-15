@@ -420,7 +420,7 @@ Setelah membuat file game, daftarkan di:
 - Mode Ujian siswa dibuka **hanya dari kartu Mode Ujian di Arena Tanding**. Jangan menambahkan shortcut Mode Ujian ke sidebar atau bottom navigation siswa.
 - UI Mode Ujian mengikuti pola visual Simulasi Ujian/TKA, tetapi sesi resminya tetap memakai `ExamScreen.jsx` dan endpoint server-authoritative di `server/exams.js`.
 - Token, attempt, deadline, jawaban, penilaian, dan audit tetap dikendalikan server. `correctAnswer` tidak boleh dikirim ke klien.
-- Saat attempt aktif, layar penuh diupayakan, klik kanan/copy/cut/paste/shortcut browser diblokir, dan aktivitas keluar tab, keluar fullscreen, reload, serta percobaan menyalin dicatat ke audit.
+- Saat attempt aktif, **tidak ada kewajiban layar penuh** karena perangkat tablet atau keyboard dapat memicu perubahan mode layar yang tidak disengaja. Klik kanan/copy/cut/paste/shortcut browser diblokir, dan aktivitas keluar tab, reload, serta percobaan menyalin dicatat ke audit serta diberi peringatan langsung di layar siswa.
 - Setelah **3 pelanggaran**, attempt dikumpulkan otomatis. Jumlah pelanggaran harus tetap terbaca ketika siswa melanjutkan attempt.
 - Mode Ujian berbeda dari Simulasi Ujian: simulasi adalah latihan lokal, sedangkan Mode Ujian memerlukan ujian yang diterbitkan guru dan token yang valid.
 
