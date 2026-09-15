@@ -24,3 +24,9 @@ Draft ujian guru yang belum disimpan ke server dipertahankan lewat autosave brow
 **Why:** Form soal panjang tidak boleh hilang hanya karena refresh sebelum guru menekan tombol simpan, tetapi draft lokal tidak menggantikan penyimpanan server untuk riwayat lintas perangkat.
 
 **How to apply:** Pertahankan indikator autosave, pulihkan data draft sebelum mengosongkan form, dan tetap arahkan guru untuk menyimpan ujian ke server sebelum menerbitkannya.
+
+Draft ujian boleh dihapus guru melalui aksi khusus yang dikonfirmasi; endpoint harus memverifikasi pemilik dan status `draft`, sedangkan ujian terbit/ditutup tidak boleh dihapus dari UI ini.
+
+**Why:** Penghapusan draft aman untuk merapikan soal yang batal, tetapi riwayat ujian yang sudah pernah tersedia bagi siswa harus tetap terlindungi.
+
+**How to apply:** Pertahankan batas hapus hanya untuk draft dan gunakan cascade database agar soal draft ikut terhapus tanpa membuka penghapusan lintas guru.

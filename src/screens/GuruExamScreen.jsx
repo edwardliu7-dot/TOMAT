@@ -271,6 +271,29 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
     } catch (err) { setError(err.message) }
   }
 
+  const deleteDraft = async () => {
+    if (!selected || selected.status !== 'draft') return
+    const confirmed = window.confirm(`Hapus draft "${selected.title}"?\nSemua soal di dalam draft ini akan dihapus dan tidak dapat dipulihkan.`)
+    if (!confirmed) return
+    setSaving(true)
+    setError('')
+    try {
+      await apiCall(`/api/guru/exams/${selected.id}`, { method: 'DELETE' })
+      try { localStorage.removeItem(draftStorageKey) } catch {}
+      setDraftSavedAt(null)
+      setEditingId(null)
+      setSelectedId(null)
+      setToken('')
+      setResults([])
+      setForm(emptyForm(defaultClass))
+      await refresh()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const generateToken = async () => {
     if (!selected) return
     try {
@@ -371,6 +394,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
               </div>
               {selected.status === 'draft' && <button type="button" onClick={() => edit(selected.id)} style={secondary}>✏️ Edit</button>}
               {selected.status === 'draft' && <button type="button" onClick={publish} style={primary}>Terbitkan</button>}
+              {selected.status === 'draft' && <button type="button" onClick={deleteDraft} disabled={saving} style={{ ...secondary, color: '#FCA5A5', borderColor: 'rgba(248,113,113,0.35)', opacity: saving ? 0.55 : 1 }}>🗑️ Hapus Draft</button>}
               {selected.status === 'published' && <button type="button" onClick={closeExam} style={{ ...secondary, color: '#FCA5A5' }}>Tutup Ujian</button>}
               {selected.status === 'published' && <button type="button" onClick={generateToken} style={secondary}>🔑 {token ? 'Ganti Token' : 'Buat Token'}</button>}
             </div>

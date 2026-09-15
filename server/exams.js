@@ -259,6 +259,21 @@ guruRouter.patch('/:id', requireRegisteredTeacher, async (req, res) => {
   }
 })
 
+guruRouter.delete('/:id', requireRegisteredTeacher, async (req, res) => {
+  try {
+    const exam = await loadTeacherExam(req, req.params.id)
+    if (!exam) return res.status(404).json({ error: 'Ujian tidak ditemukan.' })
+    if (exam.status !== 'draft') {
+      return res.status(409).json({ error: 'Hanya draft yang dapat dihapus. Ujian yang sudah diterbitkan harus ditutup.' })
+    }
+    await pool.query('delete from exams where id = $1 and guru_id = $2 and status = \'draft\'', [exam.id, req.session.user.id])
+    res.json({ ok: true, deletedId: exam.id })
+  } catch (err) {
+    console.error('guru/exams delete error', err)
+    res.status(500).json({ error: 'Gagal menghapus draft ujian.' })
+  }
+})
+
 guruRouter.post('/:id/publish', requireRegisteredTeacher, async (req, res) => {
   try {
     const exam = await loadTeacherExam(req, req.params.id)
