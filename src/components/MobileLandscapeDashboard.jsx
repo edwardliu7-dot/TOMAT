@@ -597,6 +597,32 @@ const CSS = `
     .zd-task-title { font-size: 13px; }
   }
 
+  /* ── Landscape: Arena becomes a compact floating shortcut ── */
+  @media (orientation: landscape) and (min-width: 620px) {
+    .zd-body { grid-template-columns: 148px 1fr; }
+    .zd-col-right {
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right, 0px));
+      bottom: max(12px, env(safe-area-inset-bottom, 0px));
+      width: 58px;
+      height: 58px;
+      z-index: 30;
+      pointer-events: none;
+    }
+    .zd-col-right .zd-door {
+      width: 58px;
+      height: 58px;
+      min-height: 58px;
+      padding: 6px;
+      border-radius: 14px;
+      pointer-events: auto;
+      box-shadow: 0 5px 18px rgba(113,43,19,0.42);
+    }
+    .zd-col-right .zd-door:hover { transform: translateY(-3px); }
+    .zd-col-right .zd-door--icon-only img { width: 44px; height: 44px; }
+    .zd-col-right .zd-door-badge { top: 3px; right: 4px; font-size: 6px; padding: 1px 3px; }
+  }
+
   /* ── Compact landscape (height < 430px) ── */
   @media (max-height: 430px) {
     .zd-welcome-row { display: flex; flex-direction: row; align-items: center; gap: 6px; flex-wrap: wrap; }

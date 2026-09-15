@@ -22,3 +22,9 @@ description: New 3-column dashboard replacing the old MobileLandscapeDashboard; 
 - `src/components/MobileLandscapeDashboard.jsx` — sepenuhnya ditulis ulang
 - `src/screens/HomeScreen.jsx` — hapus `!isDesktop` dari kondisi siswa
 - `src/App.jsx` — FloatingPet render dihapus (import tetap ada)
+
+Pada mode lanskap, pintu Arena Tanding memakai shortcut floating kecil di pojok kanan bawah, bukan lagi kolom kanan besar.
+
+**Why:** Arena tetap mudah ditemukan tanpa mengambil ruang utama dari area pet, tugas, dan navigasi dashboard.
+
+**How to apply:** Pertahankan tombol floating ini hanya untuk lanskap; layout portrait tetap memakai susunan responsif yang ada.
