@@ -18,3 +18,9 @@ Mode Ujian siswa dibuka dari kartu di Arena Tanding, bukan dari sidebar atau bot
 **Why:** Akses Arena membuat pintu masuk ujian konsisten dengan hub aktivitas siswa, sedangkan audit dan batas pelanggaran memberi pengawasan lebih ketat daripada simulasi latihan tanpa mengubah penilaian server.
 
 **How to apply:** Pertahankan jumlah pelanggaran saat resume dari audit server, jangan menambahkan shortcut umum siswa, dan jangan menganggap blokir browser sebagai pencegahan screenshot yang sempurna.
+
+Draft ujian guru yang belum disimpan ke server dipertahankan lewat autosave browser dan dipulihkan setelah refresh; draft yang sudah masuk server tetap dibuka dari daftar ujian untuk melanjutkan edit.
+
+**Why:** Form soal panjang tidak boleh hilang hanya karena refresh sebelum guru menekan tombol simpan, tetapi draft lokal tidak menggantikan penyimpanan server untuk riwayat lintas perangkat.
+
+**How to apply:** Pertahankan indikator autosave, pulihkan data draft sebelum mengosongkan form, dan tetap arahkan guru untuk menyimpan ujian ke server sebelum menerbitkannya.

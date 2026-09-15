@@ -37,6 +37,33 @@ function emptyForm(kelas = '') {
   return { kelas, mataPelajaran: '', title: '', description: '', durationMinutes: 60, questions: [blankQuestion()] }
 }
 
+function hasDraftContent(form) {
+  return Boolean(
+    form.title?.trim()
+    || form.mataPelajaran?.trim()
+    || form.description?.trim()
+    || form.questions?.some(question => (
+      question.prompt?.trim()
+      || question.correctAnswer?.trim()
+      || question.options?.some(option => option?.trim())
+    )),
+  )
+}
+
+function normalizeStoredForm(stored, fallbackClass) {
+  if (!stored || typeof stored !== 'object' || !Array.isArray(stored.questions) || stored.questions.length === 0) return null
+  return {
+    ...emptyForm(stored.kelas || fallbackClass),
+    ...stored,
+    questions: stored.questions.map((question, index) => ({
+      ...blankQuestion(index + 1),
+      ...question,
+      position: index + 1,
+      options: Array.isArray(question.options) ? question.options : ['', '', '', ''],
+    })),
+  }
+}
+
 function QuestionEditor({ question, index, onChange, onRemove, canRemove }) {
   const update = (key, value) => onChange({ ...question, [key]: value })
   const updateOption = (index, value) => {
@@ -108,6 +135,13 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState('')
   const fileRef = useRef(null)
+  const draftHydratedRef = useRef(false)
+  const defaultClass = kelasDiampu[0] || ''
+  const draftStorageKey = useMemo(
+    () => `smartisa_guru_exam_draft_${kelasDiampu.join('|') || 'default'}`,
+    [kelasDiampu.join('|')],
+  )
+  const [draftSavedAt, setDraftSavedAt] = useState(null)
 
   const selected = useMemo(() => exams.find(exam => exam.id === selectedId) || null, [exams, selectedId])
   const refresh = useCallback(async () => {
@@ -124,12 +158,51 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
 
   useEffect(() => { refresh() }, [refresh])
 
+  useEffect(() => {
+    draftHydratedRef.current = false
+    try {
+      const stored = JSON.parse(localStorage.getItem(draftStorageKey) || 'null')
+      const restored = normalizeStoredForm(stored?.form, kelasDiampu[0] || '')
+      if (restored) {
+        setForm(restored)
+        setDraftSavedAt(stored.savedAt || null)
+      } else {
+        setDraftSavedAt(null)
+      }
+    } catch {
+      setDraftSavedAt(null)
+    } finally {
+      draftHydratedRef.current = true
+    }
+  }, [draftStorageKey, defaultClass])
+
+  useEffect(() => {
+    if (!draftHydratedRef.current) return undefined
+    if (!hasDraftContent(form)) {
+      try { localStorage.removeItem(draftStorageKey) } catch {}
+      setDraftSavedAt(null)
+      return undefined
+    }
+    const timer = window.setTimeout(() => {
+      try {
+        const savedAt = new Date().toISOString()
+        localStorage.setItem(draftStorageKey, JSON.stringify({ form, savedAt }))
+        setDraftSavedAt(savedAt)
+      } catch {
+        // Draft tetap bisa disimpan manual ke server jika storage browser penuh.
+      }
+    }, 450)
+    return () => window.clearTimeout(timer)
+  }, [form, draftStorageKey])
+
   const startNew = () => {
     setEditingId(null)
     setSelectedId(null)
     setToken('')
     setResults([])
     setForm(emptyForm(kelasDiampu[0] || ''))
+    try { localStorage.removeItem(draftStorageKey) } catch {}
+    setDraftSavedAt(null)
     setError('')
   }
 
@@ -238,7 +311,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
             {loading ? <div style={{ color: '#64748B', fontSize: 12 }}>Memuat…</div> : exams.length === 0 ? (
               <div style={{ color: '#64748B', fontSize: 12, lineHeight: 1.5 }}>Belum ada ujian. Buat ujian pertama untuk kelas yang Anda ampu.</div>
             ) : exams.map(exam => (
-              <button key={exam.id} type="button" onClick={() => showResults(exam.id)} style={{
+              <button key={exam.id} type="button" onClick={() => exam.status === 'draft' ? edit(exam.id) : showResults(exam.id)} style={{
                 width: '100%', textAlign: 'left', cursor: 'pointer', font: 'inherit', color: '#CBD5E1',
                 background: selectedId === exam.id ? 'rgba(103,232,249,0.09)' : 'rgba(255,255,255,0.025)',
                 border: `1px solid ${selectedId === exam.id ? 'rgba(103,232,249,0.4)' : 'rgba(255,255,255,0.06)'}`,
@@ -254,9 +327,10 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
           </section>
 
           <section style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <div style={{ color: '#fff', fontSize: 14, fontWeight: 800, flex: 1 }}>{editingId ? 'Edit Draft Ujian' : 'Buat Ujian'}</div>
               {editingId && selected?.status === 'draft' && <span style={{ color: '#FBBF24', fontSize: 10 }}>DRAFT</span>}
+               {draftSavedAt && <span style={{ color: '#5eead4', fontSize: 10 }}>✓ Draft otomatis tersimpan</span>}
             </div>
             <form onSubmit={save}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: 8, marginBottom: 8 }}>
