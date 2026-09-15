@@ -1,0 +1,300 @@
+2026-Sep-15 06:02:15 Docker 29.6.1 with BuildKit and Buildx detected on deployment server (localhost).
+2026-Sep-15 06:02:15 Starting deployment of edwardliu7-dot/TOMAT:main to localhost.
+2026-Sep-15 06:02:16 Preparing container with helper image: docker.io/coollabsio/coolify-helper:1.0.16
+2026-Sep-15 06:02:16 [DEBUG] [CMD]: docker stop --timeout=30 jb7l9dchmhk6rozk1bhjjuzn
+2026-Sep-15 06:02:16 [DEBUG] Error response from daemon: No such container: jb7l9dchmhk6rozk1bhjjuzn
+2026-Sep-15 06:02:22 [DEBUG] [CMD]: docker run -d --network 'coolify' --name jb7l9dchmhk6rozk1bhjjuzn  --rm -v /root/.docker/buildx:/root/.docker/buildx -v /var/run/docker.sock:/var/run/docker.sock docker.io/coollabsio/coolify-helper:1.0.16
+2026-Sep-15 06:02:22 [DEBUG] 10dd2eefce52ac3d0711b11d7e215ca702e0e5640b6d9fa210912e5e60e7051a
+2026-Sep-15 06:02:26 [DEBUG] [CMD]: docker exec jb7l9dchmhk6rozk1bhjjuzn bash -c 'GIT_SSH_COMMAND="ssh -o ConnectTimeout=30 -p 22 -o Port=22 -o LogLevel=ERROR -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git ls-remote '\''https://x-access-token:<REDACTED>@github.com/edwardliu7-dot/TOMAT.git'\'' '\''refs/heads/main'\'''
+2026-Sep-15 06:02:26 [DEBUG] 130f6ff3b7ece0fd803e2e8f23f938a6062a9f97	refs/heads/main
+2026-Sep-15 06:02:27 ----------------------------------------
+2026-Sep-15 06:02:27 Importing edwardliu7-dot/TOMAT:main (commit sha 130f6ff3b7ece0fd803e2e8f23f938a6062a9f97) to /artifacts/jb7l9dchmhk6rozk1bhjjuzn.
+2026-Sep-15 06:02:27 [DEBUG] [CMD]: docker exec jb7l9dchmhk6rozk1bhjjuzn bash -c 'git -c '\''url.https://x-access-token:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 clone --depth=1 --recurse-submodules --shallow-submodules -b '\''main'\'' '\''https:<REDACTED>@github.com/edwardliu7-dot/TOMAT.git'\'' '\''/artifacts/jb7l9dchmhk6rozk1bhjjuzn'\'' && cd '\''/artifacts/jb7l9dchmhk6rozk1bhjjuzn'\'' && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https://x-access-token:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 fetch --depth=1 origin '\''130f6ff3b7ece0fd803e2e8f23f938a6062a9f97'\'' && git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 -c advice.detachedHead=false checkout '\''130f6ff3b7ece0fd803e2e8f23f938a6062a9f97'\'' >/dev/null 2>&1 && cd '\''/artifacts/jb7l9dchmhk6rozk1bhjjuzn'\'' && if [ -f .gitmodules ]; then git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 submodule sync && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 submodule update --init --recursive --depth=1; fi && cd '\''/artifacts/jb7l9dchmhk6rozk1bhjjuzn'\'' && GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" git -c '\''url.https:<REDACTED>@github.com/.insteadOf=https://github.com/'\'' -c http.version=HTTP/1.1 lfs pull'
+2026-Sep-15 06:<REDACTED>@10.26.1 --activate
+2026-Sep-15 06:02:53 [DEBUG] 
+2026-Sep-15 06:02:53 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:02:53 [DEBUG] RUN pnpm install --frozen-lockfile
+2026-Sep-15 06:02:53 [DEBUG] 
+2026-Sep-15 06:02:53 [DEBUG] COPY . .
+2026-Sep-15 06:02:53 [DEBUG] RUN pnpm run build
+2026-Sep-15 06:02:53 [DEBUG] 
+2026-Sep-15 06:02:53 [DEBUG] # ── Runtime image ──────────────────────────────────────────────
+2026-Sep-15 06:02:53 [DEBUG] FROM node:22-alpine
+2026-Sep-15 06:02:53 [DEBUG] WORKDIR /app
+2026-Sep-15 06:02:53 [DEBUG] ENV NODE_ENV=production
+2026-Sep-15 06:02:53 [DEBUG] ENV NODE_OPTIONS=--dns-result-order=ipv4first
+2026-Sep-15 06:02:53 [DEBUG] RUN apk add --no-cache curl && corepack enable && corepack prepare pnpm@10.26.1 --activate
+2026-Sep-15 06:02:53 [DEBUG] 
+2026-Sep-15 06:02:53 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:02:53 [DEBUG] RUN pnpm install --frozen-lockfile --prod
+2026-Sep-15 06:02:53 [DEBUG] 
+2026-Sep-15 06:02:53 [DEBUG] COPY --from=build /app/dist ./dist
+2026-Sep-15 06:02:53 [DEBUG] COPY --from=build /app/bundles ./bundles
+2026-Sep-15 06:02:53 [DEBUG] COPY server ./server
+2026-Sep-15 06:02:53 [DEBUG] 
+2026-Sep-15 06:02:53 [DEBUG] EXPOSE 5000
+2026-Sep-15 06:02:53 [DEBUG] HEALTHCHECK --interval=30s --timeout=10s --start-period=15s \
+2026-Sep-15 06:02:53 [DEBUG] CMD curl -f http://localhost:<REDACTED>@10.26.1 --activate
+2026-Sep-15 06:02:55 [DEBUG] 
+2026-Sep-15 06:02:55 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:02:55 [DEBUG] RUN pnpm install --frozen-lockfile
+2026-Sep-15 06:02:55 [DEBUG] 
+2026-Sep-15 06:02:55 [DEBUG] COPY . .
+2026-Sep-15 06:02:55 [DEBUG] RUN pnpm run build
+2026-Sep-15 06:02:55 [DEBUG] 
+2026-Sep-15 06:02:55 [DEBUG] # ── Runtime image ──────────────────────────────────────────────
+2026-Sep-15 06:02:55 [DEBUG] FROM node:22-alpine
+2026-Sep-15 06:02:55 [DEBUG] WORKDIR /app
+2026-Sep-15 06:02:55 [DEBUG] ENV NODE_ENV=production
+2026-Sep-15 06:02:55 [DEBUG] ENV NODE_OPTIONS=--dns-result-order=ipv4first
+2026-Sep-15 06:02:55 [DEBUG] RUN apk add --no-cache curl && corepack enable && corepack prepare pnpm@10.26.1 --activate
+2026-Sep-15 06:02:55 [DEBUG] 
+2026-Sep-15 06:02:55 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:02:55 [DEBUG] RUN pnpm install --frozen-lockfile --prod
+2026-Sep-15 06:02:55 [DEBUG] 
+2026-Sep-15 06:02:55 [DEBUG] COPY --from=build /app/dist ./dist
+2026-Sep-15 06:02:55 [DEBUG] COPY --from=build /app/bundles ./bundles
+2026-Sep-15 06:02:55 [DEBUG] COPY server ./server
+2026-Sep-15 06:02:55 [DEBUG] 
+2026-Sep-15 06:02:55 [DEBUG] EXPOSE 5000
+2026-Sep-15 06:02:55 [DEBUG] HEALTHCHECK --interval=30s --timeout=10s --start-period=15s \
+2026-Sep-15 06:02:55 [DEBUG] CMD curl -f http://localhost:<REDACTED>@157.10.161.229:5432/postgres
+2026-Sep-15 06:02:56 [DEBUG] ARG SESSION_SECRET=w2/dYunIXS5CBX9gmgqx+IYg9hhoD0sMXYH+Q8bJEl2gV2nI0/QiFcqb+Bo4SSkL90cbialD4HwZ3jTogvEB8w==
+2026-Sep-15 06:02:56 [DEBUG] ARG GROQ_API_KEY=<REDACTED>
+2026-Sep-15 06:02:56 [DEBUG] ARG VAPID_PUBLIC_KEY=BFXr6NMmDjxq1MKT2qDD47JX-Z7INcC_-2iZZ28TZ9VzYjporbP3bHVGLw-eda97nHpObBuiyUYUB3NGMhHEDss
+2026-Sep-15 06:02:56 [DEBUG] ARG MIN_APP_VERSION_CODE=145
+2026-Sep-15 06:02:56 [DEBUG] ARG APP_DOWNLOAD_URL=https://github.com/edwardliu7-dot/TOMAT/releases/download/v1.4.5/smartisa.v1.4.5.apk
+2026-Sep-15 06:<REDACTED>@10.26.1 --activate
+2026-Sep-15 06:02:56 [DEBUG] 
+2026-Sep-15 06:02:56 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:02:56 [DEBUG] RUN pnpm install --frozen-lockfile
+2026-Sep-15 06:02:56 [DEBUG] 
+2026-Sep-15 06:02:56 [DEBUG] COPY . .
+2026-Sep-15 06:02:56 [DEBUG] RUN pnpm run build
+2026-Sep-15 06:02:56 [DEBUG] 
+2026-Sep-15 06:02:56 [DEBUG] # ── Runtime image ──────────────────────────────────────────────
+2026-Sep-15 06:02:56 [DEBUG] FROM node:22-alpine
+2026-Sep-15 06:02:56 [DEBUG] ARG BASE_PATH=/
+2026-Sep-15 06:02:56 [DEBUG] ARG PORT=5000
+2026-Sep-15 06:02:56 [DEBUG] ARG NODE_ENV=production
+2026-Sep-15 06:02:56 [DEBUG] ARG NEON_DATABASE_URL=postgres://postgres:<REDACTED>@157.10.161.229:5432/postgres
+2026-Sep-15 06:02:56 [DEBUG] ARG SESSION_SECRET=w2/dYunIXS5CBX9gmgqx+IYg9hhoD0sMXYH+Q8bJEl2gV2nI0/QiFcqb+Bo4SSkL90cbialD4HwZ3jTogvEB8w==
+2026-Sep-15 06:02:56 [DEBUG] ARG GROQ_API_KEY=<REDACTED>
+2026-Sep-15 06:02:56 [DEBUG] ARG VAPID_PUBLIC_KEY=BFXr6NMmDjxq1MKT2qDD47JX-Z7INcC_-2iZZ28TZ9VzYjporbP3bHVGLw-eda97nHpObBuiyUYUB3NGMhHEDss
+2026-Sep-15 06:02:56 [DEBUG] ARG MIN_APP_VERSION_CODE=145
+2026-Sep-15 06:02:56 [DEBUG] ARG APP_DOWNLOAD_URL=https://github.com/edwardliu7-dot/TOMAT/releases/download/v1.4.5/smartisa.v1.4.5.apk
+2026-Sep-15 06:<REDACTED>@10.26.1 --activate
+2026-Sep-15 06:02:56 [DEBUG] 
+2026-Sep-15 06:02:56 [DEBUG] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:02:56 [DEBUG] RUN pnpm install --frozen-lockfile --prod
+2026-Sep-15 06:02:56 [DEBUG] 
+2026-Sep-15 06:02:56 [DEBUG] COPY --from=build /app/dist ./dist
+2026-Sep-15 06:02:56 [DEBUG] COPY --from=build /app/bundles ./bundles
+2026-Sep-15 06:02:56 [DEBUG] COPY server ./server
+2026-Sep-15 06:02:56 [DEBUG] 
+2026-Sep-15 06:02:56 [DEBUG] EXPOSE 5000
+2026-Sep-15 06:02:56 [DEBUG] HEALTHCHECK --interval=30s --timeout=10s --start-period=15s \
+2026-Sep-15 06:02:56 [DEBUG] CMD curl -f http://localhost:<REDACTED>@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+2026-Sep-15 06:03:10 [DEBUG] #5 resolve docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 1.4s done
+2026-Sep-15 06:03:10 [DEBUG] #5 DONE 1.4s
+2026-Sep-15 06:03:10 [DEBUG] #4 [internal] load build context
+2026-Sep-15 06:03:16 [DEBUG] #4 transferring context: 41.68MB 6.1s
+2026-Sep-15 06:03:21 [DEBUG] #4 transferring context: 66.17MB 7.7s done
+2026-Sep-15 06:03:21 [DEBUG] #4 DONE 12.8s
+2026-Sep-15 06:03:22 [DEBUG] #6 [stage-1 3/8] RUN apk add --no-cache curl && corepack enable && corepack prepare pnpm@10.26.1 --activate
+2026-Sep-15 06:03:22 [DEBUG] #6 CACHED
+2026-Sep-15 06:03:22 [DEBUG] 
+2026-Sep-15 06:03:22 [DEBUG] #7 [build 2/7] WORKDIR /app
+2026-Sep-15 06:03:22 [DEBUG] #7 CACHED
+2026-Sep-15 06:03:22 [DEBUG] 
+2026-Sep-15 06:03:22 [DEBUG] #8 [build 3/7] RUN apk add --no-cache zip && corepack enable && corepack prepare pnpm@10.26.1 --activate
+2026-Sep-15 06:03:22 [DEBUG] #8 CACHED
+2026-Sep-15 06:03:22 [DEBUG] 
+2026-Sep-15 06:03:22 [DEBUG] #9 [build 4/7] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:03:22 [DEBUG] #9 CACHED
+2026-Sep-15 06:03:22 [DEBUG] 
+2026-Sep-15 06:03:22 [DEBUG] #10 [stage-1 4/8] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:03:22 [DEBUG] #10 CACHED
+2026-Sep-15 06:03:22 [DEBUG] 
+2026-Sep-15 06:03:22 [DEBUG] #11 [build 5/7] RUN pnpm install --frozen-lockfile
+2026-Sep-15 06:03:27 [DEBUG] #11 5.011  ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with <ROOT>/package.json
+2026-Sep-15 06:03:27 [DEBUG] #11 5.011
+2026-Sep-15 06:03:27 [DEBUG] #11 5.011 Note that in CI environments this setting is true by default. If you still need to run install in such cases, use "pnpm install --no-frozen-lockfile"
+2026-Sep-15 06:03:27 [DEBUG] #11 5.011
+2026-Sep-15 06:03:27 [DEBUG] #11 5.011   Failure reason:
+2026-Sep-15 06:03:27 [DEBUG] #11 5.011   specifiers in the lockfile don't match specifiers in package.json:
+2026-Sep-15 06:03:27 [DEBUG] #11 5.011 * 1 dependencies were added: katex@^0.18.7
+2026-Sep-15 06:03:27 [DEBUG] #11 5.011
+2026-Sep-15 06:03:30 [DEBUG] #11 ...
+2026-Sep-15 06:03:30 [DEBUG] 
+2026-Sep-15 06:03:30 [DEBUG] #12 [stage-1 5/8] RUN pnpm install --frozen-lockfile --prod
+2026-Sep-15 06:03:30 [DEBUG] #12 4.987  ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with <ROOT>/package.json
+2026-Sep-15 06:03:30 [DEBUG] #12 4.987
+2026-Sep-15 06:03:30 [DEBUG] #12 4.987 Note that in CI environments this setting is true by default. If you still need to run install in such cases, use "pnpm install --no-frozen-lockfile"
+2026-Sep-15 06:03:30 [DEBUG] #12 4.987
+2026-Sep-15 06:03:30 [DEBUG] #12 4.987   Failure reason:
+2026-Sep-15 06:03:30 [DEBUG] #12 4.987   specifiers in the lockfile don't match specifiers in package.json:
+2026-Sep-15 06:03:30 [DEBUG] #12 4.987 * 1 dependencies were added: katex@^0.18.7
+2026-Sep-15 06:03:30 [DEBUG] #12 4.987
+2026-Sep-15 06:03:30 [DEBUG] #12 ERROR: process "/bin/sh -c pnpm install --frozen-lockfile --prod" did not complete successfully: exit code: 1
+2026-Sep-15 06:03:30 [DEBUG] #11 [build 5/7] RUN pnpm install --frozen-lockfile
+2026-Sep-15 06:03:30 [DEBUG] #11 ERROR: process "/bin/sh -c pnpm install --frozen-lockfile" did not complete successfully: exit code: 1
+2026-Sep-15 06:03:32 [DEBUG] ------
+2026-Sep-15 06:03:32 [DEBUG] > [stage-1 5/8] RUN pnpm install --frozen-lockfile --prod:
+2026-Sep-15 06:03:32 [DEBUG] 4.987  ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with <ROOT>/package.json
+2026-Sep-15 06:03:32 [DEBUG] 4.987
+2026-Sep-15 06:03:32 [DEBUG] 4.987 Note that in CI environments this setting is true by default. If you still need to run install in such cases, use "pnpm install --no-frozen-lockfile"
+2026-Sep-15 06:03:32 [DEBUG] 4.987
+2026-Sep-15 06:03:32 [DEBUG] 4.987   Failure reason:
+2026-Sep-15 06:03:32 [DEBUG] 4.987   specifiers in the lockfile don't match specifiers in package.json:
+2026-Sep-15 06:03:32 [DEBUG] 4.987 * 1 dependencies were added: katex@^0.18.7
+2026-Sep-15 06:03:32 [DEBUG] 4.987
+2026-Sep-15 06:03:32 [DEBUG] ------
+2026-Sep-15 06:03:32 [DEBUG] ------
+2026-Sep-15 06:03:32 [DEBUG] > [build 5/7] RUN pnpm install --frozen-lockfile:
+2026-Sep-15 06:03:32 [DEBUG] 5.011  ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with <ROOT>/package.json
+2026-Sep-15 06:03:32 [DEBUG] 5.011
+2026-Sep-15 06:03:32 [DEBUG] 5.011 Note that in CI environments this setting is true by default. If you still need to run install in such cases, use "pnpm install --no-frozen-lockfile"
+2026-Sep-15 06:03:32 [DEBUG] 5.011
+2026-Sep-15 06:03:32 [DEBUG] 5.011   Failure reason:
+2026-Sep-15 06:03:32 [DEBUG] 5.011   specifiers in the lockfile don't match specifiers in package.json:
+2026-Sep-15 06:03:32 [DEBUG] 5.011 * 1 dependencies were added: katex@^0.18.7
+2026-Sep-15 06:03:32 [DEBUG] 5.011
+2026-Sep-15 06:03:32 [DEBUG] ------
+2026-Sep-15 06:03:32 [DEBUG] 6 warnings found (use docker --debug to expand):
+2026-Sep-15 06:03:32 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "GROQ_API_KEY") (line 35)
+2026-Sep-15 06:03:32 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "VAPID_PRIVATE_KEY") (line 41)
+2026-Sep-15 06:03:32 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "SESSION_SECRET") (line 6)
+2026-Sep-15 06:03:32 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "GROQ_API_KEY") (line 7)
+2026-Sep-15 06:03:32 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "VAPID_PRIVATE_KEY") (line 13)
+2026-Sep-15 06:03:32 [DEBUG] - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "SESSION_SECRET") (line 34)
+2026-Sep-15 06:03:32 [DEBUG] Dockerfile:52
+2026-Sep-15 06:03:32 [DEBUG] --------------------
+2026-Sep-15 06:03:32 [DEBUG] 50 |
+2026-Sep-15 06:03:32 [DEBUG] 51 |     COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:03:32 [DEBUG] 52 | >>> RUN pnpm install --frozen-lockfile --prod
+2026-Sep-15 06:03:32 [DEBUG] 53 |
+2026-Sep-15 06:03:32 [DEBUG] 54 |     COPY --from=build /app/dist ./dist
+2026-Sep-15 06:03:32 [DEBUG] --------------------
+2026-Sep-15 06:03:32 [DEBUG] ERROR: failed to build: failed to solve: process "/bin/sh -c pnpm install --frozen-lockfile --prod" did not complete successfully: exit code: 1
+2026-Sep-15 06:03:32 ========================================
+2026-Sep-15 06:03:32 Deployment failed: Command execution failed (exit code 1): docker exec jb7l9dchmhk6rozk1bhjjuzn bash -c 'bash /artifacts/build.sh'
+2026-Sep-15 06:03:32 Error: #0 building with "default" instance using docker driver
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #1 [internal] load build definition from Dockerfile
+2026-Sep-15 06:03:32 #1 transferring dockerfile:
+2026-Sep-15 06:03:32 #1 transferring dockerfile: 3.29kB 0.0s done
+2026-Sep-15 06:03:32 #1 DONE 3.4s
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #2 [internal] load metadata for docker.io/library/node:22-alpine
+2026-Sep-15 06:03:32 #2 DONE 1.6s
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #3 [internal] load .dockerignore
+2026-Sep-15 06:03:32 #3 transferring context:
+2026-Sep-15 06:03:32 #3 transferring context: 151B done
+2026-Sep-15 06:03:32 #3 DONE 1.6s
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #4 [internal] load build context
+2026-Sep-15 06:03:32 #4 ...
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #5 [build 1/7] FROM docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+2026-Sep-15 06:03:32 #5 resolve docker.io/library/node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 1.4s done
+2026-Sep-15 06:03:32 #5 DONE 1.4s
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #4 [internal] load build context
+2026-Sep-15 06:03:32 #4 transferring context: 41.68MB 6.1s
+2026-Sep-15 06:03:32 #4 transferring context: 66.17MB 7.7s done
+2026-Sep-15 06:03:32 #4 DONE 12.8s
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #6 [stage-1 3/8] RUN apk add --no-cache curl && corepack enable && corepack prepare pnpm@10.26.1 --activate
+2026-Sep-15 06:03:32 #6 CACHED
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #7 [build 2/7] WORKDIR /app
+2026-Sep-15 06:03:32 #7 CACHED
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #8 [build 3/7] RUN apk add --no-cache zip && corepack enable && corepack prepare pnpm@10.26.1 --activate
+2026-Sep-15 06:03:32 #8 CACHED
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #9 [build 4/7] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:03:32 #9 CACHED
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #10 [stage-1 4/8] COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:03:32 #10 CACHED
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #11 [build 5/7] RUN pnpm install --frozen-lockfile
+2026-Sep-15 06:03:32 #11 5.011  ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with <ROOT>/package.json
+2026-Sep-15 06:03:32 #11 5.011
+2026-Sep-15 06:03:32 #11 5.011 Note that in CI environments this setting is true by default. If you still need to run install in such cases, use "pnpm install --no-frozen-lockfile"
+2026-Sep-15 06:03:32 #11 5.011
+2026-Sep-15 06:03:32 #11 5.011   Failure reason:
+2026-Sep-15 06:03:32 #11 5.011   specifiers in the lockfile don't match specifiers in package.json:
+2026-Sep-15 06:03:32 #11 5.011 * 1 dependencies were added: katex@^0.18.7
+2026-Sep-15 06:03:32 #11 5.011
+2026-Sep-15 06:03:32 #11 ...
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #12 [stage-1 5/8] RUN pnpm install --frozen-lockfile --prod
+2026-Sep-15 06:03:32 #12 4.987  ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with <ROOT>/package.json
+2026-Sep-15 06:03:32 #12 4.987
+2026-Sep-15 06:03:32 #12 4.987 Note that in CI environments this setting is true by default. If you still need to run install in such cases, use "pnpm install --no-frozen-lockfile"
+2026-Sep-15 06:03:32 #12 4.987
+2026-Sep-15 06:03:32 #12 4.987   Failure reason:
+2026-Sep-15 06:03:32 #12 4.987   specifiers in the lockfile don't match specifiers in package.json:
+2026-Sep-15 06:03:32 #12 4.987 * 1 dependencies were added: katex@^0.18.7
+2026-Sep-15 06:03:32 #12 4.987
+2026-Sep-15 06:03:32 #12 ERROR: process "/bin/sh -c pnpm install --frozen-lockfile --prod" did not complete successfully: exit code: 1
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 #11 [build 5/7] RUN pnpm install --frozen-lockfile
+2026-Sep-15 06:03:32 #11 ERROR: process "/bin/sh -c pnpm install --frozen-lockfile" did not complete successfully: exit code: 1
+2026-Sep-15 06:03:32 ------
+2026-Sep-15 06:03:32 > [stage-1 5/8] RUN pnpm install --frozen-lockfile --prod:
+2026-Sep-15 06:03:32 4.987  ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with <ROOT>/package.json
+2026-Sep-15 06:03:32 4.987
+2026-Sep-15 06:03:32 4.987 Note that in CI environments this setting is true by default. If you still need to run install in such cases, use "pnpm install --no-frozen-lockfile"
+2026-Sep-15 06:03:32 4.987
+2026-Sep-15 06:03:32 4.987   Failure reason:
+2026-Sep-15 06:03:32 4.987   specifiers in the lockfile don't match specifiers in package.json:
+2026-Sep-15 06:03:32 4.987 * 1 dependencies were added: katex@^0.18.7
+2026-Sep-15 06:03:32 4.987
+2026-Sep-15 06:03:32 ------
+2026-Sep-15 06:03:32 ------
+2026-Sep-15 06:03:32 > [build 5/7] RUN pnpm install --frozen-lockfile:
+2026-Sep-15 06:03:32 5.011  ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with <ROOT>/package.json
+2026-Sep-15 06:03:32 5.011
+2026-Sep-15 06:03:32 5.011 Note that in CI environments this setting is true by default. If you still need to run install in such cases, use "pnpm install --no-frozen-lockfile"
+2026-Sep-15 06:03:32 5.011
+2026-Sep-15 06:03:32 5.011   Failure reason:
+2026-Sep-15 06:03:32 5.011   specifiers in the lockfile don't match specifiers in package.json:
+2026-Sep-15 06:03:32 5.011 * 1 dependencies were added: katex@^0.18.7
+2026-Sep-15 06:03:32 5.011
+2026-Sep-15 06:03:32 ------
+2026-Sep-15 06:03:32 
+2026-Sep-15 06:03:32 6 warnings found (use docker --debug to expand):
+2026-Sep-15 06:03:32 - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "GROQ_API_KEY") (line 35)
+2026-Sep-15 06:03:32 - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "VAPID_PRIVATE_KEY") (line 41)
+2026-Sep-15 06:03:32 - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "SESSION_SECRET") (line 6)
+2026-Sep-15 06:03:32 - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "GROQ_API_KEY") (line 7)
+2026-Sep-15 06:03:32 - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "VAPID_PRIVATE_KEY") (line 13)
+2026-Sep-15 06:03:32 - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "SESSION_SECRET") (line 34)
+2026-Sep-15 06:03:32 Dockerfile:52
+2026-Sep-15 06:03:32 --------------------
+2026-Sep-15 06:03:32 50 |
+2026-Sep-15 06:03:32 51 |     COPY package.json pnpm-lock.yaml .npmrc ./
+2026-Sep-15 06:03:32 52 | >>> RUN pnpm install --frozen-lockfile --prod
+2026-Sep-15 06:03:32 53 |
+2026-Sep-15 06:03:32 54 |     COPY --from=build /app/dist ./dist
+2026-Sep-15 06:03:32 --------------------
+2026-Sep-15 06:03:32 ERROR: failed to build: failed to solve: process "/bin/sh -c pnpm install --frozen-lockfile --prod" did not complete successfully: exit code: 1
+2026-Sep-15 06:03:33 [DEBUG] Error type: App\Exceptions\DeploymentException
+2026-Sep-15 06:03:33 [DEBUG] Error code: 0
+2026-Sep-15 06:03:33 [DEBUG] Location: /var/www/html/app/Traits/ExecuteRemoteCommand.php:243
+2026-Sep-15 06:03:33 [DEBUG] Stack trace (first 5 lines):
+2026-Sep-15 06:03:33 [DEBUG] #0 /var/www/html/app/Traits/ExecuteRemoteCommand.php(107): App\Jobs\ApplicationDeploymentJob->executeCommandWithProcess()
+2026-Sep-15 06:03:33 [DEBUG] #1 /var/www/html/vendor/laravel/framework/src/Illuminate/Collections/Traits/EnumeratesValues.php(275): App\Jobs\ApplicationDeploymentJob->{closure:App\Traits\ExecuteRemoteCommand::execute_remote_command():72}()
+2026-Sep-15 06:03:33 [DEBUG] #2 /var/www/html/app/Traits/ExecuteRemoteCommand.php(72): Illuminate\Support\Collection->each()
+2026-Sep-15 06:03:33 [DEBUG] #3 /var/www/html/app/Jobs/ApplicationDeploymentJob.php(4097): App\Jobs\ApplicationDeploymentJob->execute_remote_command()
+2026-Sep-15 06:03:33 [DEBUG] #4 /var/www/html/app/Jobs/ApplicationDeploymentJob.php(963): App\Jobs\ApplicationDeploymentJob->build_image()
+2026-Sep-15 06:03:33 ========================================
+2026-Sep-15 06:03:33 Deployment failed. Removing the new version of your application.
+2026-Sep-15 06:03:35 [DEBUG] [CMD]: bash -c 'if command -v timeout >/dev/null 2>&1; then output=$(timeout -k 10s 60s docker rm -f '\''y4e6icv3cej4ax65idvhusde-060209037730'\'' 2>&1); exit_code=$?; else output='\'''\''; exit_code=124; fi; if [ "$exit_code" -eq 124 ]; then echo '\''__COOLIFY_CONTAINER_REMOVE_TIMEOUT__'\''; elif [ "$exit_code" -ne 0 ] && printf '\''%s'\'' "$output" | grep -q '\''No such container:'\''; then exit 0; elif [ "$exit_code" -ne 0 ]; then printf '\''%s\n'\'' "$output" >&2; else printf '\''%s\n'\'' "$output"; fi; exit $exit_code'
+2026-Sep-15 06:03:35 [DEBUG] Error response from daemon: No such container: y4e6icv3cej4ax65idvhusde-060209037730
+2026-Sep-15 06:03:37 Gracefully shutting down build container: jb7l9dchmhk6rozk1bhjjuzn
