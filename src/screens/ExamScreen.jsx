@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { TopBar } from '../components/shared'
+import MathText from '../components/MathText'
 
 const inputStyle = {
   width: '100%', boxSizing: 'border-box', background: '#0D1B2A', color: '#fff',
@@ -89,7 +90,7 @@ function QuestionCard({ question, answer, onAnswer }) {
           textAlign: 'left', borderRadius: 12, border: `1px solid ${selected ? '#67E8F9' : 'rgba(255,255,255,0.1)'}`,
           background: selected ? 'rgba(103,232,249,0.12)' : 'rgba(255,255,255,0.035)',
           color: selected ? '#E0F2FE' : '#CBD5E1', padding: '12px 13px', cursor: 'pointer', font: 'inherit', fontSize: 13,
-        }}><strong style={{ color: selected ? '#67E8F9' : '#64748B', marginRight: 8 }}>{String.fromCharCode(65 + index)}.</strong>{option}</button>
+        }}><strong style={{ color: selected ? '#67E8F9' : '#64748B', marginRight: 8 }}>{String.fromCharCode(65 + index)}.</strong><MathText value={option} /></button>
       })}
     </div>
   }
@@ -286,7 +287,9 @@ export default function ExamScreen({ goBack }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 180px', gap: 14, alignItems: 'start' }}>
         <main style={{ background: '#0E1E35', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 17, padding: '20px clamp(15px, 4vw, 28px)' }}>
           <div style={{ color: '#67E8F9', fontSize: 11, fontWeight: 900, letterSpacing: 1 }}>SOAL {currentIndex + 1} DARI {questions.length}</div>
-          <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, lineHeight: 1.5, margin: '12px 0 19px', whiteSpace: 'pre-wrap' }}>{currentQuestion?.prompt}</div>
+          <div style={{ color: '#fff', fontSize: 18, fontWeight: 800, lineHeight: 1.65, margin: '12px 0 19px' }}>
+            <MathText value={currentQuestion?.prompt} />
+          </div>
           <QuestionCard question={currentQuestion} answer={answers[currentQuestion?.id]} onAnswer={answer => saveAnswer(currentQuestion.id, answer)} />
           <div style={{ display: 'flex', gap: 8, marginTop: 22 }}>
             <button disabled={currentIndex === 0} onClick={() => setCurrentIndex(index => Math.max(0, index - 1))} style={{ ...inputStyle, width: 'auto', cursor: 'pointer', opacity: currentIndex === 0 ? 0.4 : 1 }}>← Sebelumnya</button>

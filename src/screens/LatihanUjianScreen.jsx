@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { usePlayer } from '../PlayerContext'
 import { PAKET_UJIAN } from '../data/soalUjian'
+import MathText from '../components/MathText'
 
 // ── Local storage helpers ─────────────────────────────────────────────────────
 const LS_KEY = 'tomat_latihan_ujian_v1'
@@ -329,7 +330,7 @@ export default function LatihanUjianScreen({ goBack }) {
             </div>
 
             <div style={{ fontSize: 16, fontWeight: 700, color: '#F1F5F9', lineHeight: 1.6, marginBottom: 24, minHeight: 60 }}>
-              {q.soal}
+               <MathText value={q.soal} />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -349,7 +350,7 @@ export default function LatihanUjianScreen({ goBack }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all 0.15s',
                   }}>{opt.label}</span>
-                  <span style={{ fontSize: 14, color: selectedAnswer === i ? '#F1F5F9' : '#CBD5E1', fontWeight: selectedAnswer === i ? 700 : 400, lineHeight: 1.4 }}>{opt.value}</span>
+                  <span style={{ fontSize: 14, color: selectedAnswer === i ? '#F1F5F9' : '#CBD5E1', fontWeight: selectedAnswer === i ? 700 : 400, lineHeight: 1.4 }}><MathText value={opt.value} /></span>
                 </button>
               ))}
             </div>

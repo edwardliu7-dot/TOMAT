@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import MathText from '../components/MathText'
 
 const inputStyle = {
   width: '100%', boxSizing: 'border-box', background: '#0D1117',
@@ -51,6 +52,14 @@ function QuestionEditor({ question, index, onChange, onRemove, canRemove }) {
         {canRemove && <button type="button" onClick={onRemove} style={{ ...secondary, color: '#FCA5A5', padding: '5px 8px' }}>Hapus</button>}
       </div>
       <textarea value={question.prompt} onChange={e => update('prompt', e.target.value)} rows={3} maxLength={5000} placeholder="Tulis pertanyaan…" style={{ ...inputStyle, resize: 'vertical', marginBottom: 8 }} />
+      <div style={{ marginBottom: 8, padding: '10px 11px', borderRadius: 10, border: '1px solid rgba(103,232,249,0.18)', background: 'rgba(103,232,249,0.045)' }}>
+        <div style={{ color: '#67E8F9', fontSize: 9, fontWeight: 900, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>Preview Soal</div>
+        <MathText
+          value={question.prompt || 'Preview soal akan tampil di sini'}
+          style={{ color: question.prompt ? '#F8FAFC' : '#64748B', fontSize: 14, lineHeight: 1.65 }}
+        />
+        <div style={{ color: '#64748B', fontSize: 10, marginTop: 7 }}>Equation bisa ditulis sebagai <code>$x^2$</code>, <code>$$\frac{'{'}a{'}'}{'{'}b{'}'}$$</code>, atau langsung seperti <code>2^2</code>.</div>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px', gap: 8, marginBottom: 8 }}>
         <select value={question.answerType} onChange={e => update('answerType', e.target.value)} style={inputStyle}>
           <option value="multiple_choice">Pilihan ganda</option>
@@ -62,7 +71,10 @@ function QuestionEditor({ question, index, onChange, onRemove, canRemove }) {
       {question.answerType === 'multiple_choice' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 8 }}>
           {(question.options || []).map((option, optionIndex) => (
-            <input key={optionIndex} value={option} onChange={e => updateOption(optionIndex, e.target.value)} placeholder={`Pilihan ${String.fromCharCode(65 + optionIndex)}`} style={inputStyle} />
+            <div key={optionIndex}>
+              <input value={option} onChange={e => updateOption(optionIndex, e.target.value)} placeholder={`Pilihan ${String.fromCharCode(65 + optionIndex)}`} style={inputStyle} />
+              {option && <div style={{ color: '#CBD5E1', fontSize: 11, padding: '4px 5px 0', lineHeight: 1.45 }}><MathText value={option} /></div>}
+            </div>
           ))}
         </div>
       )}

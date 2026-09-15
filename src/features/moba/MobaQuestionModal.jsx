@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Clock3, LoaderCircle, Shield, X } from 'lucide-react'
+import MathText from '../../components/MathText'
 
 // ── Game identity map (mirroring App.jsx GAME_MAP but as plain static data) ──
 // Used to give each question a themed look without importing heavy components.
@@ -174,7 +175,7 @@ export default function MobaQuestionModal({
         </div>
 
         {/* ── Question prompt ──────────────────────────────────────────── */}
-        <h2 id="moba12-question-title" className="moba12-prompt">{question.prompt}</h2>
+        <h2 id="moba12-question-title" className="moba12-prompt"><MathText value={question.prompt} /></h2>
 
         {/* ── Answer options ───────────────────────────────────────────── */}
         <form onSubmit={e => submit(null, e)}>
@@ -203,7 +204,7 @@ export default function MobaQuestionModal({
                         ? <LoaderCircle size={13} className="moba11-spin" />
                         : String.fromCharCode(65 + index)}
                     </span>
-                    {value}
+                    <MathText value={value} />
                   </button>
                 )
               })}

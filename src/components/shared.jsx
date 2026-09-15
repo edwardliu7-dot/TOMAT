@@ -9,6 +9,7 @@ import TomiSVG from './TomiSVG'
 import PetSVG from './PetSVG'
 import MobaHistorySection from './MobaHistorySection'
 import { useAppNotifications, usePushNotifications } from '../notifications'
+import MathText from './MathText'
 
 function useIsDesktop() {
   const [desk, setDesk] = React.useState(() => window.innerWidth >= 1024)
@@ -1344,7 +1345,7 @@ export function OptionGrid({ options, onSelect, correct = null, disabled = false
             padding: '14px 8px', color: '#fff', fontSize: 17, fontWeight: 700,
             cursor: disabled ? 'default' : 'pointer', fontFamily: 'inherit',
             transition: 'all 0.2s',
-          }}>{opt}</button>
+          }}><MathText value={opt} /></button>
         )
       })}
     </div>
@@ -1449,7 +1450,7 @@ export function MultipleChoice({ options, selected, onSelect, correct = null, di
             padding: '18px 10px', color: '#fff', fontSize: 15, fontWeight: 700,
             cursor: disabled ? 'default' : 'pointer', fontFamily: 'inherit',
             transition: 'all 0.18s', textAlign: 'center', lineHeight: 1.3,
-          }}>{String(opt)}</button>
+          }}><MathText value={String(opt)} /></button>
         )
       })}
     </div>
