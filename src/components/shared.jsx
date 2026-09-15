@@ -969,6 +969,10 @@ export function AppNotificationBell({ onCommunicationClick }) {
       const target = notification.metadata || {}
       onCommunicationClick?.(target)
       if (!onCommunicationClick) window.dispatchEvent(new CustomEvent('tomat:open-komunikasi', { detail: target }))
+      return
+    }
+    if (notification.url === '/ujian' || notification.type === 'exam_result_finalized') {
+      window.dispatchEvent(new CustomEvent('tomat:open-ujian', { detail: notification.metadata || {} }))
     }
   }
 

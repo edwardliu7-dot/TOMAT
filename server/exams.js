@@ -99,6 +99,15 @@ function answerIsCorrect(answer, question) {
   return canonicalAnswer(answer) === canonicalAnswer(question.correct_answer)
 }
 
+function automaticAwardedPoints(answer, question) {
+  return answerIsCorrect(answer, question) ? Number(question.points) : 0
+}
+
+function roundedScore(awardedPoints, totalPoints) {
+  if (!totalPoints) return 0
+  return Math.round((awardedPoints / totalPoints) * 10000) / 100
+}
+
 function examForClient(row) {
   return {
     id: row.id,
@@ -161,7 +170,7 @@ guruRouter.get('/', async (req, res) => {
     const { rows } = await pool.query(
       `select e.*, count(q.id)::int as question_count,
               count(a.id)::int as attempt_count,
-              count(a.id) filter (where a.status = 'submitted')::int as submitted_count
+              count(a.id) filter (where a.status in ('submitted','expired'))::int as submitted_count
        from exams e
        left join exam_questions q on q.exam_id = e.id
        left join exam_attempts a on a.exam_id = e.id
@@ -343,7 +352,8 @@ guruRouter.get('/:id/results', async (req, res) => {
     const { rows } = await pool.query(
       `select a.id, a.student_id, s.name, s.username, s.kelas, a.status,
               a.started_at, a.deadline_at, a.last_seen_at, a.submitted_at,
-              a.score, a.correct_count, a.total_points,
+              a.score, a.final_score, a.grading_status, a.graded_at,
+              a.correct_count, a.total_points,
               (select count(*)::int from exam_answers ea where ea.attempt_id = a.id) as answered_count
        from exam_attempts a join students s on s.id = a.student_id
        where a.exam_id = $1 order by s.name`,
@@ -353,6 +363,193 @@ guruRouter.get('/:id/results', async (req, res) => {
   } catch (err) {
     console.error('guru/exams results error', err)
     res.status(500).json({ error: 'Gagal memuat hasil ujian.' })
+  }
+})
+
+async function loadTeacherAttempt(req, examId, attemptId) {
+  const { rows } = await pool.query(
+    `select a.*, s.name as student_name, s.username as student_username, s.kelas as student_class,
+            e.title, e.description, e.guru_id
+     from exam_attempts a
+     join exams e on e.id = a.exam_id
+     join students s on s.id = a.student_id
+     where a.id = $1 and a.exam_id = $2 and e.guru_id = $3
+     limit 1`,
+    [attemptId, examId, req.session.user.id],
+  )
+  return rows[0] || null
+}
+
+guruRouter.get('/:id/results/:attemptId', async (req, res) => {
+  try {
+    const exam = await loadTeacherExam(req, req.params.id)
+    if (!exam) return res.status(404).json({ error: 'Ujian tidak ditemukan.' })
+    const attempt = await loadTeacherAttempt(req, exam.id, req.params.attemptId)
+    if (!attempt) return res.status(404).json({ error: 'Hasil siswa tidak ditemukan.' })
+    const { rows: questions } = await pool.query(
+      `select id, position, prompt, answer_type, options, correct_answer, points
+       from exam_questions where exam_id = $1 order by position`,
+      [exam.id],
+    )
+    const { rows: answers } = await pool.query(
+      `select question_id, answer, revision, saved_at
+       from exam_answers where attempt_id = $1`,
+      [attempt.id],
+    )
+    const { rows: grades } = await pool.query(
+      `select question_id, awarded_points, graded_at
+       from exam_answer_grades where attempt_id = $1`,
+      [attempt.id],
+    )
+    const answerMap = new Map(answers.map(row => [row.question_id, row]))
+    const gradeMap = new Map(grades.map(row => [row.question_id, row]))
+    res.json({
+      exam: examForClient(exam),
+      attempt: {
+        id: attempt.id,
+        studentId: attempt.student_id,
+        studentName: attempt.student_name,
+        studentUsername: attempt.student_username,
+        studentClass: attempt.student_class,
+        status: attempt.status,
+        submittedAt: attempt.submitted_at,
+        score: attempt.score,
+        finalScore: attempt.grading_status === 'confirmed' ? attempt.final_score : null,
+        gradingStatus: attempt.grading_status || 'pending',
+        gradedAt: attempt.graded_at,
+        totalPoints: attempt.total_points,
+      },
+      questions: questions.map(question => {
+        const answer = answerMap.get(question.id)
+        const grade = gradeMap.get(question.id)
+        const answerValue = answer?.answer ?? null
+        return {
+          id: question.id,
+          position: question.position,
+          prompt: question.prompt,
+          answerType: question.answer_type,
+          options: question.options || [],
+          correctAnswer: question.correct_answer,
+          points: Number(question.points),
+          answer: answerValue,
+          answeredAt: answer?.saved_at || null,
+          autoAwardedPoints: automaticAwardedPoints(answerValue, question),
+          awardedPoints: grade ? Number(grade.awarded_points) : automaticAwardedPoints(answerValue, question),
+        }
+      }),
+    })
+  } catch (err) {
+    console.error('guru/exams result detail error', err)
+    res.status(500).json({ error: 'Gagal memuat detail jawaban siswa.' })
+  }
+})
+
+guruRouter.put('/:id/results/:attemptId/grades', requireRegisteredTeacher, async (req, res) => {
+  const client = await pool.connect()
+  try {
+    const exam = await loadTeacherExam(req, req.params.id)
+    if (!exam) return res.status(404).json({ error: 'Ujian tidak ditemukan.' })
+    const attempt = await loadTeacherAttempt(req, exam.id, req.params.attemptId)
+    if (!attempt) return res.status(404).json({ error: 'Hasil siswa tidak ditemukan.' })
+    if (!['submitted', 'expired'].includes(attempt.status)) {
+      return res.status(409).json({ error: 'Siswa belum mengumpulkan ujian.' })
+    }
+    if (attempt.grading_status === 'confirmed') {
+      return res.status(409).json({ error: 'Nilai akhir sudah dikonfirmasi dan tidak dapat diubah.' })
+    }
+    const { rows: questions } = await pool.query(
+      'select * from exam_questions where exam_id = $1 order by position',
+      [exam.id],
+    )
+    const { rows: answers } = await pool.query(
+      'select question_id, answer from exam_answers where attempt_id = $1',
+      [attempt.id],
+    )
+    const { rows: existingGrades } = await pool.query(
+      'select question_id, awarded_points from exam_answer_grades where attempt_id = $1',
+      [attempt.id],
+    )
+    const answerMap = new Map(answers.map(row => [row.question_id, row.answer]))
+    const existingMap = new Map(existingGrades.map(row => [row.question_id, Number(row.awarded_points)]))
+    const submittedGrades = new Map()
+    for (const item of (Array.isArray(req.body?.grades) ? req.body.grades : [])) {
+      const questionId = Number.parseInt(item?.questionId, 10)
+      const question = questions.find(row => row.id === questionId)
+      if (!question) return res.status(400).json({ error: 'Ada soal koreksi yang tidak valid.' })
+      const awardedPoints = Number(item?.awardedPoints)
+      if (!Number.isFinite(awardedPoints) || awardedPoints < 0 || awardedPoints > Number(question.points)) {
+        return res.status(400).json({ error: `Poin soal nomor ${question.position} harus antara 0 dan ${question.points}.` })
+      }
+      submittedGrades.set(questionId, Math.round(awardedPoints * 100) / 100)
+    }
+    const confirm = req.body?.confirm === true
+    const finalGrades = questions.map(question => ({
+      question,
+      awardedPoints: submittedGrades.has(question.id)
+        ? submittedGrades.get(question.id)
+        : (existingMap.has(question.id)
+          ? existingMap.get(question.id)
+          : automaticAwardedPoints(answerMap.get(question.id), question)),
+    }))
+    const awardedTotal = finalGrades.reduce((sum, item) => sum + item.awardedPoints, 0)
+    const totalPoints = questions.reduce((sum, question) => sum + Number(question.points), 0)
+    const finalScore = roundedScore(awardedTotal, totalPoints)
+
+    await client.query('begin')
+    for (const item of finalGrades) {
+      await client.query(
+        `insert into exam_answer_grades (attempt_id, question_id, awarded_points, graded_by, graded_at)
+         values ($1,$2,$3,$4,now())
+         on conflict (attempt_id, question_id) do update
+         set awarded_points = excluded.awarded_points, graded_by = excluded.graded_by, graded_at = now()`,
+        [attempt.id, item.question.id, item.awardedPoints, req.session.user.id],
+      )
+    }
+    await client.query(
+      `update exam_attempts
+       set grading_status = $1,
+           final_score = $2,
+           graded_at = case when $1 = 'confirmed' then now() else graded_at end,
+           graded_by = case when $1 = 'confirmed' then $3 else graded_by end
+       where id = $4`,
+      [confirm ? 'confirmed' : 'pending', confirm ? finalScore : null, req.session.user.id, attempt.id],
+    )
+    await client.query(
+      `insert into exam_audit_logs (exam_id, attempt_id, actor_id, actor_role, event_type, metadata)
+       values ($1,$2,$3,'guru',$4,$5::jsonb)`,
+      [exam.id, attempt.id, req.session.user.id,
+        confirm ? 'exam_grade_confirmed' : 'exam_grade_saved',
+        JSON.stringify({ awardedTotal, totalPoints, finalScore })],
+    )
+    await client.query('commit')
+
+    if (confirm) {
+      await notifyUser({
+        userId: attempt.student_id,
+        role: 'siswa',
+        type: 'exam_result_finalized',
+        title: 'Nilai ujian sudah dikonfirmasi',
+        body: `${exam.title}: nilai akhir ${finalScore}.`,
+        url: '/ujian',
+        metadata: { examId: exam.id, attemptId: attempt.id, finalScore },
+      })
+    }
+    res.json({
+      ok: true,
+      attempt: {
+        id: attempt.id,
+        gradingStatus: confirm ? 'confirmed' : 'pending',
+        finalScore: confirm ? finalScore : null,
+        awardedTotal,
+        totalPoints,
+      },
+    })
+  } catch (err) {
+    await client.query('rollback').catch(() => {})
+    console.error('guru/exams grade error', err)
+    res.status(500).json({ error: 'Koreksi belum tersimpan. Coba lagi.' })
+  } finally {
+    client.release()
   }
 })
 
@@ -429,6 +626,9 @@ siswaRouter.get('/', async (req, res) => {
       attemptStatus: row.attempt_status,
       deadlineAt: row.deadline_at,
       score: row.score,
+      finalScore: row.grading_status === 'confirmed' ? row.final_score : null,
+      gradingStatus: row.grading_status || 'pending',
+      gradedAt: row.graded_at,
     })) })
   } catch (err) {
     console.error('siswa/exams list error', err)
@@ -481,6 +681,12 @@ async function buildAttemptPayload(attempt) {
       id: attempt.id, examId: attempt.exam_id, title: attempt.title,
       description: attempt.description, status: effectiveStatus,
       startedAt: attempt.started_at, deadlineAt: attempt.deadline_at,
+      score: attempt.score,
+      finalScore: attempt.grading_status === 'confirmed' ? attempt.final_score : null,
+      gradingStatus: attempt.grading_status || 'pending',
+      gradedAt: attempt.graded_at,
+      correctCount: attempt.correct_count,
+      totalPoints: attempt.total_points,
       strictViolationCount: violationRows[0]?.count || 0,
       serverNow: new Date().toISOString(),
     },
@@ -650,7 +856,18 @@ siswaRouter.post('/attempts/:attemptId/submit', async (req, res) => {
   try {
     const attempt = await loadStudentAttempt(req, req.params.attemptId)
     if (!attempt) return res.status(404).json({ error: 'Sesi ujian tidak ditemukan.' })
-    if (attempt.status === 'submitted') return res.json({ attempt: { id: attempt.id, status: attempt.status, score: attempt.score, correctCount: attempt.correct_count } })
+    if (attempt.status !== 'in_progress') {
+      return res.json({
+        attempt: {
+          id: attempt.id,
+          status: attempt.status,
+          score: attempt.score,
+          finalScore: attempt.grading_status === 'confirmed' ? attempt.final_score : null,
+          gradingStatus: attempt.grading_status || 'pending',
+          correctCount: attempt.correct_count,
+        },
+      })
+    }
     const { rows: questions } = await pool.query('select * from exam_questions where exam_id = $1 order by position', [attempt.exam_id])
     const { rows: answers } = await pool.query('select question_id, answer from exam_answers where attempt_id = $1', [attempt.id])
     const answerMap = new Map(answers.map(row => [row.question_id, row.answer]))
@@ -677,7 +894,17 @@ siswaRouter.post('/attempts/:attemptId/submit', async (req, res) => {
       [attempt.exam_id, attempt.id, req.session.user.id, 'siswa', expired ? 'attempt_expired' : 'attempt_submitted', JSON.stringify({ score })])
     await client.query('commit')
     const result = rows[0] || { ...attempt, status: expired ? 'expired' : 'submitted', score, correct_count: correctCount }
-    res.json({ attempt: { id: result.id, status: result.status, score: result.score, correctCount: result.correct_count, submittedAt: result.submitted_at } })
+    res.json({
+      attempt: {
+        id: result.id,
+        status: result.status,
+        score: result.score,
+        finalScore: null,
+        gradingStatus: 'pending',
+        correctCount: result.correct_count,
+        submittedAt: result.submitted_at,
+      },
+    })
     void notifyUser({
       userId: attempt.guru_id,
       role: 'guru',

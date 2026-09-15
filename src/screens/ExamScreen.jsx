@@ -117,7 +117,7 @@ function QuestionCard({ question, answer, onAnswer }) {
   return <input value={value} onChange={e => onAnswer(e.target.value)} placeholder="Tulis jawaban…" style={inputStyle} />
 }
 
-function ExamList({ exams, onStart, onResume, loading, goBack }) {
+function ExamList({ exams, onStart, onResume, onViewResult, loading, goBack }) {
   const [selected, setSelected] = useState(null)
   const [token, setToken] = useState('')
   const [error, setError] = useState('')
@@ -142,7 +142,11 @@ function ExamList({ exams, onStart, onResume, loading, goBack }) {
                 <div style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>{exam.title}</div>
                 <div style={{ color: '#64748B', fontSize: 11, marginTop: 5 }}>{exam.mataPelajaran || 'Matematika'} · {exam.questionCount} soal · {exam.durationMinutes} menit · {exam.kelas}</div>
               </div>
-              {exam.attemptStatus === 'submitted' ? <span style={{ color: '#34D399', fontSize: 11, fontWeight: 800 }}>Selesai · {exam.score}</span> : exam.attemptStatus === 'in_progress' ? <button type="button" onClick={() => onResume(exam.attemptId)} style={{ background: '#67E8F9', color: '#06202a', border: 0, borderRadius: 9, padding: '9px 12px', fontWeight: 900, cursor: 'pointer' }}>Lanjutkan</button> : <button type="button" onClick={() => { setSelected(exam); setToken(''); setError('') }} style={{ background: 'rgba(103,232,249,0.12)', color: '#67E8F9', border: '1px solid rgba(103,232,249,0.28)', borderRadius: 9, padding: '9px 12px', fontWeight: 800, cursor: 'pointer' }}>Masukkan Token</button>}
+              {['submitted', 'expired'].includes(exam.attemptStatus) ? (
+                <button type="button" onClick={() => onViewResult(exam.attemptId)} style={{ background: exam.gradingStatus === 'confirmed' ? 'rgba(52,211,153,0.13)' : 'rgba(251,191,36,0.12)', color: exam.gradingStatus === 'confirmed' ? '#34D399' : '#FBBF24', border: `1px solid ${exam.gradingStatus === 'confirmed' ? 'rgba(52,211,153,0.3)' : 'rgba(251,191,36,0.3)'}`, borderRadius: 9, padding: '9px 12px', fontWeight: 900, cursor: 'pointer' }}>
+                  {exam.gradingStatus === 'confirmed' ? `Nilai akhir · ${exam.finalScore}` : 'Hasil sementara'}
+                </button>
+              ) : exam.attemptStatus === 'in_progress' ? <button type="button" onClick={() => onResume(exam.attemptId)} style={{ background: '#67E8F9', color: '#06202a', border: 0, borderRadius: 9, padding: '9px 12px', fontWeight: 900, cursor: 'pointer' }}>Lanjutkan</button> : <button type="button" onClick={() => { setSelected(exam); setToken(''); setError('') }} style={{ background: 'rgba(103,232,249,0.12)', color: '#67E8F9', border: '1px solid rgba(103,232,249,0.28)', borderRadius: 9, padding: '9px 12px', fontWeight: 800, cursor: 'pointer' }}>Masukkan Token</button>}
             </div>
           </div>)}
         </div>
@@ -345,16 +349,24 @@ export default function ExamScreen({ goBack }) {
     if (clock >= new Date(attempt.deadlineAt).getTime()) void finishAttempt(false)
   }, [attempt, clock, finishAttempt, result])
 
-  if (!attempt) return <ExamList exams={exams} loading={loading} onStart={start} onResume={resume} goBack={goBack} />
+  if (!attempt) return <ExamList exams={exams} loading={loading} onStart={start} onResume={resume} onViewResult={resume} goBack={goBack} />
 
   const currentQuestion = questions[currentIndex]
   const remaining = Math.max(0, Math.floor((new Date(attempt.deadlineAt).getTime() - clock) / 1000))
   const completedCount = questions.filter(question => answers[question.id] !== undefined && answers[question.id] !== '').length
   if (attempt.status !== 'in_progress' || result) {
+    const resultAttempt = result ? { ...attempt, ...result } : attempt
+    const isFinal = resultAttempt.gradingStatus === 'confirmed'
+    const displayedScore = isFinal ? resultAttempt.finalScore : resultAttempt.score
     return <div style={{ minHeight: '100vh', background: '#071321', color: '#CBD5E1', display: 'grid', placeItems: 'center', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 430, textAlign: 'center', background: '#0E1E35', border: '1px solid rgba(52,211,153,0.25)', borderRadius: 20, padding: 25 }}>
+      <div style={{ width: '100%', maxWidth: 430, textAlign: 'center', background: '#0E1E35', border: `1px solid ${isFinal ? 'rgba(52,211,153,0.25)' : 'rgba(251,191,36,0.3)'}`, borderRadius: 20, padding: 25 }}>
         <div style={{ fontSize: 48 }}>{attempt.status === 'expired' ? '⏰' : '🎉'}</div><div style={{ color: '#fff', fontSize: 19, fontWeight: 900, marginTop: 8 }}>{attempt.status === 'expired' ? 'Waktu Ujian Habis' : 'Ujian Terkumpul'}</div>
-        <div style={{ color: '#94A3B8', fontSize: 13, marginTop: 8 }}>Nilai kamu</div><div style={{ color: '#34D399', fontSize: 42, fontWeight: 900 }}>{result?.score ?? attempt.score ?? '—'}</div>
+        <div style={{ color: isFinal ? '#86EFAC' : '#FBBF24', fontSize: 13, fontWeight: 800, marginTop: 10 }}>
+          {isFinal ? 'Nilai akhir telah dikonfirmasi guru' : 'Hasil sementara — menunggu koreksi guru'}
+        </div>
+        <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 12 }}>{isFinal ? 'Nilai akhir kamu' : 'Nilai otomatis sementara'}</div>
+        <div style={{ color: isFinal ? '#34D399' : '#FBBF24', fontSize: 42, fontWeight: 900 }}>{displayedScore ?? '—'}</div>
+        {!isFinal && <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 5 }}>Guru akan memeriksa poin setiap soal dan mengonfirmasi nilai akhir.</div>}
         <button onClick={goBack} style={{ marginTop: 18, width: '100%', padding: 12, border: 0, borderRadius: 11, background: '#67E8F9', color: '#06202a', fontWeight: 900, cursor: 'pointer' }}>Kembali</button>
       </div>
     </div>

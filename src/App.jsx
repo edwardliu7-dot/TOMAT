@@ -856,8 +856,15 @@ function PlayerExperience({ guruMode = false, onExitGuruMode }) {
       setKomunikasiTarget(e?.detail || null)
       setHistory(h => h.includes('komunikasi') ? h : [...h, 'komunikasi'])
     }
+    const openExam = () => {
+      setHistory(h => h.includes('ujian') ? h : [...h, 'ujian'])
+    }
     window.addEventListener('tomat:open-komunikasi', openCommunication)
-    return () => window.removeEventListener('tomat:open-komunikasi', openCommunication)
+    window.addEventListener('tomat:open-ujian', openExam)
+    return () => {
+      window.removeEventListener('tomat:open-komunikasi', openCommunication)
+      window.removeEventListener('tomat:open-ujian', openExam)
+    }
   }, [])
 
   useEffect(() => {

@@ -158,13 +158,18 @@ export async function ensureSchema() {
       student_id text not null references students(id) on delete cascade,
       status text not null default 'in_progress'
         check (status in ('in_progress','submitted','expired')),
+      grading_status text not null default 'pending'
+        check (grading_status in ('pending','confirmed')),
       started_at timestamptz not null default now(),
       deadline_at timestamptz not null,
       last_seen_at timestamptz not null default now(),
       submitted_at timestamptz,
       score numeric(5,2),
+      final_score numeric(5,2),
       correct_count int,
       total_points int,
+      graded_at timestamptz,
+      graded_by text references gurus(id) on delete set null,
       unique (exam_id, student_id)
     );
     create index if not exists exam_attempts_exam_idx on exam_attempts (exam_id, status, last_seen_at desc);
@@ -178,6 +183,17 @@ export async function ensureSchema() {
       saved_at timestamptz not null default now(),
       primary key (attempt_id, question_id)
     );
+
+    create table if not exists exam_answer_grades (
+      attempt_id int not null references exam_attempts(id) on delete cascade,
+      question_id int not null references exam_questions(id) on delete cascade,
+      awarded_points numeric(6,2) not null check (awarded_points >= 0),
+      graded_by text references gurus(id) on delete set null,
+      graded_at timestamptz not null default now(),
+      primary key (attempt_id, question_id)
+    );
+    create index if not exists exam_answer_grades_attempt_idx
+      on exam_answer_grades (attempt_id, graded_at desc);
 
     create table if not exists exam_answer_events (
       id bigserial primary key,
@@ -204,6 +220,26 @@ export async function ensureSchema() {
     );
     create index if not exists exam_audit_logs_exam_idx
       on exam_audit_logs (exam_id, created_at desc);
+  `)
+  // Grading columns are added separately so existing exam attempts remain
+  // compatible when the server starts after this feature is released.
+  await pool.query(`
+    alter table exam_attempts
+      add column if not exists grading_status text not null default 'pending',
+      add column if not exists final_score numeric(5,2),
+      add column if not exists graded_at timestamptz,
+      add column if not exists graded_by text references gurus(id) on delete set null;
+    do $do$
+    begin
+      if not exists (
+        select 1 from pg_constraint where conname = 'exam_attempts_grading_status_check'
+      ) then
+        alter table exam_attempts
+          add constraint exam_attempts_grading_status_check
+          check (grading_status in ('pending','confirmed'));
+      end if;
+    end
+    $do$;
   `)
   // Keep existing exam rows compatible while exposing the subject name in
   // both the teacher form and the student exam list.

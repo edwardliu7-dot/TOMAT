@@ -123,12 +123,22 @@ function statusLabel(status) {
   return status === 'published' ? 'Diterbitkan' : status === 'closed' ? 'Ditutup' : 'Draft'
 }
 
+function displayAnswer(value) {
+  if (value === null || value === undefined || value === '') return 'Tidak dijawab'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
 export default function GuruExamScreen({ kelasDiampu = [] }) {
   const [exams, setExams] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [form, setForm] = useState(() => emptyForm(kelasDiampu[0] || ''))
   const [editingId, setEditingId] = useState(null)
   const [results, setResults] = useState([])
+  const [gradingAttempt, setGradingAttempt] = useState(null)
+  const [gradingQuestions, setGradingQuestions] = useState([])
+  const [gradeValues, setGradeValues] = useState({})
+  const [gradingSaving, setGradingSaving] = useState(false)
   const [token, setToken] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -200,6 +210,9 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
     setSelectedId(null)
     setToken('')
     setResults([])
+    setGradingAttempt(null)
+    setGradingQuestions([])
+    setGradeValues({})
     setForm(emptyForm(kelasDiampu[0] || ''))
     try { localStorage.removeItem(draftStorageKey) } catch {}
     setDraftSavedAt(null)
@@ -304,10 +317,54 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
 
   const showResults = async id => {
     setSelectedId(id)
+    setGradingAttempt(null)
+    setGradingQuestions([])
+    setGradeValues({})
     try {
       const data = await apiCall(`/api/guru/exams/${id}/results`)
       setResults(data.attempts || [])
     } catch (err) { setError(err.message) }
+  }
+
+  const openGrading = async attemptId => {
+    setError('')
+    try {
+      const data = await apiCall(`/api/guru/exams/${selectedId}/results/${attemptId}`)
+      setGradingAttempt(data.attempt)
+      setGradingQuestions(data.questions || [])
+      setGradeValues(Object.fromEntries((data.questions || []).map(question => [
+        question.id,
+        String(question.awardedPoints ?? question.autoAwardedPoints ?? 0),
+      ])))
+    } catch (err) { setError(err.message) }
+  }
+
+  const saveGrades = async confirm => {
+    if (!gradingAttempt || !selectedId) return
+    if (confirm && !window.confirm('Konfirmasi nilai akhir siswa? Setelah dikonfirmasi, nilai tidak dapat diubah lagi.')) return
+    setGradingSaving(true)
+    setError('')
+    try {
+      const data = await apiCall(`/api/guru/exams/${selectedId}/results/${gradingAttempt.id}/grades`, {
+        method: 'PUT',
+        body: {
+          confirm,
+          grades: gradingQuestions.map(question => ({
+            questionId: question.id,
+            awardedPoints: Number(gradeValues[question.id] ?? 0),
+          })),
+        },
+      })
+      setGradingAttempt(current => ({
+        ...current,
+        gradingStatus: data.attempt.gradingStatus,
+        finalScore: data.attempt.finalScore,
+      }))
+      const refreshed = await apiCall(`/api/guru/exams/${selectedId}/results`)
+      setResults(refreshed.attempts || [])
+    } catch (err) {
+      setError(err.message)
+    } finally { setGradingSaving(false) }
   }
 
   const updateQuestion = (index, question) => setForm(current => ({
@@ -408,15 +465,71 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
               {results.length === 0 ? <div style={{ color: '#64748B', fontSize: 11 }}>Belum ada attempt siswa atau klik ujian lagi untuk memuat data terbaru.</div> : (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                    <thead><tr style={{ color: '#64748B', textAlign: 'left' }}><th style={{ padding: 7 }}>Siswa</th><th style={{ padding: 7 }}>Status</th><th style={{ padding: 7 }}>Jawaban</th><th style={{ padding: 7 }}>Nilai</th><th style={{ padding: 7 }}>Aktivitas</th></tr></thead>
+                    <thead><tr style={{ color: '#64748B', textAlign: 'left' }}><th style={{ padding: 7 }}>Siswa</th><th style={{ padding: 7 }}>Status</th><th style={{ padding: 7 }}>Jawaban</th><th style={{ padding: 7 }}>Nilai</th><th style={{ padding: 7 }}>Aktivitas</th><th style={{ padding: 7 }}>Aksi</th></tr></thead>
                     <tbody>{results.map(row => <tr key={row.id} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                       <td style={{ padding: 7, color: '#fff' }}>{row.name}<div style={{ color: '#64748B', fontSize: 9 }}>{row.kelas}</div></td>
                       <td style={{ padding: 7, color: row.status === 'submitted' ? '#34D399' : row.status === 'expired' ? '#FCA5A5' : '#FBBF24' }}>{row.status}</td>
                       <td style={{ padding: 7 }}>{row.answered_count || 0}/{selected.questionCount}</td>
-                      <td style={{ padding: 7, color: '#67E8F9', fontWeight: 800 }}>{row.score ?? '—'}</td>
+                      <td style={{ padding: 7, color: row.grading_status === 'confirmed' ? '#34D399' : '#FBBF24', fontWeight: 800 }}>
+                        {row.grading_status === 'confirmed' ? `Final · ${row.final_score}` : `Sementara · ${row.score ?? '—'}`}
+                      </td>
                       <td style={{ padding: 7, color: '#64748B' }}>{row.last_seen_at ? new Date(row.last_seen_at).toLocaleString('id-ID') : '—'}</td>
+                      <td style={{ padding: 7 }}>
+                        {['submitted', 'expired'].includes(row.status) && <button type="button" onClick={() => openGrading(row.id)} style={{ ...secondary, padding: '6px 9px', fontSize: 10 }}>
+                          {row.grading_status === 'confirmed' ? 'Lihat koreksi' : 'Koreksi'}
+                        </button>}
+                      </td>
                     </tr>)}</tbody>
                   </table>
+                </div>
+              )}
+              {gradingAttempt && (
+                <div style={{ marginTop: 16, padding: 14, borderRadius: 13, background: 'rgba(103,232,249,0.045)', border: '1px solid rgba(103,232,249,0.18)' }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 13 }}>
+                    <div style={{ flex: 1, minWidth: 220 }}>
+                      <div style={{ color: '#fff', fontSize: 14, fontWeight: 900 }}>Koreksi: {gradingAttempt.studentName}</div>
+                      <div style={{ color: '#94A3B8', fontSize: 11, marginTop: 4 }}>{gradingAttempt.studentClass} · {gradingAttempt.submittedAt ? new Date(gradingAttempt.submittedAt).toLocaleString('id-ID') : 'Waktu tidak tersedia'}</div>
+                    </div>
+                    <span style={{ color: gradingAttempt.gradingStatus === 'confirmed' ? '#34D399' : '#FBBF24', fontSize: 11, fontWeight: 900 }}>
+                      {gradingAttempt.gradingStatus === 'confirmed' ? `Nilai akhir · ${gradingAttempt.finalScore}` : 'Menunggu konfirmasi'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gap: 9 }}>
+                    {gradingQuestions.map(question => (
+                      <div key={question.id} style={{ padding: 11, borderRadius: 10, background: 'rgba(0,0,0,0.16)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                          <div style={{ color: '#67E8F9', fontWeight: 900, fontSize: 11, minWidth: 26 }}>#{question.position}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ color: '#F8FAFC', fontSize: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{question.prompt}</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginTop: 8, fontSize: 10 }}>
+                              <div style={{ color: '#CBD5E1' }}><span style={{ color: '#64748B' }}>Jawaban siswa: </span>{displayAnswer(question.answer)}</div>
+                              <div style={{ color: '#A7F3D0' }}><span style={{ color: '#64748B' }}>Kunci: </span>{displayAnswer(question.correctAnswer)}</div>
+                            </div>
+                          </div>
+                          <label style={{ color: '#94A3B8', fontSize: 10, display: 'grid', gap: 4, width: 86 }}>
+                            Poin / {question.points}
+                            <input
+                              type="number"
+                              min="0"
+                              max={question.points}
+                              step="0.01"
+                              value={gradeValues[question.id] ?? '0'}
+                              disabled={gradingAttempt.gradingStatus === 'confirmed' || gradingSaving}
+                              onChange={event => setGradeValues(current => ({ ...current, [question.id]: event.target.value }))}
+                              style={{ ...inputStyle, padding: '7px 8px', color: '#fff' }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {gradingAttempt.gradingStatus !== 'confirmed' && (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 13 }}>
+                      <button type="button" onClick={() => saveGrades(false)} disabled={gradingSaving} style={secondary}>{gradingSaving ? 'Menyimpan…' : 'Simpan koreksi sementara'}</button>
+                      <button type="button" onClick={() => saveGrades(true)} disabled={gradingSaving} style={primary}>{gradingSaving ? 'Memproses…' : 'Simpan & konfirmasi nilai akhir'}</button>
+                    </div>
+                  )}
+                  {gradingAttempt.gradingStatus === 'confirmed' && <div style={{ color: '#86EFAC', fontSize: 11, marginTop: 13 }}>Nilai ini sudah final dan notifikasi telah dikirim ke siswa.</div>}
                 </div>
               )}
             </div>

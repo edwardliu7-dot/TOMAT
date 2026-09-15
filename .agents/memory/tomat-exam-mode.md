@@ -19,6 +19,12 @@ Mode Ujian siswa dibuka dari kartu di Arena Tanding, bukan dari sidebar atau bot
 
 **How to apply:** Pertahankan jumlah pelanggaran saat resume dari audit server, tampilkan peringatan untuk setiap pelanggaran, jangan mengaktifkan kembali pemaksaan fullscreen, dan jangan menganggap blokir browser sebagai pencegahan screenshot yang sempurna.
 
+Nilai ujian yang baru dikumpulkan berstatus sementara: `score` otomatis hanya menjadi referensi awal. Poin final per soal disimpan terpisah oleh guru pemilik ujian; konfirmasi mengunci `final_score`, mencatat guru/waktu, dan mengirim notifikasi `exam_result_finalized` kepada siswa.
+
+**Why:** Soal isian atau jawaban yang perlu interpretasi tidak selalu dapat dinilai otomatis, tetapi siswa tetap membutuhkan hasil yang jelas dan dapat dipercaya setelah guru mengonfirmasi.
+
+**How to apply:** Pertahankan validasi server untuk batas poin per soal dan kepemilikan ujian, jangan tampilkan nilai final sebelum status `confirmed`, dan jangan membuka kembali koreksi yang sudah dikonfirmasi tanpa keputusan produk yang eksplisit.
+
 Draft ujian guru yang belum disimpan ke server dipertahankan lewat autosave browser dan dipulihkan setelah refresh; draft yang sudah masuk server tetap dibuka dari daftar ujian untuk melanjutkan edit.
 
 **Why:** Form soal panjang tidak boleh hilang hanya karena refresh sebelum guru menekan tombol simpan, tetapi draft lokal tidak menggantikan penyimpanan server untuk riwayat lintas perangkat.
