@@ -42,3 +42,9 @@ Draft ujian boleh dihapus guru melalui aksi khusus yang dikonfirmasi; endpoint h
 **Why:** Penghapusan draft aman untuk merapikan soal yang batal, tetapi riwayat ujian yang sudah pernah tersedia bagi siswa harus tetap terlindungi.
 
 **How to apply:** Pertahankan batas hapus hanya untuk draft dan gunakan cascade database agar soal draft ikut terhapus tanpa membuka penghapusan lintas guru.
+
+Impor Word memakai Groq untuk mengubah teks `.docx` menjadi JSON soal. Model `llama-3.3-70b-versatile` sudah dihentikan Groq pada 16 Agustus 2026; gunakan `openai/gpt-oss-120b` sebagai default dan pertahankan fallback untuk konfigurasi model lama.
+
+**Why:** Model yang dihentikan mengembalikan `404 model_not_found` setelah teks Word berhasil diekstrak, sehingga pengguna melihat impor gagal walaupun file tidak bermasalah.
+
+**How to apply:** Saat Groq mengganti model lagi, perbarui default dan fallback impor bersama-sama; jangan menganggap error ini sebagai kerusakan parser `.docx`.

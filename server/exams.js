@@ -22,7 +22,8 @@ const upload = multer({
   },
 })
 
-const AI_MODEL = process.env.GROQ_EXAM_MODEL || 'llama-3.3-70b-versatile'
+const DEFAULT_AI_MODEL = 'openai/gpt-oss-120b'
+const AI_MODEL = process.env.GROQ_EXAM_MODEL || DEFAULT_AI_MODEL
 
 function cleanText(value, max) {
   return String(value ?? '').replace(/\u0000/g, '').trim().slice(0, max)
@@ -657,7 +658,7 @@ guruRouter.post('/import-docx', requireRegisteredTeacher, upload.single('file'),
     if (!text) return res.status(400).json({ error: 'File Word tidak berisi teks yang dapat dibaca.' })
     if (!process.env.GROQ_API_KEY) return res.status(503).json({ error: 'Pemrosesan AI belum dikonfigurasi di server.' })
     const client = new Groq({ apiKey: process.env.GROQ_API_KEY })
-    const completion = await client.chat.completions.create({
+    const completionRequest = {
       model: AI_MODEL,
       temperature: 0.1,
       response_format: { type: 'json_object' },
@@ -671,7 +672,21 @@ Untuk pilihan ganda, correctAnswer harus sama persis dengan salah satu option. U
         role: 'user',
         content: `Ekstrak semua soal dan kunci dari dokumen berikut. Abaikan kop, nomor halaman, dan instruksi umum yang bukan soal.\n\n${text}`,
       }],
-    })
+    }
+    let completion
+    try {
+      completion = await client.chat.completions.create(completionRequest)
+    } catch (err) {
+      const modelUnavailable = err?.status === 404
+        || err?.error?.code === 'model_not_found'
+        || /model.*(not found|does not exist|access)/i.test(err?.message || '')
+      if (!modelUnavailable || AI_MODEL === DEFAULT_AI_MODEL) throw err
+      console.warn(`[exam import] model ${AI_MODEL} tidak tersedia, mencoba ${DEFAULT_AI_MODEL}`)
+      completion = await client.chat.completions.create({
+        ...completionRequest,
+        model: DEFAULT_AI_MODEL,
+      })
+    }
     const raw = completion.choices?.[0]?.message?.content || '{}'
     const parsed = JSON.parse(raw.replace(/^```json\s*|\s*```$/gi, '').trim())
     const questions = validateQuestions(parsed.questions)
