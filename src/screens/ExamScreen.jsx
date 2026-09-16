@@ -117,6 +117,61 @@ function QuestionCard({ question, answer, onAnswer }) {
   return <input value={value} onChange={e => onAnswer(e.target.value)} placeholder="Tulis jawaban…" style={inputStyle} />
 }
 
+function reviewAnswerText(value) {
+  if (value === null || value === undefined || value === '') return 'Tidak dijawab'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+function ExamReview({ review, onBack, onExit }) {
+  const isFinal = review.attempt.gradingStatus === 'confirmed'
+  return <div style={{ minHeight: '100vh', background: '#071321', color: '#CBD5E1' }}>
+    <TopBar title="Review Hasil Ujian" onBack={onBack} accentColor="#67E8F9" />
+    <div style={{ maxWidth: 780, margin: '0 auto', padding: '18px 16px 50px' }}>
+      <div style={{ background: 'linear-gradient(135deg,#1c2340,#24204e)', border: `1px solid ${isFinal ? 'rgba(52,211,153,0.28)' : 'rgba(251,191,36,0.3)'}`, borderRadius: 18, padding: 18, marginBottom: 16 }}>
+        <div style={{ color: '#67E8F9', fontSize: 10, fontWeight: 900, letterSpacing: 1.7 }}>REVIEW HASIL</div>
+        <div style={{ color: '#fff', fontSize: 19, fontWeight: 900, marginTop: 5 }}>{review.attempt.title}</div>
+        <div style={{ color: isFinal ? '#86EFAC' : '#FBBF24', fontSize: 12, fontWeight: 800, marginTop: 8 }}>
+          {isFinal ? 'Nilai final sudah dikonfirmasi guru.' : 'Nilai masih sementara dan menunggu konfirmasi guru.'}
+        </div>
+        <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', marginTop: 15 }}>
+          <div><div style={{ color: '#64748B', fontSize: 10 }}>NILAI</div><div style={{ color: isFinal ? '#34D399' : '#FBBF24', fontSize: 27, fontWeight: 900 }}>{isFinal ? review.attempt.finalScore : review.attempt.score ?? '—'}</div></div>
+          <div><div style={{ color: '#64748B', fontSize: 10 }}>SOAL</div><div style={{ color: '#E2E8F0', fontSize: 27, fontWeight: 900 }}>{review.questions.length}</div></div>
+          {isFinal && <div><div style={{ color: '#64748B', fontSize: 10 }}>BENAR PENUH</div><div style={{ color: '#E2E8F0', fontSize: 27, fontWeight: 900 }}>{review.attempt.correctCount ?? '—'}</div></div>}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gap: 12 }}>
+        {review.questions.map(question => {
+          const points = isFinal ? question.awardedPoints : question.autoAwardedPoints
+          const status = isFinal
+            ? points >= question.points ? { label: 'Benar', color: '#34D399' } : points > 0 ? { label: 'Sebagian benar', color: '#FBBF24' } : { label: 'Belum tepat', color: '#F87171' }
+            : { label: 'Jawaban tersimpan', color: '#94A3B8' }
+          return <article key={question.id} style={{ background: '#0E1E35', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 15, padding: 16 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ color: '#67E8F9', fontSize: 10, fontWeight: 900, letterSpacing: 1.2 }}>SOAL {question.position}</div>
+              <div style={{ color: status.color, fontSize: 11, fontWeight: 900 }}>{status.label} · {points ?? '—'}/{question.points} poin</div>
+            </div>
+            <div style={{ color: '#fff', fontSize: 15, fontWeight: 800, lineHeight: 1.6, margin: '11px 0 14px' }}><MathText value={question.prompt} /></div>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ background: 'rgba(103,232,249,0.07)', border: '1px solid rgba(103,232,249,0.16)', borderRadius: 10, padding: 11 }}>
+                <div style={{ color: '#67E8F9', fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>JAWABANMU</div>
+                <div style={{ color: '#E2E8F0', fontSize: 13, marginTop: 5 }}><MathText value={reviewAnswerText(question.answer)} /></div>
+              </div>
+              {isFinal && <div style={{ background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.16)', borderRadius: 10, padding: 11 }}>
+                <div style={{ color: '#34D399', fontSize: 9, fontWeight: 900, letterSpacing: 1 }}>KUNCI JAWABAN</div>
+                <div style={{ color: '#E2E8F0', fontSize: 13, marginTop: 5 }}><MathText value={reviewAnswerText(question.correctAnswer)} /></div>
+              </div>}
+            </div>
+            {!isFinal && <div style={{ color: '#64748B', fontSize: 11, lineHeight: 1.5, marginTop: 10 }}>Kunci jawaban dan poin final akan terlihat setelah guru mengonfirmasi nilai.</div>}
+          </article>
+        })}
+      </div>
+      <button type="button" onClick={onExit} style={{ width: '100%', marginTop: 18, padding: 12, border: 0, borderRadius: 11, background: '#67E8F9', color: '#06202a', fontWeight: 900, cursor: 'pointer' }}>Kembali ke daftar ujian</button>
+    </div>
+  </div>
+}
+
 function ExamList({ exams, onStart, onResume, onViewResult, loading, goBack }) {
   const [selected, setSelected] = useState(null)
   const [token, setToken] = useState('')
@@ -144,7 +199,7 @@ function ExamList({ exams, onStart, onResume, onViewResult, loading, goBack }) {
               </div>
               {['submitted', 'expired'].includes(exam.attemptStatus) ? (
                 <button type="button" onClick={() => onViewResult(exam.attemptId)} style={{ background: exam.gradingStatus === 'confirmed' ? 'rgba(52,211,153,0.13)' : 'rgba(251,191,36,0.12)', color: exam.gradingStatus === 'confirmed' ? '#34D399' : '#FBBF24', border: `1px solid ${exam.gradingStatus === 'confirmed' ? 'rgba(52,211,153,0.3)' : 'rgba(251,191,36,0.3)'}`, borderRadius: 9, padding: '9px 12px', fontWeight: 900, cursor: 'pointer' }}>
-                  {exam.gradingStatus === 'confirmed' ? `Nilai akhir · ${exam.finalScore}` : 'Hasil sementara'}
+                  {exam.gradingStatus === 'confirmed' ? `Review hasil · ${exam.finalScore}` : 'Review jawaban sementara'}
                 </button>
               ) : exam.attemptStatus === 'in_progress' ? <button type="button" onClick={() => onResume(exam.attemptId)} style={{ background: '#67E8F9', color: '#06202a', border: 0, borderRadius: 9, padding: '9px 12px', fontWeight: 900, cursor: 'pointer' }}>Lanjutkan</button> : <button type="button" onClick={() => { setSelected(exam); setToken(''); setError('') }} style={{ background: 'rgba(103,232,249,0.12)', color: '#67E8F9', border: '1px solid rgba(103,232,249,0.28)', borderRadius: 9, padding: '9px 12px', fontWeight: 800, cursor: 'pointer' }}>Masukkan Token</button>}
             </div>
@@ -178,6 +233,8 @@ export default function ExamScreen({ goBack }) {
   const [clock, setClock] = useState(() => Date.now())
   const [strictViolations, setStrictViolations] = useState(0)
   const [violationWarning, setViolationWarning] = useState(null)
+  const [review, setReview] = useState(null)
+  const [reviewLoading, setReviewLoading] = useState(false)
   const saveTimers = useRef({})
   const answersRef = useRef(answers)
   const strictViolationRef = useRef(0)
@@ -200,7 +257,7 @@ export default function ExamScreen({ goBack }) {
     strictTerminationRef.current = false
     setStrictViolations(persistedViolations)
     setViolationWarning(null)
-    setAttempt(data.attempt); setQuestions(data.questions || []); setAnswers(merged); setResult(null)
+    setAttempt(data.attempt); setQuestions(data.questions || []); setAnswers(merged); setResult(null); setReview(null)
     void localSave(data.attempt.id, { answers: merged })
   }, [])
 
@@ -344,6 +401,19 @@ export default function ExamScreen({ goBack }) {
   }, [attempt, loadExams])
   finishAttemptRef.current = finishAttempt
 
+  const openReview = async () => {
+    if (!attempt) return
+    setReviewLoading(true)
+    setError('')
+    try {
+      setReview(await apiCall(`/api/siswa/exams/attempts/${attempt.id}/review`))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setReviewLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!attempt || attempt.status !== 'in_progress' || result) return
     if (clock >= new Date(attempt.deadlineAt).getTime()) void finishAttempt(false)
@@ -354,6 +424,7 @@ export default function ExamScreen({ goBack }) {
   const currentQuestion = questions[currentIndex]
   const remaining = Math.max(0, Math.floor((new Date(attempt.deadlineAt).getTime() - clock) / 1000))
   const completedCount = questions.filter(question => answers[question.id] !== undefined && answers[question.id] !== '').length
+  if (review) return <ExamReview review={review} onBack={() => setReview(null)} onExit={goBack} />
   if (attempt.status !== 'in_progress' || result) {
     const resultAttempt = result ? { ...attempt, ...result } : attempt
     const isFinal = resultAttempt.gradingStatus === 'confirmed'
@@ -367,7 +438,8 @@ export default function ExamScreen({ goBack }) {
         <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 12 }}>{isFinal ? 'Nilai akhir kamu' : 'Nilai otomatis sementara'}</div>
         <div style={{ color: isFinal ? '#34D399' : '#FBBF24', fontSize: 42, fontWeight: 900 }}>{displayedScore ?? '—'}</div>
         {!isFinal && <div style={{ color: '#94A3B8', fontSize: 11, lineHeight: 1.5, marginTop: 5 }}>Guru akan memeriksa poin setiap soal dan mengonfirmasi nilai akhir.</div>}
-        <button onClick={goBack} style={{ marginTop: 18, width: '100%', padding: 12, border: 0, borderRadius: 11, background: '#67E8F9', color: '#06202a', fontWeight: 900, cursor: 'pointer' }}>Kembali</button>
+         <button onClick={openReview} disabled={reviewLoading} style={{ marginTop: 18, width: '100%', padding: 12, border: 0, borderRadius: 11, background: '#67E8F9', color: '#06202a', fontWeight: 900, cursor: reviewLoading ? 'wait' : 'pointer', opacity: reviewLoading ? 0.7 : 1 }}>{reviewLoading ? 'Memuat review…' : 'Review jawaban'}</button>
+         <button onClick={goBack} style={{ marginTop: 8, width: '100%', padding: 12, border: '1px solid rgba(255,255,255,0.12)', borderRadius: 11, background: 'rgba(255,255,255,0.04)', color: '#CBD5E1', fontWeight: 800, cursor: 'pointer' }}>Kembali</button>
       </div>
     </div>
   }

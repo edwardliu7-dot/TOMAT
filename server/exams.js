@@ -787,6 +787,73 @@ async function buildAttemptPayload(attempt) {
   }
 }
 
+siswaRouter.get('/attempts/:attemptId/review', async (req, res) => {
+  try {
+    const attempt = await loadStudentAttempt(req, req.params.attemptId)
+    if (!attempt) return res.status(404).json({ error: 'Hasil ujian tidak ditemukan.' })
+    if (!['submitted', 'expired'].includes(attempt.status)) {
+      return res.status(409).json({ error: 'Review baru tersedia setelah ujian dikumpulkan.' })
+    }
+
+    const { rows: questions } = await pool.query(
+      `select id, position, prompt, answer_type, options, correct_answer, points
+       from exam_questions where exam_id = $1 order by position`,
+      [attempt.exam_id],
+    )
+    const { rows: answers } = await pool.query(
+      `select question_id, answer, saved_at
+       from exam_answers where attempt_id = $1`,
+      [attempt.id],
+    )
+    const { rows: grades } = await pool.query(
+      `select question_id, awarded_points
+       from exam_answer_grades where attempt_id = $1`,
+      [attempt.id],
+    )
+    const answerMap = new Map(answers.map(row => [row.question_id, row]))
+    const gradeMap = new Map(grades.map(row => [row.question_id, row]))
+    const isFinal = attempt.grading_status === 'confirmed'
+
+    res.json({
+      attempt: {
+        id: attempt.id,
+        title: attempt.title,
+        status: attempt.status,
+        score: attempt.score,
+        finalScore: isFinal ? attempt.final_score : null,
+        gradingStatus: attempt.grading_status || 'pending',
+        totalPoints: attempt.total_points,
+        correctCount: attempt.correct_count,
+      },
+      questions: questions.map(question => {
+        const answer = answerMap.get(question.id)
+        const grade = gradeMap.get(question.id)
+        const answerValue = answer?.answer ?? null
+        const autoAwardedPoints = automaticAwardedPoints(answerValue, question)
+        const awardedPoints = isFinal
+          ? (grade ? Number(grade.awarded_points) : autoAwardedPoints)
+          : null
+        return {
+          id: question.id,
+          position: question.position,
+          prompt: question.prompt,
+          answerType: question.answer_type,
+          options: question.options || [],
+          answer: answerValue,
+          answeredAt: answer?.saved_at || null,
+          points: Number(question.points),
+          autoAwardedPoints,
+          awardedPoints,
+          correctAnswer: isFinal ? question.correct_answer : null,
+        }
+      }),
+    })
+  } catch (err) {
+    console.error('siswa/exam review error', err)
+    res.status(500).json({ error: 'Gagal memuat review hasil ujian.' })
+  }
+})
+
 siswaRouter.post('/:id/start', async (req, res) => {
   try {
     const examId = Number.parseInt(req.params.id, 10)

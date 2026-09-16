@@ -48,3 +48,9 @@ Impor Word memakai Groq untuk mengubah teks `.docx` menjadi JSON soal. Model `ll
 **Why:** Model yang dihentikan mengembalikan `404 model_not_found` setelah teks Word berhasil diekstrak, sehingga pengguna melihat impor gagal walaupun file tidak bermasalah.
 
 **How to apply:** Saat Groq mengganti model lagi, perbarui default dan fallback impor bersama-sama; jangan menganggap error ini sebagai kerusakan parser `.docx`.
+
+Siswa dapat membuka review setelah attempt berstatus `submitted` atau `expired`. Sebelum nilai final dikonfirmasi, review hanya menampilkan jawaban siswa dan poin otomatis sementara; kunci jawaban serta poin manual tetap disembunyikan. Setelah `confirmed`, review menampilkan kunci jawaban dan poin final per soal.
+
+**Why:** Siswa perlu memahami hasil pengerjaannya tanpa membuka kunci jawaban ketika koreksi guru belum selesai atau memberi celah untuk membagikan soal yang masih aktif.
+
+**How to apply:** Lindungi endpoint review dengan kepemilikan attempt siswa, tolak attempt `in_progress`, dan buat respons server menentukan kapan `correctAnswer` boleh dikirim.
