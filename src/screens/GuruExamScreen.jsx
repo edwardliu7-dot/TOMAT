@@ -139,6 +139,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
   const [gradingQuestions, setGradingQuestions] = useState([])
   const [gradeValues, setGradeValues] = useState({})
   const [gradingSaving, setGradingSaving] = useState(false)
+  const [gradingEditing, setGradingEditing] = useState(false)
   const [token, setToken] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -230,6 +231,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
         kelas: exam.kelas, mataPelajaran: exam.mataPelajaran || 'Matematika', title: exam.title, description: exam.description || '',
         durationMinutes: exam.durationMinutes,
         questions: questions.map(question => ({
+          id: question.id,
           position: question.position, prompt: question.prompt, answerType: question.answerType,
           options: question.options || ['', '', '', ''], correctAnswer: question.correctAnswer || '', points: question.points,
         })),
@@ -320,6 +322,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
     setGradingAttempt(null)
     setGradingQuestions([])
     setGradeValues({})
+    setGradingEditing(false)
     try {
       const data = await apiCall(`/api/guru/exams/${id}/results`)
       setResults(data.attempts || [])
@@ -332,6 +335,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
       const data = await apiCall(`/api/guru/exams/${selectedId}/results/${attemptId}`)
       setGradingAttempt(data.attempt)
       setGradingQuestions(data.questions || [])
+      setGradingEditing(false)
       setGradeValues(Object.fromEntries((data.questions || []).map(question => [
         question.id,
         String(question.awardedPoints ?? question.autoAwardedPoints ?? 0),
@@ -341,7 +345,10 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
 
   const saveGrades = async confirm => {
     if (!gradingAttempt || !selectedId) return
-    if (confirm && !window.confirm('Konfirmasi nilai akhir siswa? Setelah dikonfirmasi, nilai tidak dapat diubah lagi.')) return
+    const revising = gradingAttempt.gradingStatus === 'confirmed'
+    if (confirm && !window.confirm(revising
+      ? 'Simpan revisi nilai final siswa? Siswa akan menerima notifikasi nilai yang diperbarui.'
+      : 'Konfirmasi nilai akhir siswa? Setelah dikonfirmasi, nilai dapat direvisi lewat aksi khusus.')) return
     setGradingSaving(true)
     setError('')
     try {
@@ -349,6 +356,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
         method: 'PUT',
         body: {
           confirm,
+          revise: revising,
           grades: gradingQuestions.map(question => ({
             questionId: question.id,
             awardedPoints: Number(gradeValues[question.id] ?? 0),
@@ -360,6 +368,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
         gradingStatus: data.attempt.gradingStatus,
         finalScore: data.attempt.finalScore,
       }))
+      setGradingEditing(false)
       const refreshed = await apiCall(`/api/guru/exams/${selectedId}/results`)
       setResults(refreshed.attempts || [])
     } catch (err) {
@@ -408,10 +417,18 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
 
           <section style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 16 }}>
              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <div style={{ color: '#fff', fontSize: 14, fontWeight: 800, flex: 1 }}>{editingId ? 'Edit Draft Ujian' : 'Buat Ujian'}</div>
+              <div style={{ color: '#fff', fontSize: 14, fontWeight: 800, flex: 1 }}>
+                {editingId ? (selected?.status === 'published' ? 'Edit Ujian Terbit' : 'Edit Draft Ujian') : 'Buat Ujian'}
+              </div>
               {editingId && selected?.status === 'draft' && <span style={{ color: '#FBBF24', fontSize: 10 }}>DRAFT</span>}
+              {editingId && selected?.status === 'published' && <span style={{ color: '#34D399', fontSize: 10 }}>TERBIT</span>}
                {draftSavedAt && <span style={{ color: '#5eead4', fontSize: 10 }}>✓ Draft otomatis tersimpan</span>}
             </div>
+            {editingId && selected?.status === 'published' && (
+              <div style={{ color: '#FBBF24', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.22)', borderRadius: 10, padding: '9px 11px', fontSize: 11, lineHeight: 1.5, marginBottom: 12 }}>
+                Perubahan berlaku untuk siswa yang belum mulai. Soal yang sudah memiliki jawaban tidak dapat dihapus agar riwayat ujian tetap aman.
+              </div>
+            )}
             <form onSubmit={save}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px', gap: 8, marginBottom: 8 }}>
                 <select required value={form.kelas} onChange={e => setForm({ ...form, kelas: e.target.value })} style={inputStyle}>
@@ -436,7 +453,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 11, flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => setForm(current => ({ ...current, questions: [...current.questions, blankQuestion(current.questions.length + 1)] }))} style={secondary}>＋ Tambah Soal</button>
-                <button type="submit" disabled={saving || selected?.status === 'published'} style={{ ...primary, opacity: saving || selected?.status === 'published' ? 0.5 : 1 }}>{saving ? 'Menyimpan…' : editingId ? 'Simpan Draft' : 'Simpan Ujian'}</button>
+                <button type="submit" disabled={saving || selected?.status === 'closed'} style={{ ...primary, opacity: saving || selected?.status === 'closed' ? 0.5 : 1 }}>{saving ? 'Menyimpan…' : editingId ? (selected?.status === 'published' ? 'Simpan Perubahan' : 'Simpan Draft') : 'Simpan Ujian'}</button>
               </div>
             </form>
           </section>
@@ -449,7 +466,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
                 <div style={{ color: '#fff', fontSize: 15, fontWeight: 800 }}>{selected.title}</div>
                  <div style={{ color: '#64748B', fontSize: 11, marginTop: 3 }}>{selected.mataPelajaran || 'Matematika'} · {selected.kelas} · {selected.questionCount} soal · {selected.durationMinutes} menit</div>
               </div>
-              {selected.status === 'draft' && <button type="button" onClick={() => edit(selected.id)} style={secondary}>✏️ Edit</button>}
+              {['draft', 'published'].includes(selected.status) && <button type="button" onClick={() => edit(selected.id)} style={secondary}>✏️ Edit Soal</button>}
               {selected.status === 'draft' && <button type="button" onClick={publish} style={primary}>Terbitkan</button>}
               {selected.status === 'draft' && <button type="button" onClick={deleteDraft} disabled={saving} style={{ ...secondary, color: '#FCA5A5', borderColor: 'rgba(248,113,113,0.35)', opacity: saving ? 0.55 : 1 }}>🗑️ Hapus Draft</button>}
               {selected.status === 'published' && <button type="button" onClick={closeExam} style={{ ...secondary, color: '#FCA5A5' }}>Tutup Ujian</button>}
@@ -514,7 +531,7 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
                               max={question.points}
                               step="0.01"
                               value={gradeValues[question.id] ?? '0'}
-                              disabled={gradingAttempt.gradingStatus === 'confirmed' || gradingSaving}
+                              disabled={(gradingAttempt.gradingStatus === 'confirmed' && !gradingEditing) || gradingSaving}
                               onChange={event => setGradeValues(current => ({ ...current, [question.id]: event.target.value }))}
                               style={{ ...inputStyle, padding: '7px 8px', color: '#fff' }}
                             />
@@ -529,7 +546,18 @@ export default function GuruExamScreen({ kelasDiampu = [] }) {
                       <button type="button" onClick={() => saveGrades(true)} disabled={gradingSaving} style={primary}>{gradingSaving ? 'Memproses…' : 'Simpan & konfirmasi nilai akhir'}</button>
                     </div>
                   )}
-                  {gradingAttempt.gradingStatus === 'confirmed' && <div style={{ color: '#86EFAC', fontSize: 11, marginTop: 13 }}>Nilai ini sudah final dan notifikasi telah dikirim ke siswa.</div>}
+                  {gradingAttempt.gradingStatus === 'confirmed' && !gradingEditing && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 13 }}>
+                      <button type="button" onClick={() => setGradingEditing(true)} disabled={gradingSaving} style={secondary}>✏️ Edit nilai final</button>
+                      <span style={{ color: '#86EFAC', fontSize: 11 }}>Nilai final sudah dikonfirmasi dan notifikasi terakhir telah dikirim.</span>
+                    </div>
+                  )}
+                  {gradingAttempt.gradingStatus === 'confirmed' && gradingEditing && (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 13 }}>
+                      <button type="button" onClick={() => setGradingEditing(false)} disabled={gradingSaving} style={secondary}>Batalkan revisi</button>
+                      <button type="button" onClick={() => saveGrades(true)} disabled={gradingSaving} style={primary}>{gradingSaving ? 'Menyimpan revisi…' : 'Simpan revisi nilai final'}</button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

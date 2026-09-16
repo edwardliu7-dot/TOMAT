@@ -36,7 +36,9 @@ function normalizeQuestion(input, position) {
     ? input.options.map(option => cleanText(option, 300)).filter(Boolean).slice(0, 6)
     : []
   const correct = cleanText(input?.correctAnswer ?? input?.correct_answer ?? '', 300)
+  const parsedId = Number.parseInt(input?.id, 10)
   return {
+    id: Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null,
     position,
     prompt: cleanText(input?.prompt ?? input?.question ?? '', 5000),
     answerType,
@@ -155,6 +157,60 @@ async function saveQuestions(client, examId, questions) {
   }
 }
 
+async function updateExamQuestionsPreservingAttempts(client, examId, questions) {
+  const { rows: existing } = await client.query(
+    'select id from exam_questions where exam_id = $1 order by position',
+    [examId],
+  )
+  const existingIds = new Set(existing.map(row => row.id))
+  const incomingIds = new Set(questions.filter(question => question.id).map(question => question.id))
+  const invalidIds = [...incomingIds].filter(id => !existingIds.has(id))
+  if (invalidIds.length) throw new Error('Ada ID soal yang tidak valid untuk ujian ini.')
+
+  const removedIds = [...existingIds].filter(id => !incomingIds.has(id))
+  if (removedIds.length) {
+    const { rows: usedRows } = await client.query(
+      `select distinct question_id
+       from (
+         select question_id from exam_answers where question_id = any($1::int[])
+         union
+         select question_id from exam_answer_grades where question_id = any($1::int[])
+       ) used`,
+      [removedIds],
+    )
+    if (usedRows.length) {
+      throw new Error('Soal yang sudah memiliki jawaban atau koreksi tidak dapat dihapus dari ujian terbit.')
+    }
+  }
+
+  // Move positions out of the way before assigning the submitted positions,
+  // otherwise swapping two question positions violates the unique constraint.
+  await client.query('update exam_questions set position = position + 1000 where exam_id = $1', [examId])
+  for (const question of questions) {
+    if (question.id) {
+      await client.query(
+        `update exam_questions
+         set position = $1, prompt = $2, answer_type = $3, options = $4::jsonb,
+             correct_answer = $5, points = $6
+         where id = $7 and exam_id = $8`,
+        [question.position, question.prompt, question.answerType, JSON.stringify(question.options),
+          question.correctAnswer, question.points, question.id, examId],
+      )
+    } else {
+      await client.query(
+        `insert into exam_questions
+          (exam_id, position, prompt, answer_type, options, correct_answer, points)
+         values ($1,$2,$3,$4,$5::jsonb,$6,$7)`,
+        [examId, question.position, question.prompt, question.answerType,
+          JSON.stringify(question.options), question.correctAnswer, question.points],
+      )
+    }
+  }
+  if (removedIds.length) {
+    await client.query('delete from exam_questions where exam_id = $1 and id = any($2::int[])', [examId, removedIds])
+  }
+}
+
 async function logAudit({ examId = null, attemptId = null, actorId, actorRole, eventType, metadata = {} }) {
   await pool.query(
     `insert into exam_audit_logs
@@ -238,13 +294,26 @@ guruRouter.patch('/:id', requireRegisteredTeacher, async (req, res) => {
   try {
     const exam = await loadTeacherExam(req, req.params.id)
     if (!exam) return res.status(404).json({ error: 'Ujian tidak ditemukan.' })
-    if (exam.status !== 'draft') return res.status(409).json({ error: 'Ujian yang sudah diterbitkan tidak dapat diedit.' })
+    if (!['draft', 'published'].includes(exam.status)) {
+      return res.status(409).json({ error: 'Ujian yang sudah ditutup tidak dapat diedit.' })
+    }
     const { kelas, mataPelajaran, title, description, durationMinutes, questions } = req.body || {}
     const classes = await teacherClasses(req)
     if (kelas && !classes.includes(kelas)) return res.status(403).json({ error: 'Anda tidak mengampu kelas ini.' })
     const cleanSubject = mataPelajaran === undefined ? null : cleanText(mataPelajaran, 100)
     if (mataPelajaran !== undefined && !cleanSubject) return res.status(400).json({ error: 'Nama mata pelajaran wajib diisi.' })
     const cleanQuestions = validateQuestions(questions)
+    if (exam.status === 'published') {
+      const { rows: activeRows } = await pool.query(
+        `select count(*)::int as count
+         from exam_attempts
+         where exam_id = $1 and status = 'in_progress'`,
+        [exam.id],
+      )
+      if (activeRows[0]?.count > 0) {
+        return res.status(409).json({ error: 'Tunggu sampai siswa yang sedang mengerjakan selesai sebelum mengubah soal.' })
+      }
+    }
     await client.query('begin')
     const { rows } = await client.query(
       `update exams set kelas = coalesce($1, kelas), mata_pelajaran = coalesce($2, mata_pelajaran),
@@ -255,8 +324,12 @@ guruRouter.patch('/:id', requireRegisteredTeacher, async (req, res) => {
         description !== undefined ? cleanText(description, 2000) : null,
         durationMinutes ? Math.min(480, Math.max(1, Number.parseInt(durationMinutes, 10) || 60)) : null, exam.id],
     )
-    await client.query('delete from exam_questions where exam_id = $1', [exam.id])
-    await saveQuestions(client, exam.id, cleanQuestions)
+    if (exam.status === 'draft') {
+      await client.query('delete from exam_questions where exam_id = $1', [exam.id])
+      await saveQuestions(client, exam.id, cleanQuestions)
+    } else {
+      await updateExamQuestionsPreservingAttempts(client, exam.id, cleanQuestions)
+    }
     await client.query('commit')
     res.json({ exam: examForClient({ ...rows[0], question_count: cleanQuestions.length }), questions: cleanQuestions })
   } catch (err) {
@@ -454,8 +527,12 @@ guruRouter.put('/:id/results/:attemptId/grades', requireRegisteredTeacher, async
     if (!['submitted', 'expired'].includes(attempt.status)) {
       return res.status(409).json({ error: 'Siswa belum mengumpulkan ujian.' })
     }
-    if (attempt.grading_status === 'confirmed') {
+    const revisingConfirmedGrade = attempt.grading_status === 'confirmed' && req.body?.revise === true
+    if (attempt.grading_status === 'confirmed' && !revisingConfirmedGrade) {
       return res.status(409).json({ error: 'Nilai akhir sudah dikonfirmasi dan tidak dapat diubah.' })
+    }
+    if (revisingConfirmedGrade && req.body?.confirm !== true) {
+      return res.status(400).json({ error: 'Revisi nilai final harus dikonfirmasi.' })
     }
     const { rows: questions } = await pool.query(
       'select * from exam_questions where exam_id = $1 order by position',
@@ -518,7 +595,7 @@ guruRouter.put('/:id/results/:attemptId/grades', requireRegisteredTeacher, async
       `insert into exam_audit_logs (exam_id, attempt_id, actor_id, actor_role, event_type, metadata)
        values ($1,$2,$3,'guru',$4,$5::jsonb)`,
       [exam.id, attempt.id, req.session.user.id,
-        confirm ? 'exam_grade_confirmed' : 'exam_grade_saved',
+        revisingConfirmedGrade ? 'exam_grade_revised' : (confirm ? 'exam_grade_confirmed' : 'exam_grade_saved'),
         JSON.stringify({ awardedTotal, totalPoints, finalScore })],
     )
     await client.query('commit')
@@ -528,10 +605,10 @@ guruRouter.put('/:id/results/:attemptId/grades', requireRegisteredTeacher, async
         userId: attempt.student_id,
         role: 'siswa',
         type: 'exam_result_finalized',
-        title: 'Nilai ujian sudah dikonfirmasi',
+        title: revisingConfirmedGrade ? 'Nilai ujian telah direvisi' : 'Nilai ujian sudah dikonfirmasi',
         body: `${exam.title}: nilai akhir ${finalScore}.`,
         url: '/ujian',
-        metadata: { examId: exam.id, attemptId: attempt.id, finalScore },
+        metadata: { examId: exam.id, attemptId: attempt.id, finalScore, revised: revisingConfirmedGrade },
       })
     }
     res.json({

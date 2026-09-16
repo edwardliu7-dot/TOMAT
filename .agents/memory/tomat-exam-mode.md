@@ -23,7 +23,13 @@ Nilai ujian yang baru dikumpulkan berstatus sementara: `score` otomatis hanya me
 
 **Why:** Soal isian atau jawaban yang perlu interpretasi tidak selalu dapat dinilai otomatis, tetapi siswa tetap membutuhkan hasil yang jelas dan dapat dipercaya setelah guru mengonfirmasi.
 
-**How to apply:** Pertahankan validasi server untuk batas poin per soal dan kepemilikan ujian, jangan tampilkan nilai final sebelum status `confirmed`, dan jangan membuka kembali koreksi yang sudah dikonfirmasi tanpa keputusan produk yang eksplisit.
+**How to apply:** Pertahankan validasi server untuk batas poin per soal dan kepemilikan ujian, jangan tampilkan nilai final sebelum status `confirmed`, dan hanya izinkan revisi nilai confirmed melalui aksi guru yang eksplisit, audit, serta notifikasi ulang kepada siswa.
+
+Ujian terbit dapat diedit guru pemiliknya selama tidak ada siswa yang sedang mengerjakan. Update mempertahankan ID soal dan riwayat attempt; soal yang sudah memiliki jawaban/koreksi tidak boleh dihapus.
+
+**Why:** Guru perlu memperbaiki typo atau kunci jawaban tanpa menghapus sejarah ujian, tetapi perubahan struktur saat attempt aktif dapat membuat soal client dan server tidak sinkron.
+
+**How to apply:** Ujian closed tetap terkunci, blokir perubahan saat ada attempt `in_progress`, dan gunakan update soal yang mempertahankan ID sebelum menghapus soal yang belum pernah dipakai.
 
 Draft ujian guru yang belum disimpan ke server dipertahankan lewat autosave browser dan dipulihkan setelah refresh; draft yang sudah masuk server tetap dibuka dari daftar ujian untuk melanjutkan edit.
 
