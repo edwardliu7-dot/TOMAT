@@ -54,3 +54,9 @@ Siswa dapat membuka review setelah attempt berstatus `submitted` atau `expired`.
 **Why:** Siswa perlu memahami hasil pengerjaannya tanpa membuka kunci jawaban ketika koreksi guru belum selesai atau memberi celah untuk membagikan soal yang masih aktif.
 
 **How to apply:** Lindungi endpoint review dengan kepemilikan attempt siswa, tolak attempt `in_progress`, dan buat respons server menentukan kapan `correctAnswer` boleh dikirim.
+
+Impor `.docx` harus memakai hasil konversi HTML Mammoth agar format bold tidak hilang; marker `[[BOLD_START]]...[[BOLD_END]]` dikirim ke AI sebagai kunci eksplisit. Jika kunci tidak tersedia, AI boleh menyelesaikan soal objektif dan mengembalikan `null` hanya jika ambigu.
+
+**Why:** `extractRawText()` membuang format bold, sedangkan prompt yang melarang tebakan membuat soal tanpa kunci selalu masuk sebagai kunci kosong.
+
+**How to apply:** Pertahankan instruksi marker bold di prompt AI, minta jawaban pilihan ganda tetap sama persis dengan option, dan tampilkan hasil impor sebagai draft yang tetap diperiksa guru.

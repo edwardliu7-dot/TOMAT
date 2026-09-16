@@ -29,6 +29,24 @@ function cleanText(value, max) {
   return String(value ?? '').replace(/\u0000/g, '').trim().slice(0, max)
 }
 
+function docxHtmlToTaggedText(html) {
+  return String(html ?? '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, '\n')
+    .replace(/<(strong|b)\b[^>]*>/gi, ' [[BOLD_START]] ')
+    .replace(/<\/(strong|b)>/gi, ' [[BOLD_END]] ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 function normalizeQuestion(input, position) {
   const answerType = ['multiple_choice', 'short_answer', 'true_false'].includes(input?.answerType || input?.answer_type)
     ? (input.answerType || input.answer_type)
@@ -654,7 +672,9 @@ guruRouter.post('/import-docx', requireRegisteredTeacher, upload.single('file'),
   try {
     if (!req.file) return res.status(400).json({ error: 'File Word .docx wajib dipilih.' })
     const extracted = await mammoth.extractRawText({ buffer: req.file.buffer })
-    const text = cleanText(extracted.value, 50000)
+    const converted = await mammoth.convertToHtml({ buffer: req.file.buffer })
+    const taggedText = docxHtmlToTaggedText(converted.value)
+    const text = cleanText(taggedText || extracted.value, 50000)
     if (!text) return res.status(400).json({ error: 'File Word tidak berisi teks yang dapat dibaca.' })
     if (!process.env.GROQ_API_KEY) return res.status(503).json({ error: 'Pemrosesan AI belum dikonfigurasi di server.' })
     const client = new Groq({ apiKey: process.env.GROQ_API_KEY })
@@ -666,11 +686,14 @@ guruRouter.post('/import-docx', requireRegisteredTeacher, upload.single('file'),
         role: 'system',
         content: `Anda adalah parser soal ujian sekolah berbahasa Indonesia. Kembalikan JSON valid dengan bentuk {"questions":[...]}.
 Setiap item wajib memiliki prompt, answerType (multiple_choice|short_answer|true_false), options (array string), correctAnswer, points.
-Pertahankan isi soal, jangan membuat soal baru, jangan menebak kunci yang tidak ada. Jika kunci tidak jelas, gunakan null.
-Untuk pilihan ganda, correctAnswer harus sama persis dengan salah satu option. Untuk benar-salah gunakan "Benar" atau "Salah".`,
+Pertahankan isi soal dan jangan membuat soal baru.
+Dokumen Word dapat menandai kunci dengan teks di antara [[BOLD_START]] dan [[BOLD_END]]. Untuk pilihan ganda, pilihan yang dibold adalah kunci; hapus marker tersebut dari prompt/options dan gunakan teks pilihan persis sebagai correctAnswer.
+Jika tidak ada kunci yang dibold atau ditulis eksplisit, selesaikan soal sendiri dari isi soal. Pilih jawaban yang paling tepat untuk soal matematika/pengetahuan yang dapat diselesaikan secara objektif.
+Jika soal memang ambigu, membutuhkan gambar yang tidak terbaca, atau jawabannya tidak dapat ditentukan dengan cukup yakin, gunakan null.
+Untuk pilihan ganda, correctAnswer harus sama persis dengan salah satu option. Untuk benar-salah gunakan "Benar" atau "Salah". Untuk short_answer, gunakan jawaban ringkas yang diharapkan.`,
       }, {
         role: 'user',
-        content: `Ekstrak semua soal dan kunci dari dokumen berikut. Abaikan kop, nomor halaman, dan instruksi umum yang bukan soal.\n\n${text}`,
+        content: `Ekstrak semua soal dan kunci dari dokumen berikut. Abaikan kop, nomor halaman, dan instruksi umum yang bukan soal. Marker [[BOLD_START]]...[[BOLD_END]] adalah format bold asli dari Word dan harus diperlakukan sebagai penanda pilihan jawaban yang benar.\n\n${text}`,
       }],
     }
     let completion
