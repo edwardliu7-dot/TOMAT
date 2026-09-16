@@ -258,7 +258,11 @@ export default function ExamScreen({ goBack }) {
     setStrictViolations(persistedViolations)
     setViolationWarning(null)
     setAttempt(data.attempt); setQuestions(data.questions || []); setAnswers(merged); setResult(null); setReview(null)
-    void localSave(data.attempt.id, { answers: merged })
+    if (data.attempt.status === 'in_progress') {
+      void localSave(data.attempt.id, { answers: merged })
+    } else {
+      void localClear(data.attempt.id)
+    }
   }, [])
 
   const resume = useCallback(async attemptId => {
@@ -267,10 +271,27 @@ export default function ExamScreen({ goBack }) {
   }, [hydrate])
 
   useEffect(() => {
-    loadExams()
-    const savedAttemptId = Object.keys(localStorage).find(key => key.startsWith('smartisa_exam_attempt_'))?.replace('smartisa_exam_attempt_', '')
-    if (savedAttemptId) resume(savedAttemptId)
-  }, [loadExams, resume])
+    let cancelled = false
+    const bootstrap = async () => {
+      await loadExams()
+      const savedAttemptIds = Object.keys(localStorage)
+        .filter(key => key.startsWith('smartisa_exam_attempt_'))
+        .map(key => key.replace('smartisa_exam_attempt_', ''))
+      for (const savedAttemptId of savedAttemptIds) {
+        if (cancelled) return
+        try {
+          const data = await apiCall(`/api/siswa/exams/attempts/${savedAttemptId}`)
+          if (data.attempt?.status === 'in_progress') {
+            await hydrate(data)
+            return
+          }
+        } catch {}
+        await localClear(savedAttemptId)
+      }
+    }
+    void bootstrap()
+    return () => { cancelled = true }
+  }, [loadExams, hydrate])
 
   useEffect(() => {
     const online = () => setOffline(false)
