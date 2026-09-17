@@ -82,6 +82,37 @@ function validateQuestions(rawQuestions) {
   return questions
 }
 
+function parseAiQuestions(raw) {
+  const normalized = String(raw || '')
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .trim()
+
+  // Some models add a short explanation before the JSON object even when
+  // JSON mode is requested. Keep the parser strict about the payload itself,
+  // but tolerate that harmless wrapper text.
+  const start = normalized.indexOf('{')
+  const end = normalized.lastIndexOf('}')
+  if (start < 0 || end <= start) {
+    throw new Error('AI tidak mengembalikan objek JSON yang dapat dibaca.')
+  }
+
+  let parsed
+  try {
+    parsed = JSON.parse(normalized.slice(start, end + 1))
+  } catch {
+    throw new Error('AI mengembalikan format soal yang tidak valid. Coba impor ulang dokumennya.')
+  }
+  return validateQuestions(parsed.questions)
+}
+
+function isJsonGenerationError(err) {
+  return err?.status === 400
+    && (err?.error?.code === 'failed_generation'
+      || err?.code === 'failed_generation'
+      || /failed to validate json/i.test(err?.message || ''))
+}
+
 function publicQuestion(question) {
   return {
     id: question.id,
@@ -685,11 +716,12 @@ guruRouter.post('/import-docx', requireRegisteredTeacher, upload.single('file'),
       messages: [{
         role: 'system',
         content: `Anda adalah parser soal ujian sekolah berbahasa Indonesia. Kembalikan JSON valid dengan bentuk {"questions":[...]}.
-Setiap item wajib memiliki prompt, answerType (multiple_choice|short_answer|true_false), options (array string), correctAnswer, points.
+Keluarkan HANYA satu objek JSON, tanpa markdown, tanpa komentar, dan tanpa penjelasan sebelum atau sesudahnya.
+Setiap item wajib memiliki prompt (string), answerType (multiple_choice|short_answer|true_false), options (array string), correctAnswer (string), points (integer).
 Pertahankan isi soal dan jangan membuat soal baru.
 Dokumen Word dapat menandai kunci dengan teks di antara [[BOLD_START]] dan [[BOLD_END]]. Untuk pilihan ganda, pilihan yang dibold adalah kunci; hapus marker tersebut dari prompt/options dan gunakan teks pilihan persis sebagai correctAnswer.
 Jika tidak ada kunci yang dibold atau ditulis eksplisit, selesaikan soal sendiri dari isi soal. Pilih jawaban yang paling tepat untuk soal matematika/pengetahuan yang dapat diselesaikan secara objektif.
-Jika soal memang ambigu, membutuhkan gambar yang tidak terbaca, atau jawabannya tidak dapat ditentukan dengan cukup yakin, gunakan null.
+Jika soal memang ambigu, membutuhkan gambar yang tidak terbaca, atau jawabannya tidak dapat ditentukan dengan cukup yakin, tetap gunakan jawaban terbaik yang dapat disimpulkan dari konteks dan jangan gunakan null.
 Untuk pilihan ganda, correctAnswer harus sama persis dengan salah satu option. Untuk benar-salah gunakan "Benar" atau "Salah". Untuk short_answer, gunakan jawaban ringkas yang diharapkan.`,
       }, {
         role: 'user',
@@ -703,20 +735,39 @@ Untuk pilihan ganda, correctAnswer harus sama persis dengan salah satu option. U
       const modelUnavailable = err?.status === 404
         || err?.error?.code === 'model_not_found'
         || /model.*(not found|does not exist|access)/i.test(err?.message || '')
-      if (!modelUnavailable || AI_MODEL === DEFAULT_AI_MODEL) throw err
-      console.warn(`[exam import] model ${AI_MODEL} tidak tersedia, mencoba ${DEFAULT_AI_MODEL}`)
-      completion = await client.chat.completions.create({
-        ...completionRequest,
-        model: DEFAULT_AI_MODEL,
-      })
+      if (modelUnavailable && AI_MODEL !== DEFAULT_AI_MODEL) {
+        console.warn(`[exam import] model ${AI_MODEL} tidak tersedia, mencoba ${DEFAULT_AI_MODEL}`)
+        completion = await client.chat.completions.create({
+          ...completionRequest,
+          model: DEFAULT_AI_MODEL,
+        })
+      } else if (isJsonGenerationError(err)) {
+        // Groq JSON mode can reject an otherwise usable completion when the
+        // model emits a stray token. Retry as plain text and validate the
+        // extracted JSON below instead of failing the whole Word import.
+        console.warn('[exam import] JSON mode gagal, mencoba respons teks terstruktur')
+        const { response_format: _responseFormat, ...textRequest } = completionRequest
+        completion = await client.chat.completions.create({
+          ...textRequest,
+          messages: textRequest.messages.map(message => (
+            message.role === 'system'
+              ? { ...message, content: `${message.content}\nULANGI: jawab hanya dengan satu objek JSON valid.` }
+              : message
+          )),
+        })
+      } else {
+        throw err
+      }
     }
     const raw = completion.choices?.[0]?.message?.content || '{}'
-    const parsed = JSON.parse(raw.replace(/^```json\s*|\s*```$/gi, '').trim())
-    const questions = validateQuestions(parsed.questions)
+    const questions = parseAiQuestions(raw)
     res.json({ questions, sourceTextLength: text.length })
   } catch (err) {
     console.error('guru/exams docx import error', err)
-    res.status(400).json({ error: err.message || 'AI gagal mengenali soal dari dokumen.' })
+    const message = isJsonGenerationError(err)
+      ? 'AI gagal menyusun hasil impor. Coba impor ulang dokumen atau gunakan format Word yang lebih sederhana.'
+      : err.message || 'AI gagal mengenali soal dari dokumen.'
+    res.status(400).json({ error: message })
   }
 })
 

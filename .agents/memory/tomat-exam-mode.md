@@ -60,3 +60,9 @@ Impor `.docx` harus memakai hasil konversi HTML Mammoth agar format bold tidak h
 **Why:** `extractRawText()` membuang format bold, sedangkan prompt yang melarang tebakan membuat soal tanpa kunci selalu masuk sebagai kunci kosong.
 
 **How to apply:** Pertahankan instruksi marker bold di prompt AI, minta jawaban pilihan ganda tetap sama persis dengan option, dan tampilkan hasil impor sebagai draft yang tetap diperiksa guru.
+
+Groq JSON mode pada model `openai/gpt-oss-120b` dapat mengembalikan `failed_generation` walaupun prompt sudah meminta JSON; impor Word perlu fallback ke respons teks terstruktur lalu mengekstrak dan memvalidasi objek JSON di server.
+
+**Why:** Kegagalan validasi JSON dari provider tidak selalu berarti dokumen Word rusak, dan tanpa fallback guru melihat error mentah 400.
+
+**How to apply:** Pertahankan validasi `questions` setelah parsing, jangan menyimpan hasil AI langsung ke database, dan tampilkan pesan impor yang ramah jika respons kedua juga gagal.
